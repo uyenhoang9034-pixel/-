@@ -78,7 +78,7 @@ export async function createInitialHelpMenu(client) {
     const botName = client?.user?.username || "Bot";
     const embed = createEmbed({
         title: `📖 ${botName} Help`,
-        description: 'tao là mvp',
+        description: 'Set up your server, pick what to enable, then browse commands below.',
         color: 'primary',
         thumbnail: client.user?.displayAvatarURL?.({ size: 1024 }),
         fields: [
