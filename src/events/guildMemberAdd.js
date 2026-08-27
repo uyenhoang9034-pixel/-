@@ -74,7 +74,10 @@ export default {
                         .setTimestamp();
                     
                     if (embedFooter && embedFooter.trim()) {
-                        embed.setFooter({ text: embedFooter.trim() });
+                        embed.setFooter({
+                            text: embedFooter.trim(),
+                            iconURL: guild.iconURL() || undefined
+                        });
                     }
                     
                     if (welcomeConfig.welcomeEmbed?.author) {

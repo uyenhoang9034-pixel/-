@@ -479,7 +479,7 @@ async function handleWelcomeMessage(selectInteraction, rootInteraction, cfg, gui
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('message_input')
-                    .setLabel('Message (variables: {user}, {server}, etc)')
+                    .setLabel('Message (vars: {user}, {server})')
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(cfg.welcomeMessage || 'Welcome {user} to {server}!')
                     .setMaxLength(2000)
@@ -609,7 +609,7 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('author_input')
-                    .setLabel('Author (variables: {user}, {server})')
+                    .setLabel('Author (vars: {user}, {server})')
                     .setStyle(TextInputStyle.Short)
                     .setValue(cfg.welcomeEmbed?.author || '')
                     .setMaxLength(256)
@@ -619,7 +619,7 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('footer_input')
-                    .setLabel('Footer (variables: {user}, {server})')
+                    .setLabel('Footer (vars: {user}, {server})')
                     .setStyle(TextInputStyle.Short)
                     .setValue((typeof cfg.welcomeEmbed?.footer === 'object' && cfg.welcomeEmbed?.footer !== null ? cfg.welcomeEmbed.footer.text : cfg.welcomeEmbed?.footer) || '')
                     .setMaxLength(2048)
@@ -629,7 +629,7 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('color_input')
-                    .setLabel('Color Hex (e.g. #FF0000 or FF0000)')
+                    .setLabel('Color Hex (e.g. #FF0000)')
                     .setStyle(TextInputStyle.Short)
                     .setValue(cfg.welcomeEmbed?.color || '')
                     .setMaxLength(7)
@@ -715,7 +715,7 @@ async function handleWelcomeFooter(selectInteraction, rootInteraction, cfg, guil
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('footer_input')
-                    .setLabel('Footer (variables: {user}, {server_name}, {time_stamp})')
+                    .setLabel('Footer (vars: {server_name}, {time_stamp})')
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(rawFooter || '')
                     .setMaxLength(2048)
@@ -775,7 +775,7 @@ async function handleWelcomeAuthor(selectInteraction, rootInteraction, cfg, guil
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('author_input')
-                    .setLabel('Author (variables: {user}, {server_name})')
+                    .setLabel('Author (vars: {user}, {server_name})')
                     .setStyle(TextInputStyle.Short)
                     .setValue(cfg.welcomeEmbed?.author || '')
                     .setMaxLength(256)
@@ -835,7 +835,7 @@ async function handleWelcomeColor(selectInteraction, rootInteraction, cfg, guild
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('color_input')
-                    .setLabel('Color Hex (e.g. #FF0000 or FF0000)')
+                    .setLabel('Color Hex (e.g. #FF0000)')
                     .setStyle(TextInputStyle.Short)
                     .setValue(cfg.welcomeEmbed?.color || '')
                     .setMaxLength(7)
@@ -908,7 +908,7 @@ async function handleWelcomePingText(selectInteraction, rootInteraction, cfg, gu
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('ping_text_input')
-                    .setLabel('Ping Text (variables: {user}, {server})')
+                    .setLabel('Ping Text (vars: {user}, {server})')
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(cfg.welcomePingMessage || '')
                     .setMaxLength(2000)
@@ -1052,7 +1052,7 @@ async function handleGoodbyeMessage(selectInteraction, rootInteraction, cfg, gui
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId('message_input')
-                    .setLabel('Message (variables: {user}, {server}, etc)')
+                    .setLabel('Message (vars: {user}, {server})')
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(cfg.leaveMessage || '{user.tag} has left the server.')
                     .setMaxLength(2000)
