@@ -1225,9 +1225,14 @@ async function handleGoodbyeMessage(selectInteraction, rootInteraction, cfg, gui
         })
         .catch(() => null);
 
-    if (!submitted) return;
+    const messageInput = submitted.fields.getTextInputValue('message_input').trim();
+    cfg.leaveMessage = messageInput;
 
-    cfg.leaveMessage = submitted.fields.getTextInputValue('message_input').trim();
+    if (!cfg.leaveEmbed || typeof cfg.leaveEmbed !== 'object') {
+        cfg.leaveEmbed = {};
+    }
+    cfg.leaveEmbed.description = messageInput;
+
     await saveWelcomeConfig(client, guildId, cfg);
 
     await submitted.reply({
