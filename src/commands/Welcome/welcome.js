@@ -88,7 +88,7 @@ export default {
             const color = options.getString('color');
 
             const existingConfig = await getWelcomeConfig(client, guild.id);
-            
+
             if (!message || message.trim().length === 0) {
                 logger.warn(`[Welcome] Empty message provided by ${interaction.user.tag} in ${guild.name}`);
                 return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Welcome message cannot be empty' });
@@ -178,26 +178,26 @@ export default {
                 const welcomeChannelId = welcomeConfig?.channelId;
 
                 if (!welcomeConfig?.enabled || !welcomeChannelId) {
-                    return await replyUserError(interaction, { 
-                        type: ErrorTypes.CONFIGURATION, 
-                        message: 'The welcome system is not enabled or configured yet. Run **/welcome setup** first.' 
+                    return await replyUserError(interaction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: 'The welcome system is not enabled or configured yet. Run **/welcome setup** first.'
                     });
                 }
 
                 const channel = guild.channels.cache.get(welcomeChannelId);
                 if (!channel) {
-                    return await replyUserError(interaction, { 
-                        type: ErrorTypes.UNKNOWN, 
-                        message: 'Could not find the configured welcome channel. Please make sure the channel exists and the bot has access.' 
+                    return await replyUserError(interaction, {
+                        type: ErrorTypes.UNKNOWN,
+                        message: 'Could not find the configured welcome channel. Please make sure the channel exists and the bot has access.'
                     });
                 }
 
                 const me = guild.members.me;
                 const permissions = channel.permissionsFor(me);
                 if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                    return await replyUserError(interaction, { 
-                        type: ErrorTypes.PERMISSION, 
-                        message: `I do not have permission to view or send messages in ${channel}.` 
+                    return await replyUserError(interaction, {
+                        type: ErrorTypes.PERMISSION,
+                        message: `I do not have permission to view or send messages in ${channel}.`
                     });
                 }
 
@@ -237,10 +237,10 @@ export default {
                         .setTitle(embedTitle)
                         .setDescription(welcomeMessage)
                         .setThumbnail(interaction.user.displayAvatarURL())
-                        .addFields(
-                            { name: 'User', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
-                            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
-                        )
+                        // .addFields(
+                        //     { name: 'User', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
+                        //     { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
+                        // )
                         .setTimestamp()
                         .setFooter({ text: embedFooter });
 
@@ -261,14 +261,14 @@ export default {
                     });
                 }
 
-                await InteractionHelper.safeEditReply(interaction, { 
-                    content: `✅ Test welcome message has been successfully sent to ${channel}!` 
+                await InteractionHelper.safeEditReply(interaction, {
+                    content: `✅ Test welcome message has been successfully sent to ${channel}!`
                 });
             } catch (error) {
                 logger.error(`[Welcome Test] Failed to send test welcome message:`, error);
-                await replyUserError(interaction, { 
-                    type: ErrorTypes.UNKNOWN, 
-                    message: 'Failed to send test message. Please verify my permissions in the welcome channel.' 
+                await replyUserError(interaction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'Failed to send test message. Please verify my permissions in the welcome channel.'
                 });
             }
         }
