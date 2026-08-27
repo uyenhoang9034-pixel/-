@@ -64,6 +64,11 @@ export default {
                         .setTimestamp()
                         .setFooter({ text: embedFooter });
                     
+                    if (welcomeConfig.welcomeEmbed?.author) {
+                        const embedAuthor = formatWelcomeMessage(welcomeConfig.welcomeEmbed.author, formatData);
+                        embed.setAuthor({ name: embedAuthor });
+                    }
+                    
                     if (welcomeConfig.welcomeImage) {
                         embed.setImage(welcomeConfig.welcomeImage);
                     } else if (welcomeConfig.welcomeEmbed?.image?.url) {

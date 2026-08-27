@@ -31,6 +31,18 @@ export default {
                 .addBooleanOption(option =>
                     option.setName('ping')
                         .setDescription('Whether to ping the user in the welcome message')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('author')
+                        .setDescription('Author text for the welcome embed. Variables: {user}, {username}, {server}')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('footer')
+                        .setDescription('Footer text for the welcome embed. Variables: {user}, {username}, {server}')
+                        .setRequired(false))
+                .addStringOption(option =>
+                    option.setName('color')
+                        .setDescription('Hex color code for the welcome embed (e.g., #FF0000)')
                         .setRequired(false))),
 
     async execute(interaction) {
@@ -62,6 +74,9 @@ export default {
             const message = options.getString('message');
             const image = options.getString('image');
             const ping = options.getBoolean('ping') ?? false;
+            const author = options.getString('author');
+            const footer = options.getString('footer');
+            const color = options.getString('color');
 
             const existingConfig = await getWelcomeConfig(client, guild.id);
             if (existingConfig?.channelId) {
@@ -79,17 +94,36 @@ export default {
                     new URL(image);
                 } catch (e) {
                     logger.warn(`[Welcome] Invalid image URL provided by ${interaction.user.tag}: ${image}`);
-                    return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid image URL (must start with http:// or https://' });
+                    return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid image URL (must start with http:// or https://)' });
                 }
             }
 
+            let resolvedColor = undefined;
+            if (color) {
+                const hexRegex = /^#?[0-9A-Fa-f]{6}$/;
+                if (!hexRegex.test(color)) {
+                    logger.warn(`[Welcome] Invalid color hex code provided by ${interaction.user.tag}: ${color}`);
+                    return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Invalid color hex code. Please provide a valid 6-character hex code (e.g., #FF0000 or FF0000).' });
+                }
+                resolvedColor = color.startsWith('#') ? color : `#${color}`;
+            }
+
             try {
+                const updatedEmbed = {
+                    ...(existingConfig?.welcomeEmbed || {}),
+                    description: message
+                };
+                if (author !== null) updatedEmbed.author = author || undefined;
+                if (footer !== null) updatedEmbed.footer = footer || undefined;
+                if (resolvedColor !== undefined) updatedEmbed.color = resolvedColor;
+
                 await updateWelcomeConfig(client, guild.id, {
                     enabled: true,
                     channelId: channel.id,
                     welcomeMessage: message,
                     welcomeImage: image || undefined,
-                    welcomePing: ping
+                    welcomePing: ping,
+                    welcomeEmbed: updatedEmbed
                 });
 
                 logger.info(`[Welcome] Setup configured by ${interaction.user.tag} for guild ${guild.name} (${guild.id})`);
@@ -99,8 +133,9 @@ export default {
                     guild
                 });
 
+                const embedColor = resolvedColor || getColor('success');
                 const embed = new EmbedBuilder()
-                    .setColor(getColor('success'))
+                    .setColor(embedColor)
                     .setTitle('Welcome System Configured')
                     .setDescription(`Welcome messages will now be sent to ${channel}`)
                     .addFields(
@@ -110,6 +145,14 @@ export default {
                     )
                     .setFooter({ text: 'Tip: Use /greet dashboard to customize welcome settings' });
 
+                if (author) {
+                    const previewAuthor = formatWelcomeMessage(author, { user: interaction.user, guild });
+                    embed.addFields({ name: 'Author Preview', value: truncateForEmbedField(previewAuthor) });
+                }
+                if (footer) {
+                    const previewFooter = formatWelcomeMessage(footer, { user: interaction.user, guild });
+                    embed.addFields({ name: 'Footer Preview', value: truncateForEmbedField(previewFooter) });
+                }
                 if (image) {
                     embed.setImage(image);
                 }
