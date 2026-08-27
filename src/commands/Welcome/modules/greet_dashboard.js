@@ -58,6 +58,13 @@ function buildDashboardEmbed(cfg, guild) {
     const welcomePreview = `\`${rawWelcome.length > 55 ? rawWelcome.substring(0, 55) + '…' : rawWelcome}\``;
     const goodbyePreview = `\`${rawGoodbye.length > 55 ? rawGoodbye.substring(0, 55) + '…' : rawGoodbye}\``;
 
+    const welcomeAuthor = cfg.welcomeEmbed?.author ? `\`${cfg.welcomeEmbed.author}\`` : '`Not set`';
+    const welcomeFooter = cfg.welcomeEmbed?.footer ? `\`${cfg.welcomeEmbed.footer}\`` : '`Default`';
+    const welcomeColor = cfg.welcomeEmbed?.color ? `\`${cfg.welcomeEmbed.color}\`` : '`Default (Success)`';
+    const welcomePingDisplay = cfg.welcomePingMessage 
+        ? `\`${cfg.welcomePingMessage.length > 35 ? cfg.welcomePingMessage.substring(0, 35) + '…' : cfg.welcomePingMessage}\`` 
+        : (cfg.welcomePing ? '`@User`' : '`Off`');
+
     return new EmbedBuilder()
         .setTitle('👋 Greet System Dashboard')
         .setDescription(
@@ -67,7 +74,10 @@ function buildDashboardEmbed(cfg, guild) {
         .addFields(
             { name: 'Welcome Channel', value: welcomeChannel, inline: true },
             { name: 'Welcome Status', value: cfg.enabled ? 'Enabled' : 'Disabled', inline: true },
-            { name: 'Welcome Ping', value: cfg.welcomePing ? 'On' : 'Off', inline: true },
+            { name: 'Welcome Ping', value: welcomePingDisplay, inline: true },
+            { name: 'Welcome Author', value: welcomeAuthor, inline: true },
+            { name: 'Welcome Footer', value: welcomeFooter, inline: true },
+            { name: 'Welcome Color', value: welcomeColor, inline: true },
             { name: 'Goodbye Channel', value: goodbyeChannel, inline: true },
             { name: 'Goodbye Status', value: cfg.goodbyeEnabled ? 'Enabled' : 'Disabled', inline: true },
             { name: 'Goodbye Ping', value: cfg.goodbyePing ? 'On' : 'Off', inline: true },
@@ -98,6 +108,16 @@ function buildSelectMenu(guildId) {
                 .setDescription('Set the image for welcome messages')
                 .setValue('welcome_image')
                 .setEmoji('🖼️'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Welcome Embed Style')
+                .setDescription('Configure author, footer, and color for welcome embed')
+                .setValue('welcome_embed')
+                .setEmoji('🎨'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Welcome Ping Text')
+                .setDescription('Set custom text when pinging user (e.g. Chào mừng {user}!)')
+                .setValue('welcome_ping_text')
+                .setEmoji('🔔'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Goodbye Channel')
                 .setDescription('Set the channel where goodbye messages are sent')
@@ -218,6 +238,12 @@ export default {
                             break;
                         case 'welcome_image':
                             await handleWelcomeImage(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'welcome_embed':
+                            await handleWelcomeEmbed(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'welcome_ping_text':
+                            await handleWelcomePingText(selectInteraction, interaction, cfg, guildId, client);
                             break;
                         case 'goodbye_channel':
                             await handleGoodbyeChannel(selectInteraction, interaction, cfg, guildId, client);
@@ -452,6 +478,10 @@ async function handleWelcomeMessage(selectInteraction, rootInteraction, cfg, gui
     if (!submitted) return;
 
     cfg.welcomeMessage = submitted.fields.getTextInputValue('message_input').trim();
+    if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
+        cfg.welcomeEmbed = {};
+    }
+    cfg.welcomeEmbed.description = cfg.welcomeMessage;
     await saveWelcomeConfig(client, guildId, cfg);
 
     await submitted.reply({
@@ -526,10 +556,179 @@ async function handleWelcomeImage(selectInteraction, rootInteraction, cfg, guild
     }
 
     cfg.welcomeImage = imageUrl || null;
+    if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
+        cfg.welcomeEmbed = {};
+    }
+    if (imageUrl) {
+        cfg.welcomeEmbed.image = { url: imageUrl };
+    } else {
+        delete cfg.welcomeEmbed.image;
+    }
     await saveWelcomeConfig(client, guildId, cfg);
 
     await submitted.reply({
         embeds: [successEmbed('Welcome Image Updated', `Image ${imageUrl ? 'updated' : 'removed'} successfully.`)],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_welcome_embed')
+        .setTitle('Edit Welcome Embed Style')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('author_input')
+                    .setLabel('Author (variables: {user}, {server})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.welcomeEmbed?.author || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. Welcome to {server}!')
+                    .setRequired(false),
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('footer_input')
+                    .setLabel('Footer (variables: {user}, {server})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.welcomeEmbed?.footer || '')
+                    .setMaxLength(2048)
+                    .setPlaceholder('e.g. Member #{memberCount}')
+                    .setRequired(false),
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('color_input')
+                    .setLabel('Color Hex (e.g. #FF0000 or FF0000)')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.welcomeEmbed?.color || '')
+                    .setMaxLength(7)
+                    .setPlaceholder('#5865F2')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_welcome_embed' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const authorInput = submitted.fields.getTextInputValue('author_input').trim();
+    const footerInput = submitted.fields.getTextInputValue('footer_input').trim();
+    const colorInput = submitted.fields.getTextInputValue('color_input').trim();
+
+    let resolvedColor = undefined;
+    if (colorInput) {
+        const hexRegex = /^#?[0-9A-Fa-f]{6}$/;
+        if (!hexRegex.test(colorInput)) {
+            await replyUserError(submitted, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Invalid color hex code. Please provide a valid 6-character hex code (e.g., #FF0000 or FF0000).',
+            });
+            return;
+        }
+        resolvedColor = colorInput.startsWith('#') ? colorInput : `#${colorInput}`;
+    }
+
+    if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
+        cfg.welcomeEmbed = {};
+    }
+
+    if (authorInput) {
+        cfg.welcomeEmbed.author = authorInput;
+    } else {
+        delete cfg.welcomeEmbed.author;
+    }
+
+    if (footerInput) {
+        cfg.welcomeEmbed.footer = footerInput;
+    } else {
+        delete cfg.welcomeEmbed.footer;
+    }
+
+    if (resolvedColor !== undefined) {
+        cfg.welcomeEmbed.color = resolvedColor;
+    } else if (!colorInput) {
+        delete cfg.welcomeEmbed.color;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [successEmbed('Welcome Embed Updated', 'The welcome embed styling (author, footer, color) has been saved.')],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleWelcomePingText(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_welcome_ping_text')
+        .setTitle('Edit Welcome Ping Text')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('ping_text_input')
+                    .setLabel('Ping Text (variables: {user}, {server})')
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setValue(cfg.welcomePingMessage || '')
+                    .setMaxLength(2000)
+                    .setPlaceholder('e.g. Chào mừng {user} đã đến với {server}!')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_welcome_ping_text' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const pingTextInput = submitted.fields.getTextInputValue('ping_text_input').trim();
+
+    if (pingTextInput) {
+        cfg.welcomePingMessage = pingTextInput;
+        cfg.welcomePing = true;
+    } else {
+        delete cfg.welcomePingMessage;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Welcome Ping Text Updated',
+                pingTextInput
+                    ? `Custom ping text set to: \`${pingTextInput}\``
+                    : 'Custom ping text removed. Standard ping will be used if ping is on.',
+            ),
+        ],
         flags: MessageFlags.Ephemeral,
     });
 

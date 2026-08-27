@@ -33,6 +33,10 @@ export default {
                         .setDescription('Whether to ping the user in the welcome message')
                         .setRequired(false))
                 .addStringOption(option =>
+                    option.setName('ping_message')
+                        .setDescription('Custom text when pinging user (e.g. Chào mừng {user}!). Leave empty for standard ping')
+                        .setRequired(false))
+                .addStringOption(option =>
                     option.setName('author')
                         .setDescription('Author text for the welcome embed. Variables: {user}, {username}, {server}')
                         .setRequired(false))
@@ -78,6 +82,7 @@ export default {
             const message = options.getString('message');
             const image = options.getString('image');
             const ping = options.getBoolean('ping') ?? false;
+            const pingMessage = options.getString('ping_message');
             const author = options.getString('author');
             const footer = options.getString('footer');
             const color = options.getString('color');
@@ -122,7 +127,8 @@ export default {
                     channelId: channel.id,
                     welcomeMessage: message,
                     welcomeImage: image || undefined,
-                    welcomePing: ping,
+                    welcomePing: ping || Boolean(pingMessage),
+                    welcomePingMessage: pingMessage || undefined,
                     welcomeEmbed: updatedEmbed
                 });
 
@@ -140,11 +146,15 @@ export default {
                     .setDescription(`Welcome messages will now be sent to ${channel}`)
                     .addFields(
                         { name: 'Message Preview', value: truncateForEmbedField(previewMessage) },
-                        { name: 'Ping User', value: ping ? 'Yes' : 'No' },
+                        { name: 'Ping User', value: ping || Boolean(pingMessage) ? 'Yes' : 'No' },
                         { name: 'Status', value: 'Enabled' }
                     )
                     .setFooter({ text: 'Tip: Use /greet dashboard to customize welcome settings' });
 
+                if (pingMessage) {
+                    const previewPing = formatWelcomeMessage(pingMessage, { user: interaction.user, guild });
+                    embed.addFields({ name: 'Ping Message Preview', value: truncateForEmbedField(previewPing) });
+                }
                 if (author) {
                     const previewAuthor = formatWelcomeMessage(author, { user: interaction.user, guild });
                     embed.addFields({ name: 'Author Preview', value: truncateForEmbedField(previewAuthor) });
@@ -197,7 +207,16 @@ export default {
                     formatData
                 );
 
-                const messageContent = welcomeConfig.welcomePing ? interaction.user.toString() : null;
+                let messageContent = null;
+                if (welcomeConfig.welcomePingMessage) {
+                    messageContent = formatWelcomeMessage(welcomeConfig.welcomePingMessage, formatData);
+                    if (!messageContent.includes(interaction.user.id) && welcomeConfig.welcomePing !== false) {
+                        messageContent = `${messageContent} ${interaction.user.toString()}`;
+                    }
+                } else if (welcomeConfig.welcomePing) {
+                    messageContent = interaction.user.toString();
+                }
+
                 const embedTitle = formatWelcomeMessage(
                     welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
                     formatData

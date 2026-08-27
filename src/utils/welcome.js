@@ -23,10 +23,13 @@ export function truncateForEmbedField(value, maxLength = 1024) {
 }
 
 export function formatWelcomeMessage(message, data) {
-    
+
     if (typeof message !== 'string') return '';
     if (!message) return '';
-    if (!data || typeof data !== 'object') return message;
+
+    let result = message.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+
+    if (!data || typeof data !== 'object') return result;
 
     const user = data?.user;
     const guild = data?.guild;
@@ -44,6 +47,7 @@ export function formatWelcomeMessage(message, data) {
         '{user.tag}': user?.tag || 'Unknown#0000',
         '{user.username}': user?.username || 'Unknown',
         '{username}': user?.username || 'Unknown',
+        '{user_name}': user?.username || 'Unknown',
         '{user.discriminator}': user?.discriminator || '0000',
         '{user.id}': user?.id || 'unknown',
         '{server}': guild?.name || 'Server',
@@ -56,7 +60,6 @@ export function formatWelcomeMessage(message, data) {
         '{membercount}': guild?.memberCount?.toString?.() || '0'
     };
 
-    let result = message;
     for (const [token, value] of Object.entries(tokens)) {
         if (value === undefined || value === null) continue;
         result = replaceAll(result, token, String(value));

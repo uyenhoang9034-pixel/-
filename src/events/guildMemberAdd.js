@@ -35,7 +35,15 @@ export default {
                     formatData
                 );
 
-                const messageContent = welcomeConfig.welcomePing ? user.toString() : null;
+                let messageContent = null;
+                if (welcomeConfig.welcomePingMessage) {
+                    messageContent = formatWelcomeMessage(welcomeConfig.welcomePingMessage, formatData);
+                    if (!messageContent.includes(user.id) && welcomeConfig.welcomePing !== false) {
+                        messageContent = `${messageContent} ${user.toString()}`;
+                    }
+                } else if (welcomeConfig.welcomePing) {
+                    messageContent = user.toString();
+                }
 
                 const embedTitle = formatWelcomeMessage(
                     welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
