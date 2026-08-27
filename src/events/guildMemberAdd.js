@@ -9,178 +9,174 @@ import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 
 export default {
-  name: Events.GuildMemberAdd,
-  once: false,
-  
-  async execute(member) {
-    try {
-        const { guild, user } = member;
-        
-        const config = await getGuildConfig(member.client, guild.id);
-        
-        const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
-        
-        const welcomeChannelId = welcomeConfig?.channelId;
+    name: Events.GuildMemberAdd,
+    once: false,
 
-        if (welcomeConfig?.enabled && welcomeChannelId) {
-            const channel = guild.channels.cache.get(welcomeChannelId);
-            const me = guild.members.me;
-            const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
-            // Skip only the welcome message if permissions are missing; the rest of the
-            // join pipeline (auto-role, verification, logging, counters) must still run.
-            if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                const formatData = { user, guild, member };
-                const welcomeMessage = formatWelcomeMessage(
-                    welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || botConfig.welcome?.defaultWelcomeMessage || 'Welcome {user} to {server}!',
-                    formatData
-                );
+    async execute(member) {
+        try {
+            const { guild, user } = member;
 
-                let messageContent = null;
-                if (welcomeConfig.welcomePingMessage && welcomeConfig.welcomePingMessage.trim()) {
-                    messageContent = formatWelcomeMessage(welcomeConfig.welcomePingMessage, formatData);
-                } else if (welcomeConfig.welcomePing) {
-                    messageContent = user.toString();
-                }
+            const config = await getGuildConfig(member.client, guild.id);
 
-                const embedTitle = formatWelcomeMessage(
-                    welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
-                    formatData
-                );
-                const rawFooter = typeof welcomeConfig.welcomeEmbed?.footer === 'object' && welcomeConfig.welcomeEmbed?.footer !== null
-                    ? welcomeConfig.welcomeEmbed.footer.text
-                    : welcomeConfig.welcomeEmbed?.footer;
-                const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Welcome to {server_name}!`;
-                const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
+            const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
 
-                const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
+            const welcomeChannelId = welcomeConfig?.channelId;
 
-                if (!canEmbed) {
-                    await channel.send({
-                        content: messageContent || welcomeMessage
-                    });
-                } else {
-                    const embed = new EmbedBuilder()
-                        .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
-                        .setTitle(embedTitle)
-                        .setDescription(welcomeMessage)
-                        .setThumbnail(user.displayAvatarURL())
-                        .addFields(
-                            { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
-                        )
-                        .setTimestamp();
-                    
-                    if (embedFooter && embedFooter.trim()) {
-                        embed.setFooter({
-                            text: embedFooter.trim(),
-                            iconURL: guild.iconURL() || undefined
+            if (welcomeConfig?.enabled && welcomeChannelId) {
+                const channel = guild.channels.cache.get(welcomeChannelId);
+                const me = guild.members.me;
+                const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
+                // Skip only the welcome message if permissions are missing; the rest of the
+                // join pipeline (auto-role, verification, logging, counters) must still run.
+                if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+                    const formatData = { user, guild, member };
+                    const welcomeMessage = formatWelcomeMessage(
+                        welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || botConfig.welcome?.defaultWelcomeMessage || 'Welcome {user} to {server}!',
+                        formatData
+                    );
+
+                    let messageContent = null;
+                    if (welcomeConfig.welcomePingMessage && welcomeConfig.welcomePingMessage.trim()) {
+                        messageContent = formatWelcomeMessage(welcomeConfig.welcomePingMessage, formatData);
+                    } else if (welcomeConfig.welcomePing) {
+                        messageContent = user.toString();
+                    }
+
+                    const embedTitle = formatWelcomeMessage(
+                        welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
+                        formatData
+                    );
+                    const rawFooter = typeof welcomeConfig.welcomeEmbed?.footer === 'object' && welcomeConfig.welcomeEmbed?.footer !== null
+                        ? welcomeConfig.welcomeEmbed.footer.text
+                        : welcomeConfig.welcomeEmbed?.footer;
+                    const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Welcome to {server_name}!`;
+                    const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
+
+                    const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
+
+                    if (!canEmbed) {
+                        await channel.send({
+                            content: messageContent || welcomeMessage
+                        });
+                    } else {
+                        const embed = new EmbedBuilder()
+                            .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
+                            .setTitle(embedTitle)
+                            .setDescription(welcomeMessage)
+                            .setThumbnail(user.displayAvatarURL())
+                            .setTimestamp();
+
+                        if (embedFooter && embedFooter.trim()) {
+                            embed.setFooter({
+                                text: embedFooter.trim(),
+                                iconURL: guild.iconURL() || undefined
+                            });
+                        }
+
+                        if (welcomeConfig.welcomeEmbed?.author) {
+                            const embedAuthor = formatWelcomeMessage(welcomeConfig.welcomeEmbed.author, formatData);
+                            embed.setAuthor({ name: embedAuthor });
+                        }
+
+                        if (welcomeConfig.welcomeImage) {
+                            embed.setImage(welcomeConfig.welcomeImage);
+                        } else if (welcomeConfig.welcomeEmbed?.image?.url) {
+                            embed.setImage(welcomeConfig.welcomeEmbed.image.url);
+                        }
+
+                        await channel.send({
+                            content: messageContent,
+                            embeds: [embed]
                         });
                     }
-                    
-                    if (welcomeConfig.welcomeEmbed?.author) {
-                        const embedAuthor = formatWelcomeMessage(welcomeConfig.welcomeEmbed.author, formatData);
-                        embed.setAuthor({ name: embedAuthor });
-                    }
-                    
-                    if (welcomeConfig.welcomeImage) {
-                        embed.setImage(welcomeConfig.welcomeImage);
-                    } else if (welcomeConfig.welcomeEmbed?.image?.url) {
-                        embed.setImage(welcomeConfig.welcomeEmbed.image.url);
-                    }
-                    
-                    await channel.send({ 
-                        content: messageContent,
-                        embeds: [embed] 
-                    });
                 }
             }
-        }
-        
-        if (welcomeConfig?.roleIds && welcomeConfig.roleIds.length > 0) {
-            const delay = welcomeConfig.autoRoleDelay || 0;
-            const singleRoleId = welcomeConfig.roleIds[0];
-            
-            if (delay > 0) {
-                const timeout = setTimeout(async () => {
+
+            if (welcomeConfig?.roleIds && welcomeConfig.roleIds.length > 0) {
+                const delay = welcomeConfig.autoRoleDelay || 0;
+                const singleRoleId = welcomeConfig.roleIds[0];
+
+                if (delay > 0) {
+                    const timeout = setTimeout(async () => {
+                        const role = guild.roles.cache.get(singleRoleId);
+                        if (role) {
+                            await assignRoleSafely(member, role);
+                        }
+                    }, delay * 1000);
+                    if (typeof timeout.unref === 'function') {
+                        timeout.unref();
+                    }
+                } else {
                     const role = guild.roles.cache.get(singleRoleId);
                     if (role) {
                         await assignRoleSafely(member, role);
                     }
-                }, delay * 1000);
-                if (typeof timeout.unref === 'function') {
-                    timeout.unref();
-                }
-            } else {
-                const role = guild.roles.cache.get(singleRoleId);
-                if (role) {
-                    await assignRoleSafely(member, role);
                 }
             }
-        }
-        
-        if (config?.verification?.enabled || config?.verification?.autoVerify?.enabled) {
-            await handleVerification(member, guild, config.verification, member.client);
-        }
 
-        try {
-            await logEvent({
-                client: member.client,
-                guildId: guild.id,
-                eventType: EVENT_TYPES.MEMBER_JOIN,
-                data: {
-                    title: 'User joined',
-                    lines: [
-                        `**User:** ${user.toString()} (${user.displayName !== user.username ? `@${user.displayName}` : user.tag})`,
-                        `**ID:** \`${user.id}\``,
-                        `**Created:** <t:${Math.floor(user.createdTimestamp / 1000)}:R>`,
-                        `**Members:** ${guild.memberCount}`,
-                    ],
-                    quoted: false,
-                    thumbnail: user.displayAvatarURL({ dynamic: true }),
-                    userId: user.id,
-                }
-            });
-        } catch (error) {
-            logger.debug('Error logging member join:', error);
-        }
-
-        try {
-            const counters = await getServerCounters(member.client, guild.id);
-            for (const counter of counters) {
-                if (counter && counter.type && counter.channelId && counter.enabled !== false) {
-                    await updateCounter(member.client, guild, counter);
-                }
+            if (config?.verification?.enabled || config?.verification?.autoVerify?.enabled) {
+                await handleVerification(member, guild, config.verification, member.client);
             }
-        } catch (error) {
-            logger.debug('Error updating counters on member join:', error);
-        }
 
-        try {
-            const backupKey = `guild:${guild.id}:birthdays:left`;
-            const backup = (await member.client.db.get(backupKey)) || {};
-            if (backup[user.id]) {
-                const { month, day } = backup[user.id];
-                await dbSetBirthday(member.client, guild.id, user.id, month, day);
-                delete backup[user.id];
-                await member.client.db.set(backupKey, backup);
-                logger.debug(`Birthday restored for user ${user.id} in guild ${guild.id}`);
+            try {
+                await logEvent({
+                    client: member.client,
+                    guildId: guild.id,
+                    eventType: EVENT_TYPES.MEMBER_JOIN,
+                    data: {
+                        title: 'User joined',
+                        lines: [
+                            `**User:** ${user.toString()} (${user.displayName !== user.username ? `@${user.displayName}` : user.tag})`,
+                            `**ID:** \`${user.id}\``,
+                            `**Created:** <t:${Math.floor(user.createdTimestamp / 1000)}:R>`,
+                            `**Members:** ${guild.memberCount}`,
+                        ],
+                        quoted: false,
+                        thumbnail: user.displayAvatarURL({ dynamic: true }),
+                        userId: user.id,
+                    }
+                });
+            } catch (error) {
+                logger.debug('Error logging member join:', error);
             }
+
+            try {
+                const counters = await getServerCounters(member.client, guild.id);
+                for (const counter of counters) {
+                    if (counter && counter.type && counter.channelId && counter.enabled !== false) {
+                        await updateCounter(member.client, guild, counter);
+                    }
+                }
+            } catch (error) {
+                logger.debug('Error updating counters on member join:', error);
+            }
+
+            try {
+                const backupKey = `guild:${guild.id}:birthdays:left`;
+                const backup = (await member.client.db.get(backupKey)) || {};
+                if (backup[user.id]) {
+                    const { month, day } = backup[user.id];
+                    await dbSetBirthday(member.client, guild.id, user.id, month, day);
+                    delete backup[user.id];
+                    await member.client.db.set(backupKey, backup);
+                    logger.debug(`Birthday restored for user ${user.id} in guild ${guild.id}`);
+                }
+            } catch (error) {
+                logger.debug('Error restoring birthday on member join:', error);
+            }
+
         } catch (error) {
-            logger.debug('Error restoring birthday on member join:', error);
+            logger.error('Error in guildMemberAdd event:', error);
         }
-        
-    } catch (error) {
-        logger.error('Error in guildMemberAdd event:', error);
     }
-  }
 };
 
 async function handleVerification(member, guild, verificationConfig, client) {
     const { autoVerifyOnJoin } = await import('../services/verificationService.js');
-    
+
     try {
         const result = await autoVerifyOnJoin(client, guild, member, verificationConfig);
-        
+
         if (result.autoVerified) {
             logger.info('User auto-verified on join', {
                 guildId: guild.id,
