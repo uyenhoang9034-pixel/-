@@ -78,7 +78,7 @@ export async function createInitialHelpMenu(client) {
     const botName = client?.user?.username || "Bot";
     const embed = createEmbed({
         title: `📖 ${botName} Help`,
-        description: 'Set up your server, pick what to enable, then browse commands below.',
+        description: 'tao là mvp',
         color: 'primary',
         thumbnail: client.user?.displayAvatarURL?.({ size: 1024 }),
         fields: [
@@ -164,7 +164,7 @@ export default {
                 }
 
                 const closedEmbed = createEmbed({
-                    title: "DJT CON ME MAY",
+                    title: "Help menu closed",
                     description: "Help menu has been closed, use /help again.",
                     color: "secondary",
                 });
