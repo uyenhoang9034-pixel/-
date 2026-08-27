@@ -151,7 +151,7 @@ export default {
                         { name: 'Ping User', value: ping || Boolean(pingMessage) ? 'Yes' : 'No' },
                         { name: 'Status', value: 'Enabled' }
                     )
-                    .setFooter({ text: 'Tip: Use /greet dashboard to customize goodbye settings' });
+                    .setFooter({ text: 'Tip: Use /embed dashboard to customize goodbye settings' });
 
                 if (pingMessage) {
                     const previewPing = formatWelcomeMessage(pingMessage, { user: interaction.user, guild });
