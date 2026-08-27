@@ -86,7 +86,7 @@ export async function createInitialHelpMenu(client) {
                 name: '🚀 Getting Started',
                 value: [
                     '**1. Launch setup** — Run `/configwizard` to configure prefix, mod role, and logs.',
-                    '**2. Enable systems** — Use `/commands dashboard` to turn categories on or off.',                    '**3. Browse commands** — Use the menu below to view categories and commands.',
+                    '**2. Enable systems** — Use `/commands dashboard` to turn categories on or off.', '**3. Browse commands** — Use the menu below to view categories and commands.',
                 ].join('\n'),
                 inline: false,
             },
@@ -107,8 +107,8 @@ export async function createInitialHelpMenu(client) {
         ],
     });
 
-    embed.setFooter({ 
-        text: "Made with ❤️" 
+    embed.setFooter({
+        text: "Made with ❤️"
     });
     embed.setTimestamp();
 
@@ -146,10 +146,10 @@ export default {
         .setDescription("Displays the help menu with all available commands"),
 
     async execute(interaction, guildConfig, client) {
-        
+
         const { MessageFlags } = await import('discord.js');
         await InteractionHelper.safeDefer(interaction);
-        
+
         const { embeds, components } = await createInitialHelpMenu(client);
 
         await InteractionHelper.safeEditReply(interaction, {
@@ -164,7 +164,7 @@ export default {
                 }
 
                 const closedEmbed = createEmbed({
-                    title: "Help menu closed",
+                    title: "DJT CON ME MAY",
                     description: "Help menu has been closed, use /help again.",
                     color: "secondary",
                 });
