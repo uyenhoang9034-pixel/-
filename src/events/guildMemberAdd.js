@@ -36,11 +36,8 @@ export default {
                 );
 
                 let messageContent = null;
-                if (welcomeConfig.welcomePingMessage) {
+                if (welcomeConfig.welcomePingMessage && welcomeConfig.welcomePingMessage.trim()) {
                     messageContent = formatWelcomeMessage(welcomeConfig.welcomePingMessage, formatData);
-                    if (!messageContent.includes(user.id) && welcomeConfig.welcomePing !== false) {
-                        messageContent = `${messageContent} ${user.toString()}`;
-                    }
                 } else if (welcomeConfig.welcomePing) {
                     messageContent = user.toString();
                 }
