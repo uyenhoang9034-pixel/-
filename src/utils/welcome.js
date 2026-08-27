@@ -24,10 +24,14 @@ export function truncateForEmbedField(value, maxLength = 1024) {
 
 export function formatWelcomeMessage(message, data) {
 
-    if (typeof message !== 'string') return '';
-    if (!message) return '';
+    let str = message;
+    if (typeof str === 'object' && str !== null) {
+        str = str.text || str.content || str.value || '';
+    }
 
-    let result = message.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+    if (typeof str !== 'string' || !str) return '';
+
+    let result = str.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
 
     if (!data || typeof data !== 'object') return result;
 

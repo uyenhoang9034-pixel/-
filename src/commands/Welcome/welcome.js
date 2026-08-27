@@ -224,7 +224,7 @@ export default {
                 const rawFooter = typeof welcomeConfig.welcomeEmbed?.footer === 'object' && welcomeConfig.welcomeEmbed?.footer !== null
                     ? welcomeConfig.welcomeEmbed.footer.text
                     : welcomeConfig.welcomeEmbed?.footer;
-                const footerTemplate = rawFooter || `Welcome to ${guild.name}!`;
+                const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Welcome to {server_name}!`;
                 const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
