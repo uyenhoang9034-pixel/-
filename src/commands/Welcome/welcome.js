@@ -43,7 +43,11 @@ export default {
                 .addStringOption(option =>
                     option.setName('color')
                         .setDescription('Hex color code for the welcome embed (e.g., #FF0000)')
-                        .setRequired(false))),
+                        .setRequired(false)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('test')
+                .setDescription('Test the welcome message rendering in the configured channel')),
 
     async execute(interaction) {
         try {
@@ -161,6 +165,96 @@ export default {
             } catch (error) {
                 logger.error(`[Welcome] Failed to setup welcome system for guild ${guild.id}:`, error);
                 await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while configuring the welcome system. Please try again.' });
+            }
+        } else if (subcommand === 'test') {
+            try {
+                const welcomeConfig = await getWelcomeConfig(client, guild.id);
+                const welcomeChannelId = welcomeConfig?.channelId;
+
+                if (!welcomeConfig?.enabled || !welcomeChannelId) {
+                    return await replyUserError(interaction, { 
+                        type: ErrorTypes.CONFIGURATION, 
+                        message: 'The welcome system is not enabled or configured yet. Run **/welcome setup** first.' 
+                    });
+                }
+
+                const channel = guild.channels.cache.get(welcomeChannelId);
+                if (!channel) {
+                    return await replyUserError(interaction, { 
+                        type: ErrorTypes.UNKNOWN, 
+                        message: 'Could not find the configured welcome channel. Please make sure the channel exists and the bot has access.' 
+                    });
+                }
+
+                const me = guild.members.me;
+                const permissions = channel.permissionsFor(me);
+                if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+                    return await replyUserError(interaction, { 
+                        type: ErrorTypes.PERMISSION, 
+                        message: `I do not have permission to view or send messages in ${channel}.` 
+                    });
+                }
+
+                const formatData = { user: interaction.user, guild, member: interaction.member };
+                const welcomeMessage = formatWelcomeMessage(
+                    welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || 'Welcome {user} to {server}!',
+                    formatData
+                );
+
+                const messageContent = welcomeConfig.welcomePing ? interaction.user.toString() : null;
+                const embedTitle = formatWelcomeMessage(
+                    welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
+                    formatData
+                );
+                const embedFooter = welcomeConfig.welcomeEmbed?.footer
+                    ? formatWelcomeMessage(welcomeConfig.welcomeEmbed.footer, formatData)
+                    : `Welcome to ${guild.name}!`;
+
+                const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
+
+                if (!canEmbed) {
+                    await channel.send({
+                        content: messageContent || welcomeMessage
+                    });
+                } else {
+                    const embed = new EmbedBuilder()
+                        .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
+                        .setTitle(embedTitle)
+                        .setDescription(welcomeMessage)
+                        .setThumbnail(interaction.user.displayAvatarURL())
+                        .addFields(
+                            { name: 'User', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
+                            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
+                        )
+                        .setTimestamp()
+                        .setFooter({ text: embedFooter });
+
+                    if (welcomeConfig.welcomeEmbed?.author) {
+                        const embedAuthor = formatWelcomeMessage(welcomeConfig.welcomeEmbed.author, formatData);
+                        embed.setAuthor({ name: embedAuthor });
+                    }
+
+                    if (welcomeConfig.welcomeImage) {
+                        embed.setImage(welcomeConfig.welcomeImage);
+                    } else if (welcomeConfig.welcomeEmbed?.image?.url) {
+                        embed.setImage(welcomeConfig.welcomeEmbed.image.url);
+                    }
+
+                    await channel.send({
+                        content: messageContent,
+                        embeds: [embed]
+                    });
+                }
+
+                await InteractionHelper.safeEditReply(interaction, { 
+                    content: `✅ Test welcome message has been successfully sent to ${channel}!` 
+                });
+            } catch (error) {
+                logger.error(`[Welcome Test] Failed to send test welcome message:`, error);
+                await replyUserError(interaction, { 
+                    type: ErrorTypes.UNKNOWN, 
+                    message: 'Failed to send test message. Please verify my permissions in the welcome channel.' 
+                });
             }
         }
     },
