@@ -58,6 +58,7 @@ function buildDashboardEmbed(cfg, guild) {
     const welcomePreview = `\`${rawWelcome.length > 55 ? rawWelcome.substring(0, 55) + '…' : rawWelcome}\``;
     const goodbyePreview = `\`${rawGoodbye.length > 55 ? rawGoodbye.substring(0, 55) + '…' : rawGoodbye}\``;
 
+    const welcomeTitle = cfg.welcomeEmbed?.title ? `\`${cfg.welcomeEmbed.title}\`` : '`Default (🎉 Welcome!)`';
     const welcomeAuthor = cfg.welcomeEmbed?.author ? `\`${cfg.welcomeEmbed.author}\`` : '`Not set`';
     const rawFooter = typeof cfg.welcomeEmbed?.footer === 'object' && cfg.welcomeEmbed?.footer !== null
         ? cfg.welcomeEmbed.footer.text
@@ -78,6 +79,7 @@ function buildDashboardEmbed(cfg, guild) {
             { name: 'Welcome Channel', value: welcomeChannel, inline: true },
             { name: 'Welcome Status', value: cfg.enabled ? 'Enabled' : 'Disabled', inline: true },
             { name: 'Welcome Ping', value: welcomePingDisplay, inline: true },
+            { name: 'Welcome Title', value: welcomeTitle, inline: true },
             { name: 'Welcome Author', value: welcomeAuthor, inline: true },
             { name: 'Welcome Footer', value: welcomeFooter, inline: true },
             { name: 'Welcome Color', value: welcomeColor, inline: true },
@@ -101,6 +103,11 @@ function buildSelectMenu(guildId) {
                 .setDescription('Set the channel where welcome messages are sent')
                 .setValue('welcome_channel')
                 .setEmoji('🟢'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Welcome Title')
+                .setDescription('Edit the title shown on the welcome embed')
+                .setValue('welcome_title')
+                .setEmoji('🏷️'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Welcome Message')
                 .setDescription('Edit the text shown when a member joins')
@@ -133,7 +140,7 @@ function buildSelectMenu(guildId) {
                 .setEmoji('🔔'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Welcome Embed Style (All)')
-                .setDescription('Configure author, footer, and color all in one modal')
+                .setDescription('Configure title, author, footer, and color all in one modal')
                 .setValue('welcome_embed')
                 .setEmoji('⚙️'),
             new StringSelectMenuOptionBuilder()
@@ -250,6 +257,9 @@ export default {
                     switch (selectedOption) {
                         case 'welcome_channel':
                             await handleWelcomeChannel(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'welcome_title':
+                            await handleWelcomeTitle(selectInteraction, interaction, cfg, guildId, client);
                             break;
                         case 'welcome_message':
                             await handleWelcomeMessage(selectInteraction, interaction, cfg, guildId, client);
@@ -608,6 +618,16 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
         .addComponents(
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
+                    .setCustomId('title_input')
+                    .setLabel('Title (vars: {user}, {server})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.welcomeEmbed?.title || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. 🎉 Welcome to {server}!')
+                    .setRequired(false),
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
                     .setCustomId('author_input')
                     .setLabel('Author (vars: {user}, {server})')
                     .setStyle(TextInputStyle.Short)
@@ -654,6 +674,7 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
 
     if (!submitted) return;
 
+    const titleInput = submitted.fields.getTextInputValue('title_input').trim();
     const authorInput = submitted.fields.getTextInputValue('author_input').trim();
     const footerInput = submitted.fields.getTextInputValue('footer_input').trim();
     const colorInput = submitted.fields.getTextInputValue('color_input').trim();
@@ -673,6 +694,12 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
 
     if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
         cfg.welcomeEmbed = {};
+    }
+
+    if (titleInput) {
+        cfg.welcomeEmbed.title = titleInput;
+    } else {
+        delete cfg.welcomeEmbed.title;
     }
 
     if (authorInput) {
@@ -696,7 +723,67 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
     await saveWelcomeConfig(client, guildId, cfg);
 
     await submitted.reply({
-        embeds: [successEmbed('Welcome Embed Updated', 'The welcome embed styling (author, footer, color) has been saved.')],
+        embeds: [successEmbed('Welcome Embed Updated', 'The welcome embed styling (title, author, footer, color) has been saved.')],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleWelcomeTitle(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_welcome_title')
+        .setTitle('Edit Welcome Title')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('title_input')
+                    .setLabel('Title (vars: {user}, {server_name})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.welcomeEmbed?.title || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. 🎉 Welcome to {server_name}!')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_welcome_title' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const titleInput = submitted.fields.getTextInputValue('title_input').trim();
+
+    if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
+        cfg.welcomeEmbed = {};
+    }
+
+    if (titleInput) {
+        cfg.welcomeEmbed.title = titleInput;
+    } else {
+        delete cfg.welcomeEmbed.title;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Welcome Title Updated',
+                titleInput ? `Title set to: \`${titleInput}\`` : 'Welcome title reset to default.',
+            ),
+        ],
         flags: MessageFlags.Ephemeral,
     });
 

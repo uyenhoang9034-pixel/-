@@ -37,6 +37,10 @@ export default {
                         .setDescription('Custom text when pinging user (e.g. Chào mừng {user}!). Leave empty for standard ping')
                         .setRequired(false))
                 .addStringOption(option =>
+                    option.setName('title')
+                        .setDescription('Title for the welcome embed. Variables: {user}, {username}, {server}')
+                        .setRequired(false))
+                .addStringOption(option =>
                     option.setName('author')
                         .setDescription('Author text for the welcome embed. Variables: {user}, {username}, {server}')
                         .setRequired(false))
@@ -83,6 +87,7 @@ export default {
             const image = options.getString('image');
             const ping = options.getBoolean('ping') ?? false;
             const pingMessage = options.getString('ping_message');
+            const title = options.getString('title');
             const author = options.getString('author');
             const footer = options.getString('footer');
             const color = options.getString('color');
@@ -118,6 +123,7 @@ export default {
                     ...(existingConfig?.welcomeEmbed || {}),
                     description: message
                 };
+                if (title !== null) updatedEmbed.title = title || undefined;
                 if (author !== null) updatedEmbed.author = author || undefined;
                 if (footer !== null) updatedEmbed.footer = footer || undefined;
                 if (resolvedColor !== undefined) updatedEmbed.color = resolvedColor;
@@ -154,6 +160,10 @@ export default {
                 if (pingMessage) {
                     const previewPing = formatWelcomeMessage(pingMessage, { user: interaction.user, guild });
                     embed.addFields({ name: 'Ping Message Preview', value: truncateForEmbedField(previewPing) });
+                }
+                if (title) {
+                    const previewTitle = formatWelcomeMessage(title, { user: interaction.user, guild });
+                    embed.addFields({ name: 'Title Preview', value: truncateForEmbedField(previewTitle) });
                 }
                 if (author) {
                     const previewAuthor = formatWelcomeMessage(author, { user: interaction.user, guild });
@@ -239,10 +249,6 @@ export default {
                         .setTitle(embedTitle)
                         .setDescription(welcomeMessage)
                         .setThumbnail(interaction.user.displayAvatarURL())
-                        // .addFields(
-                        //     { name: 'User', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
-                        //     { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
-                        // )
                         .setTimestamp();
 
                     if (embedFooter && embedFooter.trim()) {
