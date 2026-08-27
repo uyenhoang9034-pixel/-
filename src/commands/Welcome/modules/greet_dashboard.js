@@ -112,15 +112,30 @@ function buildSelectMenu(guildId) {
                 .setValue('welcome_image')
                 .setEmoji('🖼️'),
             new StringSelectMenuOptionBuilder()
-                .setLabel('Welcome Embed Style')
-                .setDescription('Configure author, footer, and color for welcome embed')
-                .setValue('welcome_embed')
+                .setLabel('Welcome Footer')
+                .setDescription('Edit footer text for the welcome embed')
+                .setValue('welcome_footer')
+                .setEmoji('📝'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Welcome Author')
+                .setDescription('Edit author text for the welcome embed')
+                .setValue('welcome_author')
+                .setEmoji('👤'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Welcome Color')
+                .setDescription('Set hex color for the welcome embed')
+                .setValue('welcome_color')
                 .setEmoji('🎨'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Welcome Ping Text')
                 .setDescription('Set custom text when pinging user (e.g. Chào mừng {user}!)')
                 .setValue('welcome_ping_text')
                 .setEmoji('🔔'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Welcome Embed Style (All)')
+                .setDescription('Configure author, footer, and color all in one modal')
+                .setValue('welcome_embed')
+                .setEmoji('⚙️'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Goodbye Channel')
                 .setDescription('Set the channel where goodbye messages are sent')
@@ -241,6 +256,15 @@ export default {
                             break;
                         case 'welcome_image':
                             await handleWelcomeImage(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'welcome_footer':
+                            await handleWelcomeFooter(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'welcome_author':
+                            await handleWelcomeAuthor(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'welcome_color':
+                            await handleWelcomeColor(selectInteraction, interaction, cfg, guildId, client);
                             break;
                         case 'welcome_embed':
                             await handleWelcomeEmbed(selectInteraction, interaction, cfg, guildId, client);
@@ -673,6 +697,203 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
 
     await submitted.reply({
         embeds: [successEmbed('Welcome Embed Updated', 'The welcome embed styling (author, footer, color) has been saved.')],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleWelcomeFooter(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const rawFooter = typeof cfg.welcomeEmbed?.footer === 'object' && cfg.welcomeEmbed?.footer !== null
+        ? cfg.welcomeEmbed.footer.text
+        : cfg.welcomeEmbed?.footer;
+
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_welcome_footer')
+        .setTitle('Edit Welcome Footer')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('footer_input')
+                    .setLabel('Footer (variables: {user}, {server_name}, {time_stamp})')
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setValue(rawFooter || '')
+                    .setMaxLength(2048)
+                    .setPlaceholder('e.g. Welcome to {server_name} • {time_stamp}')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_welcome_footer' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const footerInput = submitted.fields.getTextInputValue('footer_input').trim();
+
+    if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
+        cfg.welcomeEmbed = {};
+    }
+
+    if (footerInput) {
+        cfg.welcomeEmbed.footer = footerInput;
+    } else {
+        delete cfg.welcomeEmbed.footer;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Welcome Footer Updated',
+                footerInput ? `Footer set to: \`${footerInput}\`` : 'Welcome footer removed (default will be used).',
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleWelcomeAuthor(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_welcome_author')
+        .setTitle('Edit Welcome Author')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('author_input')
+                    .setLabel('Author (variables: {user}, {server_name})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.welcomeEmbed?.author || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. Welcome to {server_name}!')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_welcome_author' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const authorInput = submitted.fields.getTextInputValue('author_input').trim();
+
+    if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
+        cfg.welcomeEmbed = {};
+    }
+
+    if (authorInput) {
+        cfg.welcomeEmbed.author = authorInput;
+    } else {
+        delete cfg.welcomeEmbed.author;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Welcome Author Updated',
+                authorInput ? `Author set to: \`${authorInput}\`` : 'Welcome author removed.',
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleWelcomeColor(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_welcome_color')
+        .setTitle('Edit Welcome Color')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('color_input')
+                    .setLabel('Color Hex (e.g. #FF0000 or FF0000)')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.welcomeEmbed?.color || '')
+                    .setMaxLength(7)
+                    .setPlaceholder('#5865F2')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_welcome_color' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const colorInput = submitted.fields.getTextInputValue('color_input').trim();
+
+    let resolvedColor = undefined;
+    if (colorInput) {
+        const hexRegex = /^#?[0-9A-Fa-f]{6}$/;
+        if (!hexRegex.test(colorInput)) {
+            await replyUserError(submitted, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Invalid color hex code. Please provide a valid 6-character hex code (e.g., #FF0000 or FF0000).',
+            });
+            return;
+        }
+        resolvedColor = colorInput.startsWith('#') ? colorInput : `#${colorInput}`;
+    }
+
+    if (!cfg.welcomeEmbed || typeof cfg.welcomeEmbed !== 'object') {
+        cfg.welcomeEmbed = {};
+    }
+
+    if (resolvedColor !== undefined) {
+        cfg.welcomeEmbed.color = resolvedColor;
+    } else if (!colorInput) {
+        delete cfg.welcomeEmbed.color;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Welcome Color Updated',
+                resolvedColor ? `Color set to: \`${resolvedColor}\`` : 'Welcome color reset to default.',
+            ),
+        ],
         flags: MessageFlags.Ephemeral,
     });
 
