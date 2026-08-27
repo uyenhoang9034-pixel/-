@@ -35,20 +35,28 @@ export default {
                     formatData
                 );
 
+                let messageContent = null;
+                if (welcomeConfig.goodbyePingMessage && welcomeConfig.goodbyePingMessage.trim()) {
+                    messageContent = formatWelcomeMessage(welcomeConfig.goodbyePingMessage, formatData);
+                } else if (welcomeConfig.goodbyePing) {
+                    messageContent = user.toString();
+                }
+
                 const embedTitle = formatWelcomeMessage(
                     welcomeConfig.leaveEmbed?.title || '👋 Goodbye',
                     formatData
                 );
-                const embedFooter = welcomeConfig.leaveEmbed?.footer
-                    ? formatWelcomeMessage(welcomeConfig.leaveEmbed.footer, formatData)
-                    : `Goodbye from ${guild.name}!`;
+                const rawFooter = typeof welcomeConfig.leaveEmbed?.footer === 'object' && welcomeConfig.leaveEmbed?.footer !== null
+                    ? welcomeConfig.leaveEmbed.footer.text
+                    : welcomeConfig.leaveEmbed?.footer;
+                const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Goodbye from {server_name}!`;
+                const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
 
                 if (!canEmbed) {
                     await channel.send({
-                        content: welcomeConfig?.goodbyePing ? `<@${user.id}> ${goodbyeMessage}` : goodbyeMessage,
-                        allowedMentions: welcomeConfig?.goodbyePing ? { users: [user.id] } : { parse: [] }
+                        content: messageContent || goodbyeMessage
                     });
                 } else {
                     const embed = new EmbedBuilder()
@@ -56,22 +64,27 @@ export default {
                         .setDescription(goodbyeMessage)
                         .setColor(welcomeConfig.leaveEmbed?.color || getColor('error'))
                         .setThumbnail(user.displayAvatarURL())
-                        .addFields(
-                            { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
-                        )
-                        .setTimestamp()
-                        .setFooter({ text: embedFooter });
+                        .setTimestamp();
 
-                    if (typeof welcomeConfig.leaveEmbed?.image === 'string') {
-                        embed.setImage(welcomeConfig.leaveEmbed.image);
-                    } else if (welcomeConfig.leaveEmbed?.image?.url) {
-                        embed.setImage(welcomeConfig.leaveEmbed.image.url);
+                    if (embedFooter && embedFooter.trim()) {
+                        embed.setFooter({
+                            text: embedFooter.trim(),
+                            iconURL: guild.iconURL() || undefined
+                        });
+                    }
+
+                    if (welcomeConfig.leaveEmbed?.author) {
+                        const embedAuthor = formatWelcomeMessage(welcomeConfig.leaveEmbed.author, formatData);
+                        embed.setAuthor({ name: embedAuthor });
+                    }
+
+                    const goodbyeImage = welcomeConfig.goodbyeImage || welcomeConfig.leaveImage || (typeof welcomeConfig.leaveEmbed?.image === 'string' ? welcomeConfig.leaveEmbed.image : welcomeConfig.leaveEmbed?.image?.url);
+                    if (goodbyeImage) {
+                        embed.setImage(goodbyeImage);
                     }
 
                     await channel.send({
-                        content: welcomeConfig?.goodbyePing ? `<@${user.id}>` : undefined,
-                        allowedMentions: welcomeConfig?.goodbyePing ? { users: [user.id] } : { parse: [] },
+                        content: messageContent,
                         embeds: [embed]
                     });
                 }

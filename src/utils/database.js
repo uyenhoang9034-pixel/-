@@ -377,6 +377,8 @@ function normalizeWelcomeConfig(raw = {}) {
         goodbyeChannelId,
         leaveMessage,
         leaveEmbed,
+        goodbyePingMessage: base.goodbyePingMessage ?? null,
+        goodbyeImage: base.goodbyeImage ?? base.leaveImage ?? null,
         dmMessage: base.dmMessage ?? "",
         goodbyePing: Boolean(base.goodbyePing),
         roleIds,

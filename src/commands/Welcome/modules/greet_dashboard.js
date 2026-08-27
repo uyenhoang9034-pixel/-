@@ -69,6 +69,17 @@ function buildDashboardEmbed(cfg, guild) {
         ? `\`${cfg.welcomePingMessage.length > 35 ? cfg.welcomePingMessage.substring(0, 35) + '…' : cfg.welcomePingMessage}\`` 
         : (cfg.welcomePing ? '`@User`' : '`Off`');
 
+    const goodbyeTitle = cfg.leaveEmbed?.title ? `\`${cfg.leaveEmbed.title}\`` : '`Default (👋 Goodbye)`';
+    const goodbyeAuthor = cfg.leaveEmbed?.author ? `\`${cfg.leaveEmbed.author}\`` : '`Not set`';
+    const rawGoodbyeFooter = typeof cfg.leaveEmbed?.footer === 'object' && cfg.leaveEmbed?.footer !== null
+        ? cfg.leaveEmbed.footer.text
+        : cfg.leaveEmbed?.footer;
+    const goodbyeFooter = rawGoodbyeFooter ? `\`${rawGoodbyeFooter}\`` : '`Default`';
+    const goodbyeColor = cfg.leaveEmbed?.color ? `\`${cfg.leaveEmbed.color}\`` : '`Default (Error)`';
+    const goodbyePingDisplay = cfg.goodbyePingMessage 
+        ? `\`${cfg.goodbyePingMessage.length > 35 ? cfg.goodbyePingMessage.substring(0, 35) + '…' : cfg.goodbyePingMessage}\`` 
+        : (cfg.goodbyePing ? '`@User`' : '`Off`');
+
     return new EmbedBuilder()
         .setTitle('👋 Greet System Dashboard')
         .setDescription(
@@ -85,7 +96,11 @@ function buildDashboardEmbed(cfg, guild) {
             { name: 'Welcome Color', value: welcomeColor, inline: true },
             { name: 'Goodbye Channel', value: goodbyeChannel, inline: true },
             { name: 'Goodbye Status', value: cfg.goodbyeEnabled ? 'Enabled' : 'Disabled', inline: true },
-            { name: 'Goodbye Ping', value: cfg.goodbyePing ? 'On' : 'Off', inline: true },
+            { name: 'Goodbye Ping', value: goodbyePingDisplay, inline: true },
+            { name: 'Goodbye Title', value: goodbyeTitle, inline: true },
+            { name: 'Goodbye Author', value: goodbyeAuthor, inline: true },
+            { name: 'Goodbye Footer', value: goodbyeFooter, inline: true },
+            { name: 'Goodbye Color', value: goodbyeColor, inline: true },
             { name: 'Welcome Message', value: welcomePreview, inline: false },
             { name: 'Goodbye Message', value: goodbyePreview, inline: false },
         )
@@ -149,6 +164,11 @@ function buildSelectMenu(guildId) {
                 .setValue('goodbye_channel')
                 .setEmoji('🔴'),
             new StringSelectMenuOptionBuilder()
+                .setLabel('Goodbye Title')
+                .setDescription('Edit the title shown on the goodbye embed')
+                .setValue('goodbye_title')
+                .setEmoji('🏷️'),
+            new StringSelectMenuOptionBuilder()
                 .setLabel('Goodbye Message')
                 .setDescription('Edit the text shown when a member leaves')
                 .setValue('goodbye_message')
@@ -158,6 +178,31 @@ function buildSelectMenu(guildId) {
                 .setDescription('Set the image for goodbye messages')
                 .setValue('goodbye_image')
                 .setEmoji('🖼️'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Goodbye Footer')
+                .setDescription('Edit footer text for the goodbye embed')
+                .setValue('goodbye_footer')
+                .setEmoji('📝'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Goodbye Author')
+                .setDescription('Edit author text for the goodbye embed')
+                .setValue('goodbye_author')
+                .setEmoji('👤'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Goodbye Color')
+                .setDescription('Set hex color for the goodbye embed')
+                .setValue('goodbye_color')
+                .setEmoji('🎨'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Goodbye Ping Text')
+                .setDescription('Set custom text when pinging goodbye user (e.g. Tạm biệt {user}!)')
+                .setValue('goodbye_ping_text')
+                .setEmoji('🔔'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Goodbye Embed Style (All)')
+                .setDescription('Configure goodbye title, author, footer, color all in one modal')
+                .setValue('goodbye_embed')
+                .setEmoji('⚙️'),
         );
 }
 
@@ -285,11 +330,29 @@ export default {
                         case 'goodbye_channel':
                             await handleGoodbyeChannel(selectInteraction, interaction, cfg, guildId, client);
                             break;
+                        case 'goodbye_title':
+                            await handleGoodbyeTitle(selectInteraction, interaction, cfg, guildId, client);
+                            break;
                         case 'goodbye_message':
                             await handleGoodbyeMessage(selectInteraction, interaction, cfg, guildId, client);
                             break;
                         case 'goodbye_image':
                             await handleGoodbyeImage(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'goodbye_footer':
+                            await handleGoodbyeFooter(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'goodbye_author':
+                            await handleGoodbyeAuthor(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'goodbye_color':
+                            await handleGoodbyeColor(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'goodbye_ping_text':
+                            await handleGoodbyePingText(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'goodbye_embed':
+                            await handleGoodbyeEmbed(selectInteraction, interaction, cfg, guildId, client);
                             break;
                     }
                 } catch (error) {
@@ -1275,6 +1338,438 @@ async function handleGoodbyePing(selectInteraction, rootInteraction, cfg, guildI
                 `Leaving users will${cfg.goodbyePing ? '' : ' **not**'} be pinged in the goodbye message.`,
             ),
         ],
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleGoodbyeTitle(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_goodbye_title')
+        .setTitle('Edit Goodbye Title')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('title_input')
+                    .setLabel('Title (vars: {user}, {server_name})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.leaveEmbed?.title || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. 👋 Goodbye from {server_name}!')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_goodbye_title' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const titleInput = submitted.fields.getTextInputValue('title_input').trim();
+
+    if (!cfg.leaveEmbed || typeof cfg.leaveEmbed !== 'object') {
+        cfg.leaveEmbed = {};
+    }
+
+    if (titleInput) {
+        cfg.leaveEmbed.title = titleInput;
+    } else {
+        delete cfg.leaveEmbed.title;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Goodbye Title Updated',
+                titleInput ? `Title set to: \`${titleInput}\`` : 'Goodbye title reset to default.',
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleGoodbyeFooter(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const rawFooter = typeof cfg.leaveEmbed?.footer === 'object' && cfg.leaveEmbed?.footer !== null
+        ? cfg.leaveEmbed.footer.text
+        : cfg.leaveEmbed?.footer;
+
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_goodbye_footer')
+        .setTitle('Edit Goodbye Footer')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('footer_input')
+                    .setLabel('Footer (vars: {server_name}, {time_stamp})')
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setValue(rawFooter || '')
+                    .setMaxLength(2048)
+                    .setPlaceholder('e.g. Goodbye from {server_name} • {time_stamp}')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_goodbye_footer' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const footerInput = submitted.fields.getTextInputValue('footer_input').trim();
+
+    if (!cfg.leaveEmbed || typeof cfg.leaveEmbed !== 'object') {
+        cfg.leaveEmbed = {};
+    }
+
+    if (footerInput) {
+        cfg.leaveEmbed.footer = footerInput;
+    } else {
+        delete cfg.leaveEmbed.footer;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Goodbye Footer Updated',
+                footerInput ? `Footer set to: \`${footerInput}\`` : 'Goodbye footer removed (default will be used).',
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleGoodbyeAuthor(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_goodbye_author')
+        .setTitle('Edit Goodbye Author')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('author_input')
+                    .setLabel('Author (vars: {user}, {server_name})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.leaveEmbed?.author || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. Goodbye from {server_name}!')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_goodbye_author' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const authorInput = submitted.fields.getTextInputValue('author_input').trim();
+
+    if (!cfg.leaveEmbed || typeof cfg.leaveEmbed !== 'object') {
+        cfg.leaveEmbed = {};
+    }
+
+    if (authorInput) {
+        cfg.leaveEmbed.author = authorInput;
+    } else {
+        delete cfg.leaveEmbed.author;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Goodbye Author Updated',
+                authorInput ? `Author set to: \`${authorInput}\`` : 'Goodbye author removed.',
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleGoodbyeColor(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_goodbye_color')
+        .setTitle('Edit Goodbye Color')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('color_input')
+                    .setLabel('Color Hex (e.g. #FF0000)')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.leaveEmbed?.color || '')
+                    .setMaxLength(7)
+                    .setPlaceholder('#ED4245')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_goodbye_color' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const colorInput = submitted.fields.getTextInputValue('color_input').trim();
+
+    let resolvedColor = undefined;
+    if (colorInput) {
+        const hexRegex = /^#?[0-9A-Fa-f]{6}$/;
+        if (!hexRegex.test(colorInput)) {
+            await replyUserError(submitted, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Invalid color hex code. Please provide a valid 6-character hex code (e.g., #FF0000 or FF0000).',
+            });
+            return;
+        }
+        resolvedColor = colorInput.startsWith('#') ? colorInput : `#${colorInput}`;
+    }
+
+    if (!cfg.leaveEmbed || typeof cfg.leaveEmbed !== 'object') {
+        cfg.leaveEmbed = {};
+    }
+
+    if (resolvedColor !== undefined) {
+        cfg.leaveEmbed.color = resolvedColor;
+    } else if (!colorInput) {
+        delete cfg.leaveEmbed.color;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Goodbye Color Updated',
+                resolvedColor ? `Color set to: \`${resolvedColor}\`` : 'Goodbye color reset to default.',
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleGoodbyePingText(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_goodbye_ping_text')
+        .setTitle('Edit Goodbye Ping Text')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('ping_text_input')
+                    .setLabel('Ping Text (vars: {user}, {server})')
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setValue(cfg.goodbyePingMessage || '')
+                    .setMaxLength(2000)
+                    .setPlaceholder('e.g. Tạm biệt {user} đã rời khỏi {server}!')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_goodbye_ping_text' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const pingTextInput = submitted.fields.getTextInputValue('ping_text_input').trim();
+
+    if (pingTextInput) {
+        cfg.goodbyePingMessage = pingTextInput;
+    } else {
+        delete cfg.goodbyePingMessage;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Goodbye Ping Text Updated',
+                pingTextInput ? `Ping text set to: \`${pingTextInput}\`` : 'Goodbye ping text cleared (standard ping will be used if enabled).',
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+async function handleGoodbyeEmbed(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('greet_cfg_goodbye_embed')
+        .setTitle('Edit Goodbye Embed Style')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('title_input')
+                    .setLabel('Title (vars: {user}, {server})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.leaveEmbed?.title || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. 👋 Goodbye from {server}!')
+                    .setRequired(false),
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('author_input')
+                    .setLabel('Author (vars: {user}, {server})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.leaveEmbed?.author || '')
+                    .setMaxLength(256)
+                    .setPlaceholder('e.g. Goodbye from {server}!')
+                    .setRequired(false),
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('footer_input')
+                    .setLabel('Footer (vars: {user}, {server})')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue((typeof cfg.leaveEmbed?.footer === 'object' && cfg.leaveEmbed?.footer !== null ? cfg.leaveEmbed.footer.text : cfg.leaveEmbed?.footer) || '')
+                    .setMaxLength(2048)
+                    .setPlaceholder('e.g. Member #{memberCount}')
+                    .setRequired(false),
+            ),
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('color_input')
+                    .setLabel('Color Hex (e.g. #FF0000)')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(cfg.leaveEmbed?.color || '')
+                    .setMaxLength(7)
+                    .setPlaceholder('#ED4245')
+                    .setRequired(false),
+            ),
+        );
+
+    try {
+        await selectInteraction.showModal(modal);
+    } catch {
+        return;
+    }
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'greet_cfg_goodbye_embed' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const titleInput = submitted.fields.getTextInputValue('title_input').trim();
+    const authorInput = submitted.fields.getTextInputValue('author_input').trim();
+    const footerInput = submitted.fields.getTextInputValue('footer_input').trim();
+    const colorInput = submitted.fields.getTextInputValue('color_input').trim();
+
+    let resolvedColor = undefined;
+    if (colorInput) {
+        const hexRegex = /^#?[0-9A-Fa-f]{6}$/;
+        if (!hexRegex.test(colorInput)) {
+            await replyUserError(submitted, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Invalid color hex code. Please provide a valid 6-character hex code (e.g., #FF0000 or FF0000).',
+            });
+            return;
+        }
+        resolvedColor = colorInput.startsWith('#') ? colorInput : `#${colorInput}`;
+    }
+
+    if (!cfg.leaveEmbed || typeof cfg.leaveEmbed !== 'object') {
+        cfg.leaveEmbed = {};
+    }
+
+    if (titleInput) {
+        cfg.leaveEmbed.title = titleInput;
+    } else {
+        delete cfg.leaveEmbed.title;
+    }
+
+    if (authorInput) {
+        cfg.leaveEmbed.author = authorInput;
+    } else {
+        delete cfg.leaveEmbed.author;
+    }
+
+    if (footerInput) {
+        cfg.leaveEmbed.footer = footerInput;
+    } else {
+        delete cfg.leaveEmbed.footer;
+    }
+
+    if (resolvedColor !== undefined) {
+        cfg.leaveEmbed.color = resolvedColor;
+    } else if (!colorInput) {
+        delete cfg.leaveEmbed.color;
+    }
+
+    await saveWelcomeConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [successEmbed('Goodbye Embed Updated', 'The goodbye embed styling (title, author, footer, color) has been saved.')],
+        flags: MessageFlags.Ephemeral,
     });
 
     await refreshDashboard(rootInteraction, cfg, guildId);
