@@ -59,7 +59,10 @@ function buildDashboardEmbed(cfg, guild) {
     const goodbyePreview = `\`${rawGoodbye.length > 55 ? rawGoodbye.substring(0, 55) + '…' : rawGoodbye}\``;
 
     const welcomeAuthor = cfg.welcomeEmbed?.author ? `\`${cfg.welcomeEmbed.author}\`` : '`Not set`';
-    const welcomeFooter = cfg.welcomeEmbed?.footer ? `\`${cfg.welcomeEmbed.footer}\`` : '`Default`';
+    const rawFooter = typeof cfg.welcomeEmbed?.footer === 'object' && cfg.welcomeEmbed?.footer !== null
+        ? cfg.welcomeEmbed.footer.text
+        : cfg.welcomeEmbed?.footer;
+    const welcomeFooter = rawFooter ? `\`${rawFooter}\`` : '`Default`';
     const welcomeColor = cfg.welcomeEmbed?.color ? `\`${cfg.welcomeEmbed.color}\`` : '`Default (Success)`';
     const welcomePingDisplay = cfg.welcomePingMessage 
         ? `\`${cfg.welcomePingMessage.length > 35 ? cfg.welcomePingMessage.substring(0, 35) + '…' : cfg.welcomePingMessage}\`` 
@@ -594,7 +597,7 @@ async function handleWelcomeEmbed(selectInteraction, rootInteraction, cfg, guild
                     .setCustomId('footer_input')
                     .setLabel('Footer (variables: {user}, {server})')
                     .setStyle(TextInputStyle.Short)
-                    .setValue(cfg.welcomeEmbed?.footer || '')
+                    .setValue((typeof cfg.welcomeEmbed?.footer === 'object' && cfg.welcomeEmbed?.footer !== null ? cfg.welcomeEmbed.footer.text : cfg.welcomeEmbed?.footer) || '')
                     .setMaxLength(2048)
                     .setPlaceholder('e.g. Member #{memberCount}')
                     .setRequired(false),

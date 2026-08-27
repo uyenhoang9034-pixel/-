@@ -57,7 +57,10 @@ export function formatWelcomeMessage(message, data) {
         '{guild.id}': guild?.id || 'unknown',
         '{guild.memberCount}': guild?.memberCount?.toString?.() || '0',
         '{memberCount}': guild?.memberCount?.toString?.() || '0',
-        '{membercount}': guild?.memberCount?.toString?.() || '0'
+        '{membercount}': guild?.memberCount?.toString?.() || '0',
+        '{time_stamp}': `Today at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`,
+        '{timestamp}': `Today at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`,
+        '{time}': new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     };
 
     for (const [token, value] of Object.entries(tokens)) {

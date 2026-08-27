@@ -221,9 +221,11 @@ export default {
                     welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
                     formatData
                 );
-                const embedFooter = welcomeConfig.welcomeEmbed?.footer
-                    ? formatWelcomeMessage(welcomeConfig.welcomeEmbed.footer, formatData)
-                    : `Welcome to ${guild.name}!`;
+                const rawFooter = typeof welcomeConfig.welcomeEmbed?.footer === 'object' && welcomeConfig.welcomeEmbed?.footer !== null
+                    ? welcomeConfig.welcomeEmbed.footer.text
+                    : welcomeConfig.welcomeEmbed?.footer;
+                const footerTemplate = rawFooter || `Welcome to ${guild.name}!`;
+                const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
 
@@ -241,8 +243,11 @@ export default {
                         //     { name: 'User', value: `${interaction.user.tag} (${interaction.user.id})`, inline: true },
                         //     { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
                         // )
-                        .setTimestamp()
-                        .setFooter({ text: embedFooter });
+                        .setTimestamp();
+
+                    if (embedFooter && embedFooter.trim()) {
+                        embed.setFooter({ text: embedFooter.trim() });
+                    }
 
                     if (welcomeConfig.welcomeEmbed?.author) {
                         const embedAuthor = formatWelcomeMessage(welcomeConfig.welcomeEmbed.author, formatData);
