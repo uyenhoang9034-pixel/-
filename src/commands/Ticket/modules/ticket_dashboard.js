@@ -84,6 +84,11 @@ function buildPanelEmbed(config) {
         .setTitle('Support Tickets')
         .setDescription(config.ticketPanelMessage || 'Click the button below to create a support ticket.')
         .setColor(getColor('info'));
+     if (config.ticketImage) {
+        embed.setImage(config.ticketImage);
+    }
+
+    return embed;
 }
 
 function buildPanelButtonRow(config) {
@@ -184,6 +189,11 @@ function buildSelectMenu(guildId) {
                 .setDescription('Change the message displayed on the ticket creation panel')
                 .setValue('panel_message')
                 .setEmoji('📝'),
+            new StringSelectMenuOptionBuilder()
+    .setLabel('Change Panel Image')
+    .setDescription('Add, replace, or remove the image on the ticket panel')
+    .setValue('panel_image')
+    .setEmoji('🖼️'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Edit Button Label')
                 .setDescription('Change the label on the Create Ticket button')
@@ -952,6 +962,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
         'ticketCategoryId',
         'ticketClosedCategoryId',
         'ticketPanelMessage',
+        'ticketImage',
         'ticketButtonLabel',
         'maxTicketsPerUser',
         'dmOnClose',
