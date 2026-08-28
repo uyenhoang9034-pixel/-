@@ -37,11 +37,11 @@ export default {
                         )
                         .setRequired(true),
                 )
-            .addAttachmentOption((option) =>
-    option
-        .setName("image")
-        .setDescription("An image to display on the ticket panel.")
-        .setRequired(false),
+                .addAttachmentOption((option) =>
+                    option
+                        .setName("image")
+                        .setDescription("An image to display on the ticket panel.")
+                        .setRequired(false),
 )
                 .addStringOption((option) =>
                     option
