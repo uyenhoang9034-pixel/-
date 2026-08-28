@@ -161,10 +161,10 @@ const panelColor =
             const maxTicketsPerUser = interaction.options.getInteger("max_tickets_per_user") || 3;
 const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 
-            const setupEmbed = createEmbed({
-    title: "Support Tickets",
+           const setupEmbed = createEmbed({
+    title: panelTitle,
     description: panelMessage,
-    color: getColor('info')
+    color: panelColor
 });
 
 if (image) {
@@ -200,6 +200,8 @@ if (image) {
                     currentConfig.ticketPanelChannelId = panelChannel.id;
                     currentConfig.ticketPanelMessageId = sentPanel?.id || null;
                     currentConfig.ticketPanelMessage = panelMessage;
+                    currentConfig.ticketPanelTitle = panelTitle;
+                    currentConfig.ticketPanelColor = panelColor;
                     currentConfig.ticketImage = image ? image.url : null;
                     currentConfig.ticketButtonLabel = buttonLabel;
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;
