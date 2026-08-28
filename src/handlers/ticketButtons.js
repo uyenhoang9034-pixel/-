@@ -131,9 +131,9 @@ const createTicketHandler = {
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Cảm ơn bạn đã mở ticket, bạn cần tụi mình hỗ trợ về vấn đề gì ạ?')
+        .setLabel('Thanks for creating this ticket. Why are you creating this ticket?')
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Mô tả vấn đề của bạn...')
+        .setPlaceholder('Describe your issue...')
         .setRequired(true)
         .setMaxLength(1000);
 
@@ -195,9 +195,9 @@ const closeTicketHandler = {
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Hãy kiểm tra kĩ trước khi đóng ticket. Nếu vẫn còn vấn đề cần hỗ trợ, hãy tiếp tục ở đây trước khi mở ticket mới.')
+        .setLabel('Reason for closing (optional)')
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Nguyên nhân đóng ticket...')
+        .setPlaceholder('Add an optional reason for closing this ticket...')
         .setRequired(false)
         .setMaxLength(1000);
 
