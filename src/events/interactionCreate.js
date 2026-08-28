@@ -19,7 +19,6 @@ import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
-import { handleDashboardInteraction } from '../commands/giveawayDashboard.js';
 
 const COMMAND_ERROR_SUBTYPES = {
   warn: 'warn_failed',
@@ -308,11 +307,6 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
-          if (interaction.customId.startsWith('gw_')) {
-            await handleDashboardInteraction(interaction);
-            return;
-          }
-
           if (interaction.customId.startsWith('shared_todo_')) {
             const parts = interaction.customId.split('_');
             const buttonType = parts.slice(0, 3).join('_');
@@ -391,11 +385,6 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isModalSubmit()) {
-          if (interaction.customId.startsWith('modal_gw_')) {
-            await handleDashboardInteraction(interaction);
-            return;
-          }
-
           if (interaction.customId.startsWith('app_modal_')) {
             try {
               await handleApplicationModal(interaction);
@@ -428,6 +417,7 @@ export default {
 
           if (!modal) {
             if (!interaction.customId.includes(':')) {
+
               return;
             }
 
