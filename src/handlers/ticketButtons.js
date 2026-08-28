@@ -127,13 +127,13 @@ const createTicketHandler = {
       
       const modal = new ModalBuilder()
         .setCustomId('create_ticket_modal')
-        .setTitle('Create a Ticket');
+        .setTitle('Tạo Ticket Hỗ Trợ'); // Đã đổi sang tiếng Việt
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Why are you creating this ticket?')
+        .setLabel('Lý do bạn tạo ticket này là gì?') // Đã đổi sang tiếng Việt
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Describe your issue...')
+        .setPlaceholder('Mô tả vấn đề của bạn ở đây...') // Đã đổi sang tiếng Việt
         .setRequired(true)
         .setMaxLength(1000);
 
@@ -181,23 +181,15 @@ const createTicketModalHandler = {
   }
 };
 
-const closeTicketHandler = {
-  name: 'ticket_close',
-  async execute(interaction, client) {
-    try {
-      if (!(await ensureGuildContext(interaction))) return;
-
-      await assertTicketPermission(interaction, client, 'close this ticket', { allowTicketCreator: true }, 2000);
-
-      const modal = new ModalBuilder()
+const modal = new ModalBuilder()
         .setCustomId('ticket_close_modal')
-        .setTitle('Close Ticket');
+        .setTitle('Đóng Ticket'); // Đã đổi sang tiếng Việt
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Reason for closing (optional)')
+        .setLabel('Lý do đóng (không bắt buộc)') // Đã đổi sang tiếng Việt
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Add an optional reason for closing this ticket...')
+        .setPlaceholder('Thêm lý do đóng ticket này...') // Đã đổi sang tiếng Việt
         .setRequired(false)
         .setMaxLength(1000);
 
