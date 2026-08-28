@@ -327,7 +327,7 @@ const pinTicketHandler = {
 
         await interaction.editReply({
           embeds: [createEmbed({
-            title: '📌 Ticket Unpinned',
+            title: '🎀 Ticket Unpinned',
             description: 'This ticket has been unpinned and moved back to normal position.',
             color: 0x95A5A6
           })],
