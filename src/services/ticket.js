@@ -173,15 +173,15 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     const priorityInfo = PRIORITY_MAP[priority] || PRIORITY_MAP.none;
     
     const embed = createEmbed({
-  title: `Ticket #${ticketNumber}`,
-  description: `${member.toString()}, thanks for creating a ticket!\n\n**Reason:** ${reason}\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
-  color: priorityInfo.color,
-  fields: [
-    { name: 'Status', value: '🟢 Open', inline: true },
-    { name: 'Claimed By', value: 'Not claimed', inline: true },
-    { name: 'Created', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
-  ],
-});
+      title: `Ticket #${ticketNumber}`,
+      description: `${member.toString()}, thanks for creating a ticket!\n\n**Reason:** ${reason}\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
+      color: priorityInfo.color,
+      fields: [
+        { name: 'Status', value: '🟢 Open', inline: true },
+        { name: 'Claimed By', value: 'Not claimed', inline: true },
+        { name: 'Created', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+      ],
+    });
     
     const row = buildTicketControlRow();
     
@@ -354,8 +354,8 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
       const statusField = embed.fields?.find(f => f.name === 'Status');
       
       if (statusField) {
-  statusField.value = '🔴 Closed';
-}
+        statusField.value = '🔴 Closed';
+      }
       
       const updatedEmbed = createEmbed({
         title: embed.title || 'Ticket',
@@ -371,7 +371,7 @@ components: []
       });
     }
     
-   const closeEmbed = createEmbed({
+    const closeEmbed = createEmbed({
       title: 'Ticket Closed',
       description: `This ticket has been closed by ${closer}.\n**Reason:** ${reason}${dmOnClose ? '\n\n📩 A DM has been sent to the ticket creator.' : ''}`,
       color: '#e74c3c',
@@ -379,7 +379,7 @@ components: []
     });
     
     const controlRow = new ActionRowBuilder().addComponents(
-   new ButtonBuilder()
+      new ButtonBuilder()
         .setCustomId('ticket_reopen')
         .setLabel('Reopen Ticket')
         .setStyle(ButtonStyle.Success)
@@ -459,12 +459,12 @@ export async function claimTicket(channel, claimer) {
     }
     
     const claimEmbed = createEmbed({
-  title: 'Ticket Claimed',
+      title: 'Ticket Claimed',
       description: `🎉 ${claimer} has claimed this ticket!`,
       color: '#2ecc71'
     });
     
-   const unclaimRow = new ActionRowBuilder().addComponents(
+    const unclaimRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('ticket_unclaim')
         .setLabel('Unclaim')
@@ -572,7 +572,7 @@ export async function reopenTicket(channel, reopener) {
       const embed = ticketMessage.embeds[0];
       const statusField = embed.fields?.find(f => f.name === 'Status');
       
-    if (statusField) {
+      if (statusField) {
         statusField.value = '🟢 Open';
       }
       
@@ -585,7 +585,7 @@ export async function reopenTicket(channel, reopener) {
     }
     
     const reopenEmbed = createEmbed({
-  title: 'Ticket Reopened',
+      title: 'Ticket Reopened',
       description: `🔓 ${reopener} has reopened this ticket!`,
       color: '#2ecc71'
     });
@@ -912,7 +912,7 @@ export async function unclaimTicket(channel, unclaimer) {
     );
     
     if (claimMessage) {
-    const unclaimEmbed = createEmbed({
+      const unclaimEmbed = createEmbed({
         title: 'Ticket Unclaimed',
         description: `🔓 ${unclaimer} has unclaimed this ticket!`,
         color: '#f39c12'
@@ -1044,4 +1044,4 @@ export async function updateTicketPriority(channel, priority, updater) {
   } catch (error) {
     rethrowTicketError(error, 'updateTicketPriority', 'Failed to update ticket priority. Please try again in a moment.', { guildId: channel?.guild?.id, channelId: channel?.id, updaterId: updater?.id, priority });
   }
-  }
+}
