@@ -131,7 +131,7 @@ const createTicketHandler = {
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Thanks for creating this ticket. Why are you creating this ticket?')
+        .setLabel('Why are you creating this ticket?')
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder('Describe your issue...')
         .setRequired(true)
