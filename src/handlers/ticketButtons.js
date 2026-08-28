@@ -127,11 +127,11 @@ const createTicketHandler = {
       
       const modal = new ModalBuilder()
         .setCustomId('create_ticket_modal')
-        .setTitle('Create a Ticket');
+       .setTitle('𝓒𝓻𝓮𝓪𝓽𝓮 𝓪 𝓣𝓲𝓬𝓴𝓮𝓽');
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Why are you creating this ticket?')
+        .setLabel('Cảm ơn bạn đã mở ticket, bạn cần tụi mình hỗ trợ về vấn đề gì ạ?')
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder('Describe your issue...')
         .setRequired(true)
@@ -191,11 +191,11 @@ const closeTicketHandler = {
 
       const modal = new ModalBuilder()
         .setCustomId('ticket_close_modal')
-        .setTitle('Close Ticket');
+        .setTitle('𝓒𝓵𝓸𝓼𝓮 𝓣𝓲𝓬𝓴𝓮𝓽');
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Reason for closing (optional)')
+        .setLabel('Hãy kiểm tra kĩ trước khi đóng ticket. Nếu vẫn còn vấn đề cần hỗ trợ, hãy tiếp tục ở đây trước khi mở ticket mới.')
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder('Add an optional reason for closing this ticket...')
         .setRequired(false)
@@ -315,11 +315,11 @@ const pinTicketHandler = {
         return;
       }
 
-      const hasPingEmoji = channel.name.startsWith('📌');
+      const hasPingEmoji = channel.name.startsWith('🎀');
       
       if (hasPingEmoji) {
         
-        const newName = channel.name.replace(/^📌\s*/, '');
+        const newName = channel.name.replace(/^🎀\s*/, '');
         await channel.edit({
           name: newName,
           position: 999 
@@ -342,7 +342,7 @@ const pinTicketHandler = {
         });
       } else {
         
-        const pinnedName = `📌 ${channel.name}`;
+        const pinnedName = `🎀 ${channel.name}`;
         await channel.edit({
           name: pinnedName,
           position: 0 
@@ -350,7 +350,7 @@ const pinTicketHandler = {
 
         await interaction.editReply({
           embeds: [createEmbed({
-            title: '📌 Ticket Pinned',
+            title: '🎀 Ticket Pinned',
             description: 'This ticket has been pinned to the top of the category.',
             color: 0x3498db
           })],
@@ -376,7 +376,7 @@ const pinTicketHandler = {
           executorId: interaction.user.id,
           metadata: {
             isPinned: !hasPingEmoji,
-            newChannelName: hasPingEmoji ? channel.name.replace(/^📌\s*/, '') : `📌 ${channel.name}`
+            newChannelName: hasPingEmoji ? channel.name.replace(/^🎀\s*/, '') : `🎀 ${channel.name}`
           }
         }
       });
