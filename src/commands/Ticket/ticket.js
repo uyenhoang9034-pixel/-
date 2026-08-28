@@ -227,6 +227,7 @@ description: panelMessage,
                     panelChannelId: panelChannel.id,
                     categoryId: categoryChannel?.id,
                     closedCategoryId: closedCategoryChannel?.id,
+                    imageId: image?.id
                     staffRoleId: staffRole?.id,
                     maxTickets: maxTicketsPerUser,
                     dmOnClose: dmOnClose,
