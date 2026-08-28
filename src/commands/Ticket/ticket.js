@@ -182,7 +182,7 @@ if (image) {
                 new ButtonBuilder()
                     .setCustomId("create_ticket")
 .setLabel(buttonLabel)
-                    .setStyle(ButtonStyle.Primary)
+                    .setStyle(ButtonStyle.Success)
                     .setEmoji("📩"),
             );
 
