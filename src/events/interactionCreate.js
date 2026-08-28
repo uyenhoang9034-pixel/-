@@ -59,10 +59,29 @@ export default {
       try {
         InteractionHelper.patchInteractionResponses(interaction);
         ResponseCoordinator.attach(interaction);
-        return runWithTraceContext(interactionTraceContext, async () => {
-  try {
-    InteractionHelper.patchInteractionResponses(interaction);
-    ResponseCoordinator.attach(interaction);
+                // Giveaway dashboard components
+        if (
+            interaction.isButton() ||
+            interaction.isStringSelectMenu() ||
+            interaction.isChannelSelectMenu() ||
+            interaction.isModalSubmit()
+        ) {
+            const customId = interaction.customId || '';
+
+            if (
+                customId.startsWith('giveaway_dashboard_') ||
+                customId.startsWith('giveaway_modal_')
+            ) {
+                const handled =
+                    await giveawayDashboard.handleInteraction(
+                        interaction,
+                    );
+
+                if (handled) {
+                    return;
+                }
+            }
+        }
 
     if (interaction.isChatInputCommand()) {
 
