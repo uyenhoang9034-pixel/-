@@ -1042,3 +1042,118 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
         components: [],
     }).catch(() => {});
 }
+async function handlePanelImage(
+    selectInteraction,
+    rootInteraction,
+    guildConfig,
+    guildId,
+    client
+) {
+    const modal = new ModalBuilder()
+        .setCustomId('ticket_cfg_panel_image')
+        .setTitle('🖼️ Change Panel Image')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('panel_image_url')
+                    .setLabel('Image URL')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(guildConfig.ticketImage || '')
+                    .setPlaceholder('Paste an image URL, or leave empty to remove')
+                    .setRequired(false)
+                    .setMaxLength(1000)
+            )
+        );
+
+    await selectInteraction.showModal(modal);
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'ticket_cfg_panel_image' &&
+                i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const imageUrl = submitted.fields
+        .getTextInputValue('panel_image_url')
+        .trim();
+
+    // Empty = remove image
+    if (!imageUrl) {
+        guildConfig.ticketImage = null;
+        await setGuildConfig(client, guildId, guildConfig);
+
+        const panelUpdated = await updateLivePanel(
+            client,
+            rootInteraction.guild,
+            guildConfig,
+            guildId
+        );
+
+        await submitted.reply({
+            embeds: [
+                successEmbed(
+                    '🖼️ Panel Image Removed',
+                    panelUpdated
+                        ? 'The panel image has been removed and the live panel has been updated.'
+                        : 'The panel image has been removed from the configuration.'
+                ),
+            ],
+            flags: MessageFlags.Ephemeral,
+        });
+
+        await refreshDashboard(
+            rootInteraction,
+            guildConfig,
+            guildId,
+            client
+        );
+
+        return;
+    }
+
+    // Basic URL validation
+    try {
+        new URL(imageUrl);
+    } catch {
+        await replyUserError(submitted, {
+            type: ErrorTypes.VALIDATION,
+            message: 'Please enter a valid image URL.',
+        });
+        return;
+    }
+
+    guildConfig.ticketImage = imageUrl;
+
+    await setGuildConfig(client, guildId, guildConfig);
+
+    const panelUpdated = await updateLivePanel(
+        client,
+        rootInteraction.guild,
+        guildConfig,
+        guildId
+    );
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                '🖼️ Panel Image Updated',
+                panelUpdated
+                    ? 'The ticket panel image has been updated and the live panel has been refreshed.'
+                    : 'The ticket panel image has been saved.'
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(
+        rootInteraction,
+        guildConfig,
+        guildId,
+        client
+    );
+}
