@@ -146,9 +146,14 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             status === 'reroll';
 
         const defaultColor = isEnded
-            ? getColor('giveaway.ended')
-            : getColor('giveaway.active');
-
+    ? (
+        botConfig.embeds?.colors?.giveaway?.ended
+        || '#ED4245'
+    )
+    : (
+        botConfig.embeds?.colors?.giveaway?.active
+        || '#57F287'
+    );
         const customColor =
             typeof giveaway.color === 'string' &&
             /^#?[0-9A-Fa-f]{6}$/.test(
