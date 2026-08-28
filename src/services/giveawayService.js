@@ -2,7 +2,7 @@ import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlag
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { getColor, botConfig } from '../config/bot.js';
-import { getEndedGiveaways, markGiveawayEnded } from '../utils/database.js';
+import { getEndedGiveaways, markGiveawayEnded, getGiveawayByMessageId, updateGiveawayData } from '../utils/database.js';
 import { checkRateLimit, getRateLimitStatus } from '../utils/rateLimiter.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
 
@@ -134,46 +134,65 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
     try {
         const isEnded = status === 'ended' || status === 'reroll';
         
-        // Color priority: custom giveaway color > default active pink (#E91E63) or ended color
         let color = giveaway.color 
             ? (typeof giveaway.color === 'string' ? parseInt(giveaway.color.replace('#', ''), 16) : giveaway.color)
             : (isEnded ? getColor('giveaway.ended') : 0xE91E63);
 
         const emoji = giveaway.emoji || '🎁';
         const endTime = giveaway.endsAt || giveaway.endTime;
+        const winnerDisplay = winners.length > 0 
+            ? winners.map(id => `<@${id}>`).join(', ')
+            : 'No valid entries';
 
-        // Bounded layout structure matching Image 2
-        let description = `${emoji} Click the button below to enter!\n\n`;
+        // 1. Custom or Default Title
+        const embedTitle = giveaway.title || giveaway.prize;
 
-        if (isEnded) {
-            const winnerDisplay = winners.length > 0 
-                ? winners.map(id => `<@${id}>`).join(', ')
-                : 'No valid entries';
-            description += `✨ • **Winners:** ${winnerDisplay}\n`;
+        // 2. Custom or Default Description
+        let description = '';
+        if (giveaway.description) {
+            description = giveaway.description
+                .replace(/{emoji}/g, emoji)
+                .replace(/{prize}/g, giveaway.prize || '')
+                .replace(/{host}/g, `<@${giveaway.hostId}>`)
+                .replace(/{endsAt}/g, `<t:${Math.floor(endTime / 1000)}:R>`)
+                .replace(/{winners}/g, winnerDisplay);
         } else {
-            description += `✨ • **Ends:** <t:${Math.floor(endTime / 1000)}:R>\n`;
+            description = `${emoji} Click the button below to enter!\n\n`;
+            if (isEnded) {
+                description += `✨ • **Winners:** ${winnerDisplay}\n`;
+            } else {
+                description += `✨ • **Ends:** <t:${Math.floor(endTime / 1000)}:R>\n`;
+            }
+            description += `✨ • **Hosted by:** <@${giveaway.hostId}>`;
         }
 
-        description += `✨ • **Hosted by:** <@${giveaway.hostId}>`;
+        // 3. Custom or Default Footer
+        const footerText = giveaway.footerText 
+            ? giveaway.footerText
+                .replace(/{winnerCount}/g, (giveaway.winnerCount || 1).toString())
+                .replace(/{entries}/g, (giveaway.participants?.length || 0).toString())
+            : `${giveaway.winnerCount || 1} winner(s) • Entries: ${giveaway.participants?.length || 0}`;
 
         const embed = new EmbedBuilder()
-            .setTitle(giveaway.prize)
+            .setTitle(embedTitle)
             .setDescription(description)
             .setColor(color)
             .setFooter({
-                text: `${giveaway.winnerCount || 1} winner(s) • Entries: ${giveaway.participants?.length || 0}`
-            })
-            .setTimestamp(isEnded ? (giveaway.endedAt ? new Date(giveaway.endedAt) : new Date()) : new Date(endTime));
+                text: footerText,
+                iconURL: giveaway.footerIcon || null
+            });
 
-        // Attach Thumbnail Image if configured
-        if (giveaway.thumbnailUrl) {
-            embed.setThumbnail(giveaway.thumbnailUrl);
+        // 4. Custom / Toggleable Timestamp
+        if (giveaway.showTimestamp !== false) {
+            const customTimestamp = giveaway.customTimestamp ? new Date(giveaway.customTimestamp) : null;
+            const defaultTimestamp = isEnded 
+                ? (giveaway.endedAt ? new Date(giveaway.endedAt) : new Date()) 
+                : new Date(endTime);
+            embed.setTimestamp(customTimestamp || defaultTimestamp);
         }
 
-        // Attach Large Banner Image if configured
-        if (giveaway.bannerUrl) {
-            embed.setImage(giveaway.bannerUrl);
-        }
+        if (giveaway.thumbnailUrl) embed.setThumbnail(giveaway.thumbnailUrl);
+        if (giveaway.bannerUrl) embed.setImage(giveaway.bannerUrl);
 
         return embed;
     } catch (error) {
@@ -285,6 +304,61 @@ export async function recordUserInteraction(userId, giveawayId) {
         1,
         GIVEAWAY_INTERACTION_COOLDOWN,
     );
+}
+
+export async function editGiveawayDetails(client, messageId, updates = {}) {
+    try {
+        const giveawayRecord = await getGiveawayByMessageId(client, messageId);
+        if (!giveawayRecord) {
+            throw new TitanBotError(
+                'Giveaway not found',
+                ErrorTypes.NOT_FOUND,
+                'Could not find the requested giveaway record.',
+                { messageId }
+            );
+        }
+
+        let giveawayData = typeof giveawayRecord.data === 'string' 
+            ? JSON.parse(giveawayRecord.data) 
+            : giveawayRecord.data;
+
+        // Apply dynamic updates from Panel / Modals
+        if (updates.title !== undefined) giveawayData.title = updates.title;
+        if (updates.description !== undefined) giveawayData.description = updates.description;
+        if (updates.footerText !== undefined) giveawayData.footerText = updates.footerText;
+        if (updates.footerIcon !== undefined) giveawayData.footerIcon = updates.footerIcon;
+        if (updates.showTimestamp !== undefined) giveawayData.showTimestamp = updates.showTimestamp;
+        if (updates.customTimestamp !== undefined) giveawayData.customTimestamp = updates.customTimestamp;
+        if (updates.color !== undefined) giveawayData.color = updates.color;
+        if (updates.thumbnailUrl !== undefined) giveawayData.thumbnailUrl = updates.thumbnailUrl;
+        if (updates.bannerUrl !== undefined) giveawayData.bannerUrl = updates.bannerUrl;
+        if (updates.emoji !== undefined) giveawayData.emoji = updates.emoji;
+
+        // Fetch channel & message to update live Discord Embed
+        const guild = client.guilds.cache.get(giveawayRecord.guild_id);
+        const channel = await guild?.channels.fetch(giveawayData.channelId).catch(() => null);
+        const message = await channel?.messages.fetch(messageId).catch(() => null);
+
+        if (message) {
+            const isEnded = giveawayData.ended || giveawayData.isEnded;
+            const updatedEmbed = createGiveawayEmbed(
+                giveawayData, 
+                isEnded ? 'ended' : 'active', 
+                giveawayData.winnerIds || []
+            );
+            await message.edit({
+                embeds: [updatedEmbed],
+                components: [createGiveawayButtons(isEnded, giveawayData.emoji || '🎁')]
+            });
+        }
+
+        // Save updated JSON to database
+        await updateGiveawayData(client, messageId, giveawayData);
+        return giveawayData;
+    } catch (error) {
+        logger.error('Error updating giveaway details:', error);
+        throw error;
+    }
 }
 
 export async function endGiveaway(client, giveaway, guildId, endedBy) {
