@@ -134,44 +134,122 @@ export function validateWinnerCount(winnerCount) {
 
 export function createGiveawayEmbed(giveaway, status, winners = []) {
     try {
-        const statusEmoji = status === 'ended' ? '🎉' : status === 'reroll' ? '🔄' : '🎉';
-        const isEnded = status === 'ended' || status === 'reroll';
-        const color = isEnded ? getColor('giveaway.ended') : getColor('giveaway.active');
-        
+        const statusEmoji =
+            status === 'ended'
+                ? '🎉'
+                : status === 'reroll'
+                    ? '🔄'
+                    : '🎉';
+
+        const isEnded =
+            status === 'ended' ||
+            status === 'reroll';
+
+        const defaultColor = isEnded
+            ? getColor('giveaway.ended')
+            : getColor('giveaway.active');
+
+        const customColor =
+            typeof giveaway.color === 'string' &&
+            /^#?[0-9A-Fa-f]{6}$/.test(
+                giveaway.color,
+            )
+                ? (
+                    giveaway.color.startsWith('#')
+                        ? giveaway.color
+                        : `#${giveaway.color}`
+                )
+                : defaultColor;
+
+        const title =
+            giveaway.title ||
+            `${statusEmoji} ${giveaway.prize}`;
+
+        const description =
+            giveaway.description ||
+            'React with the button below to enter!';
+
         const embed = new EmbedBuilder()
-            .setTitle(`${statusEmoji} ${giveaway.prize}`)
-            .setDescription('React with the button below to enter!')
-            .setColor(color)
+            .setTitle(title)
+            .setDescription(description)
+            .setColor(customColor)
             .addFields(
-                { name: '👤 Hosted by', value: `<@${giveaway.hostId}>`, inline: true },
-                { name: '🏆 Winners', value: giveaway.winnerCount.toString(), inline: true },
-                { name: '👥 Entries', value: giveaway.participants?.length?.toString() || '0', inline: true }
+                {
+                    name: '👤 Hosted by',
+                    value: `<@${giveaway.hostId}>`,
+                    inline: true,
+                },
+                {
+                    name: '🏆 Winners',
+                    value: String(
+                        giveaway.winnerCount || 1,
+                    ),
+                    inline: true,
+                },
+                {
+                    name: '👥 Entries',
+                    value: String(
+                        giveaway.participants?.length || 0,
+                    ),
+                    inline: true,
+                },
             );
 
+        if (
+            giveaway.imageUrl &&
+            typeof giveaway.imageUrl === 'string'
+        ) {
+            embed.setImage(giveaway.imageUrl);
+        }
+
         if (isEnded) {
-            const winnerDisplay = winners.length > 0 
-                ? winners.map(id => `<@${id}>`).join(', ')
-                : 'No valid entries';
-            embed.addFields({ name: '🎯 Winners', value: winnerDisplay, inline: false });
+            const winnerDisplay =
+                winners.length > 0
+                    ? winners
+                        .map((id) => `<@${id}>`)
+                        .join(', ')
+                    : 'No valid entries';
+
+            embed.addFields({
+                name: '🎯 Winners',
+                value: winnerDisplay,
+                inline: false,
+            });
         } else {
-            const endTime = giveaway.endsAt || giveaway.endTime;
-            embed.addFields({ name: '⏰ Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: false });
+            const endTime =
+                giveaway.endsAt ||
+                giveaway.endTime;
+
+            if (endTime) {
+                embed.addFields({
+                    name: '⏰ Ends',
+                    value: `<t:${Math.floor(
+                        Number(endTime) / 1000,
+                    )}:R>`,
+                    inline: false,
+                });
+            }
         }
 
         embed.setTimestamp();
-        
+
         return embed;
     } catch (error) {
-        logger.error('Error creating giveaway embed:', error);
+        logger.error(
+            'Error creating giveaway embed:',
+            error,
+        );
+
         throw new TitanBotError(
             'Failed to create giveaway embed',
             ErrorTypes.UNKNOWN,
             'An internal error occurred while formatting the giveaway.',
-            { error: error.message }
+            {
+                error: error.message,
+            },
         );
     }
 }
-
 export function createGiveawayButtons(ended = false) {
     try {
         const row = new ActionRowBuilder();
