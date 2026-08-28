@@ -1,7 +1,6 @@
 import {
     SlashCommandBuilder,
     PermissionFlagsBits,
-    MessageFlags,
 } from 'discord.js';
 
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -41,10 +40,6 @@ export default {
                 },
             );
         }
-
-        await InteractionHelper.safeDefer(interaction, {
-            flags: MessageFlags.Ephemeral,
-        });
 
         return giveawayDashboard.execute(
             interaction,
