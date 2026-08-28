@@ -1185,11 +1185,14 @@ export function formatChannelName(template, variables) {
     };
     
     for (const [placeholder, value] of Object.entries(replacements)) {
-        formatted = formatted.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
+        formatted = formatted.replace(
+            new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'),
+            value
+        );
     }
     
     formatted = formatted.replace(/[^\w\s-]/g, '').trim();
-formatted = formatted.substring(0, 100);
+    formatted = formatted.substring(0, 100);
     
     return formatted || 'Voice Channel';
 }
