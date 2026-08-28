@@ -147,6 +147,9 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
     const rawMsg = config.ticketPanelMessage || 'Click the button below to create a support ticket.';
     const panelMsg = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
     const btnLabel = `\`${config.ticketButtonLabel || 'Create Ticket'}\``;
+    const panelImage = config.ticketImage
+    ? '🖼️ Set'
+    : '`Not set`';
 
     let panelStatusValue = formatPanelStatusField(panelStatus);
 
@@ -170,6 +173,11 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
             { name: '\u200B', value: '\u200B', inline: true },
             { name: 'Panel Message', value: panelMsg, inline: false },
             { name: 'Button Label', value: btnLabel, inline: true },
+            {
+    name: 'Panel Image',
+    value: panelImage,
+    inline: true
+},
             { name: 'Max Tickets/User', value: String(config.maxTicketsPerUser || 3), inline: true },
             { name: 'DM on Close', value: config.dmOnClose !== false ? 'Enabled' : 'Disabled', inline: true },
             { name: 'Ticket Logs Channel', value: ticketLogsChannel, inline: true },
