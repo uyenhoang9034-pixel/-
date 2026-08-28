@@ -99,7 +99,7 @@ function buildPanelButtonRow(config) {
     const button = new ButtonBuilder()
         .setCustomId('create_ticket')
         .setLabel(config.ticketButtonLabel || 'Create Ticket')
-        .setStyle(ButtonStyle.Primary);
+        .setStyle(ButtonStyle.Success);
 
     if (config.ticketButtonEmoji?.id) {
         button.setEmoji({
