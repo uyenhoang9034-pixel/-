@@ -37,6 +37,13 @@ export default {
                         )
                         .setRequired(true),
                 )
+            .addStringOption((option =>
+                    option
+                        .setName("image")
+                        .setDescription(
+                            "URL of the image to include in the welcome message"),
+                        .setRequired(false),
+                )
                 .addStringOption((option) =>
                     option
                         .setName("button_label")
@@ -130,6 +137,8 @@ export default {
             const closedCategoryChannel = interaction.options.getChannel("closed_category");
             const staffRole = interaction.options.getRole("staff_role");
 const panelMessage = interaction.options.getString("panel_message") || "Click the button below to create a support ticket.";
+            const image = 
+                interaction.options.getString("image");
             const buttonLabel =
                 interaction.options.getString("button_label") ||
 "Create Ticket";
@@ -165,6 +174,7 @@ description: panelMessage,
                     currentConfig.ticketPanelMessageId = sentPanel?.id || null;
                     currentConfig.ticketPanelMessage = panelMessage;
                     currentConfig.ticketButtonLabel = buttonLabel;
+                    currentConfig.ticketButtonLabel = imgage;
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;
                     currentConfig.dmOnClose = dmOnClose;
 
