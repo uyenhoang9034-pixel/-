@@ -37,6 +37,12 @@ export default {
                         )
                         .setRequired(true),
                 )
+            .addAttachmentOption((option) =>
+    option
+        .setName("image")
+        .setDescription("An image to display on the ticket panel.")
+        .setRequired(false),
+)
                 .addStringOption((option) =>
                     option
                         .setName("button_label")
@@ -130,17 +136,30 @@ export default {
             const closedCategoryChannel = interaction.options.getChannel("closed_category");
             const staffRole = interaction.options.getRole("staff_role");
 const panelMessage = interaction.options.getString("panel_message") || "Click the button below to create a support ticket.";
+            const image = interaction.options.getAttachment("image");
             const buttonLabel =
                 interaction.options.getString("button_label") ||
 "Create Ticket";
             const maxTicketsPerUser = interaction.options.getInteger("max_tickets_per_user") || 3;
 const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 
-            const setupEmbed = createEmbed({ 
-                title: "Support Tickets", 
-description: panelMessage,
-                color: getColor('info')
-            });
+            const setupEmbed = createEmbed({
+    title: "Support Tickets",
+    description: panelMessage,
+    color: getColor('info')
+});
+
+if (image) {
+    if (!image.contentType?.startsWith("image/")) {
+        return await replyUserError(interaction, {
+            type: ErrorTypes.UNKNOWN,
+            message: "The uploaded file must be an image."
+        });
+    }
+
+    setupEmbed.setImage(image.url);
+}
+    );
 
             const ticketButton = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
@@ -164,6 +183,7 @@ description: panelMessage,
                     currentConfig.ticketPanelChannelId = panelChannel.id;
                     currentConfig.ticketPanelMessageId = sentPanel?.id || null;
                     currentConfig.ticketPanelMessage = panelMessage;
+                    currentConfig.ticketImage = image ? image.url : null;
                     currentConfig.ticketButtonLabel = buttonLabel;
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;
                     currentConfig.dmOnClose = dmOnClose;
