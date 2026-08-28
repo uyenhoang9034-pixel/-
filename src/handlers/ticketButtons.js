@@ -181,7 +181,15 @@ const createTicketModalHandler = {
   }
 };
 
-const modal = new ModalBuilder()
+const closeTicketHandler = {
+  name: 'ticket_close',
+  async execute(interaction, client) {
+    try {
+      if (!(await ensureGuildContext(interaction))) return;
+
+      await assertTicketPermission(interaction, client, 'close this ticket', { allowTicketCreator: true }, 2000);
+
+      const modal = new ModalBuilder()
         .setCustomId('ticket_close_modal')
         .setTitle('Close Ticket'); 
 
