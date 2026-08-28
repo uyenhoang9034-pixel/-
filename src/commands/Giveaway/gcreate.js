@@ -1,274 +1,235 @@
 import { 
     SlashCommandBuilder, 
     PermissionFlagsBits, 
-    ChannelType, 
-    MessageFlags,
-    EmbedBuilder,
-    ButtonBuilder,
-    ButtonStyle,
-    ActionRowBuilder
+    EmbedBuilder, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    ModalBuilder, 
+    TextInputBuilder, 
+    TextInputStyle 
 } from 'discord.js';
-import { errorEmbed, successEmbed } from '../../utils/embeds.js';
-import { logger } from '../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
-import { saveGiveaway } from '../../utils/giveaways.js';
-import { 
-    parseDuration, 
-    validatePrize, 
-    validateWinnerCount,
-    createGiveawayEmbed, 
-    createGiveawayButtons 
-} from '../../services/giveawayService.js';
-import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { botConfig } from '../../config/bot.js';
+import { editGiveawayDetails, endGiveaway } from '../services/giveawayService.js';
+import { getGiveawayByMessageId } from '../utils/database.js';
+import { logger } from '../utils/logger.js';
 
-const GIVEAWAY_MIN_WINNERS = botConfig.giveaways?.minimumWinners ?? 1;
-const GIVEAWAY_MAX_WINNERS = botConfig.giveaways?.maximumWinners ?? 10;
+export const data = new SlashCommandBuilder()
+    .setName('giveaway-dashboard')
+    .setDescription('Mở Bảng quản trị & Chỉnh sửa chi tiết Giveaway')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addStringOption(option => 
+        option.setName('message_id')
+            .setDescription('ID tin nhắn của Giveaway cần chỉnh sửa')
+            .setRequired(true)
+    );
 
-export default {
-    data: new SlashCommandBuilder()
-        .setName("gcreate")
-        .setDescription("Giveaway management commands.")
-        .addSubcommand((subcommand) =>
-            subcommand
-                .setName("create")
-                .setDescription("Starts a new giveaway in a specified channel.")
-                .addStringOption((option) =>
-                    option
-                        .setName("duration")
-                        .setDescription("How long the giveaway should last (e.g., 1h, 30m, 5d).")
-                        .setRequired(true)
-                )
-                .addIntegerOption((option) =>
-                    option
-                        .setName("winners")
-                        .setDescription("The number of winners to pick.")
-                        .setMinValue(GIVEAWAY_MIN_WINNERS)
-                        .setMaxValue(GIVEAWAY_MAX_WINNERS)
-                        .setRequired(true)
-                )
-                .addStringOption((option) =>
-                    option
-                        .setName("prize")
-                        .setDescription("The prize being given away.")
-                        .setRequired(true)
-                )
-                .addChannelOption((option) =>
-                    option
-                        .setName("channel")
-                        .setDescription("The channel to send the giveaway to (defaults to current channel).")
-                        .addChannelTypes(ChannelType.GuildText)
-                        .setRequired(false)
-                )
+export async function execute(interaction) {
+    const messageId = interaction.options.getString('message_id');
+    const giveawayRecord = await getGiveawayByMessageId(interaction.client, messageId);
+
+    if (!giveawayRecord) {
+        return interaction.reply({
+            content: '❌ Không tìm thấy dữ liệu Giveaway với Message ID đã cung cấp.',
+            ephemeral: true
+        });
+    }
+
+    const giveawayData = typeof giveawayRecord.data === 'string' 
+        ? JSON.parse(giveawayRecord.data) 
+        : giveawayRecord.data;
+
+    // Build Ephemeral Dashboard Panel
+    const panelEmbed = new EmbedBuilder()
+        .setTitle('⚙️ Giveaway Control Panel')
+        .setDescription(`Đang quản lý Giveaway ID: \`${messageId}\`\n**Phần thưởng:** ${giveawayData.prize}`)
+        .setColor(0x5865F2)
+        .addFields(
+            { name: '📝 Title', value: giveawayData.title || giveawayData.prize, inline: true },
+            { name: '🎨 Color', value: giveawayData.color || 'Default (#E91E63)', inline: true },
+            { name: '🎁 Emoji', value: giveawayData.emoji || '🎁', inline: true },
+            { name: '🖼️ Banner/Thumbnail', value: giveawayData.bannerUrl || giveawayData.thumbnailUrl ? 'Đã cài đặt' : 'Chưa cài', inline: true },
+            { name: '⏱️ Timestamp', value: giveawayData.showTimestamp !== false ? 'Bật' : 'Tắt', inline: true }
         )
-        .addSubcommand((subcommand) =>
-            subcommand
-                .setName("dashboard")
-                .setDescription("Configure giveaway appearance settings.")
-                .addStringOption((option) =>
-                    option
-                        .setName("color")
-                        .setDescription("Hex color code (e.g., #E91E63)")
-                        .setRequired(false)
-                )
-                .addStringOption((option) =>
-                    option
-                        .setName("emoji")
-                        .setDescription("Button emoji (e.g., 🎁, 🎉)")
-                        .setRequired(false)
-                )
-                .addStringOption((option) =>
-                    option
-                        .setName("banner")
-                        .setDescription("Large banner image URL")
-                        .setRequired(false)
-                )
-                .addStringOption((option) =>
-                    option
-                        .setName("thumbnail")
-                        .setDescription("Small thumbnail image URL")
-                        .setRequired(false)
-                )
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setFooter({ text: 'Chọn nút bên dưới để tùy chỉnh chi tiết.' });
 
-    async execute(interaction) {
-        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+    const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`gw_edit_main_${messageId}`)
+            .setLabel('Sửa Nội dung chính')
+            .setEmoji('📝')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId(`gw_edit_media_${messageId}`)
+            .setLabel('Sửa Ảnh & Footer')
+            .setEmoji('🖼️')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`gw_toggle_time_${messageId}`)
+            .setLabel('Bật/Tắt Timestamp')
+            .setEmoji('⏱️')
+            .setStyle(ButtonStyle.Secondary)
+    );
 
-        if (!interaction.inGuild()) {
-            throw new TitanBotError(
-                'Giveaway command used outside guild',
-                ErrorTypes.VALIDATION,
-                'This command can only be used in a server.',
-                { userId: interaction.user.id }
-            );
-        }
+    const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`gw_quick_end_${messageId}`)
+            .setLabel('Kết thúc ngay')
+            .setEmoji('🛑')
+            .setStyle(ButtonStyle.Danger)
+    );
 
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-            throw new TitanBotError(
-                'User lacks ManageGuild permission',
-                ErrorTypes.PERMISSION,
-                "You need the 'Manage Server' permission to manage giveaways.",
-                { userId: interaction.user.id, guildId: interaction.guildId }
-            );
-        }
+    await interaction.reply({
+        embeds: [panelEmbed],
+        components: [row1, row2],
+        ephemeral: true
+    });
+}
 
-        const subcommand = interaction.options.getSubcommand();
+// Handler lắng nghe Button Click & Modal Submit từ Dashboard
+export async function handleDashboardInteraction(interaction) {
+    if (!interaction.isButton() && !interaction.isModalSubmit()) return;
 
-        // -------------------------------------------------------------
-        // SUBCOMMAND: DASHBOARD (Appearance Customization)
-        // -------------------------------------------------------------
-        if (subcommand === 'dashboard') {
-            const color = interaction.options.getString("color");
-            const emoji = interaction.options.getString("emoji") || "🎁";
-            const banner = interaction.options.getString("banner");
-            const thumbnail = interaction.options.getString("thumbnail");
+    const { customId, client } = interaction;
 
-            const activeColor = color ? parseInt(color.replace('#', ''), 16) : 0xE91E63;
+    // --- 1. XỬ LÝ NÚT MỞ MODAL NỘI DUNG CHÍNH ---
+    if (interaction.isButton() && customId.startsWith('gw_edit_main_')) {
+        const messageId = customId.replace('gw_edit_main_', '');
+        const giveawayRecord = await getGiveawayByMessageId(client, messageId);
+        const data = typeof giveawayRecord?.data === 'string' ? JSON.parse(giveawayRecord.data) : giveawayRecord?.data;
 
-            // Generate Dashboard Live Preview Embed
-            const previewEmbed = new EmbedBuilder()
-                .setTitle("x5 DECA0R 66K (Dashboard Preview)")
-                .setColor(activeColor)
-                .setDescription(
-                    `${emoji} Click the button below to enter!\n\n` +
-                    `✨ • **Ends:** <t:${Math.floor(Date.now() / 1000) + 10800}:R>\n` +
-                    `✨ • **Hosted by:** ${interaction.user}`
-                )
-                .setFooter({ text: "5 winner(s) • Ends" });
+        const modal = new ModalBuilder()
+            .setCustomId(`modal_gw_main_${messageId}`)
+            .setTitle('Chỉnh sửa Nội dung Giveaway');
 
-            if (thumbnail) previewEmbed.setThumbnail(thumbnail);
-            if (banner) previewEmbed.setImage(banner);
+        const titleInput = new TextInputBuilder()
+            .setCustomId('title')
+            .setLabel('Tiêu đề Giveaway (Title)')
+            .setValue(data?.title || data?.prize || '')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false);
 
-            const previewButton = new ButtonBuilder()
-                .setCustomId("preview_btn")
-                .setLabel("Enter")
-                .setEmoji(emoji)
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(true);
+        const descInput = new TextInputBuilder()
+            .setCustomId('description')
+            .setLabel('Mô tả (Dùng {emoji},{prize},{endsAt},{host})')
+            .setValue(data?.description || '')
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder('Nhập nội dung mô tả tùy chỉnh...')
+            .setRequired(false);
 
-            const row = new ActionRowBuilder().addComponents(previewButton);
+        const colorInput = new TextInputBuilder()
+            .setCustomId('color')
+            .setLabel('Mã màu Hex (Ví dụ: #FF0055)')
+            .setValue(data?.color || '')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false);
 
-            logger.info(`Giveaway dashboard updated by ${interaction.user.tag} in guild ${interaction.guildId}`);
+        const emojiInput = new TextInputBuilder()
+            .setCustomId('emoji')
+            .setLabel('Emoji tham gia (Ví dụ: 🎉)')
+            .setValue(data?.emoji || '🎁')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false);
 
-            return await InteractionHelper.safeReply(interaction, {
-                content: "✅ **Giveaway dashboard settings updated successfully!** Here is a preview of your layout:",
-                embeds: [previewEmbed],
-                components: [row],
-                flags: MessageFlags.Ephemeral
-            });
-        }
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(titleInput),
+            new ActionRowBuilder().addComponents(descInput),
+            new ActionRowBuilder().addComponents(colorInput),
+            new ActionRowBuilder().addComponents(emojiInput)
+        );
 
-        // -------------------------------------------------------------
-        // SUBCOMMAND: CREATE (Start Giveaway)
-        // -------------------------------------------------------------
-        if (subcommand === 'create') {
-            logger.info(`Giveaway creation started by ${interaction.user.tag} in guild ${interaction.guildId}`);
+        return interaction.showModal(modal);
+    }
 
-            const durationString = interaction.options.getString("duration");
-            const winnerCount = interaction.options.getInteger("winners");
-            const prize = interaction.options.getString("prize");
-            const targetChannel = interaction.options.getChannel("channel") || interaction.channel;
+    // --- 2. XỬ LÝ NÚT MỞ MODAL HÌNH ẢNH & FOOTER ---
+    if (interaction.isButton() && customId.startsWith('gw_edit_media_')) {
+        const messageId = customId.replace('gw_edit_media_', '');
+        const giveawayRecord = await getGiveawayByMessageId(client, messageId);
+        const data = typeof giveawayRecord?.data === 'string' ? JSON.parse(giveawayRecord.data) : giveawayRecord?.data;
 
-            const durationMs = parseDuration(durationString);
-            validateWinnerCount(winnerCount);
-            const prizeName = validatePrize(prize);
+        const modal = new ModalBuilder()
+            .setCustomId(`modal_gw_media_${messageId}`)
+            .setTitle('Chỉnh sửa Hình ảnh & Footer');
 
-            if (!targetChannel.isTextBased()) {
-                throw new TitanBotError(
-                    'Target channel is not text-based',
-                    ErrorTypes.VALIDATION,
-                    'The channel must be a text channel.',
-                    { channelId: targetChannel.id, channelType: targetChannel.type }
-                );
-            }
+        const bannerInput = new TextInputBuilder()
+            .setCustomId('bannerUrl')
+            .setLabel('URL Banner lớn (Image URL)')
+            .setValue(data?.bannerUrl || '')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false);
 
-            const endTime = Date.now() + durationMs;
+        const thumbInput = new TextInputBuilder()
+            .setCustomId('thumbnailUrl')
+            .setLabel('URL Thumbnail góc phải (Thumbnail URL)')
+            .setValue(data?.thumbnailUrl || '')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false);
 
-            const initialGiveawayData = {
-                messageId: "placeholder",
-                channelId: targetChannel.id,
-                guildId: interaction.guildId,
-                prize: prizeName,
-                hostId: interaction.user.id,
-                endTime: endTime,
-                endsAt: endTime,
-                winnerCount: winnerCount,
-                participants: [],
-                isEnded: false,
-                ended: false,
-                createdAt: new Date().toISOString()
-            };
+        const footerTextInput = new TextInputBuilder()
+            .setCustomId('footerText')
+            .setLabel('Văn bản Footer (Dùng {winnerCount}, {entries})')
+            .setValue(data?.footerText || '')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false);
 
-            const embed = createGiveawayEmbed(initialGiveawayData, "active");
-            const row = createGiveawayButtons(false);
+        const footerIconInput = new TextInputBuilder()
+            .setCustomId('footerIcon')
+            .setLabel('URL Icon Footer (Icon URL)')
+            .setValue(data?.footerIcon || '')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false);
 
-            const giveawayMessage = await targetChannel.send({
-                content: "🪽✨ **GIVEAWAYS** ✨🪽",
-                embeds: [embed],
-                components: [row],
-            });
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(bannerInput),
+            new ActionRowBuilder().addComponents(thumbInput),
+            new ActionRowBuilder().addComponents(footerTextInput),
+            new ActionRowBuilder().addComponents(footerIconInput)
+        );
 
-            initialGiveawayData.messageId = giveawayMessage.id;
-            const saved = await saveGiveaway(
-                interaction.client,
-                interaction.guildId,
-                initialGiveawayData,
-            );
+        return interaction.showModal(modal);
+    }
 
-            if (!saved) {
-                logger.warn(`Failed to save giveaway to database: ${giveawayMessage.id}`);
-            }
+    // --- 3. XỬ LÝ BẬT/TẮT TIMESTAMP QUICK TOGGLE ---
+    if (interaction.isButton() && customId.startsWith('gw_toggle_time_')) {
+        const messageId = customId.replace('gw_toggle_time_', '');
+        const giveawayRecord = await getGiveawayByMessageId(client, messageId);
+        const data = typeof giveawayRecord?.data === 'string' ? JSON.parse(giveawayRecord.data) : giveawayRecord?.data;
 
-            try {
-                await logEvent({
-                    client: interaction.client,
-                    guildId: interaction.guildId,
-                    eventType: EVENT_TYPES.GIVEAWAY_CREATE,
-                    data: {
-                        description: `Giveaway created: ${prizeName}`,
-                        channelId: targetChannel.id,
-                        userId: interaction.user.id,
-                        fields: [
-                            {
-                                name: 'Prize',
-                                value: prizeName,
-                                inline: true
-                            },
-                            {
-                                name: 'Winners',
-                                value: winnerCount.toString(),
-                                inline: true
-                            },
-                            {
-                                name: 'Duration',
-                                value: durationString,
-                                inline: true
-                            },
-                            {
-                                name: 'Channel',
-                                value: targetChannel.toString(),
-                                inline: true
-                            }
-                        ]
-                    }
-                });
-            } catch (logError) {
-                logger.debug('Error logging giveaway creation event:', logError);
-            }
+        const currentStatus = data?.showTimestamp !== false;
+        await editGiveawayDetails(client, messageId, { showTimestamp: !currentStatus });
 
-            logger.info(`Giveaway created successfully: ${giveawayMessage.id} in ${targetChannel.name}`);
+        return interaction.reply({
+            content: `✅ Đã ${!currentStatus ? 'bật' : 'tắt'} hiển thị Timestamp ở Footer!`,
+            ephemeral: true
+        });
+    }
 
-            await InteractionHelper.safeReply(interaction, {
-                embeds: [
-                    successEmbed(
-                        `Giveaway Started! 🎉`,
-                        `A new giveaway for **${prizeName}** has been started in ${targetChannel} and will end in **${durationString}**.`,
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
-            });
-        }
-    },
-};
+    // --- 4. SUBMIT MODAL NỘI DUNG CHÍNH ---
+    if (interaction.isModalSubmit() && customId.startsWith('modal_gw_main_')) {
+        const messageId = customId.replace('modal_gw_main_', '');
+
+        const updates = {
+            title: interaction.fields.getTextInputValue('title') || undefined,
+            description: interaction.fields.getTextInputValue('description') || undefined,
+            color: interaction.fields.getTextInputValue('color') || undefined,
+            emoji: interaction.fields.getTextInputValue('emoji') || '🎁'
+        };
+
+        await editGiveawayDetails(client, messageId, updates);
+        return interaction.reply({ content: '✅ Đã cập nhật thành công nội dung chính Giveaway!', ephemeral: true });
+    }
+
+    // --- 5. SUBMIT MODAL HÌNH ẢNH & FOOTER ---
+    if (interaction.isModalSubmit() && customId.startsWith('modal_gw_media_')) {
+        const messageId = customId.replace('modal_gw_media_', '');
+
+        const updates = {
+            bannerUrl: interaction.fields.getTextInputValue('bannerUrl') || undefined,
+            thumbnailUrl: interaction.fields.getTextInputValue('thumbnailUrl') || undefined,
+            footerText: interaction.fields.getTextInputValue('footerText') || undefined,
+            footerIcon: interaction.fields.getTextInputValue('footerIcon') || undefined
+        };
+
+        await editGiveawayDetails(client, messageId, updates);
+        return interaction.reply({ content: '✅ Đã cập nhật thành công Hình ảnh & Footer!', ephemeral: true });
+    }
+}
