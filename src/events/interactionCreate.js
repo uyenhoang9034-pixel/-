@@ -58,8 +58,6 @@ export default {
       try {
         InteractionHelper.patchInteractionResponses(interaction);
         ResponseCoordinator.attach(interaction);
-        InteractionHelper.patchInteractionResponses(interaction);
-ResponseCoordinator.attach(interaction);
 
 // Giveaway dashboard components
 if (
