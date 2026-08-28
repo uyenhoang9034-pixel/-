@@ -159,7 +159,6 @@ if (image) {
 
     setupEmbed.setImage(image.url);
 }
-    );
 
             const ticketButton = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
