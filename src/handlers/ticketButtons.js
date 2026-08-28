@@ -127,7 +127,7 @@ const createTicketHandler = {
       
       const modal = new ModalBuilder()
         .setCustomId('create_ticket_modal')
-       .setTitle('𝓒𝓻𝓮𝓪𝓽𝓮 𝓪 𝓣𝓲𝓬𝓴𝓮𝓽');
+       .setTitle('Create a Ticket');
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
@@ -191,7 +191,7 @@ const closeTicketHandler = {
 
       const modal = new ModalBuilder()
         .setCustomId('ticket_close_modal')
-        .setTitle('𝓒𝓵𝓸𝓼𝓮 𝓣𝓲𝓬𝓴𝓮𝓽');
+        .setTitle('Close Ticket');
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
@@ -327,7 +327,7 @@ const pinTicketHandler = {
 
         await interaction.editReply({
           embeds: [createEmbed({
-            title: '🎀 Ticket Unpinned',
+            title: '📌 Ticket Unpinned',
             description: 'This ticket has been unpinned and moved back to normal position.',
             color: 0x95A5A6
           })],
@@ -350,7 +350,7 @@ const pinTicketHandler = {
 
         await interaction.editReply({
           embeds: [createEmbed({
-            title: '🎀 Ticket Pinned',
+            title: '📌 Ticket Pinned',
             description: 'This ticket has been pinned to the top of the category.',
             color: 0x3498db
           })],
