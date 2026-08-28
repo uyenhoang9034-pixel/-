@@ -154,20 +154,7 @@ Please close your existing tickets before creating a new one.
 
       modal.addComponents(actionRow);
 
-          try {
-  await interaction.showModal(modal);
-} catch (error) {
-  console.error('========== TICKET MODAL ERROR ==========');
-  console.error('name:', error?.name);
-  console.error('message:', error?.message);
-  console.error('code:', error?.code);
-  console.error('status:', error?.status);
-  console.error('rawError:', error?.rawError);
-  console.error('stack:', error?.stack);
-  console.error('========================================');
-    } 
-      throw error;
-
+          await interaction.showModal(modal);
 const createTicketModalHandler = {
   name: 'create_ticket_modal',
   async execute(interaction, client) {
