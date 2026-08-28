@@ -173,8 +173,8 @@ description: panelMessage,
                     currentConfig.ticketPanelChannelId = panelChannel.id;
                     currentConfig.ticketPanelMessageId = sentPanel?.id || null;
                     currentConfig.ticketPanelMessage = panelMessage;
+                    currentConfig.ticketImage = imgage;
                     currentConfig.ticketButtonLabel = buttonLabel;
-                    currentConfig.ticketButtonLabel = imgage;
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;
                     currentConfig.dmOnClose = dmOnClose;
 
