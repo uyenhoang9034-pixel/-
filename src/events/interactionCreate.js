@@ -83,8 +83,6 @@ if (
   }
 }
 
-if (interaction.isChatInputCommand()) {
-
         if (interaction.isChatInputCommand()) {
           try {
             logger.info(`Command executed: /${interaction.commandName} by ${interaction.user.tag}`, {
