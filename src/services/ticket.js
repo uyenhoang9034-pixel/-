@@ -54,19 +54,19 @@ function buildTicketControlRow({ claimedBy = null } = {}) {
     new ButtonBuilder()
       .setCustomId('ticket_claim')
       .setLabel(claimedBy ? 'Claimed' : 'Claim')
-      .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary)
-      .setEmoji('🙋')
+      .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Success)
+      .setEmoji('🐰')
       .setDisabled(!!claimedBy),
     new ButtonBuilder()
       .setCustomId('ticket_pin')
       .setLabel('Pin')
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji('📌'),
+      .setStyle(ButtonStyle.)
+      .setEmoji('🌸'),
     new ButtonBuilder()
       .setCustomId('ticket_close')
       .setLabel('Close')
       .setStyle(ButtonStyle.Danger)
-      .setEmoji('🔒'),
+      .setEmoji('🎀'),
   );
 }
 
@@ -173,13 +173,13 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     const priorityInfo = PRIORITY_MAP[priority] || PRIORITY_MAP.none;
     
     const embed = createEmbed({
-      title: `Ticket #${ticketNumber}`,
-      description: `${member.toString()}, thanks for creating a ticket!\n\n**Reason:** ${reason}\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
-      color: priorityInfo.color,
+      title: `🎀 𝓣𝓲𝓬𝓴𝓮𝓽 #${String(ticketNumber).padStart(3, '0')}`,
+       description: `${member.toString()}, 𝓽𝓱𝓪𝓷𝓴𝓼 𝓯𝓸𝓻 𝓬𝓻𝓮𝓪𝓽𝓲𝓷𝓰 𝓪 𝓽𝓲𝓬𝓴𝓮𝓽! 🐰\n\n**🌷 𝓡𝓮𝓪𝓼𝓸𝓷:** ${reason}\n**🍓 𝓟𝓻𝓲𝓸𝓻𝓲𝓽𝔂:** ${priorityInfo.emoji} ${priorityInfo.label}`,
+  color: 0xF8BBD0,
       fields: [
-        { name: 'Status', value: '🟢 Open', inline: true },
-        { name: 'Claimed By', value: 'Not claimed', inline: true },
-        { name: 'Created', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+    { name: '🌸 𝓢𝓽𝓪𝓽𝓾𝓼', value: '🟢 𝓞𝓹𝓮𝓷', inline: true },
+    { name: '🐰 𝓒𝓵𝓪𝓲𝓶𝓮𝓭 𝓑𝔂', value: '𝓝𝓸𝓽 𝓬𝓵𝓪𝓲𝓶𝓮𝓭', inline: true },
+    { name: '🕐 𝓒𝓻𝓮𝓪𝓽𝓮𝓭', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
       ],
     });
     
@@ -354,8 +354,8 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
       const statusField = embed.fields?.find(f => f.name === 'Status');
       
       if (statusField) {
-        statusField.value = '🔴 Closed';
-      }
+  statusField.value = '🔴 𝓒𝓵𝓸𝓼𝓮𝓭';
+}
       
       const updatedEmbed = createEmbed({
         title: embed.title || 'Ticket',
@@ -371,25 +371,26 @@ components: []
       });
     }
     
-    const closeEmbed = createEmbed({
-      title: 'Ticket Closed',
-      description: `This ticket has been closed by ${closer}.\n**Reason:** ${reason}${dmOnClose ? '\n\n📩 A DM has been sent to the ticket creator.' : ''}`,
-      color: '#e74c3c',
-      footer: { text: `Ticket ID: ${ticketData.id}` }
-    });
+   const closeEmbed = createEmbed({
+  title: '🎀 𝓣𝓲𝓬𝓴𝓮𝓽 𝓒𝓵𝓸𝓼𝓮𝓭',
+  description: `🌸 𝓣𝓱𝓲𝓼 𝓽𝓲𝓬𝓴𝓮𝓽 𝓱𝓪𝓼 𝓫𝓮𝓮𝓷 𝓬𝓵𝓸𝓼𝓮𝓭 𝓫𝔂 ${closer}.\n**🌷 𝓡𝓮𝓪𝓼𝓸𝓷:** ${reason}${dmOnClose ? '\n\n📩 𝓐 𝓓𝓜 𝓱𝓪𝓼 𝓫𝓮𝓮𝓷 𝓼𝓮𝓷𝓽 𝓽𝓸 𝓽𝓱𝓮 𝓽𝓲𝓬𝓴𝓮𝓽 𝓬𝓻𝓮𝓪𝓽𝓸𝓻.' : ''}`,
+  color: 0xF8BBD0,
+  footer: { text: `🎀 Ticket ID: ${ticketData.id}` }
+});
     
     const controlRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('ticket_reopen')
-        .setLabel('Reopen Ticket')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🔓'),
-      new ButtonBuilder()
-        .setCustomId('ticket_delete')
-        .setLabel('Delete Ticket')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️')
-    );
+  new ButtonBuilder()
+    .setCustomId('ticket_reopen')
+    .setLabel('Reopen Ticket')
+    .setStyle(ButtonStyle.Success)
+    .setEmoji('🐰'),
+
+  new ButtonBuilder()
+    .setCustomId('ticket_delete')
+    .setLabel('Delete Ticket')
+    .setStyle(ButtonStyle.Danger)
+    .setEmoji('🌸')
+);
     
     await channel.send({ embeds: [closeEmbed], components: [controlRow] });
     
@@ -459,18 +460,18 @@ export async function claimTicket(channel, claimer) {
     }
     
     const claimEmbed = createEmbed({
-      title: 'Ticket Claimed',
-      description: `🎉 ${claimer} has claimed this ticket!`,
-      color: '#2ecc71'
-    });
+  title: '🐰 𝓣𝓲𝓬𝓴𝓮𝓽 𝓒𝓵𝓪𝓲𝓶𝓮𝓭',
+  description: `🌸 ${claimer} 𝓱𝓪𝓼 𝓬𝓵𝓪𝓲𝓶𝓮𝓭 𝓽𝓱𝓲𝓼 𝓽𝓲𝓬𝓴𝓮𝓽!`,
+  color: 0xB8E0D2
+});
     
-    const unclaimRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('ticket_unclaim')
-        .setLabel('Unclaim')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🔓')
-    );
+   const unclaimRow = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId('ticket_unclaim')
+    .setLabel('Unclaim')
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji('🐇')
+);
 
     const claimStatusMessage = messages.find(m =>
       m.embeds.length > 0 &&
@@ -572,9 +573,9 @@ export async function reopenTicket(channel, reopener) {
       const embed = ticketMessage.embeds[0];
       const statusField = embed.fields?.find(f => f.name === 'Status');
       
-      if (statusField) {
-        statusField.value = '🟢 Open';
-      }
+     if (statusField) {
+  statusField.value = '🟢 𝓞𝓹𝓮𝓷';
+}
       
       const row = buildTicketControlRow({ claimedBy: ticketData.claimedBy });
       
@@ -585,10 +586,10 @@ export async function reopenTicket(channel, reopener) {
     }
     
     const reopenEmbed = createEmbed({
-      title: 'Ticket Reopened',
-      description: `🔓 ${reopener} has reopened this ticket!`,
-      color: '#2ecc71'
-    });
+  title: '🐰 𝓣𝓲𝓬𝓴𝓮𝓽 𝓡𝓮𝓸𝓹𝓮𝓷𝓮𝓭',
+  description: `🌸 ${reopener} 𝓱𝓪𝓼 𝓻𝓮𝓸𝓹𝓮𝓷𝓮𝓭 𝓽𝓱𝓲𝓼 𝓽𝓲𝓬𝓴𝓮𝓽!`,
+  color: 0xB8E0D2
+});
 
     const closeStatusMessage = messages.find(m =>
       m.embeds.length > 0 &&
@@ -912,11 +913,11 @@ export async function unclaimTicket(channel, unclaimer) {
     );
     
     if (claimMessage) {
-      const unclaimEmbed = createEmbed({
-        title: 'Ticket Unclaimed',
-        description: `🔓 ${unclaimer} has unclaimed this ticket!`,
-        color: '#f39c12'
-      });
+    const unclaimEmbed = createEmbed({
+  title: '🐇 𝓣𝓲𝓬𝓴𝓮𝓽 𝓤𝓷𝓬𝓵𝓪𝓲𝓶𝓮𝓭',
+  description: `🌷 ${unclaimer} 𝓱𝓪𝓼 𝓾𝓷𝓬𝓵𝓪𝓲𝓶𝓮𝓭 𝓽𝓱𝓲𝓼 𝓽𝓲𝓬𝓴𝓮𝓽!`,
+  color: 0xE8C7D8
+});
       
       await claimMessage.edit({ 
         embeds: [unclaimEmbed],
