@@ -112,13 +112,13 @@ const createTicketHandler = {
   
       const modal = new ModalBuilder()
         .setCustomId('create_ticket_modal')
-        .setTitle('𝓤𝓼𝓪𝓰𝓲 𝓣𝓲𝓬𝓴𝓮𝓽 🎀');
+        .setTitle('Create a Ticket');
 
       const reasonInput = new TextInputBuilder()
   .setCustomId('reason')
-  .setLabel('𝓛𝔂́ 𝓭𝓸 𝓫𝓪̣𝓷 𝓽𝓪̣𝓸 𝓽𝓲𝓬𝓴𝓮𝓽?')
+  .setLabel('Why are you creating this ticket?')
   .setStyle(TextInputStyle.Paragraph)
-  .setPlaceholder('𝓗𝓪̃𝔂 𝓶𝓸̂ 𝓽𝓪̉ 𝓿𝓪̂́𝓷 đ𝓮̂̀ 𝓬𝓾̉𝓪 𝓫𝓪̣𝓷... 🌸')
+  .setPlaceholder('Describe your issue...')
   .setRequired(true)
   .setMaxLength(1000);
 
@@ -215,13 +215,13 @@ const closeTicketHandler = {
 
       const modal = new ModalBuilder()
   .setCustomId('ticket_close_modal')
-  .setTitle('𝓤𝓼𝓪𝓰𝓲 𝓒𝓵𝓸𝓼𝓮 🎀');
+  .setTitle('Close Ticket');
 
 const reasonInput = new TextInputBuilder()
   .setCustomId('reason')
-  .setLabel('𝓛𝔂́ 𝓭𝓸 𝓭𝓸́𝓷𝓰 𝓽𝓲𝓬𝓴𝓮𝓽?')
+  .setLabel('Reason for closing (optional)')
   .setStyle(TextInputStyle.Paragraph)
-  .setPlaceholder('𝓑𝓪̣𝓷 𝓬𝓸́ 𝓽𝓱𝓮̂̉ 𝓰𝓱𝓲 𝓵𝔂́ 𝓭𝓸 𝓭𝓸́𝓷𝓰 𝓽𝓲𝓬𝓴𝓮𝓽... 🌸')
+  .setPlaceholder('Add an optional reason for closing this ticket...')
   .setRequired(false)
   .setMaxLength(1000);
 
