@@ -315,11 +315,11 @@ const pinTicketHandler = {
         return;
       }
 
-      const hasPingEmoji = channel.name.startsWith('🎀');
+      const hasPingEmoji = channel.name.startsWith('📌');
       
       if (hasPingEmoji) {
         
-        const newName = channel.name.replace(/^🎀\s*/, '');
+        const newName = channel.name.replace(/^📌\s*/, '');
         await channel.edit({
           name: newName,
           position: 999 
@@ -342,7 +342,7 @@ const pinTicketHandler = {
         });
       } else {
         
-        const pinnedName = `🎀 ${channel.name}`;
+        const pinnedName = `📌 ${channel.name}`;
         await channel.edit({
           name: pinnedName,
           position: 0 
@@ -376,7 +376,7 @@ const pinTicketHandler = {
           executorId: interaction.user.id,
           metadata: {
             isPinned: !hasPingEmoji,
-            newChannelName: hasPingEmoji ? channel.name.replace(/^🎀\s*/, '') : `🎀 ${channel.name}`
+            newChannelName: hasPingEmoji ? channel.name.replace(/^📌\s*/, '') : `📌 ${channel.name}`
           }
         }
       });
