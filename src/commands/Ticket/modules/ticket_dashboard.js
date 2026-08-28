@@ -96,13 +96,22 @@ function buildPanelEmbed(config) {
 }
 
 function buildPanelButtonRow(config) {
-    return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('create_ticket')
-            .setLabel(config.ticketButtonLabel || 'Create Ticket')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('📩'),
-    );
+    const button = new ButtonBuilder()
+        .setCustomId('create_ticket')
+        .setLabel(config.ticketButtonLabel || 'Create Ticket')
+        .setStyle(ButtonStyle.Primary);
+
+    if (config.ticketButtonEmoji?.id) {
+        button.setEmoji({
+            id: config.ticketButtonEmoji.id,
+            name: config.ticketButtonEmoji.name || undefined,
+            animated: config.ticketButtonEmoji.animated === true,
+        });
+    } else {
+        button.setEmoji('📩');
+    }
+
+    return new ActionRowBuilder().addComponents(button);
 }
 
 async function repostTicketPanel(client, guild, guildConfig, guildId) {
@@ -212,6 +221,26 @@ function buildSelectMenu(guildId) {
                 .setValue('button_label')
                 .setEmoji('🏷️'),
             new StringSelectMenuOptionBuilder()
+    .setLabel('Change Panel Channel')
+    .setDescription('Change the channel where the ticket panel is displayed')
+    .setValue('panel_channel')
+    .setEmoji('📌'),
+            new StringSelectMenuOptionBuilder()
+    .setLabel('Edit Panel Title')
+    .setDescription('Change the title displayed on the ticket panel')
+    .setValue('panel_title')
+    .setEmoji('✨'),
+            new StringSelectMenuOptionBuilder()
+    .setLabel('Change Panel Color')
+    .setDescription('Change the color of the ticket panel')
+    .setValue('panel_color')
+    .setEmoji('🎨'),
+            new StringSelectMenuOptionBuilder()
+    .setLabel('Change Button Emoji')
+    .setDescription('Choose a custom server emoji for the ticket button')
+    .setValue('button_emoji')
+    .setEmoji('😋'),
+            new StringSelectMenuOptionBuilder()
                 .setLabel('Change Open Tickets Category')
                 .setDescription('Category where new tickets are created')
                 .setValue('open_category')
@@ -320,6 +349,44 @@ export default {
                             break;
                             case 'panel_image':
                             await handlePanelImage(
+        selectInteraction,
+        interaction,
+        guildConfig,
+        guildId,
+        client
+    );
+    break;
+                            case 'panel_title':
+    await handlePanelTitle(
+        selectInteraction,
+        interaction,
+        guildConfig,
+        guildId,
+        client
+    );
+    break;
+
+case 'panel_color':
+    await handlePanelColor(
+        selectInteraction,
+        interaction,
+        guildConfig,
+        guildId,
+        client
+    );
+    break;
+
+case 'button_emoji':
+    await handleButtonEmoji(
+        selectInteraction,
+        interaction,
+        guildConfig,
+        guildId,
+        client
+    );
+    break;
+case 'panel_channel':
+    await handlePanelChannel(
         selectInteraction,
         interaction,
         guildConfig,
@@ -984,6 +1051,11 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
         'ticketClosedCategoryId',
         'ticketPanelMessage',
         'ticketImage',
+        'ticketPanelTitle',
+'ticketPanelColor',
+'ticketButtonEmoji',
+'ticketLogsChannelId',
+'ticketTranscriptChannelId',
         'ticketButtonLabel',
         'maxTicketsPerUser',
         'dmOnClose',
@@ -1164,4 +1236,395 @@ async function handlePanelImage(
         guildId,
         client
     );
+}
+async function handlePanelTitle(
+    selectInteraction,
+    rootInteraction,
+    guildConfig,
+    guildId,
+    client
+) {
+    const modal = new ModalBuilder()
+        .setCustomId('ticket_cfg_panel_title')
+        .setTitle('✨ Edit Panel Title')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('panel_title_input')
+                    .setLabel('Panel Title')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(
+                        guildConfig.ticketPanelTitle ||
+                        'Support Tickets'
+                    )
+                    .setMaxLength(256)
+                    .setRequired(true)
+            )
+        );
+
+    await selectInteraction.showModal(modal);
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'ticket_cfg_panel_title' &&
+                i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const newTitle = submitted.fields
+        .getTextInputValue('panel_title_input')
+        .trim();
+
+    guildConfig.ticketPanelTitle = newTitle;
+
+    await setGuildConfig(client, guildId, guildConfig);
+
+    const panelUpdated = await updateLivePanel(
+        client,
+        rootInteraction.guild,
+        guildConfig,
+        guildId
+    );
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Panel Title Updated',
+                `The panel title has been changed to:\n**${newTitle}**${
+                    panelUpdated
+                        ? '\n\nThe live ticket panel has also been updated.'
+                        : ''
+                }`
+            )
+        ],
+        flags: MessageFlags.Ephemeral
+    });
+
+    await refreshDashboard(
+        rootInteraction,
+        guildConfig,
+        guildId,
+        client
+    );
+}
+async function handlePanelColor(
+    selectInteraction,
+    rootInteraction,
+    guildConfig,
+    guildId,
+    client
+) {
+    const modal = new ModalBuilder()
+        .setCustomId('ticket_cfg_panel_color')
+        .setTitle('🎨 Change Panel Color')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('panel_color_input')
+                    .setLabel('HEX Color')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(
+                        guildConfig.ticketPanelColor ||
+                        '#3498DB'
+                    )
+                    .setMaxLength(7)
+                    .setRequired(true)
+                    .setPlaceholder('#FFB6C1')
+            )
+        );
+
+    await selectInteraction.showModal(modal);
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'ticket_cfg_panel_color' &&
+                i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const color = submitted.fields
+        .getTextInputValue('panel_color_input')
+        .trim();
+
+    if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color)) {
+        await replyUserError(submitted, {
+            type: ErrorTypes.VALIDATION,
+            message: 'Invalid HEX color. Example: `#FFB6C1`',
+        });
+        return;
+    }
+
+    guildConfig.ticketPanelColor = color;
+
+    await setGuildConfig(client, guildId, guildConfig);
+
+    const panelUpdated = await updateLivePanel(
+        client,
+        rootInteraction.guild,
+        guildConfig,
+        guildId
+    );
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Panel Color Updated',
+                `Panel color changed to \`${color}\`.${
+                    panelUpdated
+                        ? '\nThe live ticket panel has also been updated.'
+                        : ''
+                }`
+            )
+        ],
+        flags: MessageFlags.Ephemeral
+    });
+
+    await refreshDashboard(
+        rootInteraction,
+        guildConfig,
+        guildId,
+        client
+    );
+}
+async function handleButtonEmoji(
+    selectInteraction,
+    rootInteraction,
+    guildConfig,
+    guildId,
+    client
+) {
+    const emojis = rootInteraction.guild.emojis.cache;
+
+    if (!emojis.size) {
+        await selectInteraction.reply({
+            embeds: [
+                infoEmbed(
+                    'No Custom Emojis',
+                    'This server does not have any custom emojis available.'
+                )
+            ],
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    const options = emojis
+        .first(25)
+        .map(emoji =>
+            new StringSelectMenuOptionBuilder()
+                .setLabel(emoji.name || 'Emoji')
+                .setValue(emoji.id)
+                .setEmoji({
+                    id: emoji.id,
+                    name: emoji.name || undefined,
+                    animated: emoji.animated,
+                })
+        );
+
+    const menu = new StringSelectMenuBuilder()
+        .setCustomId('ticket_cfg_button_emoji')
+        .setPlaceholder('Select a server emoji...')
+        .addOptions(options);
+
+    await selectInteraction.reply({
+        embeds: [
+            new EmbedBuilder()
+                .setTitle('😋 Change Button Emoji')
+                .setDescription(
+                    'Select an emoji from this server to use on the Create Ticket button.'
+                )
+                .setColor(getColor('info')),
+        ],
+        components: [
+            new ActionRowBuilder().addComponents(menu)
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    const collector =
+        rootInteraction.channel.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            filter: i =>
+                i.user.id === selectInteraction.user.id &&
+                i.customId === 'ticket_cfg_button_emoji',
+            time: 60_000,
+            max: 1,
+        });
+
+    collector.on('collect', async emojiInteraction => {
+        const emojiId = emojiInteraction.values[0];
+        const emoji = rootInteraction.guild.emojis.cache.get(emojiId);
+
+        if (!emoji) {
+            return;
+        }
+
+        guildConfig.ticketButtonEmoji = {
+            id: emoji.id,
+            name: emoji.name,
+            animated: emoji.animated,
+        };
+
+        await setGuildConfig(
+            client,
+            guildId,
+            guildConfig
+        );
+
+        const panelUpdated = await updateLivePanel(
+            client,
+            rootInteraction.guild,
+            guildConfig,
+            guildId
+        );
+
+        await emojiInteraction.update({
+            embeds: [
+                successEmbed(
+                    'Button Emoji Updated',
+                    `The ticket button emoji has been changed to ${emoji}.${
+                        panelUpdated
+                            ? '\nThe live ticket panel has also been updated.'
+                            : ''
+                    }`
+                )
+            ],
+            components: [],
+        });
+
+        await refreshDashboard(
+            rootInteraction,
+            guildConfig,
+            guildId,
+            client
+        );
+    });
+}
+async function handlePanelChannel(
+    selectInteraction,
+    rootInteraction,
+    guildConfig,
+    guildId,
+    client
+) {
+    await selectInteraction.deferUpdate();
+
+    const channelSelect = new ChannelSelectMenuBuilder()
+        .setCustomId('ticket_cfg_panel_channel')
+        .setPlaceholder('Select the ticket panel channel...')
+        .addChannelTypes(ChannelType.GuildText)
+        .setMaxValues(1);
+
+    await selectInteraction.followUp({
+        embeds: [
+            new EmbedBuilder()
+                .setTitle('📌 Change Panel Channel')
+                .setDescription(
+                    `**Current:** ${
+                        guildConfig.ticketPanelChannelId
+                            ? `<#${guildConfig.ticketPanelChannelId}>`
+                            : '`Not set`'
+                    }\n\nSelect the channel where the ticket panel should be displayed.`
+                )
+                .setColor(getColor('info')),
+        ],
+        components: [
+            new ActionRowBuilder().addComponents(channelSelect)
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    const collector =
+        rootInteraction.channel.createMessageComponentCollector({
+            componentType: ComponentType.ChannelSelect,
+            filter: i =>
+                i.user.id === selectInteraction.user.id &&
+                i.customId === 'ticket_cfg_panel_channel',
+            time: 60_000,
+            max: 1,
+        });
+
+    collector.on('collect', async channelInteraction => {
+        await channelInteraction.deferUpdate();
+
+        const newChannel =
+            channelInteraction.channels.first();
+
+        if (!newChannel) return;
+
+        const oldChannelId =
+            guildConfig.ticketPanelChannelId;
+
+        const oldMessageId =
+            guildConfig.ticketPanelMessageId;
+
+        // Xóa panel cũ
+        if (oldChannelId && oldMessageId) {
+            const oldChannel =
+                await rootInteraction.guild.channels
+                    .fetch(oldChannelId)
+                    .catch(() => null);
+
+            if (oldChannel) {
+                const oldMessage =
+                    await oldChannel.messages
+                        .fetch(oldMessageId)
+                        .catch(() => null);
+
+                if (oldMessage) {
+                    await oldMessage.delete().catch(() => {});
+                }
+            }
+        }
+
+        // Lưu channel mới
+        guildConfig.ticketPanelChannelId =
+            newChannel.id;
+
+        guildConfig.ticketPanelMessageId = null;
+
+        // Tạo panel mới
+        const sentPanel = await newChannel.send({
+            embeds: [
+                buildPanelEmbed(guildConfig)
+            ],
+            components: [
+                buildPanelButtonRow(guildConfig)
+            ],
+        });
+
+        guildConfig.ticketPanelMessageId =
+            sentPanel.id;
+
+        await setGuildConfig(
+            client,
+            guildId,
+            guildConfig
+        );
+
+        await channelInteraction.followUp({
+            embeds: [
+                successEmbed(
+                    'Panel Channel Updated',
+                    `The ticket panel has been moved to ${newChannel}.`
+                )
+            ],
+            flags: MessageFlags.Ephemeral,
+        });
+
+        await refreshDashboard(
+            rootInteraction,
+            guildConfig,
+            guildId,
+            client
+        );
+    });
 }
