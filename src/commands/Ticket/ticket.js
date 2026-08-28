@@ -37,6 +37,18 @@ export default {
                         )
                         .setRequired(true),
                 )
+            .addStringOption((option) =>
+    option
+        .setName("panel_title")
+        .setDescription("The title displayed on the ticket panel.")
+        .setRequired(false),
+)
+            .addStringOption((option) =>
+    option
+        .setName("panel_color")
+        .setDescription("HEX color for the ticket panel, e.g. #FFB6C1")
+        .setRequired(false),
+)
                 .addAttachmentOption((option) =>
                     option
                         .setName("image")
@@ -136,6 +148,12 @@ export default {
             const closedCategoryChannel = interaction.options.getChannel("closed_category");
             const staffRole = interaction.options.getRole("staff_role");
 const panelMessage = interaction.options.getString("panel_message") || "Click the button below to create a support ticket.";
+            const panelTitle =
+    interaction.options.getString("panel_title") ||
+    "Support Tickets";
+const panelColor =
+    interaction.options.getString("panel_color") ||
+    getColor('info');
             const image = interaction.options.getAttachment("image");
             const buttonLabel =
                 interaction.options.getString("button_label") ||
