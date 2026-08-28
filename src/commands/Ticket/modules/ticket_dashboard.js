@@ -81,12 +81,12 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
 
 function buildPanelEmbed(config) {
     const embed = new EmbedBuilder()
-        .setTitle('Support Tickets')
+        .setTitle(config.ticketPanelTitle || 'Support Tickets')
         .setDescription(
             config.ticketPanelMessage ||
             'Click the button below to create a support ticket.'
         )
-        .setColor(getColor('info'));
+        .setColor(config.ticketPanelColor || getColor('info'));
 
     if (config.ticketImage) {
         embed.setImage(config.ticketImage);
