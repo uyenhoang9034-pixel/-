@@ -127,13 +127,13 @@ const createTicketHandler = {
       
       const modal = new ModalBuilder()
         .setCustomId('create_ticket_modal')
-        .setTitle('Tạo Ticket Hỗ Trợ'); // Đã đổi sang tiếng Việt
+        .setTitle('Create a Ticket'); 
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Lý do bạn tạo ticket này là gì?') // Đã đổi sang tiếng Việt
+        .setLabel('Why are you creating this ticket?') 
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Mô tả vấn đề của bạn ở đây...') // Đã đổi sang tiếng Việt
+        .setPlaceholder('Describe your issue...'') 
         .setRequired(true)
         .setMaxLength(1000);
 
@@ -183,13 +183,13 @@ const createTicketModalHandler = {
 
 const modal = new ModalBuilder()
         .setCustomId('ticket_close_modal')
-        .setTitle('Đóng Ticket'); // Đã đổi sang tiếng Việt
+        .setTitle('Close Ticket'); 
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Lý do đóng (không bắt buộc)') // Đã đổi sang tiếng Việt
+        .setLabel('Reason for closing (optional)') 
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Thêm lý do đóng ticket này...') // Đã đổi sang tiếng Việt
+        .setPlaceholder('Add an optional reason for closing this ticket..') 
         .setRequired(false)
         .setMaxLength(1000);
 
