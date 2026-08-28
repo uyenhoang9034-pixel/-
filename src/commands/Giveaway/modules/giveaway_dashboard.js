@@ -22,7 +22,6 @@ import {
 
 import { saveGiveaway } from '../../../utils/giveaways.js';
 import { logger } from '../../../utils/logger.js';
-import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
 const DEFAULTS = {
     title: '🎉 Giveaway',
@@ -295,7 +294,7 @@ function buildModal(type, session) {
                             .setCustomId('title')
                             .setLabel('Title')
                             .setStyle(TextInputStyle.Short)
-                            .setPlaceholder('Example: ✨ Special Giveaway')
+                            .setPlaceholder('Example: Special Giveaway')
                             .setValue(session.title || '')
                             .setRequired(true)
                             .setMaxLength(256),
@@ -334,7 +333,9 @@ function buildModal(type, session) {
                             .setLabel('HEX Color')
                             .setStyle(TextInputStyle.Short)
                             .setPlaceholder('#FF69B4')
-                            .setValue(session.color || DEFAULTS.color)
+                            .setValue(
+                                session.color || DEFAULTS.color,
+                            )
                             .setRequired(true)
                             .setMaxLength(7),
                     ),
@@ -362,7 +363,9 @@ function buildModal(type, session) {
             break;
 
         default:
-            throw new Error(`Unknown giveaway dashboard modal type: ${type}`);
+            throw new Error(
+                `Unknown giveaway dashboard modal type: ${type}`,
+            );
     }
 
     return modal;
@@ -371,32 +374,45 @@ function buildModal(type, session) {
 async function showDashboard(interaction) {
     const session = getSession(interaction);
 
-    return InteractionHelper.safeReply(interaction, {
-        embeds: [
-            buildDashboardEmbed(
-                interaction,
-                session,
-            ),
-        ],
-        components: buildDashboardComponents(),
-        flags: MessageFlags.Ephemeral,
-    });
+    try {
+        await interaction.reply({
+            embeds: [
+                buildDashboardEmbed(
+                    interaction,
+                    session,
+                ),
+            ],
+            components: buildDashboardComponents(),
+            flags: MessageFlags.Ephemeral,
+        });
+
+        return true;
+    } catch (error) {
+        logger.error(
+            'Failed to open giveaway dashboard:',
+            error,
+        );
+
+        return false;
+    }
 }
 
 async function handleSelect(interaction) {
     const value = interaction.values?.[0];
 
     if (!value) {
-        return interaction.reply({
+        await interaction.reply({
             content: 'Invalid dashboard selection.',
             flags: MessageFlags.Ephemeral,
         });
+
+        return true;
     }
 
     if (value === 'reset') {
         resetSession(interaction);
 
-        return interaction.update({
+        await interaction.update({
             embeds: [
                 buildDashboardEmbed(
                     interaction,
@@ -405,6 +421,8 @@ async function handleSelect(interaction) {
             ],
             components: buildDashboardComponents(),
         });
+
+        return true;
     }
 
     if (value === 'channel') {
@@ -413,7 +431,7 @@ async function handleSelect(interaction) {
             .setPlaceholder('Select a channel...')
             .addChannelTypes(ChannelType.GuildText);
 
-        return interaction.update({
+        await interaction.update({
             embeds: [
                 buildDashboardEmbed(
                     interaction,
@@ -432,22 +450,27 @@ async function handleSelect(interaction) {
                 ),
             ],
         });
+
+        return true;
     }
 
-    return interaction.showModal(
+    await interaction.showModal(
         buildModal(
             value,
             getSession(interaction),
         ),
     );
+
+    return true;
 }
 
 async function handleChannelSelect(interaction) {
     const session = getSession(interaction);
 
-    session.channelId = interaction.values?.[0] || null;
+    session.channelId =
+        interaction.values?.[0] || null;
 
-    return interaction.update({
+    await interaction.update({
         embeds: [
             buildDashboardEmbed(
                 interaction,
@@ -456,6 +479,8 @@ async function handleChannelSelect(interaction) {
         ],
         components: buildDashboardComponents(),
     });
+
+    return true;
 }
 
 async function handleModal(interaction) {
@@ -467,15 +492,20 @@ async function handleModal(interaction) {
             .getTextInputValue('prize')
             .trim();
 
-        session.prize = validatePrize(prize);
-    } else if (customId === 'giveaway_modal_duration') {
+        validatePrize(prize);
+        session.prize = prize;
+    }
+
+    else if (customId === 'giveaway_modal_duration') {
         const duration = interaction.fields
             .getTextInputValue('duration')
             .trim();
 
         parseDuration(duration);
         session.duration = duration;
-    } else if (customId === 'giveaway_modal_winners') {
+    }
+
+    else if (customId === 'giveaway_modal_winners') {
         const raw = interaction.fields
             .getTextInputValue('winners')
             .trim();
@@ -484,15 +514,37 @@ async function handleModal(interaction) {
 
         validateWinnerCount(winners);
         session.winners = winners;
-    } else if (customId === 'giveaway_modal_title') {
-        session.title = interaction.fields
+    }
+
+    else if (customId === 'giveaway_modal_title') {
+        const title = interaction.fields
             .getTextInputValue('title')
             .trim();
-    } else if (customId === 'giveaway_modal_description') {
-        session.description = interaction.fields
+
+        if (!title) {
+            throw new Error(
+                'Giveaway title cannot be empty.',
+            );
+        }
+
+        session.title = title;
+    }
+
+    else if (customId === 'giveaway_modal_description') {
+        const description = interaction.fields
             .getTextInputValue('description')
             .trim();
-    } else if (customId === 'giveaway_modal_color') {
+
+        if (!description) {
+            throw new Error(
+                'Giveaway description cannot be empty.',
+            );
+        }
+
+        session.description = description;
+    }
+
+    else if (customId === 'giveaway_modal_color') {
         const color = interaction.fields
             .getTextInputValue('color')
             .trim();
@@ -504,7 +556,9 @@ async function handleModal(interaction) {
         }
 
         session.color = normalizeHexColor(color);
-    } else if (customId === 'giveaway_modal_image') {
+    }
+
+    else if (customId === 'giveaway_modal_image') {
         const imageUrl = interaction.fields
             .getTextInputValue('imageUrl')
             .trim();
@@ -521,7 +575,7 @@ async function handleModal(interaction) {
         session.imageUrl = imageUrl;
     }
 
-    return interaction.update({
+    await interaction.update({
         embeds: [
             buildDashboardEmbed(
                 interaction,
@@ -530,121 +584,193 @@ async function handleModal(interaction) {
         ],
         components: buildDashboardComponents(),
     });
+
+    return true;
 }
 
 async function createGiveaway(interaction) {
     const session = getSession(interaction);
 
-    validatePrize(session.prize);
-    const durationMs = parseDuration(session.duration);
-    validateWinnerCount(session.winners);
+    /*
+     * IMPORTANT:
+     * Acknowledge the button immediately.
+     *
+     * The previous version waited for channel.send()
+     * and database operations before acknowledging
+     * the Discord interaction. That could exceed the
+     * 3-second Discord interaction window.
+     */
+    await interaction.deferUpdate();
 
-    const targetChannel = session.channelId
-        ? await interaction.guild.channels
-            .fetch(session.channelId)
-            .catch(() => null)
-        : interaction.channel;
+    try {
+        validatePrize(session.prize);
 
-    if (
-        !targetChannel ||
-        !targetChannel.isTextBased()
-    ) {
-        throw new Error(
-            'The selected channel is not available.',
-        );
-    }
+        const durationMs =
+            parseDuration(session.duration);
 
-    const endTime = Date.now() + durationMs;
+        validateWinnerCount(session.winners);
 
-    const giveawayData = {
-        messageId: 'placeholder',
-        channelId: targetChannel.id,
-        guildId: interaction.guildId,
+        const targetChannel = session.channelId
+            ? await interaction.guild.channels
+                .fetch(session.channelId)
+                .catch(() => null)
+            : interaction.channel;
 
-        prize: session.prize,
-        title: session.title || DEFAULTS.title,
-        description:
-            session.description ||
-            DEFAULTS.description,
+        if (
+            !targetChannel ||
+            !targetChannel.isTextBased()
+        ) {
+            throw new Error(
+                'The selected channel is not available.',
+            );
+        }
 
-        color: normalizeHexColor(session.color),
-        imageUrl: session.imageUrl || null,
+        const endTime =
+            Date.now() + durationMs;
 
-        hostId: interaction.user.id,
+        const giveawayData = {
+            messageId: 'placeholder',
 
-        endTime,
-        endsAt: endTime,
+            channelId: targetChannel.id,
 
-        winnerCount: session.winners,
+            guildId: interaction.guildId,
 
-        participants: [],
+            prize: session.prize,
 
-        isEnded: false,
-        ended: false,
+            title:
+                session.title ||
+                DEFAULTS.title,
 
-        createdAt: new Date().toISOString(),
-    };
+            description:
+                session.description ||
+                DEFAULTS.description,
 
-    const embed = createGiveawayEmbed(
-        giveawayData,
-        'active',
-    );
+            color:
+                normalizeHexColor(
+                    session.color,
+                ),
 
-    const buttons = createGiveawayButtons(false);
+            imageUrl:
+                session.imageUrl || null,
 
-    const message = await targetChannel.send({
-        content: '🎉 **NEW GIVEAWAY** 🎉',
-        embeds: [embed],
-        components: [buttons],
-    });
+            hostId:
+                interaction.user.id,
 
-    giveawayData.messageId = message.id;
+            endTime,
 
-    const saved = await saveGiveaway(
-        interaction.client,
-        interaction.guildId,
-        giveawayData,
-    );
+            endsAt: endTime,
 
-    if (!saved) {
-        logger.warn(
-            `Giveaway message ${message.id} was created but database save failed.`,
-        );
-    }
+            winnerCount:
+                session.winners,
 
-    cleanupSession(interaction);
+            participants: [],
 
-    return InteractionHelper.safeUpdate(
-        interaction,
-        {
+            isEnded: false,
+
+            ended: false,
+
+            createdAt:
+                new Date().toISOString(),
+        };
+
+        const embed =
+            createGiveawayEmbed(
+                giveawayData,
+                'active',
+            );
+
+        const buttons =
+            createGiveawayButtons(false);
+
+        const message =
+            await targetChannel.send({
+                content:
+                    '🎉 **NEW GIVEAWAY** 🎉',
+
+                embeds: [embed],
+
+                components: [buttons],
+            });
+
+        giveawayData.messageId =
+            message.id;
+
+        const saved =
+            await saveGiveaway(
+                interaction.client,
+                interaction.guildId,
+                giveawayData,
+            );
+
+        if (!saved) {
+            logger.warn(
+                `Giveaway message ${message.id} was created but database save failed.`,
+            );
+        }
+
+        cleanupSession(interaction);
+
+        await interaction.editReply({
             embeds: [
                 new EmbedBuilder()
                     .setColor('#57F287')
-                    .setTitle('🎉 Giveaway Created')
+                    .setTitle(
+                        '🎉 Giveaway Created',
+                    )
                     .setDescription(
                         `The giveaway for **${session.prize}** has been created in ${targetChannel}.`,
                     )
                     .addFields(
                         {
                             name: 'Duration',
-                            value: session.duration,
+                            value:
+                                session.duration,
                             inline: true,
                         },
                         {
                             name: 'Winners',
-                            value: String(session.winners),
+                            value:
+                                String(
+                                    session.winners,
+                                ),
                             inline: true,
                         },
                         {
                             name: 'Channel',
-                            value: targetChannel.toString(),
+                            value:
+                                targetChannel.toString(),
                             inline: true,
                         },
                     ),
             ],
             components: [],
-        },
-    );
+        });
+
+        return true;
+    } catch (error) {
+        logger.error(
+            'Failed to create giveaway:',
+            error,
+        );
+
+        await interaction.editReply({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor('#ED4245')
+                    .setTitle(
+                        'Giveaway Creation Failed',
+                    )
+                    .setDescription(
+                        error?.userMessage ||
+                        error?.message ||
+                        'An error occurred while creating the giveaway.',
+                    ),
+            ],
+            components: buildDashboardComponents(),
+        }).catch(() => {});
+
+        return true;
+    }
 }
 
 async function handleInteraction(interaction) {
@@ -652,62 +778,97 @@ async function handleInteraction(interaction) {
         return false;
     }
 
-    const customId = interaction.customId || '';
+    const customId =
+        interaction.customId || '';
 
-    if (
-        customId !== 'giveaway_dashboard_select' &&
-        customId !== 'giveaway_dashboard_channel' &&
-        customId !== 'giveaway_dashboard_create' &&
-        customId !== 'giveaway_dashboard_cancel' &&
-        customId !== 'giveaway_dashboard_back' &&
-        !customId.startsWith('giveaway_modal_')
-    ) {
+    const isDashboardInteraction =
+        customId ===
+            'giveaway_dashboard_select' ||
+        customId ===
+            'giveaway_dashboard_channel' ||
+        customId ===
+            'giveaway_dashboard_create' ||
+        customId ===
+            'giveaway_dashboard_cancel' ||
+        customId ===
+            'giveaway_dashboard_back' ||
+        customId.startsWith(
+            'giveaway_modal_',
+        );
+
+    if (!isDashboardInteraction) {
         return false;
     }
 
     try {
-        if (customId === 'giveaway_dashboard_select') {
-            await handleSelect(interaction);
-            return true;
+        if (
+            customId ===
+            'giveaway_dashboard_select'
+        ) {
+            return await handleSelect(
+                interaction,
+            );
         }
 
-        if (customId === 'giveaway_dashboard_channel') {
-            await handleChannelSelect(interaction);
-            return true;
+        if (
+            customId ===
+            'giveaway_dashboard_channel'
+        ) {
+            return await handleChannelSelect(
+                interaction,
+            );
         }
 
-        if (customId.startsWith('giveaway_modal_')) {
-            await handleModal(interaction);
-            return true;
+        if (
+            customId.startsWith(
+                'giveaway_modal_',
+            )
+        ) {
+            return await handleModal(
+                interaction,
+            );
         }
 
-        if (customId === 'giveaway_dashboard_create') {
-            await createGiveaway(interaction);
-            return true;
+        if (
+            customId ===
+            'giveaway_dashboard_create'
+        ) {
+            return await createGiveaway(
+                interaction,
+            );
         }
 
-        if (customId === 'giveaway_dashboard_cancel') {
+        if (
+            customId ===
+            'giveaway_dashboard_cancel'
+        ) {
             cleanupSession(interaction);
 
-            return InteractionHelper.safeUpdate(
-                interaction,
-                {
-                    content: 'Giveaway dashboard closed.',
-                    embeds: [],
-                    components: [],
-                },
-            ).then(() => true);
+            await interaction.update({
+                content:
+                    'Giveaway dashboard closed.',
+                embeds: [],
+                components: [],
+            });
+
+            return true;
         }
 
-        if (customId === 'giveaway_dashboard_back') {
+        if (
+            customId ===
+            'giveaway_dashboard_back'
+        ) {
             await interaction.update({
                 embeds: [
                     buildDashboardEmbed(
                         interaction,
-                        getSession(interaction),
+                        getSession(
+                            interaction,
+                        ),
                     ),
                 ],
-                components: buildDashboardComponents(),
+                components:
+                    buildDashboardComponents(),
             });
 
             return true;
@@ -723,23 +884,34 @@ async function handleInteraction(interaction) {
             error?.message ||
             'An error occurred while processing the giveaway dashboard.';
 
+        /*
+         * If the interaction has already been
+         * acknowledged, edit/follow up instead of
+         * attempting another initial reply.
+         */
         if (
             interaction.deferred ||
             interaction.replied
         ) {
-            await interaction
-                .followUp({
-                    content: message,
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            await interaction.editReply({
+                content: message,
+                embeds: [],
+                components: buildDashboardComponents(),
+            }).catch(async () => {
+                await interaction
+                    .followUp({
+                        content: message,
+                        flags:
+                            MessageFlags.Ephemeral,
+                    })
+                    .catch(() => {});
+            });
         } else {
-            await interaction
-                .reply({
-                    content: message,
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            await interaction.reply({
+                content: message,
+                flags:
+                    MessageFlags.Ephemeral,
+            }).catch(() => {});
         }
 
         return true;
