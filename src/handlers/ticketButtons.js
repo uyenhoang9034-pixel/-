@@ -140,15 +140,20 @@ const createTicketHandler = {
       const actionRow = new ActionRowBuilder().addComponents(reasonInput);
       modal.addComponents(actionRow);
 
-      await interaction.showModal(modal);
-    } catch (error) {
-      logger.error('Error creating ticket modal:', error);
-      if (!interaction.replied && !interaction.deferred) {
-        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Could not open ticket creation form.' });
-      }
-    }
-  }
-};
+      try {
+  await interaction.showModal(modal);
+} catch (error) {
+  console.error('========== TICKET MODAL ERROR ==========');
+  console.error('name:', error?.name);
+  console.error('message:', error?.message);
+  console.error('code:', error?.code);
+  console.error('status:', error?.status);
+  console.error('rawError:', error?.rawError);
+  console.error('stack:', error?.stack);
+  console.error('========================================');
+
+  throw error;
+}
 
 const createTicketModalHandler = {
   name: 'create_ticket_modal',
