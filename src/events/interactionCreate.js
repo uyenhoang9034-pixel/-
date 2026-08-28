@@ -1,4 +1,3 @@
-import giveawayDashboard from '../commands/Giveaway/modules/giveaway_dashboard.js';
 import { Events, MessageFlags } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
@@ -20,7 +19,6 @@ import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
-
 
 const COMMAND_ERROR_SUBTYPES = {
   warn: 'warn_failed',
@@ -59,31 +57,6 @@ export default {
       try {
         InteractionHelper.patchInteractionResponses(interaction);
         ResponseCoordinator.attach(interaction);
-                // Giveaway dashboard components
-        if (
-            interaction.isButton() ||
-            interaction.isStringSelectMenu() ||
-            interaction.isChannelSelectMenu() ||
-            interaction.isModalSubmit()
-        ) {
-            const customId = interaction.customId || '';
-
-            if (
-                customId.startsWith('giveaway_dashboard_') ||
-                customId.startsWith('giveaway_modal_')
-            ) {
-                const handled =
-                    await giveawayDashboard.handleInteraction(
-                        interaction,
-                    );
-
-                if (handled) {
-                    return;
-                }
-            }
-        }
-
-    if (interaction.isChatInputCommand()) {
 
         if (interaction.isChatInputCommand()) {
           try {
