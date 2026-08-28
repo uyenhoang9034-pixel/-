@@ -310,6 +310,15 @@ export default {
                         case 'panel_message':
                             await handlePanelMessage(selectInteraction, interaction, guildConfig, guildId, client);
                             break;
+                            case 'panel_image':
+                            await handlePanelImage(
+        selectInteraction,
+        interaction,
+        guildConfig,
+        guildId,
+        client
+    );
+    break;
                         case 'button_label':
                             await handleButtonLabel(selectInteraction, interaction, guildConfig, guildId, client);
                             break;
