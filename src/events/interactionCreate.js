@@ -19,7 +19,6 @@ import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
-// 1. IMPORT HANDLER DASHBOARD GIVEAWAY
 import { handleDashboardInteraction } from '../commands/giveawayDashboard.js';
 
 const COMMAND_ERROR_SUBTYPES = {
@@ -309,7 +308,6 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
-          // 2. CHÈN XỬ LÝ BUTTON DÀNH CHO DASHBOARD GIVEAWAY
           if (interaction.customId.startsWith('gw_')) {
             await handleDashboardInteraction(interaction);
             return;
@@ -393,7 +391,6 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isModalSubmit()) {
-          // 3. CHÈN XỬ LÝ MODAL FORM DÀNH CHO DASHBOARD GIVEAWAY
           if (interaction.customId.startsWith('modal_gw_')) {
             await handleDashboardInteraction(interaction);
             return;
