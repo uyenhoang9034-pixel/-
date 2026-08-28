@@ -375,7 +375,7 @@ async function showDashboard(interaction) {
     const session = getSession(interaction);
 
     try {
-        await interaction.reply({
+        const payload = {
             embeds: [
                 buildDashboardEmbed(
                     interaction,
@@ -384,7 +384,13 @@ async function showDashboard(interaction) {
             ],
             components: buildDashboardComponents(),
             flags: MessageFlags.Ephemeral,
-        });
+        };
+
+        if (interaction.deferred || interaction.replied) {
+            await interaction.editReply(payload);
+        } else {
+            await interaction.reply(payload);
+        }
 
         return true;
     } catch (error) {
