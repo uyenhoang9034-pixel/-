@@ -1197,3 +1197,46 @@ formatted = formatted.substring(0, 100);
 function generateCaseId() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 4)}`;
 }
+export async function getGiveawayByMessageId(client, messageId) {
+    if (!client?.db) return null;
+
+    try {
+        // Knex / Query Builder
+        if (typeof client.db === 'function' || client.db.select) {
+            const row = await client.db('giveaways').where({ message_id: messageId }).first();
+            return row || null;
+        }
+
+        // pg (PostgreSQL pool)
+        if (client.db.query) {
+            const result = await client.db.query('SELECT * FROM giveaways WHERE message_id = $1 LIMIT 1', [messageId]);
+            return result.rows[0] || null;
+        }
+    } catch (error) {
+        console.error('Error in getGiveawayByMessageId:', error);
+    }
+    return null;
+}
+
+export async function updateGiveawayData(client, messageId, giveawayData) {
+    if (!client?.db) return false;
+
+    try {
+        const payload = typeof giveawayData === 'object' ? JSON.stringify(giveawayData) : giveawayData;
+
+        // Knex / Query Builder
+        if (typeof client.db === 'function' || client.db.select) {
+            await client.db('giveaways').where({ message_id: messageId }).update({ data: payload });
+            return true;
+        }
+
+        // pg (PostgreSQL pool)
+        if (client.db.query) {
+            await client.db.query('UPDATE giveaways SET data = $1 WHERE message_id = $2', [payload, messageId]);
+            return true;
+        }
+    } catch (error) {
+        console.error('Error in updateGiveawayData:', error);
+    }
+    return false;
+}
