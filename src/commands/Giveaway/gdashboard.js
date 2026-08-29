@@ -42,24 +42,18 @@ export default {
          * defer first and let giveaway_dashboard.js edit
          * the deferred reply afterwards.
          */
+        if (!interaction.deferred && !interaction.replied) {
+            await interaction.deferReply({
+                flags: MessageFlags.Ephemeral,
+            });
+        }
 
         /*
          * Check permission after acknowledgement.
          * Because the interaction is already deferred,
          * the existing error handler can safely editReply.
          */
-
-        /*
-         * giveaway_dashboard.js already contains:
-         *
-         * execute()
-         * handleInteraction()
-         *
-         * Its interaction.reply() is compatible with the
-         * InteractionHelper patch because the interaction
-         * has already been deferred.
-         */
-     if (
+        if (
             !interaction.member?.permissions?.has(
                 PermissionFlagsBits.ManageGuild,
             )
@@ -75,6 +69,16 @@ export default {
             );
         }
 
+        /*
+         * giveaway_dashboard.js already contains:
+         *
+         * execute()
+         * handleInteraction()
+         *
+         * Its interaction.reply() is compatible with the
+         * InteractionHelper patch because the interaction
+         * has already been deferred.
+         */
         return await giveawayDashboard.execute(
             interaction,
             null,
