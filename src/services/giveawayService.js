@@ -459,6 +459,7 @@ export async function checkGiveaways(client) {
         const endedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
 
         await message.edit({
+            content: '<a:chiikawag7:1541427343216738414> 𝓔𝓝𝓓𝓔𝓓 <a:chiikawag7:1541427343216738414>',
           embeds: [endedEmbed],
           components: [createGiveawayButtons(true)]
         });
