@@ -691,7 +691,7 @@ async function createGiveaway(interaction) {
         const message =
             await targetChannel.send({
                 content:
-                    '🎉 **NEW GIVEAWAY** 🎉',
+                    '<a:chiikawag7:1541427343216738414> 𝓖𝓲𝓿𝓮𝓪𝔀𝓪𝔂 <a:chiikawag7:1541427343216738414>',
 
                 embeds: [embed],
 
