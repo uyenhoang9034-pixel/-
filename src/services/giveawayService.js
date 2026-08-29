@@ -459,7 +459,7 @@ export async function checkGiveaways(client) {
         const endedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
 
         await message.edit({
-            content: '<a:chiikawag7:1541427343216738414> 𝓔𝓝𝓓𝓔𝓓 <a:chiikawag7:1541427343216738414>',
+            content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
           embeds: [endedEmbed],
           components: [createGiveawayButtons(true)]
         });
@@ -481,12 +481,6 @@ export async function checkGiveaways(client) {
         if (!markedSuccess) {
           logger.warn(`Failed to mark giveaway ${messageId} as ended in database`);
         }
-
-        if (winners.length > 0) {
-          const winnerAnnouncement = `<a:catg2:1541439091365773362> 𝓒𝓸𝓷𝓰𝓻𝓪𝓽𝓾𝓵𝓪𝓽𝓲𝓸𝓷𝓼 ${winnerMentions}! You won the **${giveaway.prize || 'giveaway'}**! Please open ticket to claim your prize.`;
-          const winnerPingMsg = await channel.send({ content: winnerAnnouncement });
-          giveaway.winnerPingMessageId = winnerPingMsg.id;
-          await markGiveawayEnded(client, giveawayId, giveaway);
 
           try {
             await logEvent({
