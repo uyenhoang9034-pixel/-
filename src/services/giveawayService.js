@@ -180,19 +180,19 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             .setColor(customColor)
             .addFields(
                 {
-                    name: '👤 Hosted by',
+                    name: '<a:chiikawag12:1541429044287897632> Hosted by',
                     value: `<@${giveaway.hostId}>`,
                     inline: true,
                 },
                 {
-                    name: '🏆 Winners',
+                    name: '<a:chiikawag12:1541429044287897632> Winners',
                     value: String(
                         giveaway.winnerCount || 1,
                     ),
                     inline: true,
                 },
                 {
-                    name: '👥 Entries',
+                    name: '<a:chiikawag12:1541429044287897632> Entries',
                     value: String(
                         giveaway.participants?.length || 0,
                     ),
@@ -216,7 +216,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                     : 'No valid entries';
 
             embed.addFields({
-                name: '🎯 Winners',
+                name: '<a:chiikawag12:1541429044287897632> Winners',
                 value: winnerDisplay,
                 inline: false,
             });
@@ -227,7 +227,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
 
             if (endTime) {
                 embed.addFields({
-                    name: '⏰ Ends',
+                    name: '<a:chiikawag12:1541429044287897632> Ends',
                     value: `<t:${Math.floor(
                         Number(endTime) / 1000,
                     )}:R>`,
