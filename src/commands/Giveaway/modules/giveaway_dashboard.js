@@ -214,7 +214,7 @@ function buildDashboardComponents() {
             new ButtonBuilder()
                 .setCustomId('giveaway_dashboard_create')
                 .setLabel('Create Giveaway')
-                .setEmoji('1541427343216738414')
+                .setEmoji('🎉')
                 .setStyle(ButtonStyle.Success),
 
             new ButtonBuilder()
@@ -691,7 +691,7 @@ async function createGiveaway(interaction) {
         const message =
             await targetChannel.send({
                 content:
-                    '🎉 **NEW GIVEAWAY** 🎉',
+                    '🌸 𝓖𝓲𝓿𝓮𝓪𝔀𝓪𝔂 🌸',
 
                 embeds: [embed],
 
