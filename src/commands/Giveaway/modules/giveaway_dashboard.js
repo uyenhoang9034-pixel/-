@@ -383,15 +383,13 @@ async function showDashboard(interaction) {
                 ),
             ],
             components: buildDashboardComponents(),
-            };
+            flags: MessageFlags.Ephemeral,
+        };
 
         if (interaction.deferred || interaction.replied) {
             await interaction.editReply(payload);
         } else {
-            await interaction.reply({
-                ...payload,
-            flags: MessageFlags.Ephemeral,
-});
+            await interaction.reply(payload);
         }
 
         return true;
@@ -409,8 +407,7 @@ async function handleSelect(interaction) {
     const value = interaction.values?.[0];
 
     if (!value) {
-       if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({
+        await interaction.reply({
             content: 'Invalid dashboard selection.',
             flags: MessageFlags.Ephemeral,
         });
@@ -462,16 +459,14 @@ async function handleSelect(interaction) {
 
         return true;
     }
-try {
+
     await interaction.showModal(
         buildModal(
             value,
             getSession(interaction),
         ),
     );
-} catch (error) {
-        logger.error('Failed to show giveaway dashboard modal:', error);
-    }
+
     return true;
 }
 
@@ -869,7 +864,6 @@ async function handleInteraction(interaction) {
             customId ===
             'giveaway_dashboard_back'
         ) {
-            if (!interaction.replied && !interaction.deferred) {
             await interaction.update({
                 embeds: [
                     buildDashboardEmbed(
@@ -882,17 +876,7 @@ async function handleInteraction(interaction) {
                 components:
                     buildDashboardComponents(),
             });
-} else {
-        await interaction.editReply({
-            embeds: [
-                buildDashboardEmbed(
-                    interaction,
-                    session,
-                ),
-            ],
-            components: buildDashboardComponents(),
-        });
-    }
+
             return true;
         }
     } catch (error) {
