@@ -180,19 +180,19 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             .setColor(customColor)
             .addFields(
                 {
-                    name: '<a:chiikawag12:1541429044287897632> Hosted by',
+                    name: '<a:cinnamorollg2:1541437285390884954> Hosted by',
                     value: `<@${giveaway.hostId}>`,
                     inline: true,
                 },
                 {
-                    name: '<a:chiikawag12:1541429044287897632> Winners',
+                    name: '<a:cinnamorollg2:1541437285390884954> Winners',
                     value: String(
                         giveaway.winnerCount || 1,
                     ),
                     inline: true,
                 },
                 {
-                    name: '<a:chiikawag12:1541429044287897632> Entries',
+                    name: '<a:cinnamorollg2:1541437285390884954> Entries',
                     value: String(
                         giveaway.participants?.length || 0,
                     ),
@@ -216,7 +216,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                     : 'No valid entries';
 
             embed.addFields({
-                name: '<a:chiikawag12:1541429044287897632> Winners',
+                name: '<a:cinnamorollg2:1541437285390884954> Winners',
                 value: winnerDisplay,
                 inline: false,
             });
@@ -227,7 +227,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
 
             if (endTime) {
                 embed.addFields({
-                    name: '<a:chiikawag12:1541429044287897632> Ends',
+                    name: '<a:cinnamorollg2:1541437285390884954> Ends',
                     value: `<t:${Math.floor(
                         Number(endTime) / 1000,
                     )}:R>`,
@@ -278,8 +278,8 @@ export function createGiveawayButtons(ended = false) {
             row.addComponents(
                 new ButtonBuilder()
                     .setCustomId('giveaway_join')
-                    .setLabel('Join')
-                    .setEmoji('🎉')
+                    .setLabel('𝓙𝓸𝓲𝓷')
+                    .setEmoji('<a:cinnamorollg4:1541437801973817414>')
                     .setStyle(ButtonStyle.Primary)
                     .setDisabled(false),
                 new ButtonBuilder()
