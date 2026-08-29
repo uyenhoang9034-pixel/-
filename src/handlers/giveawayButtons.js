@@ -152,7 +152,6 @@ export const giveawayEndHandler = {
                 embeds: [updatedEmbed],
                 components: [updatedRow]
             });
-             });
           if (winners.length > 0) {
     await channel.send({
         content:
