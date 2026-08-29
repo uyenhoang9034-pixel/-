@@ -116,7 +116,7 @@ export default {
         const row = createGiveawayButtons(false);
 
         const giveawayMessage = await targetChannel.send({
-            content: "🌸 𝓖𝓲𝓿𝓮𝓪𝔀𝓪𝔂 🌸",
+            content: "<a:chiikawag7:1541427343216738414> 𝓖𝓲𝓿𝓮𝓪𝔀𝓪𝔂 <a:chiikawag7:1541427343216738414>",
             embeds: [embed],
             components: [row],
         });
