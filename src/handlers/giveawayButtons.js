@@ -272,7 +272,7 @@ export const giveawayRerollHandler = {
             const updatedRow = createGiveawayButtons(true);
 
             await interaction.message.edit({
-                content: '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>',
+                content: '<a:giftg1:1543150714732412948> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:giftg1:1543150714732412948>',
                 embeds: [updatedEmbed],
                 components: [updatedRow]
             });
