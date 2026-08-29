@@ -121,7 +121,7 @@ export default {
         const newRow = createGiveawayButtons(true);
 
         await message.edit({
-            content: "<a:chiikawag7:1541427343216738414> 𝓖𝓲𝓿𝓮𝓪𝔀𝓪𝔂 𝓔𝓷𝓭𝓮𝓭 <a:chiikawag7:1541427343216738414>",
+            content: "<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭𝓮𝓭 <a:chiikawag7:1541427343216738414>",
             embeds: [newEmbed],
             components: [newRow],
         });
