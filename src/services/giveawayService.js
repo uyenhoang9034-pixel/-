@@ -279,7 +279,7 @@ export function createGiveawayButtons(ended = false) {
                 new ButtonBuilder()
                     .setCustomId('giveaway_join')
                     .setLabel('Join')
-                    .setEmoji({id:'chiikawag12'})
+                    .setEmoji('🎉')
                     .setStyle(ButtonStyle.Primary)
                     .setDisabled(false),
                 new ButtonBuilder()
