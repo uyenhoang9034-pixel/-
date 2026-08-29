@@ -214,7 +214,7 @@ function buildDashboardComponents() {
             new ButtonBuilder()
                 .setCustomId('giveaway_dashboard_create')
                 .setLabel('Create Giveaway')
-                .setEmoji('🎉')
+                .setEmoji('1541427343216738414')
                 .setStyle(ButtonStyle.Success),
 
             new ButtonBuilder()
