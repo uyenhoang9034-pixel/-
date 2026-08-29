@@ -272,10 +272,20 @@ export const giveawayRerollHandler = {
             const updatedRow = createGiveawayButtons(true);
 
             await interaction.message.edit({
-                content: '🔄 **GIVEAWAY REROLLED** 🔄',
+                content: '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>',
                 embeds: [updatedEmbed],
                 components: [updatedRow]
             });
+            const winnerMentions = newWinners.length > 0
+    ? newWinners.map(id => `<@${id}>`).join(', ')
+    : 'Không có người thắng hợp lệ.';
+
+await interaction.channel.send({
+    content:
+        `🎉 **Chúc mừng ${winnerMentions}!**\n` +
+        `Bạn đã trúng **${giveaway.prize || 'phần thưởng'}**! 🎁\n` +
+        `Vui lòng mở ticket để nhận phần thưởng.`
+});
 
             try {
                 await logEvent({
