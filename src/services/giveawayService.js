@@ -512,9 +512,6 @@ export async function checkGiveaways(client) {
           } catch (error) {
             logger.debug('Error logging giveaway winner:', error);
           }
-        } else {
-          await channel.send({ content: `The giveaway for **${giveaway.prize}** has ended with no valid entries.` });
-        }
 
         logger.info(`Ended giveaway ${messageId} in guild ${guildId}`);
       } catch (error) {
