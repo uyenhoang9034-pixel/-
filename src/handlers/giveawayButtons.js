@@ -148,10 +148,19 @@ export const giveawayEndHandler = {
             const updatedRow = createGiveawayButtons(true);
 
             await interaction.message.edit({
-                content: '🎉 **GIVEAWAY ENDED** 🎉',
+                content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
                 embeds: [updatedEmbed],
                 components: [updatedRow]
             });
+             });
+          if (winners.length > 0) {
+    await channel.send({
+        content:
+            `<a:chiikawag7:1541427343216738414> **Chúc mừng ${winnerMentions}!**\n` +
+            `Bạn đã trúng **${giveaway.prize || 'phần thưởng'}**! <a:giftg1:1543150714732412948>\n` +
+            `Vui lòng mở ticket để nhận phần thưởng.`
+    });
+          }
 
             try {
                 await logEvent({
@@ -164,19 +173,19 @@ export const giveawayEndHandler = {
                         userId: interaction.user.id,
                         fields: [
                             {
-                                name: '🎁 Prize',
+                                name: '<a:bunnyg8:1541440159990550580> Prize',
                                 value: giveaway.prize || 'Mystery Prize!',
                                 inline: true
                             },
                             {
-                                name: '🏆 Winners',
+                                name: '<a:bunnyg8:1541440159990550580> Winners',
                                 value: winners.length > 0 
                                     ? winners.map(id => `<@${id}>`).join(', ')
                                     : 'No valid entries',
                                 inline: false
                             },
                             {
-                                name: '👥 Total Entries',
+                                name: '<a:bunnyg8:1541440159990550580> Total Entries',
                                 value: participants.length.toString(),
                                 inline: true
                             }
