@@ -284,8 +284,8 @@ export function createGiveawayButtons(ended = false) {
                     .setDisabled(false),
                 new ButtonBuilder()
                     .setCustomId('giveaway_end')
-                    .setLabel('End')
-                    .setEmoji('🛑')
+                    .setLabel('𝓔𝓷𝓭')
+                    .setEmoji('<a:momongag3:1541427248132006009>')
                     .setStyle(ButtonStyle.Danger)
                     .setDisabled(false)
             );
@@ -474,7 +474,7 @@ export async function checkGiveaways(client) {
         }
 
         if (winners.length > 0) {
-          const winnerAnnouncement = `🎉 Congratulations ${winnerMentions}! You won the **${giveaway.prize || 'giveaway'}**! Please contact <@${giveaway.hostId}> to claim your prize.`;
+          const winnerAnnouncement = `<a:catg2:1541439091365773362> 𝓒𝓸𝓷𝓰𝓻𝓪𝓽𝓾𝓵𝓪𝓽𝓲𝓸𝓷𝓼 ${winnerMentions}! You won the **${giveaway.prize || 'giveaway'}**! Please open ticket to claim your prize.`;
           const winnerPingMsg = await channel.send({ content: winnerAnnouncement });
           giveaway.winnerPingMessageId = winnerPingMsg.id;
           await markGiveawayEnded(client, giveawayId, giveaway);
@@ -489,17 +489,17 @@ export async function checkGiveaways(client) {
                 channelId: channel.id,
                 fields: [
                   {
-                    name: '🎁 Prize',
+                    name: '<a:bunnyg8:1541440159990550580> Prize',
                     value: giveaway.prize || 'Mystery Prize!',
                     inline: true
                   },
                   {
-                    name: '🏆 Winners',
+                    name: '<a:bunnyg8:1541440159990550580> Winners',
                     value: winners.map(id => `<@${id}>`).join(', '),
                     inline: false
                   },
                   {
-                    name: '👥 Entries',
+                    name: '<a:bunnyg8:1541440159990550580> Entries',
                     value: participants.length.toString(),
                     inline: true
                   }
