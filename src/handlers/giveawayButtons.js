@@ -272,7 +272,7 @@ export const giveawayRerollHandler = {
             const updatedRow = createGiveawayButtons(true);
 
             await interaction.message.edit({
-                content: '<a:giftg1:1543150714732412948> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:giftg1:1543150714732412948>',
+                content: '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>',
                 embeds: [updatedEmbed],
                 components: [updatedRow]
             });
@@ -282,8 +282,8 @@ export const giveawayRerollHandler = {
 
 await interaction.channel.send({
     content:
-        `🎉 **Chúc mừng ${winnerMentions}!**\n` +
-        `Bạn đã trúng **${giveaway.prize || 'phần thưởng'}**! 🎁\n` +
+        `<a:chiikawag7:1541427343216738414> **Chúc mừng ${winnerMentions}!**\n` +
+        `Bạn đã trúng **${giveaway.prize || 'phần thưởng'}**! <a:giftg1:1543150714732412948>\n` +
         `Vui lòng mở ticket để nhận phần thưởng.`
 });
 
