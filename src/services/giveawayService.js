@@ -264,13 +264,13 @@ export function createGiveawayButtons(ended = false) {
                 new ButtonBuilder()
                     .setCustomId('giveaway_reroll')
                     .setLabel('Reroll')
-                    .setEmoji('🎲')
+                    .setEmoji('<a:cinnamorollg4:1541437801973817414>')
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(false),
                 new ButtonBuilder()
                     .setCustomId('giveaway_view')
                     .setLabel('View Winners')
-                    .setEmoji('👁️')
+                    .setEmoji('<a:cinnamorollg4:1541437801973817414>')
                     .setStyle(ButtonStyle.Primary)
                     .setDisabled(false)
             );
