@@ -152,14 +152,6 @@ export const giveawayEndHandler = {
                 embeds: [updatedEmbed],
                 components: [updatedRow]
             });
-          if (winners.length > 0) {
-    await channel.send({
-        content:
-            `<a:chiikawag7:1541427343216738414> **Chúc mừng ${winnerMentions}!**\n` +
-            `Bạn đã trúng **${giveaway.prize || 'phần thưởng'}**! <a:giftg1:1543150714732412948>\n` +
-            `Vui lòng mở ticket để nhận phần thưởng.`
-    });
-          }
 
             try {
                 await logEvent({
