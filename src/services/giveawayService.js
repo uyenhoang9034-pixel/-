@@ -167,12 +167,22 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                 : defaultColor;
 
         const title =
+             status === 'ended'
+        ? '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>'
+        : status === 'reroll'
+            ? '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>'
+            : (
             giveaway.title ||
-            `${statusEmoji} ${giveaway.prize}`;
+            `${statusEmoji} ${giveaway.prize}`);
 
         const description =
+            status === 'ended'
+        ? '🎊 Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
+        : status === 'reroll'
+            ? '✨ Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia'
+            : (
             giveaway.description ||
-            'React with the button below to enter!';
+            'React with the button below to enter!');
 
         const embed = new EmbedBuilder()
             .setTitle(title)
