@@ -180,19 +180,19 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             .setColor(customColor)
             .addFields(
                 {
-                    name: '<a:cinnamorollg2:1541437285390884954> Hosted by',
+                    name: '<a:cinnamorollg2:1541437285390884954> Người tổ chức',
                     value: `<@${giveaway.hostId}>`,
                     inline: true,
                 },
                 {
-                    name: '<a:cinnamorollg2:1541437285390884954> Winners',
+                    name: '<a:cinnamorollg2:1541437285390884954> Số người thắng',
                     value: String(
                         giveaway.winnerCount || 1,
                     ),
                     inline: true,
                 },
                 {
-                    name: '<a:cinnamorollg2:1541437285390884954> Entries',
+                    name: '<a:cinnamorollg2:1541437285390884954> Lượt tham gia',
                     value: String(
                         giveaway.participants?.length || 0,
                     ),
@@ -216,7 +216,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                     : 'No valid entries';
 
             embed.addFields({
-                name: '<a:cinnamorollg2:1541437285390884954> Winners',
+                name: '<a:cinnamorollg2:1541437285390884954> Người thắng',
                 value: winnerDisplay,
                 inline: false,
             });
@@ -227,7 +227,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
 
             if (endTime) {
                 embed.addFields({
-                    name: '<a:cinnamorollg2:1541437285390884954> Ends',
+                    name: '<a:cinnamorollg2:1541437285390884954> Thời gian kết thúc',
                     value: `<t:${Math.floor(
                         Number(endTime) / 1000,
                     )}:R>`,
