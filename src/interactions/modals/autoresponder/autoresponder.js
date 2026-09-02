@@ -147,13 +147,6 @@ export default [
                             'embed_image',
                         )
                         ?.trim() || '',
-
-                footer:
-                    interaction.fields
-                        .getTextInputValue(
-                            'embed_footer',
-                        )
-                        ?.trim() || '',
             };
 
             session.response.embeds =
