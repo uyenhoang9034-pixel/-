@@ -51,7 +51,7 @@ function rethrowTicketError(error, operation, userMessage, context = {}) {
 
 
 
- buildTicketControlRow({ claimedBy = null } = {}) {
+function buildTicketControlRow({ claimedBy = null } = {}) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('ticket_claim')
@@ -203,9 +203,10 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       guildId: guild.id,
       createdAt: new Date().toISOString(),
       status: 'open',
-      claimedAt: assignedStaff
-    ? new Date().toISOString()
-    : null,
+     claimedBy: assignedStaff?.id ?? null,
+claimedAt: assignedStaff
+  ? new Date().toISOString()
+  : null,
       priority: priority || 'none',
       reason,
     };
