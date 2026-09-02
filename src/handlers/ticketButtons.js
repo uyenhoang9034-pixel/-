@@ -214,9 +214,9 @@ const closeTicketHandler = {
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Reason for closing (optional)') 
+        .setLabel('Cảm ơn bạn đã hợp tác! Bạn chắc chắn muốn đóng ticket chưa ạ?') 
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Add an optional reason for closing this ticket..') 
+        .setPlaceholder('Bạn có thể nhập lý do đóng ticket...') 
         .setRequired(false)
         .setMaxLength(1000);
 
