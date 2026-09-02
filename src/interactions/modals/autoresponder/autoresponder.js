@@ -197,7 +197,14 @@ export default [
             return;
         }
 
-        const images = [];
+const images =
+    Array.isArray(
+        session.response.images,
+    )
+        ? [
+            ...session.response.images,
+        ]
+        : [];
 
         for (
             let i = 1;
