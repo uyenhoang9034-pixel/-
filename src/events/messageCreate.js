@@ -18,6 +18,15 @@ import {
   isValidCountingMessage,
   recordCorrectCount,
 } from '../services/countingGameService.js';
+import {
+    getAutoresponderConfig,
+    findMatchingResponder,
+    canTriggerResponder,
+} from '../services/autoresponder/autoresponderService.js';
+
+import {
+    buildDiscordMessagePayload,
+} from '../services/autoresponder/responseBuilder.js';
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -34,7 +43,10 @@ export default {
       if (countingProcessed) {
         return;
       }
-
+await handleAutoresponder(
+    message,
+    client,
+);
       await handlePrefixCommand(message, client);
 
       await handleLeveling(message, client);
@@ -250,4 +262,100 @@ async function handleLeveling(message, client) {
   } catch (error) {
     logger.error('Error handling leveling for message:', error);
   }
+}
+
+async function handleAutoresponder(
+    message,
+    client,
+) {
+    try {
+        if (
+            !message.guild ||
+            !message.content?.trim()
+        ) {
+            return false;
+        }
+
+        const config =
+            await getAutoresponderConfig(
+                client,
+                message.guild.id,
+            );
+
+        const responder =
+            findMatchingResponder(
+                message.content,
+                config.responders,
+            );
+
+        if (!responder) {
+            return false;
+        }
+
+        if (
+            !canTriggerResponder(
+                message.member,
+                responder,
+                config,
+            )
+        ) {
+            return false;
+        }
+
+        const payload =
+            buildDiscordMessagePayload(
+                responder.response,
+            );
+
+        if (
+            responder.response
+                ?.reply?.enabled
+        ) {
+            payload.reply = {
+                messageReference:
+                    message.id,
+
+                failIfNotExists:
+                    false,
+
+                allowedMentions: {
+                    repliedUser:
+                        responder.response
+                            ?.reply
+                            ?.mentionAuthor ===
+                        true,
+                },
+            };
+        }
+
+        await message.channel.send(
+            payload,
+        );
+
+        logger.info(
+            'Autoresponder triggered',
+            {
+                guildId:
+                    message.guild.id,
+                channelId:
+                    message.channel.id,
+                userId:
+                    message.author.id,
+                responderId:
+                    responder.id,
+                keyword:
+                    responder.displayKeyword ||
+                    responder.keyword,
+            },
+        );
+
+        return true;
+    } catch (error) {
+        logger.error(
+            'Error handling autoresponder:',
+            error,
+        );
+
+        return false;
+    }
 }
