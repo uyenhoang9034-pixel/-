@@ -191,7 +191,76 @@ export default [
             );
         },
     },
+{
+    name:
+        'autoresponder_images',
 
+    async execute(
+        interaction,
+        client,
+        args,
+    ) {
+        const [
+            sessionId,
+        ] = args;
+
+        const session =
+            getBuilderSession(
+                sessionId,
+            );
+
+        if (
+            !session ||
+            session.userId !==
+                interaction.user.id
+        ) {
+            return;
+        }
+
+        const modal =
+            new ModalBuilder()
+                .setCustomId(
+                    `autoresponder_images:${sessionId}`,
+                )
+                .setTitle(
+                    '🖼️ Add Images',
+                );
+
+        const currentImages =
+            session.response.images ||
+            [];
+
+        for (
+            let i = 0;
+            i < 5;
+            i++
+        ) {
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId(
+                            `image_${i + 1}`,
+                        )
+                        .setLabel(
+                            `Image ${i + 1} URL`,
+                        )
+                        .setStyle(
+                            TextInputStyle.Short,
+                        )
+                        .setRequired(false)
+                        .setValue(
+                            currentImages[i] ||
+                            '',
+                        ),
+                ),
+            );
+        }
+
+        await interaction.showModal(
+            modal,
+        );
+    },
+},
     {
         name:
             'autoresponder_save',
