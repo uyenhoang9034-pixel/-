@@ -171,7 +171,77 @@ export default [
             });
         },
     },
+{
+    name:
+        'autoresponder_images',
 
+    async execute(
+        interaction,
+        client,
+        args,
+    ) {
+        const [
+            sessionId,
+        ] = args;
+
+        const session =
+            getBuilderSession(
+                sessionId,
+            );
+
+        if (
+            !session ||
+            session.userId !==
+                interaction.user.id
+        ) {
+            return;
+        }
+
+        const images = [];
+
+        for (
+            let i = 1;
+            i <= 5;
+            i++
+        ) {
+            const value =
+                interaction.fields
+                    .getTextInputValue(
+                        `image_${i}`,
+                    )
+                    ?.trim();
+
+            if (value) {
+                images.push(
+                    value,
+                );
+            }
+        }
+
+        session.response.images =
+            images;
+
+        updateBuilderSession(
+            sessionId,
+            {
+                response:
+                    session.response,
+            },
+        );
+
+        await interaction.reply({
+            content:
+                `🖼️ Đã lưu ${images.length} hình ảnh.`,
+            flags:
+                MessageFlags.Ephemeral,
+        });
+
+        await sendBuilder(
+            interaction,
+            session,
+        );
+    },
+},
     {
         name:
             'autoresponder_button',
