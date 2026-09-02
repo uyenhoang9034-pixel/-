@@ -13,20 +13,26 @@ export async function getTicketData(guildId, channelId) {
     return await db.get(key);
 }
 
-export async function getOpenTicketCountForUser(guildId, userId) {
+export async function getOpenTicketCountForStaff(guildId, staffId) {
     try {
         if (!db.initialized) {
             await db.initialize();
         }
 
-        if (db.db?.pool && typeof db.db.isAvailable === 'function' && db.db.isAvailable()) {
+        if (
+            db.db?.pool &&
+            typeof db.db.isAvailable === 'function' &&
+            db.db.isAvailable()
+        ) {
             const { pgConfig } = await import('../../config/database/postgres.js');
+
             const result = await db.db.pool.query(
-                `SELECT COUNT(*)::int AS count FROM ${pgConfig.tables.tickets}
+                `SELECT COUNT(*)::int AS count
+                 FROM ${pgConfig.tables.tickets}
                  WHERE guild_id = $1
-                   AND data->>'userId' = $2
+                   AND data->>'claimedBy' = $2
                    AND data->>'status' = 'open'`,
-                [guildId, userId],
+                [guildId, staffId],
             );
 
             return Number(result.rows?.[0]?.count || 0);
@@ -38,8 +44,14 @@ export async function getOpenTicketCountForUser(guildId, userId) {
 
             for (const key of ticketKeys) {
                 if (key.endsWith(':counter')) continue;
+
                 const ticket = await getFromDb(key, null);
-                if (ticket && ticket.userId === userId && ticket.status === 'open') {
+
+                if (
+                    ticket &&
+                    ticket.claimedBy === staffId &&
+                    ticket.status === 'open'
+                ) {
                     count += 1;
                 }
             }
@@ -49,7 +61,11 @@ export async function getOpenTicketCountForUser(guildId, userId) {
 
         return 0;
     } catch (error) {
-        logger.error(`Error counting open tickets for user ${userId} in guild ${guildId}:`, error);
+        logger.error(
+            `Error counting open tickets for staff ${staffId} in guild ${guildId}:`,
+            error
+        );
+
         return 0;
     }
 }
