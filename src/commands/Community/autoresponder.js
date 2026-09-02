@@ -353,61 +353,60 @@ export default {
                 );
             }
 
-            if (
+           if (
     subcommand === 'edit'
 ) {
-    const keyword =
+    const id =
         interaction.options.getString(
-            'keyword',
+            'id',
             true,
-        );
-
-    const config =
-        await getAutoresponderConfig(
-            client,
-            interaction.guild.id,
         );
 
     const responder =
         config.responders.find(
             item =>
-                item.keyword.toLowerCase() ===
-                keyword.toLowerCase(),
+                item.id === id,
         );
 
     if (!responder) {
         throw createError(
-            `Autoresponder not found: ${keyword}`,
+            `Autoresponder not found: ${id}`,
             ErrorTypes.NOT_FOUND,
-            `❌ Không tìm thấy autoresponder với keyword **${keyword}**.`,
+            '❌ Không tìm thấy autoresponder này.',
         );
     }
 
     const session =
-        createBuilderSession(
-            client,
-            interaction.guild.id,
-            interaction.user.id,
-            {
-                mode: 'edit',
-                responderId:
-                    responder.id,
-                keyword:
-                    responder.keyword,
-                type:
-                    responder.type,
-                response:
-                    responder.response,
-            },
-        );
+        createBuilderSession({
+            userId:
+                interaction.user.id,
+            guildId,
+            mode: 'edit',
+            responderId:
+                responder.id,
+            keyword:
+                responder.displayKeyword ||
+                responder.keyword,
+            type:
+                responder.type,
+            response:
+                responder.response,
+        });
+
+    await interaction.reply({
+        content:
+            '🌸 Đang mở Autoresponder Builder...',
+        flags:
+            MessageFlags.Ephemeral,
+    });
 
     const {
-        sendAutoresponderBuilder,
+        sendBuilder,
     } = await import(
         '../../interactions/modals/autoresponder/autoresponder.js'
     );
 
-    await sendAutoresponderBuilder(
+    await sendBuilder(
         interaction,
         session,
     );
