@@ -370,46 +370,138 @@ session.response.images =
             return;
         }
 
-        const replyEnabled =
-            interaction.fields
-                .getTextInputValue(
-                    'reply_enabled',
-                )
-                .trim()
-                .toLowerCase() ===
-            'yes';
+const keyword =
+    interaction.fields
+        .getTextInputValue(
+            'setting_keyword',
+        )
+        .trim();
 
-        const mentionAuthor =
-            interaction.fields
-                .getTextInputValue(
-                    'mention_author',
-                )
-                .trim()
-                .toLowerCase() ===
-            'yes';
+const type =
+    interaction.fields
+        .getTextInputValue(
+            'setting_type',
+        )
+        .trim()
+        .toLowerCase();
 
-        updateBuilderSession(
-            sessionId,
-            {
-                response: {
-                    ...session.response,
-                    reply: {
-                        enabled:
-                            replyEnabled,
-                        mentionAuthor,
-                    },
-                },
+const footer =
+    interaction.fields
+        .getTextInputValue(
+            'setting_footer',
+        )
+        ?.trim() || '';
+
+const replyEnabled =
+    interaction.fields
+        .getTextInputValue(
+            'reply_enabled',
+        )
+        .trim()
+        .toLowerCase() ===
+    'yes';
+
+const mentionAuthor =
+    interaction.fields
+        .getTextInputValue(
+            'mention_author',
+        )
+        .trim()
+        .toLowerCase() ===
+    'yes';
+
+if (!keyword) {
+    return InteractionHelper.safeReply(
+        interaction,
+        errorMessage(
+            '⚠️ Keyword không được để trống.',
+        ),
+    );
+}
+
+if (
+    type !== 'everyone' &&
+    type !== 'manager'
+) {
+    return InteractionHelper.safeReply(
+        interaction,
+        errorMessage(
+            '⚠️ Type chỉ được là everyone hoặc manager.',
+        ),
+    );
+}
+
+session.keyword =
+    keyword;
+
+session.type =
+    type;
+
+const currentEmbed =
+    session.response
+        .embeds?.[0] || {};
+
+const updatedEmbed = {
+    ...currentEmbed,
+};
+
+if (footer) {
+    updatedEmbed.footer = {
+        text: footer,
+    };
+} else {
+    delete updatedEmbed.footer;
+}
+
+if (
+    Object.keys(updatedEmbed)
+        .length > 0
+) {
+    session.response.embeds =
+        [
+            updatedEmbed,
+            ...(
+                session.response
+                    .embeds || []
+            ).slice(1),
+        ];
+} else {
+    session.response.embeds =
+        (
+            session.response
+                .embeds || []
+        ).slice(1);
+}
+
+updateBuilderSession(
+    sessionId,
+    {
+        keyword:
+            session.keyword,
+        type:
+            session.type,
+        response: {
+            ...session.response,
+            reply: {
+                enabled:
+                    replyEnabled,
+                mentionAuthor,
             },
-        );
-
-        await interaction.reply({
-            content:
-                '💬 Đã cập nhật Reply / Mention.',
-            flags:
-                MessageFlags.Ephemeral,
-        });
+        },
     },
-},
+);
+
+await interaction.reply({
+    content:
+        '💬 Đã cập nhật Keyword / Type / Footer / Reply / Mention.',
+    flags:
+        MessageFlags.Ephemeral,
+});
+
+await sendBuilder(
+    interaction,
+    session,
+);
 ];
 
 export async function sendBuilder(
