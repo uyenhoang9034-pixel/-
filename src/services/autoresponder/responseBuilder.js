@@ -101,7 +101,14 @@ function buildButton(button) {
             button.emoji,
         );
     }
-
+  if (
+        button.style !== 'link' &&
+        button.customId
+    ) {
+        builder.setCustomId(
+            button.customId,
+        );
+    }
     switch (
         button.style
     ) {
