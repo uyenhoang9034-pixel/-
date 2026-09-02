@@ -38,7 +38,7 @@ async function assertTicketPermission(interaction, client, actionLabel, options 
   try {
     const contextPromise = getTicketPermissionContext({ client, interaction });
     const timeoutPromise = new Promise((_, reject) =>
-      Timeout(() => reject(new Error('Timeout')), timeoutMs)
+      setTimeout(() => reject(new Error('Timeout')), timeoutMs)
     );
     context = await Promise.race([contextPromise, timeoutPromise]);
   } catch (error) {
