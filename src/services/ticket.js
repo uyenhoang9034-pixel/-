@@ -232,7 +232,9 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       ],
     });
     
-    const row = buildTicketControlRow();
+    const row = buildTicketControlRow({
+  claimedBy: assignedStaff?.id ?? null,
+});
     
     if (ticketConfig.enablePriority) {
       row.addComponents(
