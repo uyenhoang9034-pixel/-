@@ -265,7 +265,7 @@ export default [
     },
 ];
 
-async function sendBuilder(
+export async function sendBuilder(
     interaction,
     session,
 ) {
