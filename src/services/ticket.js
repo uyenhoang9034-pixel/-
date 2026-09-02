@@ -297,7 +297,7 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
     const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
     
     const config = await getGuildConfig(channel.client, channel.guild.id);
-    const dmOnClose = config.dmOnClose !== false;
+
     const closedCategoryId = config.ticketClosedCategoryId || null;
     let movedToClosedCategory = false;
     
@@ -324,7 +324,6 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
       }
     }
     
-   if (dmOnClose) {
   try {
    let ticketCreator = null;
 
@@ -408,7 +407,7 @@ if (ticketCreator) {
     }
   } catch (dmError) {
     logger.warn(`Could not send DM to ticket creator ${ticketData.userId}: ${dmError.message}`);
-  }
+  
 }
     try {
       const user = await channel.guild.members.fetch(ticketData.userId).catch(() => null);
