@@ -133,16 +133,27 @@ export function validateAutoresponderResponse(
             };
         }
 
-        if (
-            button.style === 'link' &&
-            !button.url
-        ) {
-            return {
-                valid: false,
-                error:
-                    'Link button phải có URL.',
-            };
-        }
+if (
+    button.style === 'link' &&
+    !button.url
+) {
+    return {
+        valid: false,
+        error:
+            'Link button phải có URL.',
+    };
+}
+
+if (
+    button.style !== 'link' &&
+    !button.customId
+) {
+    return {
+        valid: false,
+        error:
+            'Button không phải link phải có customId.',
+    };
+}
     }
 
     const hasContent =
