@@ -294,7 +294,7 @@ async function sendBuilder(
     const embedButton =
         new ButtonBuilder()
             .setCustomId(
-                `autoresponder_embed:${session.id}`,
+                `autoresponder_embed:${session.sessionId}`,
             )
             .setLabel('Edit Embed')
             .setEmoji('🎨')
@@ -305,7 +305,7 @@ async function sendBuilder(
     const addButton =
         new ButtonBuilder()
             .setCustomId(
-                `autoresponder_add_button:${session.id}`,
+                `autoresponder_add_button:${sessionId}`,
             )
             .setLabel('Add Button')
             .setEmoji('🔘')
@@ -316,7 +316,7 @@ async function sendBuilder(
     const settingsButton =
         new ButtonBuilder()
             .setCustomId(
-                `autoresponder_settings:${session.id}`,
+                `autoresponder_settings:${sessionId}`,
             )
             .setLabel('Reply / Settings')
             .setEmoji('💬')
@@ -327,7 +327,7 @@ async function sendBuilder(
     const saveButton =
         new ButtonBuilder()
             .setCustomId(
-                `autoresponder_save:${session.id}`,
+                `autoresponder_save:${sessionId}`,
             )
             .setLabel('Save')
             .setEmoji('💾')
@@ -338,7 +338,7 @@ async function sendBuilder(
     const cancelButton =
         new ButtonBuilder()
             .setCustomId(
-                `autoresponder_cancel:${session.id}`,
+                `autoresponder_cancel:${sessionId}`,
             )
             .setLabel('Cancel')
             .setEmoji('🌷')
