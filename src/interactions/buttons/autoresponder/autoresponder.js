@@ -377,48 +377,106 @@ export default [
                     .setTitle(
                         '💬 Reply / Settings',
                     )
-                    .addComponents(
-                        new ActionRowBuilder().addComponents(
-                            new TextInputBuilder()
-                                .setCustomId(
-                                    'reply_enabled',
-                                )
-                                .setLabel(
-                                    'Reply? yes / no',
-                                )
-                                .setStyle(
-                                    TextInputStyle.Short,
-                                )
-                                .setRequired(false)
-                                .setValue(
-                                    session.response
-                                        ?.reply
-                                        ?.enabled
-                                        ? 'yes'
-                                        : 'no',
-                                ),
-                        ),
-                        new ActionRowBuilder().addComponents(
-                            new TextInputBuilder()
-                                .setCustomId(
-                                    'mention_author',
-                                )
-                                .setLabel(
-                                    'Mention người gửi? yes / no',
-                                )
-                                .setStyle(
-                                    TextInputStyle.Short,
-                                )
-                                .setRequired(false)
-                                .setValue(
-                                    session.response
-                                        ?.reply
-                                        ?.mentionAuthor
-                                        ? 'yes'
-                                        : 'no',
-                                ),
-                        ),
-                    );
+.addComponents(
+    new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+            .setCustomId(
+                'setting_keyword',
+            )
+            .setLabel(
+                'Keyword',
+            )
+            .setStyle(
+                TextInputStyle.Short,
+            )
+            .setRequired(true)
+            .setValue(
+                session.keyword || '',
+            )
+            .setMaxLength(100),
+    ),
+
+    new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+            .setCustomId(
+                'setting_type',
+            )
+            .setLabel(
+                'Type: everyone / manager',
+            )
+            .setStyle(
+                TextInputStyle.Short,
+            )
+            .setRequired(true)
+            .setValue(
+                session.type ||
+                'everyone',
+            ),
+    ),
+
+    new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+            .setCustomId(
+                'setting_footer',
+            )
+            .setLabel(
+                'Footer',
+            )
+            .setStyle(
+                TextInputStyle.Short,
+            )
+            .setRequired(false)
+            .setValue(
+                session.response
+                    ?.embeds?.[0]
+                    ?.footer?.text ||
+                '',
+            )
+            .setMaxLength(2048),
+    ),
+
+    new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+            .setCustomId(
+                'reply_enabled',
+            )
+            .setLabel(
+                'Reply? yes / no',
+            )
+            .setStyle(
+                TextInputStyle.Short,
+            )
+            .setRequired(false)
+            .setValue(
+                session.response
+                    ?.reply
+                    ?.enabled
+                    ? 'yes'
+                    : 'no',
+            ),
+    ),
+
+    new ActionRowBuilder().addComponents(
+        new TextInputBuilder()
+            .setCustomId(
+                'mention_author',
+            )
+            .setLabel(
+                'Mention người gửi? yes / no',
+            )
+            .setStyle(
+                TextInputStyle.Short,
+            )
+            .setRequired(false)
+            .setValue(
+                session.response
+                    ?.reply
+                    ?.mentionAuthor
+                    ? 'yes'
+                    : 'no',
+            ),
+    ),
+);
 
             await interaction.showModal(
                 modal,
