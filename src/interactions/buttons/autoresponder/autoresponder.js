@@ -274,6 +274,89 @@ export default [
         },
     },
 
+      {
+        name:
+            'autoresponder_settings',
+
+        async execute(
+            interaction,
+            client,
+            args,
+        ) {
+            const [
+                sessionId,
+            ] = args;
+
+            const session =
+                getBuilderSession(
+                    sessionId,
+                );
+
+            if (
+                !session ||
+                session.userId !==
+                    interaction.user.id
+            ) {
+                return;
+            }
+
+            const modal =
+                new ModalBuilder()
+                    .setCustomId(
+                        `autoresponder_settings:${sessionId}`,
+                    )
+                    .setTitle(
+                        '💬 Reply / Settings',
+                    )
+                    .addComponents(
+                        new ActionRowBuilder().addComponents(
+                            new TextInputBuilder()
+                                .setCustomId(
+                                    'reply_enabled',
+                                )
+                                .setLabel(
+                                    'Reply? yes / no',
+                                )
+                                .setStyle(
+                                    TextInputStyle.Short,
+                                )
+                                .setRequired(false)
+                                .setValue(
+                                    session.response
+                                        ?.reply
+                                        ?.enabled
+                                        ? 'yes'
+                                        : 'no',
+                                ),
+                        ),
+                        new ActionRowBuilder().addComponents(
+                            new TextInputBuilder()
+                                .setCustomId(
+                                    'mention_author',
+                                )
+                                .setLabel(
+                                    'Mention người gửi? yes / no',
+                                )
+                                .setStyle(
+                                    TextInputStyle.Short,
+                                )
+                                .setRequired(false)
+                                .setValue(
+                                    session.response
+                                        ?.reply
+                                        ?.mentionAuthor
+                                        ? 'yes'
+                                        : 'no',
+                                ),
+                        ),
+                    );
+
+            await interaction.showModal(
+                modal,
+            );
+        },
+    },
+
     {
         name:
             'autoresponder_cancel',
