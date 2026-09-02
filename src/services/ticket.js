@@ -432,7 +432,10 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
     
     if (ticketMessage) {
        const embed = ticketMessage.embeds[0];
-      const statusField = embed.fields?.find(f => f.name === 'Status');
+      const statusField = embed.fields?.find( f =>
+    f.name === 'Status' ||
+    f.name?.includes('Trạng thái')
+);
       
       if (statusField) {
         statusField.value = '🔴 Closed';
