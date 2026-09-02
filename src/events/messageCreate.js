@@ -46,15 +46,18 @@ const countingProcessed =
     );
 
 if (!countingProcessed) {
-    await handleAutoresponder(
-        message,
-        client,
-    );
+    const autoresponderProcessed =
+        await handleAutoresponder(
+            message,
+            client,
+        );
 
-    await handlePrefixCommand(
-        message,
-        client,
-    );
+    if (!autoresponderProcessed) {
+        await handlePrefixCommand(
+            message,
+            client,
+        );
+    }
 
     await handleLeveling(
         message,
