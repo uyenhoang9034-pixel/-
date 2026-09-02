@@ -6,11 +6,11 @@ import { logTicketFeedback } from '../../../utils/ticket/ticketLogging.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
 const STAR_LABELS = {
-    '1': '⭐ 1 — Poor',
-    '2': '⭐ 2 — Below Average',
-    '3': '⭐ 3 — Average',
-    '4': '⭐ 4 — Good',
-    '5': '⭐ 5 — Excellent',
+    '1': '⭐ 1 — Rất tệ',
+    '2': '⭐ 2 — Chưa tốt',
+    '3': '⭐ 3 — Bình thường',
+    '4': '⭐ 4 — Tốt',
+    '5': '⭐ 5 — Tuyệt vời',
 };
 
 const feedbackHandler = {
@@ -24,8 +24,8 @@ const feedbackHandler = {
             await InteractionHelper.safeReply(interaction, {
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle('⚠️ Invalid Feedback Link')
-                        .setDescription('This feedback link appears to be malformed.')
+                        .setTitle('⚠️ Liên kết đánh giá không hợp lệ')
+                        .setDescription('Liên kết đánh giá này không hợp lệ hoặc đã bị lỗi.')
                         .setColor(getColor('error')),
                 ],
                 components: [],
@@ -51,8 +51,8 @@ const feedbackHandler = {
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle('⚠️ Ticket Not Found')
-                        .setDescription('Could not find the ticket associated with this survey.')
+                        .setTitle('⚠️ Không tìm thấy ticket')
+                        .setDescription('Không thể tìm thấy ticket liên quan đến đánh giá này.')
                         .setColor(getColor('error')),
                 ],
                 components: [],
@@ -64,8 +64,8 @@ const feedbackHandler = {
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle('❌ Not Allowed')
-                        .setDescription('Only the ticket creator can submit feedback for this ticket.')
+                        .setTitle('❌ Không thể thực hiện')
+                        .setDescription('Chỉ người đã mở ticket mới có thể gửi đánh giá cho ticket này.')
                         .setColor(getColor('error')),
                 ],
                 components: [],
@@ -77,8 +77,11 @@ const feedbackHandler = {
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
                     new EmbedBuilder()
-                        .setTitle('✅ Already Submitted')
-                        .setDescription(`You already rated this ticket **${STAR_LABELS[String(ticketData.feedback.rating)]}**.\nThank you for your feedback!`)
+                        .setTitle('✅ Bạn đã đánh giá rồi')
+                        .setDescription(
+    `Bạn đã đánh giá ticket này **${STAR_LABELS[String(ticketData.feedback.rating)]}**.\n\n` +
+    `Cảm ơn bạn đã gửi phản hồi! 💗`
+)
                         .setColor(getColor('success')),
                 ],
                 components: [],
@@ -115,10 +118,15 @@ const feedbackHandler = {
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [
                 new EmbedBuilder()
-                    .setTitle('✅ Thanks for your feedback!')
-                    .setDescription(`You rated your support experience **${ratingLabel}**.\n\nYour feedback has been recorded and helps us improve!`)
+                    .setTitle('💗 Cảm ơn bạn đã đánh giá!')
+                    .setDescription(
+    `Bạn đã đánh giá trải nghiệm hỗ trợ của mình: **${ratingLabel}**.\n\n` +
+    `Phản hồi của bạn đã được ghi nhận và sẽ giúp chúng mình cải thiện dịch vụ tốt hơn! ✨`
+)
                     .setColor(getColor('success'))
-                    .setFooter({ text: 'Thank you for using our support system.' })
+                    .setFooter({
+    text: 'Cảm ơn bạn đã sử dụng hệ thống hỗ trợ! 🌷'
+})
                     .setTimestamp(),
             ],
             components: [],
