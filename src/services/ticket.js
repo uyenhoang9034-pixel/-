@@ -324,59 +324,84 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
       }
     }
     
-    if (dmOnClose) {
+   if (dmOnClose) {
+  try {
+    const ticketCreator = await channel.client.users.fetch(ticketData.userId).catch(() => null);
+
+    if (ticketCreator) {
       try {
-        const ticketCreator = await channel.client.users.fetch(ticketData.userId).catch(() => null);
-        if (ticketCreator) {
-          const dmEmbed = createEmbed({
-            title: '🎫 Your Ticket Has Been Closed',
-            description: `Your ticket **${channel.name}** has been closed.\n\n**Reason:** ${reason}\n**Closed by:** ${closer.tag}\n**Closed at:** <t:${Math.floor(Date.now() / 1000)}:F>\n\nThank you for using our support system! If you have any further questions, feel free to create a new ticket.`,
-            color: '#e74c3c',
-            footer: { text: `Ticket ID: ${ticketData.id}` }
-          });
+        const feedbackEmbed = createEmbed({
+          title: '🌷 Bạn cảm thấy thế nào về hỗ trợ vừa rồi?',
+          description:
+            `Ticket **${channel.name}** của bạn đã được đóng.\n\n` +
+            `💗 Chúng mình rất muốn biết trải nghiệm hỗ trợ của bạn như thế nào.\n` +
+            `Hãy chọn mức đánh giá từ **1 đến 5 ⭐** bên dưới nhé!\n\n` +
+            `Ý kiến của bạn sẽ giúp chúng mình cải thiện chất lượng hỗ trợ tốt hơn. ✨`,
+          color: '#F1C40F',
+          image: TICKET_IMAGE_URL,
+          footer: {
+            text: 'Cảm ơn bạn đã dành thời gian đánh giá! 💕',
+          },
+        });
 
-          await ticketCreator.send({ embeds: [dmEmbed] });
+        const base = `ticket_feedback:${channel.guild.id}:${channel.id}`;
 
-          try {
-            const feedbackEmbed = createEmbed({
-              title: '⭐ How was your support experience?',
-              description: `We'd love to know how we did with **${channel.name}**.\nSelect a rating below — it only takes a second!`,
-              color: '#F1C40F',
-              footer: { text: 'Your feedback helps us improve.' },
-            });
+        const starsRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`${base}:1`)
+            .setLabel('⭐ 1')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(`${base}:2`)
+            .setLabel('⭐ 2')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(`${base}:3`)
+            .setLabel('⭐ 3')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(`${base}:4`)
+            .setLabel('⭐ 4')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(`${base}:5`)
+            .setLabel('⭐ 5')
+            .setStyle(ButtonStyle.Primary),
+        );
 
-            const base = `ticket_feedback:${channel.guild.id}:${channel.id}`;
-            const starsRow = new ActionRowBuilder().addComponents(
-              new ButtonBuilder().setCustomId(`${base}:1`).setLabel('⭐ 1').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:2`).setLabel('⭐ 2').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:3`).setLabel('⭐ 3').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:4`).setLabel('⭐ 4').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:5`).setLabel('⭐ 5').setStyle(ButtonStyle.Primary),
-            );
-            const declineRow = new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId(`ticket_feedback_comment:${channel.guild.id}:${channel.id}`)
-                .setLabel('✍️ Add Comment')
-                .setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder()
-                .setCustomId(`ticket_feedback_decline:${channel.guild.id}:${channel.id}`)
-                .setLabel('❌ No thanks')
-                .setStyle(ButtonStyle.Secondary),
-            );
+        const declineRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(
+              `ticket_feedback_comment:${channel.guild.id}:${channel.id}`
+            )
+            .setLabel('✍️ Viết nhận xét')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId(
+              `ticket_feedback_decline:${channel.guild.id}:${channel.id}`
+            )
+            .setLabel('❌ Không, cảm ơn')
+            .setStyle(ButtonStyle.Secondary),
+        );
 
-            await ticketCreator.send({
-              embeds: [feedbackEmbed],
-              components: [starsRow, declineRow],
-            });
-          } catch (feedbackError) {
-            logger.warn(`Could not send feedback survey to ticket creator ${ticketData.userId}: ${feedbackError.message}`);
-          }
-        }
-      } catch (dmError) {
-          logger.warn(`Could not send DM to ticket creator ${ticketData.userId}: ${dmError.message}`);
+        await ticketCreator.send({
+          embeds: [feedbackEmbed],
+          components: [starsRow, declineRow],
+        });
+
+        logger.info(
+          `Feedback survey sent to ticket creator ${ticketData.userId}`
+        );
+      } catch (feedbackError) {
+        logger.warn(
+          `Could not send feedback survey to ticket creator ${ticketData.userId}: ${feedbackError.message}`
+        );
       }
     }
-    
+  } catch (dmError) {
+    logger.warn(`Could not send DM to ticket creator ${ticketData.userId}: ${dmError.message}`);
+  }
+}
     try {
       const user = await channel.guild.members.fetch(ticketData.userId).catch(() => null);
       const targetUser = user?.user || await channel.client.users.fetch(ticketData.userId).catch(() => null);
