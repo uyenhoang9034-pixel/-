@@ -55,18 +55,18 @@ function buildTicketControlRow({ claimedBy = null } = {}) {
       .setCustomId('ticket_claim')
       .setLabel(claimedBy ? 'Đã nhận' : 'Nhận ticket')
       .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary)
-      .setEmoji('🙋')
+      .setEmoji('<a:catg1:1541439053256462396>')
       .setDisabled(!!claimedBy),
     new ButtonBuilder()
       .setCustomId('ticket_pin')
       .setLabel('Ghim')
       .setStyle(ButtonStyle.Secondary)
-      .setEmoji('📌'),
+      .setEmoji('<a:catg1:1541439053256462396>'),
     new ButtonBuilder()
       .setCustomId('ticket_close')
       .setLabel('Đóng')
       .setStyle(ButtonStyle.Danger)
-      .setEmoji('🔒'),
+      .setEmoji('<a:catg1:1541439053256462396>'),
   );
 }
 
