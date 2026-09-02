@@ -2,6 +2,7 @@ const MAX_CONTENT_LENGTH = 2000;
 const MAX_EMBEDS = 10;
 const MAX_FILES = 10;
 const MAX_BUTTONS = 20;
+const MAX_IMAGES = 10;
 
 export function normalizeAutoresponderResponse(response = {}) {
     return {
@@ -15,12 +16,17 @@ export function normalizeAutoresponderResponse(response = {}) {
                 ? response.embeds
                 : [],
 
-        files:
-            Array.isArray(response.files)
-                ? response.files
-                : [],
+files:
+    Array.isArray(response.files)
+        ? response.files
+        : [],
 
-        buttons:
+images:
+    Array.isArray(response.images)
+        ? response.images
+        : [],
+
+buttons:
             Array.isArray(response.buttons)
                 ? response.buttons
                 : [],
@@ -100,6 +106,16 @@ export function validateAutoresponderResponse(
                 `Một response chỉ được có tối đa ${MAX_BUTTONS} buttons.`,
         };
     }
+    if (
+    response.images.length >
+    MAX_IMAGES
+) {
+    return {
+        valid: false,
+        error:
+            `Một response chỉ được có tối đa ${MAX_IMAGES} images.`,
+    };
+}
 
     for (const button of response.buttons) {
         if (!button?.label) {
@@ -156,18 +172,48 @@ if (
 }
     }
 
-    const hasContent =
-        Boolean(response.content) ||
-        response.embeds.length > 0 ||
-        response.files.length > 0;
+const validEmbeds =
+    response.embeds.filter(
+        embed =>
+            embed &&
+            typeof embed === 'object' &&
+            (
+                Boolean(embed.title) ||
+                Boolean(embed.description) ||
+                Boolean(embed.thumbnail) ||
+                Boolean(embed.image) ||
+                Boolean(embed.footer) ||
+                Boolean(embed.author) ||
+                (
+                    Array.isArray(embed.fields) &&
+                    embed.fields.length > 0
+                )
+            ),
+    );
 
-    if (!hasContent) {
-        return {
-            valid: false,
-            error:
-                'Response phải có ít nhất content, embed hoặc file.',
-        };
-    }
+if (
+    validEmbeds.length !==
+    response.embeds.length
+) {
+    return {
+        valid: false,
+        error:
+            'Embed không được để trống. Hãy nhập ít nhất một thông tin cho Embed.',
+    };
+}
+
+const hasContent =
+    Boolean(response.content) ||
+    validEmbeds.length > 0 ||
+    response.files.length > 0;
+
+if (!hasContent) {
+    return {
+        valid: false,
+        error:
+            'Response phải có ít nhất content, embed hoặc file.',
+    };
+}
 
     return {
         valid: true,
