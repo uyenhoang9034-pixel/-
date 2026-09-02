@@ -317,11 +317,9 @@ updateBuilderSession(
     label,
     style,
     customId:
-        style === 'link'
-            ? undefined
-            : `autoresponder_action_${Date.now()}_${Math.random()
-                .toString(36)
-                .slice(2, 8)}`,
+    style === 'link'
+        ? undefined
+        : 'autoresponder_action',
     url:
         style === 'link'
             ? url
