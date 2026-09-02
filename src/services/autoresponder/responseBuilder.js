@@ -221,8 +221,14 @@ if (
 ) {
     for (
         const image of
-        response.images.slice(0, 10)
+        response.images
     ) {
+        if (
+            embeds.length >= 10
+        ) {
+            break;
+        }
+
         if (
             typeof image !==
                 'string' ||
@@ -239,9 +245,11 @@ if (
 
 if (embeds.length) {
     payload.embeds =
-        embeds.map(
-            buildEmbed,
-        );
+        embeds
+            .slice(0, 10)
+            .map(
+                buildEmbed,
+            );
 }
     if (
         response.files.length
