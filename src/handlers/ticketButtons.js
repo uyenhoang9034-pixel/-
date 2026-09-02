@@ -38,7 +38,7 @@ async function assertTicketPermission(interaction, client, actionLabel, options 
   try {
     const contextPromise = getTicketPermissionContext({ client, interaction });
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+      Timeout(() => reject(new Error('Timeout')), timeoutMs)
     );
     context = await Promise.race([contextPromise, timeoutPromise]);
   } catch (error) {
@@ -131,9 +131,9 @@ const createTicketHandler = {
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Why are you creating this ticket?') 
+        .setLabel('Hello! Bạn cần mở ticket về vấn đề nào ạ?') 
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Describe your issue...') 
+        .setPlaceholder('Hãy mô tả vấn đề của bạn...') 
         .setRequired(true)
         .setMaxLength(1000);
 
