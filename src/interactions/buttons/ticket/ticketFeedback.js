@@ -162,13 +162,13 @@ const commentHandler = {
 
         const modal = new ModalBuilder()
             .setCustomId(`ticket_feedback_comment_modal:${guildId}:${channelId}`)
-            .setTitle('Add Ticket Feedback');
+            .setTitle('Gửi nhận xét về hỗ trợ');
 
         const commentInput = new TextInputBuilder()
             .setCustomId('feedback_comment')
-            .setLabel('Your feedback')
+            .setLabel('Nhận xét của bạn')
             .setStyle(TextInputStyle.Paragraph)
-            .setPlaceholder('Share what went well or how we can improve...')
+            .setPlaceholder('Hãy chia sẻ điều bạn hài lòng hoặc điều chúng mình có thể cải thiện...')
             .setRequired(true)
             .setMaxLength(1000);
 
