@@ -218,15 +218,18 @@ const images =
                     )
                     ?.trim();
 
-            if (value) {
-                images.push(
-                    value,
-                );
-            }
-        }
+if (value) {
+    if (
+        !images.includes(value)
+    ) {
+        images.push(
+            value,
+        );
+    }
+}
 
-        session.response.images =
-            images;
+session.response.images =
+    images.slice(0, 10);
 
         updateBuilderSession(
             sessionId,
