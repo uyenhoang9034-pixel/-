@@ -214,7 +214,7 @@ const closeTicketHandler = {
 
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Cảm ơn bạn đã hợp tác! Bạn chắc chắn muốn đóng ticket chưa ạ?') 
+        .setLabel('Bạn chắc chắn muốn đóng ticket chưa ạ?') 
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder('Bạn có thể nhập lý do đóng ticket...') 
         .setRequired(false)
