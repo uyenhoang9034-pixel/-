@@ -266,94 +266,79 @@ async function sendBuilder(
     interaction,
     session,
 ) {
-    const {
-        ActionRowBuilder,
-        ButtonBuilder,
-        ButtonStyle,
-        EmbedBuilder,
-    } = await import('discord.js');
-
-    const embed = new EmbedBuilder()
-        .setColor('#FFB6D9')
-        .setTitle('🌸 Autoresponder Builder')
-        .setDescription(
-            [
-                `🔑 **Keyword:** ${session.keyword || '(chưa có)'}`,
-                `🎀 **Type:** ${session.type || 'everyone'}`,
-                '',
-                'Chọn một mục bên dưới để chỉnh response.',
-                '',
-                '🎨 **Edit Embed** — chỉnh title, description, màu, thumbnail, image.',
-                '🔘 **Add Button** — thêm button vào response.',
-                '💬 **Reply / Settings** — cài đặt reply và mention.',
-                '💾 **Save** — lưu autoresponder.',
-                '🌷 **Cancel** — hủy thao tác.',
-            ].join('\n'),
-        );
-
-    const embedButton =
-        new ButtonBuilder()
-            .setCustomId(
-                `autoresponder_embed:${session.sessionId}`,
+    const embed =
+        new EmbedBuilder()
+            .setColor('#FFB6D9')
+            .setTitle(
+                '🌸 Autoresponder Builder',
             )
-            .setLabel('Edit Embed')
-            .setEmoji('🎨')
-            .setStyle(
-                ButtonStyle.Primary,
-            );
-
-    const addButton =
-        new ButtonBuilder()
-            .setCustomId(
-                `autoresponder_add_button:${sessionId}`,
-            )
-            .setLabel('Add Button')
-            .setEmoji('🔘')
-            .setStyle(
-                ButtonStyle.Secondary,
-            );
-
-    const settingsButton =
-        new ButtonBuilder()
-            .setCustomId(
-                `autoresponder_settings:${sessionId}`,
-            )
-            .setLabel('Reply / Settings')
-            .setEmoji('💬')
-            .setStyle(
-                ButtonStyle.Secondary,
-            );
-
-    const saveButton =
-        new ButtonBuilder()
-            .setCustomId(
-                `autoresponder_save:${sessionId}`,
-            )
-            .setLabel('Save')
-            .setEmoji('💾')
-            .setStyle(
-                ButtonStyle.Success,
-            );
-
-    const cancelButton =
-        new ButtonBuilder()
-            .setCustomId(
-                `autoresponder_cancel:${sessionId}`,
-            )
-            .setLabel('Cancel')
-            .setEmoji('🌷')
-            .setStyle(
-                ButtonStyle.Danger,
+            .setDescription(
+                [
+                    `🔑 **Keyword:** ${session.keyword || '(chưa có)'}`,
+                    `🎀 **Type:** ${session.type || 'everyone'}`,
+                    '',
+                    'Chọn một mục bên dưới để chỉnh response.',
+                    '',
+                    '🎨 **Edit Embed** — chỉnh Embed.',
+                    '🔘 **Add Button** — thêm button.',
+                    '💬 **Reply / Settings** — chỉnh reply và mention.',
+                    '💾 **Save** — lưu autoresponder.',
+                    '🌷 **Cancel** — hủy thao tác.',
+                ].join('\n'),
             );
 
     const row =
         new ActionRowBuilder()
             .addComponents(
-                embedButton,
-                addButton,
-                settingsButton,
-                saveButton,
-                cancelButton,
+                new ButtonBuilder()
+                    .setCustomId(
+                        `autoresponder_embed:${session.sessionId}`,
+                    )
+                    .setLabel('Edit Embed')
+                    .setEmoji('🎨')
+                    .setStyle(
+                        ButtonStyle.Primary,
+                    ),
+
+                new ButtonBuilder()
+                    .setCustomId(
+                        `autoresponder_add_button:${session.sessionId}`,
+                    )
+                    .setLabel('Add Button')
+                    .setEmoji('🔘')
+                    .setStyle(
+                        ButtonStyle.Secondary,
+                    ),
+
+                new ButtonBuilder()
+                    .setCustomId(
+                        `autoresponder_settings:${session.sessionId}`,
+                    )
+                    .setLabel('Reply / Settings')
+                    .setEmoji('💬')
+                    .setStyle(
+                        ButtonStyle.Secondary,
+                    ),
+
+                new ButtonBuilder()
+                    .setCustomId(
+                        `autoresponder_save:${session.sessionId}`,
+                    )
+                    .setLabel('Save')
+                    .setEmoji('💾')
+                    .setStyle(
+                        ButtonStyle.Success,
+                    ),
+
+                new ButtonBuilder()
+                    .setCustomId(
+                        `autoresponder_cancel:${session.sessionId}`,
+                    )
+                    .setLabel('Cancel')
+                    .setEmoji('🌷')
+                    .setStyle(
+                        ButtonStyle.Danger,
+                    ),
             );
 
     const payload = {
@@ -372,6 +357,7 @@ async function sendBuilder(
 
     return interaction.reply({
         ...payload,
-        flags: MessageFlags.Ephemeral,
+        flags:
+            MessageFlags.Ephemeral,
     });
 }
