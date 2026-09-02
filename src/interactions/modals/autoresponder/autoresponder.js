@@ -246,7 +246,8 @@ export default [
         style === 'link'
             ? url
             : undefined,
-}
+  },
+);
 
             updateBuilderSession(
                 sessionId,
