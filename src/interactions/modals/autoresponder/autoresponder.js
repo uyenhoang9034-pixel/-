@@ -206,39 +206,39 @@ const images =
         ]
         : [];
 
-        for (
-            let i = 1;
-            i <= 5;
-            i++
-        ) {
-            const value =
-                interaction.fields
-                    .getTextInputValue(
-                        `image_${i}`,
-                    )
-                    ?.trim();
+for (
+    let i = 1;
+    i <= 5;
+    i++
+) {
+    const value =
+        interaction.fields
+            .getTextInputValue(
+                `image_${i}`,
+            )
+            ?.trim();
 
-if (value) {
-    if (
-        !images.includes(value)
-    ) {
-        images.push(
-            value,
-        );
+    if (value) {
+        if (
+            !images.includes(value)
+        ) {
+            images.push(
+                value,
+            );
+        }
     }
 }
 
 session.response.images =
     images.slice(0, 10);
 
-        updateBuilderSession(
-            sessionId,
-            {
-                response:
-                    session.response,
-            },
-        );
-
+updateBuilderSession(
+    sessionId,
+    {
+        response:
+            session.response,
+    },
+);
         await interaction.reply({
             content:
                 `🖼️ Đã lưu ${images.length} hình ảnh.`,
@@ -375,15 +375,15 @@ const keyword =
         .getTextInputValue(
             'setting_keyword',
         )
-        .trim();
+        ?.trim() || '';
 
 const type =
     interaction.fields
         .getTextInputValue(
             'setting_type',
         )
-        .trim()
-        .toLowerCase();
+        ?.trim()
+        .toLowerCase() || 'everyone';
 
 const footer =
     interaction.fields
@@ -397,18 +397,16 @@ const replyEnabled =
         .getTextInputValue(
             'reply_enabled',
         )
-        .trim()
-        .toLowerCase() ===
-    'yes';
+        ?.trim()
+        .toLowerCase() === 'yes';
 
 const mentionAuthor =
     interaction.fields
         .getTextInputValue(
             'mention_author',
         )
-        .trim()
-        .toLowerCase() ===
-    'yes';
+        ?.trim()
+        .toLowerCase() === 'yes';
 
 if (!keyword) {
     return InteractionHelper.safeReply(
@@ -465,13 +463,13 @@ if (
                     .embeds || []
             ).slice(1),
         ];
-} else {
-    session.response.embeds =
-        (
-            session.response
-                .embeds || []
-        ).slice(1);
 }
+
+session.response.reply =
+    replyEnabled;
+
+session.response.mentionAuthor =
+    mentionAuthor;
 
 updateBuilderSession(
     sessionId,
@@ -480,14 +478,8 @@ updateBuilderSession(
             session.keyword,
         type:
             session.type,
-        response: {
-            ...session.response,
-            reply: {
-                enabled:
-                    replyEnabled,
-                mentionAuthor,
-            },
-        },
+        response:
+            session.response,
     },
 );
 
