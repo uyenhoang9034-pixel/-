@@ -461,12 +461,12 @@ if (ticketCreator) {
 components: []
       });
     }
-    const closeEmbed = createEmbed({
+ const closeEmbed = createEmbed({
   title: '🔒 Ticket đã đóng',
   description:
-    `Ticket này đã được đóng bởi ${closer}.\n` +
-    `📝 **Lý do:** ${reason}` +
-    `${dmOnClose ? '\n\n📩 Đã gửi thông báo đến người tạo ticket.' : ''}`,
+    `Ticket này đã được đóng bởi ${closer}.\
+` +
+    `📝 **Lý do:** ${reason}`,
   color: '#e74c3c',
   footer: { text: `Ticket ID: ${ticketData.id}` }
 });
@@ -502,7 +502,7 @@ await channel.send({
         executorId: closer.id,
         reason: reason,
         metadata: {
-          dmSent: dmOnClose,
+          dmSent: true,
           closedAt: ticketData.closedAt,
           movedToClosedCategory
         }
