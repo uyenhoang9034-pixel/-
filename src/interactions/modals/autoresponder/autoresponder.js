@@ -357,64 +357,80 @@ export async function sendBuilder(
                 ].join('\n'),
             );
 
-    const row =
-        new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId(
-                        `autoresponder_embed:${session.sessionId}`,
-                    )
-                    .setLabel('Edit Embed')
-                    .setEmoji('🎨')
-                    .setStyle(
-                        ButtonStyle.Primary,
-                    ),
+const row =
+    new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(
+                    `autoresponder_embed:${session.sessionId}`,
+                )
+                .setLabel('Edit Embed')
+                .setEmoji('🎨')
+                .setStyle(
+                    ButtonStyle.Primary,
+                ),
 
-                new ButtonBuilder()
-                    .setCustomId(
-                        `autoresponder_add_button:${session.sessionId}`,
-                    )
-                    .setLabel('Add Button')
-                    .setEmoji('🔘')
-                    .setStyle(
-                        ButtonStyle.Secondary,
-                    ),
+            new ButtonBuilder()
+                .setCustomId(
+                    `autoresponder_add_button:${session.sessionId}`,
+                )
+                .setLabel('Add Button')
+                .setEmoji('🔘')
+                .setStyle(
+                    ButtonStyle.Secondary,
+                ),
 
-                new ButtonBuilder()
-                    .setCustomId(
-                        `autoresponder_settings:${session.sessionId}`,
-                    )
-                    .setLabel('Reply / Settings')
-                    .setEmoji('💬')
-                    .setStyle(
-                        ButtonStyle.Secondary,
-                    ),
+            new ButtonBuilder()
+                .setCustomId(
+                    `autoresponder_images:${session.sessionId}`,
+                )
+                .setLabel('Add Images')
+                .setEmoji('🖼️')
+                .setStyle(
+                    ButtonStyle.Secondary,
+                ),
 
-                new ButtonBuilder()
-                    .setCustomId(
-                        `autoresponder_save:${session.sessionId}`,
-                    )
-                    .setLabel('Save')
-                    .setEmoji('💾')
-                    .setStyle(
-                        ButtonStyle.Success,
-                    ),
+            new ButtonBuilder()
+                .setCustomId(
+                    `autoresponder_settings:${session.sessionId}`,
+                )
+                .setLabel('Settings')
+                .setEmoji('💬')
+                .setStyle(
+                    ButtonStyle.Secondary,
+                ),
+        );
 
-                new ButtonBuilder()
-                    .setCustomId(
-                        `autoresponder_cancel:${session.sessionId}`,
-                    )
-                    .setLabel('Cancel')
-                    .setEmoji('🌷')
-                    .setStyle(
-                        ButtonStyle.Danger,
-                    ),
-            );
+const actionRow =
+    new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(
+                    `autoresponder_save:${session.sessionId}`,
+                )
+                .setLabel('Save')
+                .setEmoji('💾')
+                .setStyle(
+                    ButtonStyle.Success,
+                ),
 
-    const payload = {
-        embeds: [embed],
-        components: [row],
-    };
+            new ButtonBuilder()
+                .setCustomId(
+                    `autoresponder_cancel:${session.sessionId}`,
+                )
+                .setLabel('Cancel')
+                .setEmoji('🌷')
+                .setStyle(
+                    ButtonStyle.Danger,
+                ),
+        );
+const payload = {
+    embeds: [embed],
+    components: [
+        row,
+        actionRow,
+    ],
+};
 
     if (
         interaction.replied ||
