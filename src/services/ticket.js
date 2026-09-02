@@ -251,15 +251,19 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       );
     }
     
-    const staffMention = config.ticketStaffRoleId ? ` <@&${config.ticketStaffRoleId}>` : '';
-    const messageContent = `${member.toString()}${staffMention}`;
-    
-    const ticketMessage = await channel.send({ 
-      content: messageContent,
-      embeds: [embed],
-      components: [row] 
-    });
+const staffMention = assignedStaff
+  ? ` ${assignedStaff.toString()}`
+  : config.ticketStaffRoleId
+    ? ` <@&${config.ticketStaffRoleId}>`
+    : '';
 
+const messageContent = `${member.toString()}${staffMention}`;
+
+const ticketMessage = await channel.send({
+  content: messageContent,
+  embeds: [embed],
+  components: [row],
+});
     await ticketMessage.pin().catch(() => {});
     
     await logTicketEvent({
