@@ -231,72 +231,7 @@ export default [
                     ),
                 );
             }
-{
-    name:
-        'autoresponder_settings',
 
-    async execute(
-        interaction,
-        client,
-        args,
-    ) {
-        const [
-            sessionId,
-        ] = args;
-
-        const session =
-            getBuilderSession(
-                sessionId,
-            );
-
-        if (
-            !session ||
-            session.userId !==
-                interaction.user.id
-        ) {
-            return;
-        }
-
-        const replyEnabled =
-            interaction.fields
-                .getTextInputValue(
-                    'reply_enabled',
-                )
-                .trim()
-                .toLowerCase() ===
-            'yes';
-
-        const mentionAuthor =
-            interaction.fields
-                .getTextInputValue(
-                    'mention_author',
-                )
-                .trim()
-                .toLowerCase() ===
-            'yes';
-
-        updateBuilderSession(
-            sessionId,
-            {
-                response: {
-                    ...session.response,
-                    reply: {
-                        enabled:
-                            replyEnabled,
-                        mentionAuthor,
-                    },
-                },
-            },
-        );
-
-        await interaction.reply({
-            content:
-                '💬 Đã cập nhật Reply / Mention.',
-            flags:
-                MessageFlags.Ephemeral,
-        });
-    },
-},
             session.response.buttons.push(
                 {
     label,
