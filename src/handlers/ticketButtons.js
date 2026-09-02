@@ -1,6 +1,6 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, AttachmentBuilder, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed } from '../utils/embeds.js';
-import { createTicket, closeTicket, claimTicket, updateTicketPriority } from '../services/ticket.js';
+import { createTicket, closeTicket, claimTicket, updateTicketPriority, getUserTicketCount } from '../services/ticket.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
 import { logger } from '../utils/logger.js';
@@ -107,23 +107,6 @@ const createTicketHandler = {
   async execute(interaction, client) {
     try {
       if (!(await ensureGuildContext(interaction))) return;
-
-      const rateLimitKey = `${interaction.user.id}:create_ticket`;
-      const allowed = await checkRateLimit(rateLimitKey, 3, 60000);
-      if (!allowed) {
-        await replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'You are creating tickets too quickly. Please wait a minute and try again.' });
-        return;
-      }
-
-      const config = await getGuildConfig(client, interaction.guildId);
-      const maxTicketsPerUser = config.maxTicketsPerUser || 3;
-      
-      const { getUserTicketCount } = await import('../services/ticket.js');
-      const currentTicketCount = await getUserTicketCount(interaction.guildId, interaction.user.id);
-      
-      if (currentTicketCount >= maxTicketsPerUser) {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `You have reached the maximum number of open tickets (${maxTicketsPerUser}).\n\nPlease close your existing tickets before creating a new one.\n\n**Current Tickets:** ${currentTicketCount}/${maxTicketsPerUser}` });
-      }
       
       const modal = new ModalBuilder()
         .setCustomId('create_ticket_modal')
@@ -158,9 +141,46 @@ const createTicketModalHandler = {
 
       const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
       if (!deferSuccess) return;
+
+      const rateLimitKey = `${interaction.user.id}:create_ticket`;
+const allowed = await checkRateLimit(rateLimitKey, 3, 60000);
+
+if (!allowed) {
+  await interaction.editReply({
+    embeds: [
+      createEmbed({
+        title: 'Too Many Requests',
+        description: 'You are creating tickets too quickly. Please wait a minute and try again.',
+        color: 0xE74C3C
+      })
+    ]
+  });
+  return;
+}
       
       const reason = interaction.fields.getTextInputValue('reason');
       const config = await getGuildConfig(client, interaction.guildId);
+      const maxTicketsPerUser = config.maxTicketsPerUser || 3;
+
+const currentTicketCount = await getUserTicketCount(
+  interaction.guildId,
+  interaction.user.id
+);
+
+if (currentTicketCount >= maxTicketsPerUser) {
+  await interaction.editReply({
+    embeds: [
+      createEmbed({
+        title: 'Ticket Limit',
+        description:
+          `You have reached the maximum number of open tickets (${maxTicketsPerUser}).\n\n` +
+          `Current Tickets: ${currentTicketCount}/${maxTicketsPerUser}`,
+        color: 0xE74C3C
+      })
+    ]
+  });
+  return;
+}
       const categoryId = config.ticketCategoryId || null;
       
       const { channel } = await createTicket(
@@ -187,8 +207,7 @@ const closeTicketHandler = {
     try {
       if (!(await ensureGuildContext(interaction))) return;
 
-      await assertTicketPermission(interaction, client, 'close this ticket', { allowTicketCreator: true }, 2000);
-
+     
       const modal = new ModalBuilder()
         .setCustomId('ticket_close_modal')
         .setTitle('Close Ticket'); 
@@ -220,10 +239,9 @@ const closeTicketModalHandler = {
   async execute(interaction, client) {
     try {
       if (!(await ensureGuildContext(interaction))) return;
-
+ const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
       await assertTicketPermission(interaction, client, 'close this ticket', { allowTicketCreator: true }, 2000);
 
-      const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
       if (!deferSuccess) return;
 
       const providedReason = interaction.fields.getTextInputValue('reason')?.trim();
