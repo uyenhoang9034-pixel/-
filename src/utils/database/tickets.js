@@ -14,36 +14,46 @@ export async function getTicketData(guildId, channelId) {
 }
 
 export async function getOpenTicketCountForUser(guildId, userId) {
-     try {
+    try {
         if (!db.initialized) {
             await db.initialize();
         }
-if (db.db?.pool && typeof db.db.isAvailable === 'function' && db.db.isAvailable()) {
-     const { pgConfig } = await import('../../config/database/postgres.js');
-    const result = await db.db.pool.query(
-        `SELECT COUNT(*)::int AS count FROM ${pgConfig.tables.tickets}
-          WHERE guild_id = $1
-           AND data->>'userId' = $2
-           AND data->>'status' = 'open'`,
-          [guildId, userId],
-         );
+
+        if (db.db?.pool && typeof db.db.isAvailable === 'function' && db.db.isAvailable()) {
+            const { pgConfig } = await import('../../config/database/postgres.js');
+            const result = await db.db.pool.query(
+                `SELECT COUNT(*)::int AS count FROM ${pgConfig.tables.tickets}
+                 WHERE guild_id = $1
+                   AND data->>'userId' = $2
+                   AND data->>'status' = 'open'`,
+                [guildId, userId],
+            );
 
             return Number(result.rows?.[0]?.count || 0);
-    
+        }
+
+        if (typeof db.list === 'function') {
+            const ticketKeys = await db.list(`guild:${guildId}:ticket:`);
+            let count = 0;
+
             for (const key of ticketKeys) {
                 if (key.endsWith(':counter')) continue;
-                   const ticket = await getFromDb(key, null);
+                const ticket = await getFromDb(key, null);
                 if (ticket && ticket.userId === userId && ticket.status === 'open') {
-                        count += 1;
+                    count += 1;
                 }
             }
-    
+
+            return count;
+        }
+
         return 0;
     } catch (error) {
-          logger.error(`Error counting open tickets for user ${userId} in guild ${guildId}:`, error);
-           return 0;
+        logger.error(`Error counting open tickets for user ${userId} in guild ${guildId}:`, error);
+        return 0;
     }
 }
+
 export async function saveTicketData(guildId, channelId, data) {
     if (!db.initialized) {
         await db.initialize();
