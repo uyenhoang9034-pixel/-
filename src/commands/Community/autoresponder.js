@@ -354,14 +354,66 @@ export default {
             }
 
             if (
-                subcommand === 'edit'
-            ) {
-                throw createError(
-                    'Edit builder not yet opened',
-                    ErrorTypes.UNKNOWN,
-                    'Chức năng Edit Builder sẽ được xử lý qua Builder interaction.',
-                );
-            }
+    subcommand === 'edit'
+) {
+    const keyword =
+        interaction.options.getString(
+            'keyword',
+            true,
+        );
+
+    const config =
+        await getAutoresponderConfig(
+            client,
+            interaction.guild.id,
+        );
+
+    const responder =
+        config.responders.find(
+            item =>
+                item.keyword.toLowerCase() ===
+                keyword.toLowerCase(),
+        );
+
+    if (!responder) {
+        throw createError(
+            `Autoresponder not found: ${keyword}`,
+            ErrorTypes.NOT_FOUND,
+            `❌ Không tìm thấy autoresponder với keyword **${keyword}**.`,
+        );
+    }
+
+    const session =
+        createBuilderSession(
+            client,
+            interaction.guild.id,
+            interaction.user.id,
+            {
+                mode: 'edit',
+                responderId:
+                    responder.id,
+                keyword:
+                    responder.keyword,
+                type:
+                    responder.type,
+                response:
+                    responder.response,
+            },
+        );
+
+    const {
+        sendAutoresponderBuilder,
+    } = await import(
+        '../../interactions/modals/autoresponder/autoresponder.js'
+    );
+
+    await sendAutoresponderBuilder(
+        interaction,
+        session,
+    );
+
+    return;
+}
         },
         {
             type: 'command',
