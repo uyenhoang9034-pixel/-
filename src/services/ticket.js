@@ -174,7 +174,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     
     const embed = createEmbed({
       title: `🎫 Ticket #${ticketNumber}`,
-      description: `${member.toString()}, cảm ơn bạn đã tạo ticket!💗\n\n` +
+      description: `${member.toString()}, cảm ơn bạn đã tạo ticket! 💗\n\n` +
     `📝 **Lý do:** ${reason}\n` +
     `🌷 **Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
       color: priorityInfo.color,
@@ -372,6 +372,34 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
 components: []
       });
     }
+    const closeEmbed = createEmbed({
+  title: '🔒 Ticket đã đóng',
+  description:
+    `Ticket này đã được đóng bởi ${closer}.\n` +
+    `📝 **Lý do:** ${reason}` +
+    `${dmOnClose ? '\n\n📩 Đã gửi thông báo đến người tạo ticket.' : ''}`,
+  color: '#e74c3c',
+  footer: { text: `Ticket ID: ${ticketData.id}` }
+});
+
+const controlRow = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId('ticket_reopen')
+    .setLabel('Mở lại ticket')
+    .setStyle(ButtonStyle.Success)
+    .setEmoji('<a:chiikawag2:1541424037408800789>'),
+
+  new ButtonBuilder()
+    .setCustomId('ticket_delete')
+    .setLabel('Xóa ticket')
+    .setStyle(ButtonStyle.Danger)
+    .setEmoji('<a:chiikawag2:1541424037408800789>')
+);
+
+await channel.send({
+  embeds: [closeEmbed],
+  components: [controlRow]
+});
     
     
     await logTicketEvent({
@@ -510,27 +538,6 @@ export async function reopenTicket(channel, reopener) {
     ticketData.closeReason = null;
     
     await saveTicketData(channel.guild.id, channel.id, ticketData);
-            const closeEmbed = createEmbed({
-      title: 'Ticket Closed',
-      description: `This ticket has been closed by ${closer}.\n**Reason:** ${reason}${dmOnClose ? '\n\n📩 A DM has been sent to the ticket creator.' : ''}`,
-      color: '#e74c3c',
-      footer: { text: `Ticket ID: ${ticketData.id}` }
-    });
-    
-    const controlRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('ticket_reopen')
-        .setLabel('Reopen Ticket')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🔓'),
-      new ButtonBuilder()
-        .setCustomId('ticket_delete')
-        .setLabel('Delete Ticket')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️')
-    );
-    
-    await channel.send({ embeds: [closeEmbed], components: [controlRow] });
 
     if (openCategoryId && channel.parentId !== openCategoryId) {
       const openCategory = channel.guild.channels.cache.get(openCategoryId)
