@@ -230,14 +230,19 @@ export default [
 
             session.response.buttons.push(
                 {
-                    label,
-                    style,
-                    url:
-                        style === 'link'
-                            ? url
-                            : undefined,
-                },
-            );
+    label,
+    style,
+    customId:
+        style === 'link'
+            ? undefined
+            : `autoresponder_action_${Date.now()}_${Math.random()
+                .toString(36)
+                .slice(2, 8)}`,
+    url:
+        style === 'link'
+            ? url
+            : undefined,
+}
 
             updateBuilderSession(
                 sessionId,
