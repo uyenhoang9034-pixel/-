@@ -210,15 +210,39 @@ export function buildDiscordMessagePayload(
             response.content;
     }
 
-    if (
-        response.embeds.length
-    ) {
-        payload.embeds =
-            response.embeds.map(
-                buildEmbed,
-            );
-    }
+const embeds = [
+    ...response.embeds,
+];
 
+if (
+    Array.isArray(
+        response.images,
+    )
+) {
+    for (
+        const image of
+        response.images.slice(0, 10)
+    ) {
+        if (
+            typeof image !==
+                'string' ||
+            !image
+        ) {
+            continue;
+        }
+
+        embeds.push({
+            image,
+        });
+    }
+}
+
+if (embeds.length) {
+    payload.embeds =
+        embeds.map(
+            buildEmbed,
+        );
+}
     if (
         response.files.length
     ) {
