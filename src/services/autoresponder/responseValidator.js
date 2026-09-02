@@ -24,6 +24,15 @@ files:
 images:
     Array.isArray(response.images)
         ? response.images
+    .filter(
+        image => 
+typeof image === 'string' && 
+image.trim().length > 0,
+) 
+.slice( 
+0, 
+10, 
+)
         : [],
 
 buttons:
