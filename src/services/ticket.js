@@ -326,9 +326,17 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
     
    if (dmOnClose) {
   try {
-    const ticketCreator = await channel.client.users.fetch(ticketData.userId).catch(() => null);
+   let ticketCreator = null;
 
-    if (ticketCreator) {
+try {
+  ticketCreator = await channel.client.users.fetch(ticketData.userId);
+} catch (fetchError) {
+  logger.warn(
+    `Could not fetch ticket creator ${ticketData.userId} for feedback DM: ${fetchError.message}`
+  );
+}
+
+if (ticketCreator) {
       try {
         const feedbackEmbed = createEmbed({
           title: '🌷 Bạn cảm thấy thế nào về hỗ trợ vừa rồi?',
