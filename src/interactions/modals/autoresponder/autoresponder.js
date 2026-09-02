@@ -465,11 +465,12 @@ if (
         ];
 }
 
-session.response.reply =
-    replyEnabled;
-
-session.response.mentionAuthor =
-    mentionAuthor;
+session.response.reply = {
+    enabled:
+    replyEnabled,
+mentionAuthor:
+mentionAuthor,
+};
 
 updateBuilderSession(
     sessionId,
