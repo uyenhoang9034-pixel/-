@@ -53,6 +53,7 @@ export {
 export {
     getTicketData,
     getOpenTicketCountForUser,
+    getOpenTicketCountForStaff,
     saveTicketData,
     deleteTicketData,
     getTicketCounter,
