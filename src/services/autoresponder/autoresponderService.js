@@ -23,23 +23,62 @@ const DEFAULT_CONFIG = {
 const builderSessions = new Map();
 
 function normalizeConfig(data) {
-    if (!data || typeof data !== 'object') {
+    if (
+        !data ||
+        typeof data !== 'object'
+    ) {
         return {
             ...DEFAULT_CONFIG,
+            responders: [],
         };
     }
 
     return {
         managerRoleId:
-            data.managerRoleId || null,
+            typeof data.managerRoleId === 'string'
+                ? data.managerRoleId
+                : null,
 
         responders:
             Array.isArray(data.responders)
                 ? data.responders
+                    .filter(
+                        responder =>
+                            responder &&
+                            typeof responder === 'object' &&
+                            typeof responder.id === 'string' &&
+                            typeof responder.keyword === 'string',
+                    )
+                    .map(
+                        responder => ({
+                            ...responder,
+
+                            keyword:
+                                normalizeKeyword(
+                                    responder.keyword,
+                                ),
+
+                            displayKeyword:
+                                responder.displayKeyword ||
+                                responder.keyword,
+
+                            type:
+                                responder.type === 'manager'
+                                    ? 'manager'
+                                    : 'everyone',
+
+                            enabled:
+                                responder.enabled !== false,
+
+                            response:
+                                normalizeAutoresponderResponse(
+                                    responder.response,
+                                ),
+                        }),
+                    )
                 : [],
     };
 }
-
 function normalizeKeyword(keyword) {
     return String(keyword || '')
         .trim()
@@ -57,7 +96,7 @@ export async function getAutoresponderConfig(
         const data =
             await client.db.get(
                 key,
-                DEFAULT_CONFIG,
+                null,
             );
 
         return normalizeConfig(data);
@@ -67,9 +106,7 @@ export async function getAutoresponderConfig(
             error,
         );
 
-        return {
-            ...DEFAULT_CONFIG,
-        };
+        throw error;
     }
 }
 
@@ -255,14 +292,21 @@ export function findMatchingResponder(
             responder =>
                 responder.enabled !== false,
         )
-        .filter(
-            responder =>
-                normalizedContent.includes(
-                    normalizeKeyword(
-                        responder.keyword,
-                    ),
-                ),
-        )
+.filter(
+    responder => {
+        const keyword =
+            normalizeKeyword(
+                responder.keyword,
+            );
+
+        return (
+            keyword.length > 0 &&
+            normalizedContent.includes(
+                keyword,
+            )
+        );
+    },
+)
         .sort(
             (a, b) =>
                 normalizeKeyword(
