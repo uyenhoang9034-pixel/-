@@ -20,6 +20,8 @@ import { PRIORITY_MAP } from '../utils/helpers.js';
 const TICKET_DELETE_DELAY_MS = 3000;
 const TICKET_DELETE_DELAY_SECONDS = Math.floor(TICKET_DELETE_DELAY_MS / 1000);
 const TICKET_SERVICE = 'ticketService';
+const TICKET_IMAGE_URL =
+  'https://i.pinimg.com/736x/b9/46/fc/b946fc31a0960b6834288d323d5b7752.jpg';
 
 function ticketUserError(message, userMessage, type = ErrorTypes.VALIDATION, context = {}) {
   throw createError(message, type, userMessage, { service: TICKET_SERVICE, ...context });
@@ -178,6 +180,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     `📝 **Lý do:** ${reason}\n` +
     `🌷 **Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
       color: priorityInfo.color,
+      image: TICKET_IMAGE_URL,
       fields: [
         { name: '<a:cinnamorollg3:1541437319188578434> Trạng thái', value: '🟢 Đang mở', inline: true },
         { name: '<a:cinnamorollg3:1541437319188578434> Người nhận', value: 'Chưa có', inline: true },
