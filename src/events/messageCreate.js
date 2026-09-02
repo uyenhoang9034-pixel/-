@@ -39,17 +39,28 @@ export default {
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
 
-      const countingProcessed = await handleCountingGame(message, client);
-      if (countingProcessed) {
-        return;
-      }
-await handleAutoresponder(
-    message,
-    client,
-);
-      await handlePrefixCommand(message, client);
+const countingProcessed =
+    await handleCountingGame(
+        message,
+        client,
+    );
 
-      await handleLeveling(message, client);
+if (!countingProcessed) {
+    await handleAutoresponder(
+        message,
+        client,
+    );
+
+    await handlePrefixCommand(
+        message,
+        client,
+    );
+
+    await handleLeveling(
+        message,
+        client,
+    );
+}
     } catch (error) {
       logger.error('Error in messageCreate event:', error);
     }
