@@ -173,13 +173,15 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     const priorityInfo = PRIORITY_MAP[priority] || PRIORITY_MAP.none;
     
     const embed = createEmbed({
-      title: `Ticket #${ticketNumber}`,
-      description: `${member.toString()}, cảm ơn bạn đã tạo ticket!\n\n**Lý do:** ${reason}\n**Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
+      title: `🎫 Ticket #${ticketNumber}`,
+      description: `${member.toString()}, cảm ơn bạn đã tạo ticket!💗\n\n` +
+    `📝 **Lý do:** ${reason}\n` +
+    `🌷 **Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
       color: priorityInfo.color,
       fields: [
-        { name: 'Trạng thái', value: '🟢 Đang mở', inline: true },
-        { name: 'Người nhận', value: 'Chưa có', inline: true },
-        { name: 'Đã tạo', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+        { name: '<a:cinnamorollg3:1541437319188578434> Trạng thái', value: '🟢 Đang mở', inline: true },
+        { name: '<a:cinnamorollg3:1541437319188578434> Người nhận', value: 'Chưa có', inline: true },
+        { name: '<a:cinnamorollg3:1541437319188578434> Đã tạo', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
       ],
     });
     
