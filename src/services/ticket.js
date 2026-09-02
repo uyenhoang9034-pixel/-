@@ -53,18 +53,18 @@ function buildTicketControlRow({ claimedBy = null } = {}) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('ticket_claim')
-      .setLabel(claimedBy ? 'Claimed' : 'Claim')
+      .setLabel(claimedBy ? 'Đã nhận' : 'Nhận ticket')
       .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary)
       .setEmoji('🙋')
       .setDisabled(!!claimedBy),
     new ButtonBuilder()
       .setCustomId('ticket_pin')
-      .setLabel('Pin')
+      .setLabel('Ghim')
       .setStyle(ButtonStyle.Secondary)
       .setEmoji('📌'),
     new ButtonBuilder()
       .setCustomId('ticket_close')
-      .setLabel('Close')
+      .setLabel('Đóng')
       .setStyle(ButtonStyle.Danger)
       .setEmoji('🔒'),
   );
@@ -174,12 +174,12 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     
     const embed = createEmbed({
       title: `Ticket #${ticketNumber}`,
-      description: `${member.toString()}, thanks for creating a ticket!\n\n**Reason:** ${reason}\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
+      description: `${member.toString()}, cảm ơn bạn đã tạo ticket!\n\n**Lý do:** ${reason}\n**Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
       color: priorityInfo.color,
       fields: [
-        { name: 'Status', value: '🟢 Open', inline: true },
-        { name: 'Claimed By', value: 'Not claimed', inline: true },
-        { name: 'Created', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+        { name: 'Trạng thái', value: '🟢 Đang mở', inline: true },
+        { name: 'Người nhận', value: 'Chưa có', inline: true },
+        { name: 'Đã tạo', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
       ],
     });
     
@@ -350,7 +350,7 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
     );
     
     if (ticketMessage) {
-      const embed = ticketMessage.embeds[0];
+       = ticketMessage.embeds[0];
       const statusField = embed.fields?.find(f => f.name === 'Status');
       
       if (statusField) {
