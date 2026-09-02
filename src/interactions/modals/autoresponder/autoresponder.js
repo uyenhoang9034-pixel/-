@@ -490,10 +490,12 @@ await interaction.reply({
         MessageFlags.Ephemeral,
 });
 
-await sendBuilder(
-    interaction,
-    session,
-);
+        await sendBuilder(
+            interaction,
+            session,
+        );
+    },
+},
 ];
 
 export async function sendBuilder(
