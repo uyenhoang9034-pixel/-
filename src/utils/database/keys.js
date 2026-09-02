@@ -116,6 +116,9 @@ export function getServerCountersKey(guildId) {
     return `guild:${guildId}:counters`;
 }
 
+export function getAutorespondersKey(guildId) {
+    return `guild:${guildId}:autoresponders`;
+
 export function getGiveawayEntryKey(userId, giveawayId) {
     return `giveaway:${userId}:${giveawayId}`;
 }
