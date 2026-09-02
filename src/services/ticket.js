@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { buildStandardLogEmbed, formatLogLine } from '../utils/logging/logEmbeds.js';
 import { getGuildConfig } from './config/guildConfig.js';
-import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, incrementTicketCounter } from '../utils/database.js';
+import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, getOpenTicketCountForStaff, incrementTicketCounter } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { createEmbed, errorEmbed } from '../utils/embeds.js';
 import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
@@ -51,7 +51,7 @@ function rethrowTicketError(error, operation, userMessage, context = {}) {
 
 
 
-function buildTicketControlRow({ claimedBy = null } = {}) {
+ buildTicketControlRow({ claimedBy = null } = {}) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('ticket_claim')
@@ -80,7 +80,40 @@ export const getUserTicketCount = wrapServiceBoundary(async function getUserTick
   userMessage: 'Failed to count open tickets.',
   context: {},
 });
+async function selectTicketStaff(guild, staffRoleId) {
+  if (!staffRoleId) return null;
 
+  const staffRole =
+    guild.roles.cache.get(staffRoleId) ||
+    await guild.roles.fetch(staffRoleId).catch(() => null);
+
+  if (!staffRole) return null;
+
+  const staffMembers = [...staffRole.members.values()]
+    .filter(member => !member.user.bot);
+
+  if (!staffMembers.length) return null;
+
+  const staffLoads = await Promise.all(
+    staffMembers.map(async member => ({
+      member,
+      ticketCount: await getOpenTicketCountForStaff(
+        guild.id,
+        member.id
+      ),
+    }))
+  );
+
+  staffLoads.sort((a, b) => {
+    if (a.ticketCount !== b.ticketCount) {
+      return a.ticketCount - b.ticketCount;
+    }
+
+    return a.member.id.localeCompare(b.member.id);
+  });
+
+  return staffLoads[0].member;
+}
 export async function createTicket(guild, member, categoryId, reason = 'No reason provided', priority = 'none') {
   try {
     const config = await getGuildConfig(guild.client, guild.id);
@@ -159,13 +192,20 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       ],
     });
     
+    const assignedStaff = await selectTicketStaff(
+  guild,
+  config.ticketStaffRoleId
+);
+    
     const ticketData = {
       id: channel.id,
       userId: member.id,
       guildId: guild.id,
       createdAt: new Date().toISOString(),
       status: 'open',
-      claimedBy: null,
+      claimedAt: assignedStaff
+    ? new Date().toISOString()
+    : null,
       priority: priority || 'none',
       reason,
     };
@@ -183,7 +223,11 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       image: TICKET_IMAGE_URL,
       fields: [
         { name: '<a:cinnamorollg3:1541437319188578434> Trạng thái', value: '🟢 Đang mở', inline: true },
-        { name: '<a:cinnamorollg3:1541437319188578434> Người nhận', value: 'Chưa có', inline: true },
+       {
+  name: '<a:cinnamorollg3:1541437319188578434> Người nhận',
+  value: assignedStaff ? assignedStaff.toString() : 'Chưa có',
+  inline: true
+},
         { name: '<a:cinnamorollg3:1541437319188578434> Đã tạo', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
       ],
     });
