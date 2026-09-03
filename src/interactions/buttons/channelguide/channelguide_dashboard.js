@@ -48,12 +48,16 @@ function getSession(interaction, sessionId) {
     return session;
 }
 
-function buildGuideModal(config, guide = null) {
+function buildGuideModal(
+    config,
+    guide = null,
+    sessionId = '',
+) {
     const isEdit = Boolean(guide);
 
     const modal = new ModalBuilder()
         .setCustomId(
-            `channelguide_dashboard_guide:${isEdit ? guide.id : 'new'}`,
+            `channelguide_dashboard_guide:${isEdit ? guide.id : 'new'}:${sessionId}`
         )
         .setTitle(
             isEdit
@@ -400,9 +404,10 @@ export default {
 
             return interaction.showModal(
                 buildGuideModal(
-                    config,
-                    selected,
-                ),
+    config,
+    selected,
+    sessionId,
+),
             );
         }
 
@@ -410,10 +415,11 @@ export default {
             action === 'add'
         ) {
             return interaction.showModal(
-                buildGuideModal(
-                    config,
-                    null,
-                ),
+               buildGuideModal(
+    config,
+    null,
+    sessionId,
+),
             );
         }
 
