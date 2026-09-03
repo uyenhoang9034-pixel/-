@@ -7,9 +7,45 @@ import {
 
 const PAGE_SIZE = 20;
 
+const BUTTON_STYLES = [
+    ButtonStyle.Primary,
+    ButtonStyle.Success,
+    ButtonStyle.Secondary,
+    ButtonStyle.Primary,
+    ButtonStyle.Danger,
+    ButtonStyle.Success,
+    ButtonStyle.Secondary,
+    ButtonStyle.Primary,
+];
+
+function resolveButtonEmoji(value) {
+    if (!value || typeof value !== 'string') {
+        return null;
+    }
+
+    const customEmoji = value.match(
+        /^<(?<animated>a)?:(?<name>[^:>]+):(?<id>\d+)>$/,
+    );
+
+    if (customEmoji) {
+        return {
+            name: customEmoji.groups.name,
+            id: customEmoji.groups.id,
+            animated: Boolean(
+                customEmoji.groups.animated,
+            ),
+        };
+    }
+
+    return {
+        name: value,
+    };
+}
+
 export function buildChannelGuidePanel(
     config,
     page = 0,
+    guild = null,
 ) {
     const guides =
         config.guides.filter(
@@ -28,37 +64,52 @@ export function buildChannelGuidePanel(
 
     const safePage =
         Math.min(
-            Math.max(
-                page,
-                0,
-            ),
+            Math.max(page, 0),
             totalPages - 1,
         );
 
     const pageGuides =
         guides.slice(
             safePage * PAGE_SIZE,
-            (safePage + 1) *
-                PAGE_SIZE,
+            (safePage + 1) * PAGE_SIZE,
         );
+
+    const guildIcon =
+        guild?.iconURL({
+            dynamic: true,
+            size: 128,
+        }) || null;
 
     const embed =
         new EmbedBuilder()
-            .setColor(
-                0xf6b6d6,
-            )
+            .setColor(0xf6b6d6)
+            .setAuthor({
+                name:
+                    guild?.name ||
+                    '𝓢𝓮𝓻𝓮𝓷𝓭𝓲𝓹𝓲𝓽𝔂 🖤🤍',
+
+                ...(guildIcon
+                    ? {
+                        iconURL: guildIcon,
+                    }
+                    : {}),
+            })
             .setTitle(
                 config.panelTitle ||
-                '𝓢𝓮𝓻𝓮𝓷𝓭𝓲𝓹𝓲𝓽𝔂 🖤🤍',
+                '🌸 Hướng dẫn sử dụng các kênh discord server Serendipity 🖤🤍',
             )
             .setDescription(
                 config.panelDescription ||
                 'Hướng dẫn sử dụng các kênh discord server Serendipity 🖤🤍',
             );
 
-    if (
-        config.panelImage
-    ) {
+    // Thumbnail góc trên bên phải
+    if (guildIcon) {
+        embed.setThumbnail(guildIcon);
+    }
+
+    // Ảnh lớn phía dưới
+    if (config.panelImage) {
         embed.setImage(
             config.panelImage,
         );
@@ -77,8 +128,8 @@ export function buildChannelGuidePanel(
         pageGuides
             .slice(i, i + 5)
             .forEach(
-                guide => {
-                    row.addComponents(
+                (guide, index) => {
+                    const button =
                         new ButtonBuilder()
                             .setCustomId(
                                 `channelguide:${guide.id}`,
@@ -89,24 +140,34 @@ export function buildChannelGuidePanel(
                                     80,
                                 ),
                             )
-                            .setEmoji(
-                                guide.emoji,
-                            )
                             .setStyle(
-                                ButtonStyle.Secondary,
-                            ),
+                                BUTTON_STYLES[
+                                    (i + index) %
+                                        BUTTON_STYLES.length
+                                ],
+                            );
+
+                    const emoji =
+                        resolveButtonEmoji(
+                            guide.emoji,
+                        );
+
+                    if (emoji) {
+                        button.setEmoji(
+                            emoji,
+                        );
+                    }
+
+                    row.addComponents(
+                        button,
                     );
                 },
             );
 
-        components.push(
-            row,
-        );
+        components.push(row);
     }
 
-    if (
-        totalPages > 1
-    ) {
+    if (totalPages > 1) {
         components.push(
             new ActionRowBuilder()
                 .addComponents(
@@ -117,9 +178,7 @@ export function buildChannelGuidePanel(
                         .setLabel(
                             'Previous',
                         )
-                        .setEmoji(
-                            '◀️',
-                        )
+                        .setEmoji('◀️')
                         .setStyle(
                             ButtonStyle.Secondary,
                         )
@@ -129,7 +188,7 @@ export function buildChannelGuidePanel(
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `channelguide_nav:${safePage + 1}`,
+                            `channelguide_nav:${safePage}`,
                         )
                         .setLabel(
                             `Page ${safePage + 1}/${totalPages}`,
@@ -145,12 +204,8 @@ export function buildChannelGuidePanel(
                         .setCustomId(
                             `channelguide_nav:${safePage + 1}`,
                         )
-                        .setLabel(
-                            'Next',
-                        )
-                        .setEmoji(
-                            '▶️',
-                        )
+                        .setLabel('Next')
+                        .setEmoji('▶️')
                         .setStyle(
                             ButtonStyle.Secondary,
                         )
@@ -163,9 +218,7 @@ export function buildChannelGuidePanel(
     }
 
     return {
-        embeds: [
-            embed,
-        ],
+        embeds: [embed],
         components,
     };
 }
