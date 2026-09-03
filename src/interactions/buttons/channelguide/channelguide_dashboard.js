@@ -588,9 +588,9 @@ export default {
             }
 
             const { buildChannelGuidePanel } =
-                await import(
-                    './channelguide_panel.js'
-                );
+    await import(
+        '../../../commands/Community/modules/channelguide_panel.js'
+    );
 
             const payload =
                 buildChannelGuidePanel(
