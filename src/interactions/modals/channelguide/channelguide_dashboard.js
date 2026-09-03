@@ -9,7 +9,6 @@ import {
 
 import {
     getDashboardSession,
-    showChannelGuideDashboard,
 } from '../../../commands/Community/modules/channelguide_dashboard.js';
 
 function hasAdminPermission(interaction) {
@@ -28,17 +27,16 @@ function normalizeChannels(value) {
         return [];
     }
 
-    const ids =
-        value
-            .split(',')
-            .map(
-                item =>
-                    item.trim(),
-            )
-            .filter(Boolean);
-
     return [
-        ...new Set(ids),
+        ...new Set(
+            value
+                .split(',')
+                .map(
+                    item =>
+                        item.trim(),
+                )
+                .filter(Boolean),
+        ),
     ].map(
         channelId => ({
             channelId,
@@ -47,7 +45,7 @@ function normalizeChannels(value) {
     );
 }
 
-export default {
+const guideHandler = {
     name:
         'channelguide_dashboard_guide',
 
@@ -56,11 +54,8 @@ export default {
         client,
         args,
     ) {
-        if (!interaction.guild) {
-            return;
-        }
-
         if (
+            !interaction.guild ||
             !hasAdminPermission(
                 interaction,
             )
@@ -82,31 +77,43 @@ export default {
         const guideId =
             args[0];
 
+        const sessionId =
+            args[1];
+
         const label =
-            interaction.fields.getTextInputValue(
-                'guide_label',
-            ).trim();
+            interaction.fields
+                .getTextInputValue(
+                    'guide_label',
+                )
+                .trim();
 
         const emoji =
-            interaction.fields.getTextInputValue(
-                'guide_emoji',
-            ).trim();
+            interaction.fields
+                .getTextInputValue(
+                    'guide_emoji',
+                )
+                .trim();
 
         const title =
-            interaction.fields.getTextInputValue(
-                'guide_title',
-            ).trim();
+            interaction.fields
+                .getTextInputValue(
+                    'guide_title',
+                )
+                .trim();
 
         const description =
-            interaction.fields.getTextInputValue(
-                'guide_description',
-            ).trim();
+            interaction.fields
+                .getTextInputValue(
+                    'guide_description',
+                )
+                .trim();
 
         const channels =
             normalizeChannels(
-                interaction.fields.getTextInputValue(
-                    'guide_channels',
-                ),
+                interaction.fields
+                    .getTextInputValue(
+                        'guide_channels',
+                    ),
             );
 
         if (
@@ -123,16 +130,20 @@ export default {
             });
         }
 
+        let savedGuideId =
+            guideId;
+
         if (
             guideId === 'new'
         ) {
-            const id =
+            savedGuideId =
                 `guide_${Date.now()}_${Math.random()
                     .toString(36)
                     .slice(2, 8)}`;
 
             config.guides.push({
-                id,
+                id:
+                    savedGuideId,
                 label,
                 emoji,
                 title,
@@ -181,37 +192,128 @@ export default {
 
         const session =
             getDashboardSession(
-                args[1],
+                sessionId,
             );
 
         if (session) {
-            if (
-                guideId === 'new'
-            ) {
-                session.selectedGuideId =
-                    config.guides[
-                        config.guides.length - 1
-                    ].id;
-            } else {
-                session.selectedGuideId =
-                    guideId;
-            }
-
-            await interaction.reply({
-                content:
-                    '✅ Đã lưu Channel Guide.',
-                flags:
-                    MessageFlags.Ephemeral,
-            });
-
-            return;
+            session.selectedGuideId =
+                savedGuideId;
         }
 
         return interaction.reply({
             content:
-                '✅ Đã lưu Channel Guide. Hãy chạy lại `/channelguide setup` để xem Dashboard.',
+                '✅ Đã lưu Channel Guide.',
             flags:
                 MessageFlags.Ephemeral,
         });
     },
 };
+
+const panelHandler = {
+    name:
+        'channelguide_dashboard_panel',
+
+    async execute(
+        interaction,
+        client,
+    ) {
+        if (
+            !interaction.guild ||
+            !hasAdminPermission(
+                interaction,
+            )
+        ) {
+            return interaction.reply({
+                content:
+                    '❌ Bạn cần quyền Administrator hoặc Manage Server.',
+                flags:
+                    MessageFlags.Ephemeral,
+            });
+        }
+
+        const config =
+            await getChannelGuideConfig(
+                client,
+                interaction.guild.id,
+            );
+
+        const panelChannelId =
+            interaction.fields
+                .getTextInputValue(
+                    'panel_channel',
+                )
+                .trim();
+
+        const panelTitle =
+            interaction.fields
+                .getTextInputValue(
+                    'panel_title',
+                )
+                .trim();
+
+        const panelDescription =
+            interaction.fields
+                .getTextInputValue(
+                    'panel_description',
+                )
+                .trim();
+
+        const panelImage =
+            interaction.fields
+                .getTextInputValue(
+                    'panel_image',
+                )
+                .trim();
+
+        const channel =
+            await interaction.guild.channels
+                .fetch(
+                    panelChannelId,
+                )
+                .catch(
+                    () => null,
+                );
+
+        if (
+            !channel ||
+            !channel.isTextBased()
+        ) {
+            return interaction.reply({
+                content:
+                    '❌ Panel Channel ID không hợp lệ hoặc bot không truy cập được channel này.',
+                flags:
+                    MessageFlags.Ephemeral,
+            });
+        }
+
+        config.panelChannelId =
+            panelChannelId;
+
+        config.panelTitle =
+            panelTitle;
+
+        config.panelDescription =
+            panelDescription;
+
+        config.panelImage =
+            panelImage || null;
+
+        await saveChannelGuideConfig(
+            client,
+            interaction.guild.id,
+            config,
+        );
+
+        return interaction.reply({
+            content:
+                '✅ Panel Settings đã được lưu.',
+            flags:
+                MessageFlags.Ephemeral,
+        });
+    },
+};
+
+export default [
+    guideHandler,
+    panelHandler,
+];
