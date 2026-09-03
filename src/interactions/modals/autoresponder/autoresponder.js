@@ -318,8 +318,10 @@ updateBuilderSession(
     style,
     customId:
     style === 'link'
-        ? undefined
-        : 'autoresponder_action',
+                ? undefined
+                : `autoresponder_action:${Date.now()}_${Math.random()
+                    .toString(36)
+                    .slice(2, 8)}`,
     url:
         style === 'link'
             ? url
