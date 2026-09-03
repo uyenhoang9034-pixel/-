@@ -12,12 +12,9 @@ import {
     getGuideItem,
 } from '../../../services/channelguide/channelGuideService.js';
 
-const sessions =
-    new Map();
+const sessions = new Map();
 
-function createSession(
-    interaction,
-) {
+function createSession(interaction) {
     const sessionId =
         `${Date.now()}_${Math.random()
             .toString(36)
@@ -25,12 +22,9 @@ function createSession(
 
     const session = {
         sessionId,
-        guildId:
-            interaction.guild.id,
-        userId:
-            interaction.user.id,
-        selectedGuideId:
-            null,
+        guildId: interaction.guild.id,
+        userId: interaction.user.id,
+        selectedGuideId: null,
         page: 0,
     };
 
@@ -42,26 +36,15 @@ function createSession(
     return session;
 }
 
-export function getDashboardSession(
-    sessionId,
-) {
-    return sessions.get(
-        sessionId,
-    );
+export function getDashboardSession(sessionId) {
+    return sessions.get(sessionId);
 }
 
-export function deleteDashboardSession(
-    sessionId,
-) {
-    sessions.delete(
-        sessionId,
-    );
+export function deleteDashboardSession(sessionId) {
+    sessions.delete(sessionId);
 }
 
-function buildDashboardEmbed(
-    config,
-    session,
-) {
+function buildDashboardEmbed(config, session) {
     const enabledCount =
         config.guides.filter(
             guide =>
@@ -78,26 +61,21 @@ function buildDashboardEmbed(
 
     const fields = [
         {
-            name:
-                '📚 Guides',
+            name: '📚 Guides',
             value:
                 `${enabledCount}/${config.guides.length} enabled`,
             inline: true,
         },
-
         {
-            name:
-                '📍 Panel',
+            name: '📍 Panel',
             value:
                 config.panelChannelId
                     ? `<#${config.panelChannelId}>`
                     : 'Chưa cài đặt',
             inline: true,
         },
-
         {
-            name:
-                '🖼️ Panel Image',
+            name: '🖼️ Panel Image',
             value:
                 config.panelImage
                     ? 'Configured'
@@ -109,52 +87,40 @@ function buildDashboardEmbed(
     if (selected) {
         fields.push(
             {
-                name:
-                    '🌸 Selected Guide',
+                name: '🌸 Selected Guide',
                 value:
                     `${selected.emoji} ${selected.label}`,
                 inline: false,
             },
-
             {
-                name:
-                    '📝 Description',
+                name: '📝 Description',
                 value:
                     (
                         selected.description ||
                         'Chưa có nội dung.'
-                    ).slice(
-                        0,
-                        1024,
-                    ),
+                    ).slice(0, 1024),
                 inline: false,
             },
-
             {
-                name:
-                    '📌 Status',
+                name: '📌 Status',
                 value:
                     selected.enabled === false
                         ? '🔴 Disabled'
                         : '🟢 Enabled',
                 inline: true,
             },
-
             {
-                name:
-                    '🔗 Linked Channels',
+                name: '🔗 Linked Channels',
                 value:
                     String(
-                        selected.channels
-                            ?.length || 0,
+                        selected.channels?.length || 0,
                     ),
                 inline: true,
             },
         );
     } else {
         fields.push({
-            name:
-                '💡 Hướng dẫn',
+            name: '💡 Hướng dẫn',
             value:
                 'Chọn một guide bên dưới để chỉnh sửa.',
             inline: false,
@@ -162,33 +128,25 @@ function buildDashboardEmbed(
     }
 
     return new EmbedBuilder()
-        .setColor(
-            0xf6b6d6,
-        )
+        .setColor(0xf6b6d6)
         .setTitle(
             '🌸 Channel Guide Dashboard',
         )
         .setDescription(
             'Quản lý toàn bộ các hướng dẫn của Serendipity tại đây.',
         )
-        .addFields(
-            fields,
-        )
+        .addFields(fields)
         .setFooter({
             text:
                 'Chỉ Administrator / Manage Server có thể sử dụng.',
         });
 }
 
-function buildGuideSelect(
-    config,
-    session,
-) {
+function buildGuideSelect(config, session) {
     const pageSize = 20;
 
     const start =
-        session.page *
-        pageSize;
+        session.page * pageSize;
 
     const guides =
         config.guides.slice(
@@ -205,13 +163,8 @@ function buildGuideSelect(
                 '📖 Chọn guide cần chỉnh...',
             );
 
-    if (
-        guides.length === 0
-    ) {
-        menu.setDisabled(
-            true,
-        );
-
+    if (guides.length === 0) {
+        menu.setDisabled(true);
         return menu;
     }
 
@@ -219,21 +172,16 @@ function buildGuideSelect(
         guides.map(
             guide => ({
                 label:
-                    guide.label.slice(
-                        0,
-                        100,
-                    ),
+                    guide.label.slice(0, 100),
 
                 description:
                     guide.enabled === false
                         ? '🔴 Disabled'
                         : '🟢 Enabled',
 
-                value:
-                    guide.id,
+                value: guide.id,
 
-                emoji:
-                    guide.emoji,
+                emoji: guide.emoji,
             }),
         ),
     );
@@ -241,10 +189,7 @@ function buildGuideSelect(
     return menu;
 }
 
-function buildComponents(
-    config,
-    session,
-) {
+function buildComponents(config, session) {
     const rows = [];
 
     rows.push(
@@ -264,9 +209,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:edit`,
                     )
-                    .setLabel(
-                        'Edit Guide',
-                    )
+                    .setLabel('Edit Guide')
                     .setEmoji('✏️')
                     .setStyle(
                         ButtonStyle.Primary,
@@ -279,9 +222,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:add`,
                     )
-                    .setLabel(
-                        'Add Guide',
-                    )
+                    .setLabel('Add Guide')
                     .setEmoji('➕')
                     .setStyle(
                         ButtonStyle.Success,
@@ -291,9 +232,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:toggle`,
                     )
-                    .setLabel(
-                        'Enable / Disable',
-                    )
+                    .setLabel('Enable / Disable')
                     .setEmoji('🔄')
                     .setStyle(
                         ButtonStyle.Secondary,
@@ -306,9 +245,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:up`,
                     )
-                    .setLabel(
-                        'Up',
-                    )
+                    .setLabel('Up')
                     .setEmoji('⬆️')
                     .setStyle(
                         ButtonStyle.Secondary,
@@ -321,9 +258,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:down`,
                     )
-                    .setLabel(
-                        'Down',
-                    )
+                    .setLabel('Down')
                     .setEmoji('⬇️')
                     .setStyle(
                         ButtonStyle.Secondary,
@@ -341,9 +276,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:panel`,
                     )
-                    .setLabel(
-                        'Panel Settings',
-                    )
+                    .setLabel('Panel Settings')
                     .setEmoji('🎨')
                     .setStyle(
                         ButtonStyle.Primary,
@@ -353,9 +286,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:preview`,
                     )
-                    .setLabel(
-                        'Preview',
-                    )
+                    .setLabel('Preview')
                     .setEmoji('👀')
                     .setStyle(
                         ButtonStyle.Secondary,
@@ -365,9 +296,7 @@ function buildComponents(
                     .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:publish`,
                     )
-                    .setLabel(
-                        'Publish / Update',
-                    )
+                    .setLabel('Publish / Update')
                     .setEmoji('📤')
                     .setStyle(
                         ButtonStyle.Success,
@@ -375,11 +304,22 @@ function buildComponents(
 
                 new ButtonBuilder()
                     .setCustomId(
+                        `channelguide_dashboard:${session.sessionId}:delete`,
+                    )
+                    .setLabel('Delete Guide')
+                    .setEmoji('🗑️')
+                    .setStyle(
+                        ButtonStyle.Danger,
+                    )
+                    .setDisabled(
+                        !session.selectedGuideId,
+                    ),
+
+                new ButtonBuilder()
+                    .setCustomId(
                         `channelguide_dashboard:${session.sessionId}:close`,
                     )
-                    .setLabel(
-                        'Close',
-                    )
+                    .setLabel('Close')
                     .setEmoji('❌')
                     .setStyle(
                         ButtonStyle.Danger,
@@ -387,10 +327,7 @@ function buildComponents(
             ),
     );
 
-    if (
-        config.guides.length >
-        20
-    ) {
+    if (config.guides.length > 20) {
         rows.push(
             new ActionRowBuilder()
                 .addComponents(
@@ -398,35 +335,26 @@ function buildComponents(
                         .setCustomId(
                             `channelguide_dashboard:${session.sessionId}:prev`,
                         )
-                        .setLabel(
-                            'Previous',
-                        )
+                        .setLabel('Previous')
                         .setEmoji('◀️')
                         .setStyle(
                             ButtonStyle.Secondary,
                         )
                         .setDisabled(
-                            session.page <=
-                                0,
+                            session.page <= 0,
                         ),
 
                     new ButtonBuilder()
                         .setCustomId(
                             `channelguide_dashboard:${session.sessionId}:next`,
                         )
-                        .setLabel(
-                            'Next',
-                        )
+                        .setLabel('Next')
                         .setEmoji('▶️')
                         .setStyle(
                             ButtonStyle.Secondary,
                         )
                         .setDisabled(
-                            (
-                                session.page +
-                                1
-                            ) *
-                                20 >=
+                            (session.page + 1) * 20 >=
                                 config.guides.length,
                         ),
                 ),
@@ -443,9 +371,7 @@ export async function showChannelGuideDashboard(
 ) {
     const currentSession =
         session ||
-        createSession(
-            interaction,
-        );
+        createSession(interaction);
 
     const config =
         await getChannelGuideConfig(
@@ -460,7 +386,6 @@ export async function showChannelGuideDashboard(
                 currentSession,
             ),
         ],
-
         components:
             buildComponents(
                 config,
@@ -478,7 +403,6 @@ export async function showChannelGuideDashboard(
     } else {
         await interaction.reply({
             ...payload,
-
             flags:
                 MessageFlags.Ephemeral,
         });
