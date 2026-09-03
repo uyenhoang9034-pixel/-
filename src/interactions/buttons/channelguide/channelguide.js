@@ -119,14 +119,15 @@ export default [
                 );
 
             const payload =
-                buildChannelGuidePanel(
-                    config,
-                    Number.isFinite(
-                        page,
-                    )
-                        ? page
-                        : 0,
-                );
+    buildChannelGuidePanel(
+        config,
+        Number.isFinite(
+            page,
+        )
+            ? page
+            : 0,
+        interaction.guild,
+    );
 
             return interaction.update(
                 payload,
