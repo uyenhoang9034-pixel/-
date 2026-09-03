@@ -104,11 +104,10 @@ function buildGuideModal(
                 TextInputStyle.Short,
             )
             .setRequired(true)
-            .setMaxLength(10)
-            .setValue(
-                guide?.emoji || '📖',
-            );
-
+            .setMaxLength(100)
+.setValue(
+    guide?.emoji || '📖',
+);
     const titleInput =
         new TextInputBuilder()
             .setCustomId(
@@ -593,10 +592,11 @@ export default {
     );
 
             const payload =
-                buildChannelGuidePanel(
-                    config,
-                    0,
-                );
+    buildChannelGuidePanel(
+        config,
+        0,
+        interaction.guild,
+    );
 
             let message = null;
 
