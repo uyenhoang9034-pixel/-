@@ -360,7 +360,6 @@ export async function grantTyPhuRole(
     const botMember =
         member.guild.members.me;
 
-
     if (!botMember) {
         return {
             success: false,
@@ -445,6 +444,7 @@ export async function removeTyPhuRole(
     if (!roleId) {
         return false;
     }
+
 
     if (
         !member.roles.cache.has(
@@ -642,15 +642,33 @@ export async function sendTestBoost(
         );
 
 
-    const channel =
-        targetChannel ||
-        (
-            config.channelId
-                ? member.guild.channels.cache.get(
+    // ----------------------------------------------------------
+    // Resolve target channel
+    // ----------------------------------------------------------
+
+    let channel =
+        targetChannel;
+
+
+    if (
+        !channel &&
+        config.channelId
+    ) {
+        channel =
+            member.guild.channels.cache.get(
+                config.channelId,
+            );
+
+
+        if (!channel) {
+            channel =
+                await member.guild.channels.fetch(
                     config.channelId,
-                )
-                : null
-        );
+                ).catch(
+                    () => null,
+                );
+        }
+    }
 
 
     if (!channel) {
@@ -661,12 +679,23 @@ export async function sendTestBoost(
     }
 
 
+    if (
+        !channel.isTextBased()
+    ) {
+        return {
+            success: false,
+            reason: 'CHANNEL_NOT_TEXT',
+        };
+    }
+
+
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
         });
+
 
         return {
             success: true,
