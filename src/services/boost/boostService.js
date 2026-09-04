@@ -1,5 +1,6 @@
 import {
     EmbedBuilder,
+    PermissionFlagsBits,
 } from 'discord.js';
 
 import fs from 'node:fs/promises';
@@ -35,14 +36,19 @@ const DEFAULT_CONFIG = {
     title: '🌸 Server Boosted!',
 
     description:
-        '{member} vừa **Boost Server**!\n\n' +
-        '👑 **TỶ PHÚ** đã được trao cho {member}.\n\n' +
-        'Cảm ơn bạn đã ủng hộ và đồng hành cùng server! ✨',
+        '<a:chiikawag9:1541427795786207313> {member} vừa **Boost Server**!\n\n' +
+        '<a:pinkheart:1545307544808071258> **Boost hiện tại:** {boosts}\n' +
+        '<a:pinkheart:1545307544808071258> **Boost Level:** {boostLevel}\n' +
+        '<a:pinkheart:1545307544808071258> **Còn:** {boostsToNextLevel} boost để lên level tiếp theo!\n\n' +
+        '👑 **TỶ PHÚ** đã được trao cho {member}.',
 
     color: '#F5A9C6',
 
     image: null,
 
+    // 'member' = avatar người boost
+    // URL = thumbnail tùy chỉnh
+    // null = không có thumbnail
     thumbnail: 'member',
 
     footer: '{server}',
@@ -156,6 +162,67 @@ export async function setBoostConfig(
 
 
 // ============================================================
+// BOOST LEVEL
+// ============================================================
+
+function getBoostLevelInfo(
+    guild,
+) {
+    const boostCount =
+        Number(
+            guild.premiumSubscriptionCount || 0,
+        );
+
+    const currentLevel =
+        Number(
+            guild.premiumTier || 0,
+        );
+
+
+    let nextLevelBoosts = null;
+
+
+    if (currentLevel <= 0) {
+        nextLevelBoosts = 2;
+    } else if (currentLevel === 1) {
+        nextLevelBoosts = 7;
+    } else if (currentLevel === 2) {
+        nextLevelBoosts = 14;
+    } else {
+        nextLevelBoosts = null;
+    }
+
+
+    let boostsToNextLevel;
+
+
+    if (
+        nextLevelBoosts === null
+    ) {
+        boostsToNextLevel = 'MAX';
+    } else {
+        boostsToNextLevel =
+            Math.max(
+                nextLevelBoosts -
+                boostCount,
+                0,
+            );
+    }
+
+
+    return {
+        boostCount,
+
+        currentLevel,
+
+        nextLevelBoosts,
+
+        boostsToNextLevel,
+    };
+}
+
+
+// ============================================================
 // COLOR
 // ============================================================
 
@@ -189,7 +256,7 @@ function resolveColor(
 
 
 // ============================================================
-// PLACEHOLDER
+// PLACEHOLDERS
 // ============================================================
 
 function replacePlaceholders(
@@ -197,6 +264,7 @@ function replacePlaceholders(
     {
         member,
         guild,
+        boostInfo,
     },
 ) {
     if (
@@ -204,6 +272,7 @@ function replacePlaceholders(
     ) {
         return '';
     }
+
 
     return text
         .replaceAll(
@@ -221,6 +290,32 @@ function replacePlaceholders(
         .replaceAll(
             '{memberId}',
             member.id,
+        )
+        .replaceAll(
+            '{boosts}',
+            String(
+                boostInfo.boostCount,
+            ),
+        )
+        .replaceAll(
+            '{boostLevel}',
+            String(
+                boostInfo.currentLevel,
+            ),
+        )
+        .replaceAll(
+            '{boostsNeeded}',
+            boostInfo.nextLevelBoosts === null
+                ? 'MAX'
+                : String(
+                    boostInfo.nextLevelBoosts,
+                ),
+        )
+        .replaceAll(
+            '{boostsToNextLevel}',
+            String(
+                boostInfo.boostsToNextLevel,
+            ),
         );
 }
 
@@ -236,6 +331,13 @@ export function buildBoostEmbed(
     const guild =
         member.guild;
 
+
+    const boostInfo =
+        getBoostLevelInfo(
+            guild,
+        );
+
+
     const embed =
         new EmbedBuilder()
             .setColor(
@@ -249,6 +351,7 @@ export function buildBoostEmbed(
                     {
                         member,
                         guild,
+                        boostInfo,
                     },
                 ),
             )
@@ -258,6 +361,7 @@ export function buildBoostEmbed(
                     {
                         member,
                         guild,
+                        boostInfo,
                     },
                 ),
             );
@@ -276,6 +380,13 @@ export function buildBoostEmbed(
                 size: 256,
             }),
         );
+    } else if (
+        typeof config.thumbnail === 'string' &&
+        config.thumbnail.startsWith('http')
+    ) {
+        embed.setThumbnail(
+            config.thumbnail,
+        );
     }
 
 
@@ -284,7 +395,8 @@ export function buildBoostEmbed(
     // ----------------------------------------------------------
 
     if (
-        config.image
+        typeof config.image === 'string' &&
+        config.image.startsWith('http')
     ) {
         embed.setImage(
             config.image,
@@ -306,6 +418,7 @@ export function buildBoostEmbed(
                     {
                         member,
                         guild,
+                        boostInfo,
                     },
                 ),
         });
@@ -328,7 +441,7 @@ export function buildBoostEmbed(
 
 
 // ============================================================
-// GIVE TY PHU ROLE
+// GIVE TỶ PHÚ ROLE
 // ============================================================
 
 export async function grantTyPhuRole(
@@ -360,6 +473,7 @@ export async function grantTyPhuRole(
     const botMember =
         member.guild.members.me;
 
+
     if (!botMember) {
         return {
             success: false,
@@ -370,7 +484,7 @@ export async function grantTyPhuRole(
 
     if (
         !botMember.permissions.has(
-            'ManageRoles',
+            PermissionFlagsBits.ManageRoles,
         )
     ) {
         return {
@@ -434,7 +548,7 @@ export async function grantTyPhuRole(
 
 
 // ============================================================
-// REMOVE TY PHU ROLE
+// REMOVE TỶ PHÚ ROLE
 // ============================================================
 
 export async function removeTyPhuRole(
@@ -622,7 +736,7 @@ export async function handleBoostEnded(
 
 
 // ============================================================
-// TEST
+// TEST BOOST
 // ============================================================
 
 export async function sendTestBoost(
@@ -642,33 +756,15 @@ export async function sendTestBoost(
         );
 
 
-    // ----------------------------------------------------------
-    // Resolve target channel
-    // ----------------------------------------------------------
-
-    let channel =
-        targetChannel;
-
-
-    if (
-        !channel &&
-        config.channelId
-    ) {
-        channel =
-            member.guild.channels.cache.get(
-                config.channelId,
-            );
-
-
-        if (!channel) {
-            channel =
-                await member.guild.channels.fetch(
+    const channel =
+        targetChannel ||
+        (
+            config.channelId
+                ? member.guild.channels.cache.get(
                     config.channelId,
-                ).catch(
-                    () => null,
-                );
-        }
-    }
+                )
+                : null
+        );
 
 
     if (!channel) {
@@ -679,23 +775,12 @@ export async function sendTestBoost(
     }
 
 
-    if (
-        !channel.isTextBased()
-    ) {
-        return {
-            success: false,
-            reason: 'CHANNEL_NOT_TEXT',
-        };
-    }
-
-
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
         });
-
 
         return {
             success: true,
