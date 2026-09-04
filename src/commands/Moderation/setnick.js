@@ -25,58 +25,140 @@ import {
     logger,
 } from '../../utils/logger.js';
 
+
+/*
+ * ============================================================
+ * SETNICK CONFIGURATION
+ * ============================================================
+ */
+
 const SETNICK_CHANNEL_ID =
     '1541364885789745213';
 
-function resolveUserId(value) {
+const SERVER_EMOJI =
+    '<a:chiikawag6:1541427271930220554>';
+
+const NICKNAME_PREFIX =
+    '⋆˚࿔ ';
+
+const NICKNAME_SUFFIX =
+    ' ♡';
+
+const MAX_NICKNAME_LENGTH =
+    32;
+
+
+/*
+ * ============================================================
+ * RESOLVE USER ID
+ * ============================================================
+ *
+ * Hỗ trợ:
+ *
+ * @User
+ * <@123456789>
+ * <@!123456789>
+ * 123456789
+ */
+
+function resolveUserId(
+    value,
+) {
     if (!value) {
         return null;
     }
 
     const mentionMatch =
-        value.match(/^<@!?(\d+)>$/);
+        value.match(
+            /^<@!?(\d+)>$/,
+        );
 
     if (mentionMatch) {
         return mentionMatch[1];
     }
 
-    if (/^\d{17,20}$/.test(value)) {
+    if (
+        /^\d{17,20}$/.test(
+            value,
+        )
+    ) {
         return value;
     }
 
     return null;
 }
 
+
+/*
+ * ============================================================
+ * BUILD NICKNAME
+ * ============================================================
+ *
+ * Người dùng nhập:
+ *
+ *     linh
+ *
+ * Bot đổi thành:
+ *
+ *     ⋆˚࿔ linh ♡
+ */
+
+function buildNickname(
+    name,
+) {
+    return `${NICKNAME_PREFIX}${name}${NICKNAME_SUFFIX}`;
+}
+
+
+/*
+ * ============================================================
+ * SLASH COMMAND
+ * ============================================================
+ */
+
 export default {
-    data: new SlashCommandBuilder()
-        .setName('setnick')
-        .setDescription(
-            'Change a member nickname.',
-        )
-        .addStringOption(option =>
-            option
-                .setName('user')
-                .setDescription(
-                    'User mention or user ID.',
-                )
-                .setRequired(true),
-        )
-        .addStringOption(option =>
-            option
-                .setName('nickname')
-                .setDescription(
-                    'New nickname.',
-                )
-                .setRequired(true)
-                .setMaxLength(32),
-        )
-        .setDMPermission(false),
+    data:
+        new SlashCommandBuilder()
+            .setName('setnick')
+            .setDescription(
+                'Đổi nickname cho một thành viên trong server.',
+            )
 
-    category: 'moderation',
+            .addStringOption(
+                option =>
+                    option
+                        .setName('user')
+                        .setDescription(
+                            'Tag thành viên hoặc nhập User ID.',
+                        )
+                        .setRequired(true),
+            )
 
-    // This command is intended to work
-    // through the prefix system.
-    prefixOnly: true,
+            .addStringOption(
+                option =>
+                    option
+                        .setName('nickname')
+                        .setDescription(
+                            'Nickname mới, không cần nhập ký tự trang trí.',
+                        )
+                        .setRequired(true)
+                        .setMaxLength(28),
+            )
+
+            .setDMPermission(false),
+
+    category:
+        'moderation',
+
+    prefixOnly:
+        false,
+
+
+    /*
+     * ========================================================
+     * EXECUTE
+     * ========================================================
+     */
 
     async execute(
         interaction,
@@ -84,6 +166,13 @@ export default {
         client,
     ) {
         try {
+
+            /*
+             * ------------------------------------------------
+             * SERVER CHECK
+             * ------------------------------------------------
+             */
+
             const guild =
                 interaction.guild;
 
@@ -93,11 +182,19 @@ export default {
                     {
                         type:
                             ErrorTypes.VALIDATION,
+
                         message:
-                            'This command can only be used inside a server.',
+                            'Lệnh này chỉ có thể sử dụng trong server.',
                     },
                 );
             }
+
+
+            /*
+             * ------------------------------------------------
+             * GUILD CONFIG
+             * ------------------------------------------------
+             */
 
             const guildConfig =
                 await getGuildConfig(
@@ -105,13 +202,13 @@ export default {
                     guild.id,
                 );
 
+
             /*
-             * ONLY the configured Moderator Role
-             * may use SetNick.
-             *
-             * Administrator / ManageGuild alone
-             * is intentionally NOT enough.
+             * ------------------------------------------------
+             * MANAGEMENT ROLE CHECK
+             * ------------------------------------------------
              */
+
             if (
                 !memberHasConfiguredModeratorRole(
                     interaction.member,
@@ -123,24 +220,41 @@ export default {
                     {
                         type:
                             ErrorTypes.PERMISSION,
+
                         message:
                             'Bạn không có role quản lý để sử dụng lệnh này.',
                     },
                 );
             }
 
+
+            /*
+             * ------------------------------------------------
+             * READ OPTIONS
+             * ------------------------------------------------
+             */
+
             const rawUser =
                 interaction.options.getString(
                     'user',
                 );
 
-            const nickname =
+            const nicknameInput =
                 interaction.options.getString(
                     'nickname',
                 )?.trim();
 
+
+            /*
+             * ------------------------------------------------
+             * RESOLVE USER
+             * ------------------------------------------------
+             */
+
             const userId =
-                resolveUserId(rawUser);
+                resolveUserId(
+                    rawUser,
+                );
 
             if (!userId) {
                 return replyUserError(
@@ -148,43 +262,86 @@ export default {
                     {
                         type:
                             ErrorTypes.USER_INPUT,
+
                         message:
-                            'Vui lòng tag user hoặc nhập đúng User ID.',
+                            'Vui lòng tag thành viên hoặc nhập đúng User ID.',
                     },
                 );
             }
 
+
+            /*
+             * ------------------------------------------------
+             * NICKNAME VALIDATION
+             * ------------------------------------------------
+             */
+
             if (
-                !nickname ||
-                nickname.length === 0
+                !nicknameInput ||
+                nicknameInput.length === 0
             ) {
                 return replyUserError(
                     interaction,
                     {
                         type:
                             ErrorTypes.VALIDATION,
+
                         message:
                             'Nickname không được để trống.',
                     },
                 );
             }
 
-            if (nickname.length > 32) {
+
+            /*
+             * ------------------------------------------------
+             * BUILD FINAL NICKNAME
+             * ------------------------------------------------
+             */
+
+            const nickname =
+                buildNickname(
+                    nicknameInput,
+                );
+
+
+            /*
+             * ------------------------------------------------
+             * DISCORD NICKNAME LIMIT
+             * ------------------------------------------------
+             */
+
+            if (
+                nickname.length >
+                MAX_NICKNAME_LENGTH
+            ) {
                 return replyUserError(
                     interaction,
                     {
                         type:
                             ErrorTypes.VALIDATION,
+
                         message:
-                            'Nickname tối đa 32 ký tự.',
+                            `Nickname "${nicknameInput}" quá dài. Sau khi thêm ký tự trang trí phải tối đa ${MAX_NICKNAME_LENGTH} ký tự.`,
                     },
                 );
             }
 
+
+            /*
+             * ------------------------------------------------
+             * FIND MEMBER
+             * ------------------------------------------------
+             */
+
             const targetMember =
                 await guild.members
-                    .fetch(userId)
-                    .catch(() => null);
+                    .fetch(
+                        userId,
+                    )
+                    .catch(
+                        () => null,
+                    );
 
             if (!targetMember) {
                 return replyUserError(
@@ -192,11 +349,19 @@ export default {
                     {
                         type:
                             ErrorTypes.USER_INPUT,
+
                         message:
                             'Không tìm thấy user này trong server.',
                     },
                 );
             }
+
+
+            /*
+             * ------------------------------------------------
+             * BOT MEMBER
+             * ------------------------------------------------
+             */
 
             const botMember =
                 guild.members.me;
@@ -207,15 +372,20 @@ export default {
                     {
                         type:
                             ErrorTypes.UNKNOWN,
+
                         message:
                             'Không tìm thấy bot trong server.',
                     },
                 );
             }
 
+
             /*
-             * Bot must have Manage Nicknames.
+             * ------------------------------------------------
+             * BOT PERMISSION
+             * ------------------------------------------------
              */
+
             if (
                 !botMember.permissions.has(
                     PermissionFlagsBits.ManageNicknames,
@@ -226,17 +396,20 @@ export default {
                     {
                         type:
                             ErrorTypes.PERMISSION,
+
                         message:
-                            'Bot chưa có quyền **Manage Nicknames**.',
+                            'Bot chưa có quyền Manage Nicknames.',
                     },
                 );
             }
 
+
             /*
-             * Bot cannot modify:
-             * - Server owner
-             * - Members above/equal bot role
+             * ------------------------------------------------
+             * ROLE HIERARCHY
+             * ------------------------------------------------
              */
+
             if (
                 !targetMember.manageable
             ) {
@@ -245,30 +418,43 @@ export default {
                     {
                         type:
                             ErrorTypes.PERMISSION,
+
                         message:
                             'Bot không thể đổi nickname của user này vì role của user cao hơn hoặc ngang role của bot.',
                     },
                 );
             }
 
+
             /*
-             * Save old nickname before changing.
+             * ------------------------------------------------
+             * OLD NICKNAME
+             * ------------------------------------------------
              */
+
             const oldNickname =
                 targetMember.nickname ||
                 targetMember.user.username;
 
+
             /*
-             * Change nickname.
+             * ------------------------------------------------
+             * CHANGE NICKNAME
+             * ------------------------------------------------
              */
+
             await targetMember.setNickname(
                 nickname,
                 `SetNick by ${client.user?.tag || 'bot'}`,
             );
 
+
             /*
-             * Get fixed notification channel.
+             * ------------------------------------------------
+             * NOTIFICATION CHANNEL
+             * ------------------------------------------------
              */
+
             const notificationChannel =
                 guild.channels.cache.get(
                     SETNICK_CHANNEL_ID,
@@ -277,92 +463,145 @@ export default {
                     .fetch(
                         SETNICK_CHANNEL_ID,
                     )
-                    .catch(() => null);
+                    .catch(
+                        () => null,
+                    );
+
 
             /*
-             * Send notification.
+             * ------------------------------------------------
+             * SEND NOTIFICATION
+             * ------------------------------------------------
+             *
+             * Tất cả emoji trong thông báo đều sử dụng:
+             *
+             * <a:chiikawag6:1541427271930220554>
+             *
+             * Không dùng emoji Unicode.
+             * Không tự tìm emoji khác.
              */
+
             if (
                 notificationChannel?.isTextBased()
             ) {
+
                 const botMention =
                     client.user
                         ? `<@${client.user.id}>`
                         : 'Bot';
+
 
                 const embed =
                     new EmbedBuilder()
                         .setColor(
                             '#F6B6D6',
                         )
+
                         .setTitle(
-                            '⋆.ೃ࿔🌸*:･𝓝𝓲𝓬𝓴𝓷𝓪𝓶𝓮 𝓤𝓹𝓭𝓪𝓽𝓮𝓭',
+                            `${SERVER_EMOJI} 𝓝𝓲𝓬𝓴𝓷𝓪𝓶𝓮 𝓤𝓹𝓭𝓪𝓽𝓮𝓭`,
                         )
+
                         .setDescription(
                             [
-                                `👤 𝙼𝚎𝚖𝚋𝚎𝚛: ${targetMember}`,
-                                `✏️ 𝙽𝚎𝚠 𝚗𝚒𝚌𝚔𝚗𝚊𝚖𝚎: ${nickname}`,
-                                `🛡️ 𝙲𝚑𝚊𝚗𝚐𝚎𝚍 𝚋𝚢: ${botMention}`,
-                            ].join('\n'),
+                                `${SERVER_EMOJI} 𝙼𝚎𝚖𝚋𝚎𝚛: ${targetMember}`,
+
+                                `${SERVER_EMOJI} 𝙽𝚎𝚠 𝚗𝚒𝚌𝚔𝚗𝚊𝚖𝚎: ${nickname}`,
+
+                                `${SERVER_EMOJI} 𝙲𝚑𝚊𝚗𝚐𝚎𝚍 𝚋𝚢: ${botMention}`,
+                            ].join(
+                                '\n',
+                            ),
                         );
+
 
                 await notificationChannel
                     .send({
-                        embeds: [embed],
+                        embeds: [
+                            embed,
+                        ],
                     })
-                    .catch(error => {
-                        logger.warn(
-                            '[SetNick] Failed to send notification',
-                            {
-                                guildId:
-                                    guild.id,
-                                channelId:
-                                    SETNICK_CHANNEL_ID,
-                                error:
-                                    error?.message,
-                            },
-                        );
-                    });
+                    .catch(
+                        error => {
+                            logger.warn(
+                                '[SetNick] Failed to send notification',
+                                {
+                                    guildId:
+                                        guild.id,
+
+                                    channelId:
+                                        SETNICK_CHANNEL_ID,
+
+                                    error:
+                                        error?.message,
+                                },
+                            );
+                        },
+                    );
+
             } else {
+
                 logger.warn(
                     '[SetNick] Notification channel not found',
                     {
                         guildId:
                             guild.id,
+
                         channelId:
                             SETNICK_CHANNEL_ID,
                     },
                 );
             }
 
+
             /*
-             * Prefix command confirmation.
+             * ------------------------------------------------
+             * SUCCESS RESPONSE
+             * ------------------------------------------------
              */
+
             return InteractionHelper.universalReply(
                 interaction,
                 {
                     content:
-                        `🌸 Đã đổi nickname của ${targetMember} từ \`${oldNickname}\` thành **${nickname}**.`,
+                        `${SERVER_EMOJI} Đã đổi nickname của ${targetMember} từ \`${oldNickname}\` thành **${nickname}**.`,
                 },
             );
+
         } catch (error) {
+
+            /*
+             * ------------------------------------------------
+             * ERROR LOG
+             * ------------------------------------------------
+             */
+
             logger.error(
                 '[SetNick] Command failed',
                 {
                     guildId:
                         interaction.guildId,
+
                     userId:
                         interaction.user?.id,
+
                     error:
                         error?.message,
                 },
             );
+
+
+            /*
+             * ------------------------------------------------
+             * ERROR RESPONSE
+             * ------------------------------------------------
+             */
 
             return replyUserError(
                 interaction,
                 {
                     type:
                         ErrorTypes.UNKNOWN,
+
                     message:
                         'Không thể đổi nickname. Vui lòng thử lại.',
                 },
