@@ -27,6 +27,18 @@ import {
 import {
     buildDiscordMessagePayload,
 } from '../services/autoresponder/responseBuilder.js';
+import {
+  getWordChainConfig,
+  isValidWord,
+  canChain,
+  normalizeWord,
+  getLastSyllable,
+  findBotNextWord,
+  getRandomStartWord,
+  recordUserSuccess,
+  recordBotSuccess,
+  recordBreak,
+} from '../services/wordChainService.js';
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -45,7 +57,12 @@ const countingProcessed =
         client,
     );
 
+let wordChainProcessed = false;
 if (!countingProcessed) {
+    wordChainProcessed = await handleWordChain(message, client);
+}
+
+if (!countingProcessed && !wordChainProcessed) {
     const autoresponderProcessed =
         await handleAutoresponder(
             message,
@@ -204,6 +221,120 @@ async function handleCountingGame(message, client) {
     return true;
   } catch (error) {
     logger.error('Error handling counting game:', error);
+    return false;
+  }
+}
+
+async function handleWordChain(message, client) {
+  try {
+    const config = await getWordChainConfig(client, message.guild.id);
+    if (!config.enabled || !config.channelId || message.channel.id !== config.channelId) {
+      return false;
+    }
+
+    const content = message.content.trim();
+    if (!content) return false;
+
+    // Bỏ qua tin nhắn bắt đầu bằng dấu lệnh
+    if (content.startsWith('/') || content.startsWith('!') || content.startsWith('.')) {
+      return false;
+    }
+
+    const normalized = normalizeWord(content);
+    const parts = normalized.split(' ');
+
+    // 1. Kiểm tra định dạng: Phải gồm đúng 2 tiếng
+    if (parts.length !== 2) {
+      await message.react('❌').catch(() => {});
+      const warnMsg = await message.reply(
+        `❌ Từ không hợp lệ! Vui lòng chỉ nhập từ ghép gồm đúng **2 tiếng** (Ví dụ: \`học sinh\`).`
+      ).catch(() => null);
+      if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
+      return true;
+    }
+
+    // 2. Chế độ PvP: Một người không được tự nối 2 lần liên tiếp
+    if (config.mode === 'pvp' && config.lastUserId === message.author.id) {
+      await message.react('⏳').catch(() => {});
+      const warnMsg = await message.reply(
+        `⏳ Hãy đợi người chơi khác nối từ trước khi đến lượt bạn nhé!`
+      ).catch(() => null);
+      if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
+      return true;
+    }
+
+    // 3. Kiểm tra nối tiếng: Tiếng đầu từ mới phải bằng tiếng cuối từ trước
+    if (config.currentWord && !canChain(config.currentWord, normalized)) {
+      const needed = getLastSyllable(config.currentWord);
+      await message.react('❌').catch(() => {});
+      const warnMsg = await message.reply(
+        `❌ Sai tiếng nối! Bạn phải nối từ bắt đầu bằng tiếng: **${needed}** (Từ trước là \`${config.currentWord}\`).`
+      ).catch(() => null);
+      if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
+      return true;
+    }
+
+    // 4. Kiểm tra xem từ đã dùng trong ván này chưa
+    const usedWords = config.usedWords || [];
+    if (usedWords.includes(normalized)) {
+      await message.react('⚠️').catch(() => {});
+      const warnMsg = await message.reply(
+        `⚠️ Từ **${normalized}** đã được dùng trong ván này rồi! Vui lòng chọn từ khác.`
+      ).catch(() => null);
+      if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
+      return true;
+    }
+
+    // 5. Kiểm tra tính hợp lệ trong từ điển tiếng Việt
+    if (!isValidWord(normalized)) {
+      await message.react('❌').catch(() => {});
+      const warnMsg = await message.reply(
+        `❌ Từ **${normalized}** không có trong từ điển tiếng Việt hợp lệ!`
+      ).catch(() => null);
+      if (warnMsg) setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
+      return true;
+    }
+
+    // --- TỪ HỢP LỆ! ---
+    await message.react('✅').catch(() => {});
+    await recordUserSuccess(client, message.guild.id, message.author.id, normalized);
+
+    // Chế độ Đấu với Bot (PvE)
+    if (config.mode === 'bot') {
+      const updatedUsedWords = [...usedWords, normalized];
+      const botWord = findBotNextWord(normalized, updatedUsedWords);
+
+      if (!botWord) {
+        // Bot chịu thua!
+        const nextStart = getRandomStartWord();
+        await recordBreak(client, message.guild.id, nextStart);
+        const winEmbed = createEmbed({
+          title: '🎉 Bạn Đã Đánh Bại Bot!',
+          description:
+            `Tuyệt vời! Bot không còn từ nào trong từ điển để nối tiếp từ **${normalized}**!\n` +
+            `🏆 Người chiến thắng: <@${message.author.id}>\n\n` +
+            `🔄 Ván mới bắt đầu với từ: **${nextStart}** (tiếng cần nối: \`${getLastSyllable(nextStart)}\`)`,
+          color: 'success',
+        });
+        await message.channel.send({ embeds: [winEmbed] }).catch(() => {});
+        return true;
+      }
+
+      // Bot trả lời sau 1 giây
+      setTimeout(async () => {
+        try {
+          await recordBotSuccess(client, message.guild.id, botWord);
+          const nextNeeded = getLastSyllable(botWord);
+          await message.channel.send(`🤖 **${botWord}** *(tiếng tiếp theo: \`${nextNeeded}\`)*`).catch(() => {});
+        } catch (botErr) {
+          logger.error('Error sending bot response in word chain:', botErr);
+        }
+      }, 1000);
+    }
+
+    return true;
+  } catch (error) {
+    logger.error('Error handling word chain:', error);
     return false;
   }
 }
