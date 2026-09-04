@@ -15,15 +15,17 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
+        if (!guild || !user) return;
         
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
         
         const goodbyeChannelId = welcomeConfig?.goodbyeChannelId;
 
         if (welcomeConfig?.goodbyeEnabled && goodbyeChannelId) {
-            const channel = guild.channels.cache.get(goodbyeChannelId);
+            const channel = guild.channels.cache.get(goodbyeChannelId)
+                || await guild.channels.fetch(goodbyeChannelId).catch(() => null);
             if (channel?.isTextBased?.()) {
-                const me = guild.members.me;
+                const me = guild.members.me || await guild.members.fetchMe().catch(() => null);
                 const permissions = me ? channel.permissionsFor(me) : null;
                 if (!permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
                     return;
@@ -101,7 +103,7 @@ export default {
                     lines: [
                         `**User:** ${user.toString()} (${user.tag})`,
                         `**ID:** \`${user.id}\``,
-                        `**Joined:** <t:${Math.floor((member.joinedTimestamp || Date.now()) / 1000)}:R>`,
+                        `**Joined:** ${member.joinedTimestamp ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown'}`,
                         `**Members:** ${guild.memberCount}`,
                     ],
                     quoted: false,
