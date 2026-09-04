@@ -7,152 +7,148 @@ import {
 } from '../../../services/boost/boostService.js';
 
 
-// ============================================================
-// EDIT EMBED MODAL
-// ============================================================
+async function handleBoostEmbedModal(
+    interaction,
+) {
+    const title =
+        interaction.fields.getTextInputValue(
+            'title',
+        );
 
-export const boostEmbedModal = {
-    customId: 'boost_modal:embed',
+    const description =
+        interaction.fields.getTextInputValue(
+            'description',
+        );
 
-    async execute(interaction) {
-        const title =
-            interaction.fields.getTextInputValue(
-                'title',
-            );
+    const color =
+        interaction.fields.getTextInputValue(
+            'color',
+        );
 
-        const description =
-            interaction.fields.getTextInputValue(
-                'description',
-            );
-
-        const color =
-            interaction.fields.getTextInputValue(
-                'color',
-            );
-
-        const footer =
-            interaction.fields.getTextInputValue(
-                'footer',
-            );
-
-
-        await setBoostConfig(
-            interaction.guild.id,
-            {
-                title:
-                    title ||
-                    '🌸 Server Boosted!',
-
-                description:
-                    description ||
-                    '{member} vừa **Boost Server**!',
-
-                color:
-                    color ||
-                    '#F5A9C6',
-
-                footer:
-                    footer ||
-                    '{server}',
-            },
+    const footer =
+        interaction.fields.getTextInputValue(
+            'footer',
         );
 
 
-        await interaction.reply({
-            content:
-                '✅ Đã lưu giao diện Boost Embed.',
+    await setBoostConfig(
+        interaction.guild.id,
+        {
+            title:
+                title ||
+                '🌸 Server Boosted!',
 
-            flags:
-                MessageFlags.Ephemeral,
-        });
-    },
-};
+            description:
+                description ||
+                '{member} vừa **Boost Server**!',
+
+            color:
+                color ||
+                '#F5A9C6',
+
+            footer:
+                footer ||
+                '{server}',
+        },
+    );
+
+
+    await interaction.reply({
+        content:
+            '✅ Đã lưu giao diện Boost Embed.',
+
+        flags:
+            MessageFlags.Ephemeral,
+    });
+}
+
+
+async function handleBoostImageModal(
+    interaction,
+) {
+    const image =
+        interaction.fields.getTextInputValue(
+            'image',
+        ).trim();
+
+
+    await setBoostConfig(
+        interaction.guild.id,
+        {
+            image:
+                image || null,
+        },
+    );
+
+
+    await interaction.reply({
+        content:
+            image
+                ? '✅ Đã thay Boost Image.'
+                : '✅ Đã xoá Boost Image.',
+
+        flags:
+            MessageFlags.Ephemeral,
+    });
+}
+
+
+async function handleBoostSettingsModal(
+    interaction,
+) {
+    const channelId =
+        interaction.fields.getTextInputValue(
+            'channelId',
+        ).trim();
+
+    const tyPhuRoleId =
+        interaction.fields.getTextInputValue(
+            'tyPhuRoleId',
+        ).trim();
+
+
+    await setBoostConfig(
+        interaction.guild.id,
+        {
+            channelId:
+                channelId || null,
+
+            tyPhuRoleId:
+                tyPhuRoleId || null,
+        },
+    );
+
+
+    await interaction.reply({
+        content:
+            '✅ Đã lưu Boost Settings.',
+
+        flags:
+            MessageFlags.Ephemeral,
+    });
+}
 
 
 // ============================================================
-// IMAGE MODAL
-// ============================================================
-
-export const boostImageModal = {
-    customId: 'boost_modal:image',
-
-    async execute(interaction) {
-        const image =
-            interaction.fields.getTextInputValue(
-                'image',
-            ).trim();
-
-
-        await setBoostConfig(
-            interaction.guild.id,
-            {
-                image:
-                    image || null,
-            },
-        );
-
-
-        await interaction.reply({
-            content:
-                image
-                    ? '✅ Đã thay Boost Image.'
-                    : '✅ Đã xoá Boost Image.',
-
-            flags:
-                MessageFlags.Ephemeral,
-        });
-    },
-};
-
-
-// ============================================================
-// SETTINGS MODAL
-// ============================================================
-
-export const boostSettingsModal = {
-    customId: 'boost_modal:settings',
-
-    async execute(interaction) {
-        const channelId =
-            interaction.fields.getTextInputValue(
-                'channelId',
-            ).trim();
-
-        const tyPhuRoleId =
-            interaction.fields.getTextInputValue(
-                'tyPhuRoleId',
-            ).trim();
-
-
-        await setBoostConfig(
-            interaction.guild.id,
-            {
-                channelId:
-                    channelId || null,
-
-                tyPhuRoleId:
-                    tyPhuRoleId || null,
-            },
-        );
-
-
-        await interaction.reply({
-            content:
-                '✅ Đã lưu Boost Settings.',
-
-            flags:
-                MessageFlags.Ephemeral,
-        });
-    },
-};
-
-
-// ============================================================
-// DEFAULT EXPORT
+// EXPORT INTERACTIONS
 // ============================================================
 
 export default [
-    boostEmbedModal,
-    boostImageModal,
-    boostSettingsModal,
+    {
+        name: 'boost_modal:embed',
+
+        execute: handleBoostEmbedModal,
+    },
+
+    {
+        name: 'boost_modal:image',
+
+        execute: handleBoostImageModal,
+    },
+
+    {
+        name: 'boost_modal:settings',
+
+        execute: handleBoostSettingsModal,
+    },
 ];
