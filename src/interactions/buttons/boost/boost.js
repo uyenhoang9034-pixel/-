@@ -12,18 +12,43 @@ import {
 } from '../../../services/boost/boostService.js';
 
 
-// ============================================================
-// BOOST DASHBOARD BUTTONS
-// ============================================================
+export default async function handleBoostButton(
+    interaction,
+) {
+    if (
+        !interaction.isButton()
+    ) {
+        return false;
+    }
 
-export const boostEmbedButton = {
-    customId: 'boost_dashboard:embed',
 
-    async execute(interaction) {
+    if (
+        !interaction.customId.startsWith(
+            'boost_dashboard:',
+        )
+    ) {
+        return false;
+    }
+
+
+    const action =
+        interaction.customId.split(
+            ':',
+        )[1];
+
+
+    // ========================================================
+    // EDIT EMBED
+    // ========================================================
+
+    if (
+        action === 'embed'
+    ) {
         const config =
             await getBoostConfig(
                 interaction.guild.id,
             );
+
 
         const modal =
             new ModalBuilder()
@@ -33,6 +58,7 @@ export const boostEmbedButton = {
                 .setTitle(
                     'Edit Boost Embed',
                 );
+
 
         const titleInput =
             new TextInputBuilder()
@@ -52,6 +78,7 @@ export const boostEmbedButton = {
                     config.title || '',
                 );
 
+
         const descriptionInput =
             new TextInputBuilder()
                 .setCustomId(
@@ -69,6 +96,7 @@ export const boostEmbedButton = {
                 .setValue(
                     config.description || '',
                 );
+
 
         const colorInput =
             new TextInputBuilder()
@@ -88,6 +116,7 @@ export const boostEmbedButton = {
                     config.color || '#F5A9C6',
                 );
 
+
         const footerInput =
             new TextInputBuilder()
                 .setCustomId(
@@ -105,6 +134,7 @@ export const boostEmbedButton = {
                 .setValue(
                     config.footer || '',
                 );
+
 
         modal.addComponents(
             new ActionRowBuilder()
@@ -128,25 +158,27 @@ export const boostEmbedButton = {
                 ),
         );
 
+
         await interaction.showModal(
             modal,
         );
-    },
-};
+
+        return true;
+    }
 
 
-// ============================================================
-// IMAGE BUTTON
-// ============================================================
+    // ========================================================
+    // IMAGE
+    // ========================================================
 
-export const boostImageButton = {
-    customId: 'boost_dashboard:image',
-
-    async execute(interaction) {
+    if (
+        action === 'image'
+    ) {
         const config =
             await getBoostConfig(
                 interaction.guild.id,
             );
+
 
         const modal =
             new ModalBuilder()
@@ -156,6 +188,7 @@ export const boostImageButton = {
                 .setTitle(
                     'Boost Image',
                 );
+
 
         const imageInput =
             new TextInputBuilder()
@@ -175,6 +208,7 @@ export const boostImageButton = {
                     config.image || '',
                 );
 
+
         modal.addComponents(
             new ActionRowBuilder()
                 .addComponents(
@@ -182,25 +216,27 @@ export const boostImageButton = {
                 ),
         );
 
+
         await interaction.showModal(
             modal,
         );
-    },
-};
+
+        return true;
+    }
 
 
-// ============================================================
-// SETTINGS BUTTON
-// ============================================================
+    // ========================================================
+    // SETTINGS
+    // ========================================================
 
-export const boostSettingsButton = {
-    customId: 'boost_dashboard:settings',
-
-    async execute(interaction) {
+    if (
+        action === 'settings'
+    ) {
         const config =
             await getBoostConfig(
                 interaction.guild.id,
             );
+
 
         const modal =
             new ModalBuilder()
@@ -210,6 +246,7 @@ export const boostSettingsButton = {
                 .setTitle(
                     'Boost Settings',
                 );
+
 
         const channelInput =
             new TextInputBuilder()
@@ -229,6 +266,7 @@ export const boostSettingsButton = {
                     config.channelId || '',
                 );
 
+
         const roleInput =
             new TextInputBuilder()
                 .setCustomId(
@@ -247,6 +285,7 @@ export const boostSettingsButton = {
                     config.tyPhuRoleId || '',
                 );
 
+
         modal.addComponents(
             new ActionRowBuilder()
                 .addComponents(
@@ -259,25 +298,27 @@ export const boostSettingsButton = {
                 ),
         );
 
+
         await interaction.showModal(
             modal,
         );
-    },
-};
+
+        return true;
+    }
 
 
-// ============================================================
-// TEST BOOST BUTTON
-// ============================================================
+    // ========================================================
+    // TEST BOOST
+    // ========================================================
 
-export const boostTestButton = {
-    customId: 'boost_dashboard:test',
-
-    async execute(interaction) {
+    if (
+        action === 'test'
+    ) {
         const result =
             await sendTestBoost(
                 interaction.member,
             );
+
 
         await interaction.reply({
             content:
@@ -288,17 +329,10 @@ export const boostTestButton = {
             flags:
                 MessageFlags.Ephemeral,
         });
-    },
-};
+
+        return true;
+    }
 
 
-// ============================================================
-// DEFAULT EXPORT
-// ============================================================
-
-export default [
-    boostEmbedButton,
-    boostImageButton,
-    boostSettingsButton,
-    boostTestButton,
-];
+    return false;
+}
