@@ -185,7 +185,7 @@ async function handleBoostButton(
                     'image',
                 )
                 .setLabel(
-                    'Image URL',
+                    'Main Image URL',
                 )
                 .setStyle(
                     TextInputStyle.Short,
@@ -297,7 +297,7 @@ async function handleBoostButton(
 
 
     // ========================================================
-    // TEST BOOST
+    // TEST
     // ========================================================
 
     if (
