@@ -12,29 +12,11 @@ import {
 } from '../../../services/boost/boostService.js';
 
 
-export default async function handleBoostButton(
+async function handleBoostButton(
     interaction,
 ) {
-    if (
-        !interaction.isButton()
-    ) {
-        return false;
-    }
-
-
-    if (
-        !interaction.customId.startsWith(
-            'boost_dashboard:',
-        )
-    ) {
-        return false;
-    }
-
-
     const action =
-        interaction.customId.split(
-            ':',
-        )[1];
+        interaction.customId.split(':')[1];
 
 
     // ========================================================
@@ -163,7 +145,7 @@ export default async function handleBoostButton(
             modal,
         );
 
-        return true;
+        return;
     }
 
 
@@ -221,7 +203,7 @@ export default async function handleBoostButton(
             modal,
         );
 
-        return true;
+        return;
     }
 
 
@@ -303,7 +285,7 @@ export default async function handleBoostButton(
             modal,
         );
 
-        return true;
+        return;
     }
 
 
@@ -330,9 +312,37 @@ export default async function handleBoostButton(
                 MessageFlags.Ephemeral,
         });
 
-        return true;
+        return;
     }
-
-
-    return false;
 }
+
+
+// ============================================================
+// EXPORT INTERACTIONS
+// ============================================================
+
+export default [
+    {
+        name: 'boost_dashboard:embed',
+
+        execute: handleBoostButton,
+    },
+
+    {
+        name: 'boost_dashboard:image',
+
+        execute: handleBoostButton,
+    },
+
+    {
+        name: 'boost_dashboard:settings',
+
+        execute: handleBoostButton,
+    },
+
+    {
+        name: 'boost_dashboard:test',
+
+        execute: handleBoostButton,
+    },
+];
