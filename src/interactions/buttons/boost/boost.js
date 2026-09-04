@@ -12,10 +12,17 @@ import {
 } from '../../../services/boost/boostService.js';
 
 
+// ============================================================
+// BOOST DASHBOARD BUTTON HANDLER
+// ============================================================
+
 async function handleBoostButton(
     interaction,
+    client,
+    args = [],
 ) {
     const action =
+        args[0] ||
         interaction.customId.split(':')[1];
 
 
@@ -318,31 +325,11 @@ async function handleBoostButton(
 
 
 // ============================================================
-// EXPORT INTERACTIONS
+// EXPORT
 // ============================================================
 
-export default [
-    {
-        name: 'boost_dashboard:embed',
+export default {
+    name: 'boost_dashboard',
 
-        execute: handleBoostButton,
-    },
-
-    {
-        name: 'boost_dashboard:image',
-
-        execute: handleBoostButton,
-    },
-
-    {
-        name: 'boost_dashboard:settings',
-
-        execute: handleBoostButton,
-    },
-
-    {
-        name: 'boost_dashboard:test',
-
-        execute: handleBoostButton,
-    },
-];
+    execute: handleBoostButton,
+};
