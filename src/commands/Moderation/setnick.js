@@ -34,10 +34,37 @@ const SETNICK_MANAGEMENT_ROLE_ID =
     '1545305594712432640';
 
 /*
- * Custom animated emoji của server
+ * Emoji dùng cho tiêu đề:
+ *
+ * <a:chiikawag9:1541427795786207313>
  */
-const SERVER_EMOJI =
-    '<a:chiikawag6:1541427271930220554>';
+const TITLE_EMOJI =
+    '<a:chiikawag9:1541427795786207313>';
+
+/*
+ * Emoji dùng cho 3 thông tin:
+ *
+ * Member
+ * New nickname
+ * Changed by
+ *
+ * <a:pinkheart:1545307544808071258>
+ */
+const INFO_EMOJI =
+    '<a:pinkheart:1545307544808071258>';
+
+
+/*
+ * Nickname format
+ *
+ * Người dùng nhập:
+ *
+ *     linh
+ *
+ * Bot đổi thành:
+ *
+ *     ⋆˚࿔ linh ♡
+ */
 
 const NICKNAME_PREFIX =
     '⋆˚࿔ ';
@@ -62,7 +89,9 @@ const MAX_NICKNAME_LENGTH =
  * 123456789
  */
 
-function resolveUserId(value) {
+function resolveUserId(
+    value,
+) {
     if (!value) {
         return null;
     }
@@ -92,17 +121,11 @@ function resolveUserId(value) {
  * ============================================================
  * BUILD NICKNAME
  * ============================================================
- *
- * Người dùng nhập:
- *
- *     linh
- *
- * Bot đổi thành:
- *
- *     ⋆˚࿔ linh ♡
  */
 
-function buildNickname(name) {
+function buildNickname(
+    name,
+) {
     return `${NICKNAME_PREFIX}${name}${NICKNAME_SUFFIX}`;
 }
 
@@ -149,8 +172,6 @@ export default {
 
     /*
      * Đây là Slash Command.
-     *
-     * Không sử dụng prefix command cho SetNick.
      */
     prefixOnly:
         false,
@@ -291,6 +312,14 @@ export default {
              * ------------------------------------------------
              * BUILD FINAL NICKNAME
              * ------------------------------------------------
+             *
+             * Input:
+             *
+             *     linh
+             *
+             * Result:
+             *
+             *     ⋆˚࿔ linh ♡
              */
 
             const nickname =
@@ -402,11 +431,6 @@ export default {
              * ------------------------------------------------
              * ROLE HIERARCHY
              * ------------------------------------------------
-             *
-             * Bot không thể đổi nickname:
-             *
-             * - Server Owner
-             * - Người có role ngang/cao hơn bot
              */
 
             if (
@@ -472,9 +496,13 @@ export default {
              * SEND NOTIFICATION
              * ------------------------------------------------
              *
-             * Tất cả emoji ở đây dùng đúng:
+             * TITLE:
              *
-             * <a:chiikawag6:1541427271930220554>
+             * <a:chiikawag9:1541427795786207313>
+             *
+             * INFO:
+             *
+             * <a:pinkheart:1545307544808071258>
              */
 
             if (
@@ -494,16 +522,16 @@ export default {
                         )
 
                         .setTitle(
-                            `${SERVER_EMOJI} 𝓝𝓲𝓬𝓴𝓷𝓪𝓶𝓮 𝓤𝓹𝓭𝓪𝓽𝓮𝓭`,
+                            `${TITLE_EMOJI} 𝓝𝓲𝓬𝓴𝓷𝓪𝓶𝓮 𝓤𝓹𝓭𝓪𝓽𝓮𝓭`,
                         )
 
                         .setDescription(
                             [
-                                `${SERVER_EMOJI} 𝙼𝚎𝚖𝚋𝚎𝚛: ${targetMember}`,
+                                `${INFO_EMOJI} 𝙼𝚎𝚖𝚋𝚎𝚛: ${targetMember}`,
 
-                                `${SERVER_EMOJI} 𝙽𝚎𝚠 𝚗𝚒𝚌𝚔𝚗𝚊𝚖𝚎: ${nickname}`,
+                                `${INFO_EMOJI} 𝙽𝚎𝚠 𝚗𝚒𝚌𝚔𝚗𝚊𝚖𝚎: ${nickname}`,
 
-                                `${SERVER_EMOJI} 𝙲𝚑𝚊𝚗𝚐𝚎𝚍 𝚋𝚢: ${botMention}`,
+                                `${INFO_EMOJI} 𝙲𝚑𝚊𝚗𝚐𝚎𝚍 𝚋𝚢: ${botMention}`,
                             ].join(
                                 '\n',
                             ),
@@ -533,6 +561,7 @@ export default {
                             );
                         },
                     );
+
             } else {
 
                 logger.warn(
@@ -558,7 +587,7 @@ export default {
                 interaction,
                 {
                     content:
-                        `${SERVER_EMOJI} Đã đổi nickname của ${targetMember} từ \`${oldNickname}\` thành **${nickname}**.`,
+                        `${INFO_EMOJI} Đã đổi nickname của ${targetMember} từ \`${oldNickname}\` thành **${nickname}**.`,
                 },
             );
 
