@@ -44,7 +44,10 @@ async function handleBoostEmbedModal(
 
             description:
                 description ||
-                '{member} vừa **Boost Server**!\n\n' +
+                '<a:chiikawag9:1541427795786207313> {member} vừa **Boost Server**!\n\n' +
+                '<a:pinkheart:1545307544808071258> **Boost hiện tại:** {boosts}\n' +
+                '<a:pinkheart:1545307544808071258> **Boost Level:** {boostLevel}\n' +
+                '<a:pinkheart:1545307544808071258> **Còn:** {boostsToNextLevel} boost để lên level tiếp theo!\n\n' +
                 '👑 **TỶ PHÚ** đã được trao cho {member}.',
 
             color:
