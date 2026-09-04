@@ -7,38 +7,14 @@ import {
 } from '../../../services/boost/boostService.js';
 
 
-export default async function handleBoostModal(
-    interaction,
-) {
-    if (
-        !interaction.isModalSubmit()
-    ) {
-        return false;
-    }
+// ============================================================
+// EDIT EMBED MODAL
+// ============================================================
 
+export const boostEmbedModal = {
+    customId: 'boost_modal:embed',
 
-    if (
-        !interaction.customId.startsWith(
-            'boost_modal:',
-        )
-    ) {
-        return false;
-    }
-
-
-    const action =
-        interaction.customId.split(
-            ':',
-        )[1];
-
-
-    // ========================================================
-    // EMBED
-    // ========================================================
-
-    if (
-        action === 'embed'
-    ) {
+    async execute(interaction) {
         const title =
             interaction.fields.getTextInputValue(
                 'title',
@@ -64,17 +40,20 @@ export default async function handleBoostModal(
             interaction.guild.id,
             {
                 title:
-                    title || '🌸 Server Boosted!',
+                    title ||
+                    '🌸 Server Boosted!',
 
                 description:
                     description ||
                     '{member} vừa **Boost Server**!',
 
                 color:
-                    color || '#F5A9C6',
+                    color ||
+                    '#F5A9C6',
 
                 footer:
-                    footer || '{server}',
+                    footer ||
+                    '{server}',
             },
         );
 
@@ -86,22 +65,22 @@ export default async function handleBoostModal(
             flags:
                 MessageFlags.Ephemeral,
         });
+    },
+};
 
-        return true;
-    }
 
+// ============================================================
+// IMAGE MODAL
+// ============================================================
 
-    // ========================================================
-    // IMAGE
-    // ========================================================
+export const boostImageModal = {
+    customId: 'boost_modal:image',
 
-    if (
-        action === 'image'
-    ) {
+    async execute(interaction) {
         const image =
             interaction.fields.getTextInputValue(
                 'image',
-            );
+            ).trim();
 
 
         await setBoostConfig(
@@ -122,27 +101,27 @@ export default async function handleBoostModal(
             flags:
                 MessageFlags.Ephemeral,
         });
+    },
+};
 
-        return true;
-    }
 
+// ============================================================
+// SETTINGS MODAL
+// ============================================================
 
-    // ========================================================
-    // SETTINGS
-    // ========================================================
+export const boostSettingsModal = {
+    customId: 'boost_modal:settings',
 
-    if (
-        action === 'settings'
-    ) {
+    async execute(interaction) {
         const channelId =
             interaction.fields.getTextInputValue(
                 'channelId',
-            );
+            ).trim();
 
         const tyPhuRoleId =
             interaction.fields.getTextInputValue(
                 'tyPhuRoleId',
-            );
+            ).trim();
 
 
         await setBoostConfig(
@@ -164,10 +143,16 @@ export default async function handleBoostModal(
             flags:
                 MessageFlags.Ephemeral,
         });
+    },
+};
 
-        return true;
-    }
 
+// ============================================================
+// DEFAULT EXPORT
+// ============================================================
 
-    return false;
-}
+export default [
+    boostEmbedModal,
+    boostImageModal,
+    boostSettingsModal,
+];
