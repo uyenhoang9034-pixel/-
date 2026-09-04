@@ -5,14 +5,6 @@ import {
 } from 'discord.js';
 
 import {
-    memberHasConfiguredModeratorRole,
-} from '../../utils/permissionGuard.js';
-
-import {
-    getGuildConfig,
-} from '../../services/config/guildConfig.js';
-
-import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
 
@@ -35,6 +27,15 @@ import {
 const SETNICK_CHANNEL_ID =
     '1541364885789745213';
 
+/*
+ * Role quản lý được phép sử dụng /setnick
+ */
+const SETNICK_MANAGEMENT_ROLE_ID =
+    '1545305594712432640';
+
+/*
+ * Custom animated emoji của server
+ */
 const SERVER_EMOJI =
     '<a:chiikawag6:1541427271930220554>';
 
@@ -61,9 +62,7 @@ const MAX_NICKNAME_LENGTH =
  * 123456789
  */
 
-function resolveUserId(
-    value,
-) {
+function resolveUserId(value) {
     if (!value) {
         return null;
     }
@@ -103,9 +102,7 @@ function resolveUserId(
  *     ⋆˚࿔ linh ♡
  */
 
-function buildNickname(
-    name,
-) {
+function buildNickname(name) {
     return `${NICKNAME_PREFIX}${name}${NICKNAME_SUFFIX}`;
 }
 
@@ -139,7 +136,7 @@ export default {
                     option
                         .setName('nickname')
                         .setDescription(
-                            'Nickname mới, không cần nhập ký tự trang trí.',
+                            'Nickname mới.',
                         )
                         .setRequired(true)
                         .setMaxLength(28),
@@ -150,6 +147,11 @@ export default {
     category:
         'moderation',
 
+    /*
+     * Đây là Slash Command.
+     *
+     * Không sử dụng prefix command cho SetNick.
+     */
     prefixOnly:
         false,
 
@@ -192,27 +194,19 @@ export default {
 
             /*
              * ------------------------------------------------
-             * GUILD CONFIG
-             * ------------------------------------------------
-             */
-
-            const guildConfig =
-                await getGuildConfig(
-                    client,
-                    guild.id,
-                );
-
-
-            /*
-             * ------------------------------------------------
              * MANAGEMENT ROLE CHECK
              * ------------------------------------------------
+             *
+             * Chỉ role:
+             *
+             * 1545305594712432640
+             *
+             * được sử dụng /setnick.
              */
 
             if (
-                !memberHasConfiguredModeratorRole(
-                    interaction.member,
-                    guildConfig,
+                !interaction.member.roles.cache.has(
+                    SETNICK_MANAGEMENT_ROLE_ID,
                 )
             ) {
                 return replyUserError(
@@ -330,7 +324,7 @@ export default {
 
             /*
              * ------------------------------------------------
-             * FIND MEMBER
+             * FETCH TARGET MEMBER
              * ------------------------------------------------
              */
 
@@ -408,6 +402,11 @@ export default {
              * ------------------------------------------------
              * ROLE HIERARCHY
              * ------------------------------------------------
+             *
+             * Bot không thể đổi nickname:
+             *
+             * - Server Owner
+             * - Người có role ngang/cao hơn bot
              */
 
             if (
@@ -473,12 +472,9 @@ export default {
              * SEND NOTIFICATION
              * ------------------------------------------------
              *
-             * Tất cả emoji trong thông báo đều sử dụng:
+             * Tất cả emoji ở đây dùng đúng:
              *
              * <a:chiikawag6:1541427271930220554>
-             *
-             * Không dùng emoji Unicode.
-             * Không tự tìm emoji khác.
              */
 
             if (
@@ -537,7 +533,6 @@ export default {
                             );
                         },
                     );
-
             } else {
 
                 logger.warn(
