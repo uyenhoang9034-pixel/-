@@ -7,6 +7,10 @@ import {
 } from '../../../services/boost/boostService.js';
 
 
+// ============================================================
+// EMBED MODAL
+// ============================================================
+
 async function handleBoostEmbedModal(
     interaction,
 ) {
@@ -40,7 +44,8 @@ async function handleBoostEmbedModal(
 
             description:
                 description ||
-                '{member} vừa **Boost Server**!',
+                '{member} vừa **Boost Server**!\n\n' +
+                '👑 **TỶ PHÚ** đã được trao cho {member}.',
 
             color:
                 color ||
@@ -62,6 +67,10 @@ async function handleBoostEmbedModal(
     });
 }
 
+
+// ============================================================
+// IMAGE MODAL
+// ============================================================
 
 async function handleBoostImageModal(
     interaction,
@@ -92,6 +101,10 @@ async function handleBoostImageModal(
     });
 }
 
+
+// ============================================================
+// SETTINGS MODAL
+// ============================================================
 
 async function handleBoostSettingsModal(
     interaction,
@@ -130,25 +143,48 @@ async function handleBoostSettingsModal(
 
 
 // ============================================================
-// EXPORT INTERACTIONS
+// EXPORT
 // ============================================================
 
 export default [
     {
-        name: 'boost_modal:embed',
+        name: 'boost_modal',
 
-        execute: handleBoostEmbedModal,
-    },
+        execute: async (
+            interaction,
+            client,
+            args = [],
+        ) => {
+            const action =
+                args[0] ||
+                interaction.customId.split(':')[1];
 
-    {
-        name: 'boost_modal:image',
 
-        execute: handleBoostImageModal,
-    },
+            if (
+                action === 'embed'
+            ) {
+                return handleBoostEmbedModal(
+                    interaction,
+                );
+            }
 
-    {
-        name: 'boost_modal:settings',
 
-        execute: handleBoostSettingsModal,
+            if (
+                action === 'image'
+            ) {
+                return handleBoostImageModal(
+                    interaction,
+                );
+            }
+
+
+            if (
+                action === 'settings'
+            ) {
+                return handleBoostSettingsModal(
+                    interaction,
+                );
+            }
+        },
     },
 ];
