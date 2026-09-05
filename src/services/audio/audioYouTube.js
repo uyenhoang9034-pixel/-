@@ -1,8 +1,23 @@
 /**
- * Usagi Audio - YouTube Search
+ * =========================================================
+ * USAGI AUDIO — YOUTUBE
+ * =========================================================
  *
- * Audio chỉ tìm trên YouTube.
- * Playback dùng chung Riffy/Lavalink hiện tại.
+ * Chỉ sử dụng YouTube.
+ *
+ * Hỗ trợ:
+ *
+ * /audio
+ * → tìm kiếm bằng từ khóa
+ *
+ * /audio input:<youtube url>
+ * → phát trực tiếp video YouTube
+ *
+ * Không sử dụng:
+ * - Spotify
+ * - SoundCloud
+ * - Apple Music
+ * - YouTube Music search
  */
 
 import {
@@ -13,6 +28,20 @@ import {
 const MAX_RESULTS = 10;
 const MAX_QUERY_LENGTH = 200;
 
+/**
+ * YouTube URL.
+ *
+ * Hỗ trợ:
+ *
+ * https://youtube.com/watch?v=...
+ * https://www.youtube.com/watch?v=...
+ * https://youtu.be/...
+ * https://youtube.com/shorts/...
+ * https://www.youtube.com/live/...
+ */
+const YOUTUBE_URL_PATTERN =
+  /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)(?:\/|$)/i;
+
 function assertRiffy(client) {
   if (!client?.riffy) {
     throw new TitanBotError(
@@ -22,6 +51,26 @@ function assertRiffy(client) {
     );
   }
 }
+
+/**
+ * =========================================================
+ * CHECK YOUTUBE URL
+ * =========================================================
+ */
+
+export function isYouTubeUrl(
+  query,
+) {
+  return YOUTUBE_URL_PATTERN.test(
+    String(query || '').trim(),
+  );
+}
+
+/**
+ * =========================================================
+ * SEARCH / RESOLVE YOUTUBE AUDIO
+ * =========================================================
+ */
 
 export async function searchYouTubeAudio(
   client,
@@ -51,92 +100,184 @@ export async function searchYouTubeAudio(
     );
   }
 
+  const directUrl =
+    isYouTubeUrl(
+      cleanQuery,
+    );
+
   /*
-   * QUAN TRỌNG
+   * =======================================================
+   * DIRECT YOUTUBE LINK
+   * =======================================================
    *
-   * Dùng ytsearch:
+   * Quan trọng:
    *
-   * - Chỉ tìm YouTube
-   * - Không tìm Spotify
-   * - Không tìm SoundCloud
-   * - Không dùng ytmsearch
+   * Không thêm ytsearch:
    *
-   * ytmsearch dùng MUSIC client,
-   * trong khi MUSIC không phải playback client.
+   *     ytsearch:https://youtube...
+   *
+   * Vì như vậy Lavalink sẽ coi URL là từ khóa tìm kiếm.
+   *
+   * URL được resolve trực tiếp.
    */
+
+  const resolveQuery =
+    directUrl
+      ? cleanQuery
+      : `ytsearch:${cleanQuery}`;
+
   const result =
     await client.riffy.resolve({
       query:
-        `ytsearch:${cleanQuery}`,
+        resolveQuery,
 
-      requester: null,
+      requester:
+        null,
     });
 
   const loadType =
     String(
-      result?.loadType || '',
+      result?.loadType ||
+        '',
     ).toUpperCase();
 
+  /*
+   * =======================================================
+   * NO RESULT
+   * =======================================================
+   */
+
   if (
-    loadType === 'NO_MATCHES' ||
-    loadType === 'NO_MATCH' ||
-    loadType === 'EMPTY'
+    loadType ===
+      'NO_MATCHES' ||
+    loadType ===
+      'NO_MATCH' ||
+    loadType ===
+      'EMPTY'
   ) {
     return [];
   }
 
-  const tracks =
+  let tracks =
     Array.isArray(
       result?.tracks,
     )
       ? result.tracks
       : [];
 
-  return tracks
-    .filter((track) => {
-      const uri =
-        track?.info?.uri || '';
+  /*
+   * =======================================================
+   * DIRECT URL
+   * =======================================================
+   *
+   * Link YouTube chỉ lấy video đầu tiên.
+   *
+   * Không tự phát cả playlist.
+   */
 
-      return /(?:youtube\.com|youtu\.be)/i.test(
-        uri,
+  if (directUrl) {
+    const youtubeTracks =
+      tracks.filter(
+        (track) => {
+          const uri =
+            track?.info?.uri ||
+            '';
+
+          return /(?:youtube\.com|youtu\.be)/i.test(
+            uri,
+          );
+        },
       );
-    })
-    .slice(0, MAX_RESULTS)
-    .map(
-      (track, index) => ({
-        index,
 
-        title:
-          track?.info?.title ||
-          'Unknown YouTube video',
+    if (
+      !youtubeTracks.length
+    ) {
+      return [];
+    }
 
-        author:
-          track?.info?.author ||
-          'Unknown',
+    tracks =
+      youtubeTracks.slice(
+        0,
+        1,
+      );
+  } else {
+    /*
+     * =====================================================
+     * NORMAL SEARCH
+     * =====================================================
+     *
+     * Chỉ trả kết quả YouTube.
+     */
 
-        uri:
-          track?.info?.uri ||
-          null,
+    tracks =
+      tracks
+        .filter(
+          (track) => {
+            const uri =
+              track?.info?.uri ||
+              '';
 
-        duration:
-          Number(
-            track?.info?.length,
-          ) || 0,
+            return /(?:youtube\.com|youtu\.be)/i.test(
+              uri,
+            );
+          },
+        )
+        .slice(
+          0,
+          MAX_RESULTS,
+        );
+  }
 
-        thumbnail:
-          track?.info?.artworkUrl ||
-          track?.info?.thumbnail ||
-          null,
+  /*
+   * =======================================================
+   * NORMALIZE RESULTS
+   * =======================================================
+   */
 
-        isStream:
-          Boolean(
-            track?.info?.isStream,
-          ),
+  return tracks.map(
+    (
+      track,
+      index,
+    ) => ({
+      index,
 
-        track,
-      }),
-    );
+      title:
+        track?.info?.title ||
+        'Unknown YouTube video',
+
+      author:
+        track?.info?.author ||
+        'Unknown',
+
+      uri:
+        track?.info?.uri ||
+        null,
+
+      duration:
+        Number(
+          track?.info?.length,
+        ) || 0,
+
+      thumbnail:
+        track?.info?.artworkUrl ||
+        track?.info?.thumbnail ||
+        null,
+
+      isStream:
+        Boolean(
+          track?.info?.isStream,
+        ),
+
+      track,
+    }),
+  );
 }
+
+/**
+ * =========================================================
+ * FORMAT DURATION
+ * =========================================================
+ */
 
 export function formatAudioDuration(
   milliseconds,
@@ -167,16 +308,33 @@ export function formatAudioDuration(
   const seconds =
     totalSeconds % 60;
 
-  if (hours > 0) {
+  if (
+    hours > 0
+  ) {
     return (
       `${hours}:` +
-      `${String(minutes).padStart(2, '0')}:` +
-      `${String(seconds).padStart(2, '0')}`
+      `${String(
+        minutes,
+      ).padStart(
+        2,
+        '0',
+      )}:` +
+      `${String(
+        seconds,
+      ).padStart(
+        2,
+        '0',
+      )}`
     );
   }
 
   return (
     `${minutes}:` +
-    `${String(seconds).padStart(2, '0')}`
+    `${String(
+      seconds,
+    ).padStart(
+      2,
+      '0',
+    )}`
   );
 }
