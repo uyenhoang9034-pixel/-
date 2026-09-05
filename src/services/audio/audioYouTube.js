@@ -12,7 +12,10 @@
  * → tìm YouTube
  *
  * /audio input:<YouTube URL>
- * → resolve trực tiếp video YouTube
+ * → phát trực tiếp đúng video YouTube
+ *
+ * Không tự động lấy playlist.
+ * Mỗi link YouTube chỉ lấy 1 video.
  *
  * Chỉ sử dụng Lavalink + Riffy hiện tại của bot.
  */
@@ -25,6 +28,17 @@ import {
 const MAX_RESULTS = 10;
 const MAX_QUERY_LENGTH = 200;
 
+/**
+ * YouTube URL.
+ *
+ * Hỗ trợ:
+ *
+ * https://youtube.com/watch?v=...
+ * https://www.youtube.com/watch?v=...
+ * https://youtu.be/...
+ * https://youtube.com/shorts/...
+ * http://...
+ */
 const YOUTUBE_URL_PATTERN =
   /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)(?:\/|$)/i;
 
@@ -32,21 +46,6 @@ const YOUTUBE_URL_PATTERN =
  * =========================================================
  * GET REAL DISCORD CLIENT
  * =========================================================
- *
- * Có thể nhận:
- *
- * client
- *
- * hoặc:
- *
- * interaction
- *
- * hoặc:
- *
- * interaction.client
- *
- * để tránh lỗi Audio Lavalink unavailable
- * do truyền nhầm object.
  */
 
 function getClient(source) {
@@ -95,9 +94,7 @@ function getRiffy(source) {
  * =========================================================
  */
 
-export function isYouTubeUrl(
-  query,
-) {
+export function isYouTubeUrl(query) {
   return YOUTUBE_URL_PATTERN.test(
     String(query || '').trim(),
   );
@@ -105,7 +102,7 @@ export function isYouTubeUrl(
 
 /**
  * =========================================================
- * SEARCH / RESOLVE
+ * SEARCH / RESOLVE YOUTUBE
  * =========================================================
  */
 
@@ -145,14 +142,14 @@ export async function searchYouTubeAudio(
       cleanQuery,
     );
 
-  /*
+  /**
    * =======================================================
    * RESOLVE QUERY
    * =======================================================
    *
-   * URL YouTube:
+   * Link:
    *
-   *     https://youtu.be/xxxxx
+   *     https://youtu.be/xxxx
    *
    * → resolve trực tiếp.
    *
@@ -168,13 +165,34 @@ export async function searchYouTubeAudio(
       ? cleanQuery
       : `ytsearch:${cleanQuery}`;
 
-  const result =
-    await riffy.resolve({
-      query:
-        resolveQuery,
+  let result;
 
-      requester,
-    });
+  try {
+    result =
+      await riffy.resolve({
+        query:
+          resolveQuery,
+
+        requester,
+      });
+  } catch (error) {
+    console.error(
+      '[USAGI AUDIO] Lavalink resolve error:',
+      error,
+    );
+
+    throw new TitanBotError(
+      'YouTube resolve failed',
+      ErrorTypes.CONFIGURATION,
+      '🌸 Lavalink không thể tìm hoặc đọc audio YouTube này.',
+    );
+  }
+
+  /**
+   * =======================================================
+   * LOAD TYPE
+   * =======================================================
+   */
 
   const loadType =
     String(
@@ -182,7 +200,31 @@ export async function searchYouTubeAudio(
         '',
     ).toUpperCase();
 
-  /*
+  /**
+   * =======================================================
+   * DEBUG
+   * =======================================================
+   *
+   * Giữ log này để nếu Lavalink gặp vấn đề,
+   * terminal sẽ cho biết nó trả về loại gì.
+   */
+
+  console.log(
+    '[USAGI AUDIO] YouTube resolve:',
+    {
+      query: cleanQuery,
+      directUrl,
+      loadType,
+      trackCount:
+        Array.isArray(
+          result?.tracks,
+        )
+          ? result.tracks.length
+          : 0,
+    },
+  );
+
+  /**
    * =======================================================
    * NO MATCH
    * =======================================================
@@ -196,7 +238,7 @@ export async function searchYouTubeAudio(
     return [];
   }
 
-  /*
+  /**
    * =======================================================
    * GET TRACKS
    * =======================================================
@@ -206,69 +248,71 @@ export async function searchYouTubeAudio(
     Array.isArray(
       result?.tracks,
     )
-      ? result.tracks
+      ? result.tracks.filter(Boolean)
       : [];
 
-  /*
+  /**
+   * =======================================================
+   * NO TRACKS
+   * =======================================================
+   */
+
+  if (!tracks.length) {
+    return [];
+  }
+
+  /**
    * =======================================================
    * DIRECT YOUTUBE URL
    * =======================================================
    *
-   * Chỉ lấy đúng video đầu tiên.
+   * QUAN TRỌNG:
    *
-   * Không tự động lấy playlist.
+   * Không kiểm tra:
+   *
+   *     track.info.uri
+   *
+   * bằng regex YouTube nữa.
+   *
+   * Vì Lavalink đã resolve trực tiếp URL mà người dùng
+   * cung cấp.
+   *
+   * Chỉ lấy track đầu tiên.
+   *
+   * Không lấy playlist.
    */
 
   if (directUrl) {
-    const track =
-      tracks.find(
-        (item) => {
-          const uri =
-            item?.info?.uri ||
-            '';
-
-          return /(?:youtube\.com|youtu\.be)/i.test(
-            uri,
-          );
-        },
-      );
-
-    if (!track) {
-      return [];
-    }
-
     tracks = [
-      track,
+      tracks[0],
     ];
-  } else {
-    /*
-     * =====================================================
-     * SEARCH RESULTS
-     * =====================================================
-     *
-     * Chỉ giữ kết quả YouTube.
-     */
-
-    tracks =
-      tracks
-        .filter(
-          (track) => {
-            const uri =
-              track?.info?.uri ||
-              '';
-
-            return /(?:youtube\.com|youtu\.be)/i.test(
-              uri,
-            );
-          },
-        )
-        .slice(
-          0,
-          MAX_RESULTS,
-        );
   }
 
-  /*
+  /**
+   * =======================================================
+   * SEARCH RESULTS
+   * =======================================================
+   *
+   * Query đã được gửi bằng:
+   *
+   *     ytsearch:<query>
+   *
+   * nên không cần tiếp tục lọc info.uri.
+   *
+   * Lavalink chính là nơi xác định source.
+   *
+   * Giữ tối đa 10 kết quả.
+   */
+
+  if (!directUrl) {
+    tracks =
+      tracks.slice(
+        0,
+        MAX_RESULTS,
+      );
+  }
+
+  /**
    * =======================================================
    * NORMALIZE
    * =======================================================
@@ -307,6 +351,14 @@ export async function searchYouTubeAudio(
         Boolean(
           track?.info?.isStream,
         ),
+
+      /**
+       * Giữ nguyên track gốc.
+       *
+       * Riffy cần object này để:
+       *
+       *     player.queue.add(track)
+       */
 
       track,
     }),
@@ -378,6 +430,12 @@ export function formatAudioDuration(
     )}`
   );
 }
+
+/**
+ * =========================================================
+ * DEFAULT EXPORT
+ * =========================================================
+ */
 
 export default {
   searchYouTubeAudio,
