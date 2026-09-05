@@ -13,6 +13,7 @@ import {
     getQueuePageSize,
 } from './musicEmbeds.js';
 import { refreshPlayerMessage } from './playerHandler.js';
+import audioManager from '../audio/audioManager.js';
 
 const YOUTUBE_URL_PATTERN = /(?:youtube\.com|youtu\.be)/i;
 const PLAYER_CONNECT_TIMEOUT_MS = 12_000;
@@ -124,29 +125,87 @@ export function assertCanControl(member, player) {
     }
 }
 
-export async function ensurePlayer(client, interaction) {
+export async function ensurePlayer(
+    client,
+    interaction,
+    options = {},
+) {
     assertRiffyAvailable(client);
-    assertLavalinkNodeAvailable(client);
     assertInVoice(interaction.member);
 
-    const guildId = interaction.guild.id;
-    const guildData = getGuildMusicData(guildId);
-    let player = getPlayer(client, guildId);
+    const guildId =
+        interaction.guild.id;
 
-    if (!player) {
-        player = client.riffy.createConnection({
+    const audioSession =
+        audioManager.getSession(
             guildId,
-            voiceChannel: interaction.member.voice.channel.id,
-            textChannel: interaction.channel.id,
-            deaf: true,
-        });
-        guildData.playerChannelId = interaction.channel.id;
+        );
+
+    /*
+     * Music không được giành player
+     * khi Usagi Audio đang sở hữu player.
+     *
+     * Audio gọi hàm này với:
+     *
+     * { allowAudio: true }
+     */
+    if (
+        audioSession?.audioActive &&
+        options.allowAudio !== true
+    ) {
+        throw new TitanBotError(
+            'Audio player is active',
+            ErrorTypes.USER_INPUT,
+            'Usagi Audio đang phát. Hãy dừng Audio trước khi sử dụng Music.',
+        );
     }
 
-    player.setVolume(guildData.volume);
-    return { player, guildData };
-}
+    const guildData =
+        getGuildMusicData(
+            guildId,
+        );
 
+    let player =
+        getPlayer(
+            client,
+            guildId,
+        );
+
+    /*
+     * QUAN TRỌNG:
+     *
+     * Không gọi:
+     *
+     * assertLavalinkNodeAvailable(client)
+     *
+     * ở đây nữa.
+     *
+     * Riffy tự chọn node khi createConnection().
+     */
+    if (!player) {
+        player =
+            client.riffy.createConnection({
+                guildId,
+                voiceChannel:
+                    interaction.member.voice.channel.id,
+                textChannel:
+                    interaction.channel.id,
+                deaf: true,
+            });
+
+        guildData.playerChannelId =
+            interaction.channel.id;
+    }
+
+    player.setVolume(
+        guildData.volume,
+    );
+
+    return {
+        player,
+        guildData,
+    };
+}
 function isDuplicateTrack(player, track) {
     const uri = track?.info?.uri;
     if (!uri) {
@@ -195,8 +254,20 @@ export async function joinVoiceChannel(client, interaction) {
     );
 }
 
-export async function playQuery(client, interaction, query) {
-    if (YOUTUBE_URL_PATTERN.test(query)) {
+export async function playQuery(
+    client,
+    interaction,
+    query,
+) {
+    assertLavalinkNodeAvailable(
+        client,
+    );
+
+    if (
+        YOUTUBE_URL_PATTERN.test(
+            query,
+        )
+    ) {
         throw new TitanBotError(
             'YouTube URL blocked',
             ErrorTypes.USER_INPUT,
