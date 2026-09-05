@@ -28,17 +28,6 @@ import {
 const MAX_RESULTS = 10;
 const MAX_QUERY_LENGTH = 200;
 
-/**
- * YouTube URL.
- *
- * Hỗ trợ:
- *
- * https://youtube.com/watch?v=...
- * https://www.youtube.com/watch?v=...
- * https://youtu.be/...
- * https://youtube.com/shorts/...
- * http://...
- */
 const YOUTUBE_URL_PATTERN =
   /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)(?:\/|$)/i;
 
@@ -102,6 +91,122 @@ export function isYouTubeUrl(query) {
 
 /**
  * =========================================================
+ * GET YOUTUBE VIDEO ID
+ * =========================================================
+ *
+ * Hỗ trợ:
+ *
+ * youtube.com/watch?v=XXXX
+ * youtu.be/XXXX
+ * youtube.com/shorts/XXXX
+ */
+
+function getYouTubeVideoId(url) {
+  const value =
+    String(url || '').trim();
+
+  try {
+    const parsed =
+      new URL(
+        value.startsWith('http')
+          ? value
+          : `https://${value}`,
+      );
+
+    const hostname =
+      parsed.hostname
+        .toLowerCase()
+        .replace(/^www\./, '');
+
+    /**
+     * youtu.be/VIDEO_ID
+     */
+    if (
+      hostname === 'youtu.be'
+    ) {
+      return (
+        parsed.pathname
+          .replace(/^\/+/, '')
+          .split('/')[0]
+          .trim() ||
+        null
+      );
+    }
+
+    /**
+     * youtube.com/watch?v=VIDEO_ID
+     */
+    if (
+      hostname === 'youtube.com'
+    ) {
+      const videoId =
+        parsed.searchParams.get('v');
+
+      if (videoId) {
+        return videoId.trim();
+      }
+
+      /**
+       * youtube.com/shorts/VIDEO_ID
+       */
+      const parts =
+        parsed.pathname
+          .split('/')
+          .filter(Boolean);
+
+      const shortsIndex =
+        parts.indexOf('shorts');
+
+      if (
+        shortsIndex !== -1 &&
+        parts[shortsIndex + 1]
+      ) {
+        return parts[
+          shortsIndex + 1
+        ].trim();
+      }
+
+      /**
+       * youtube.com/live/VIDEO_ID
+       */
+      const liveIndex =
+        parts.indexOf('live');
+
+      if (
+        liveIndex !== -1 &&
+        parts[liveIndex + 1]
+      ) {
+        return parts[
+          liveIndex + 1
+        ].trim();
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * =========================================================
+ * RESOLVE
+ * =========================================================
+ */
+
+async function resolveYouTube(
+  riffy,
+  query,
+  requester,
+) {
+  return riffy.resolve({
+    query,
+    requester,
+  });
+}
+
+/**
+ * =========================================================
  * SEARCH / RESOLVE YOUTUBE
  * =========================================================
  */
@@ -144,55 +249,250 @@ export async function searchYouTubeAudio(
 
   /**
    * =======================================================
-   * RESOLVE QUERY
+   * DIRECT YOUTUBE URL
    * =======================================================
-   *
-   * Link:
-   *
-   *     https://youtu.be/xxxx
-   *
-   * → resolve trực tiếp.
-   *
-   * Từ khóa:
-   *
-   *     ytsearch:từ khóa
-   *
-   * → YouTube search.
    */
 
-  const resolveQuery =
-    directUrl
-      ? cleanQuery
-      : `ytsearch:${cleanQuery}`;
+  if (directUrl) {
+    let result = null;
+
+    /**
+     * -------------------------------------------------------
+     * ATTEMPT 1
+     * -------------------------------------------------------
+     *
+     * Resolve trực tiếp URL.
+     */
+
+    try {
+      result =
+        await resolveYouTube(
+          riffy,
+          cleanQuery,
+          requester,
+        );
+    } catch (error) {
+      console.warn(
+        '[USAGI AUDIO] Direct YouTube resolve failed:',
+        error?.message ||
+          error,
+      );
+    }
+
+    let tracks =
+      Array.isArray(
+        result?.tracks,
+      )
+        ? result.tracks.filter(Boolean)
+        : [];
+
+    const loadType =
+      String(
+        result?.loadType ||
+          '',
+      ).toUpperCase();
+
+    console.log(
+      '[USAGI AUDIO] Direct URL resolve:',
+      {
+        query: cleanQuery,
+        loadType,
+        trackCount:
+          tracks.length,
+      },
+    );
+
+    /**
+     * -------------------------------------------------------
+     * ATTEMPT 2 — VIDEO ID FALLBACK
+     * -------------------------------------------------------
+     *
+     * Nếu Lavalink không resolve trực tiếp URL,
+     * lấy video ID rồi search lại.
+     */
+
+    if (!tracks.length) {
+      const videoId =
+        getYouTubeVideoId(
+          cleanQuery,
+        );
+
+      if (videoId) {
+        console.log(
+          '[USAGI AUDIO] Trying YouTube video ID fallback:',
+          videoId,
+        );
+
+        try {
+          const fallbackResult =
+            await resolveYouTube(
+              riffy,
+              `ytsearch:${videoId}`,
+              requester,
+            );
+
+          const fallbackTracks =
+            Array.isArray(
+              fallbackResult?.tracks,
+            )
+              ? fallbackResult.tracks.filter(
+                  Boolean,
+                )
+              : [];
+
+          console.log(
+            '[USAGI AUDIO] Video ID fallback:',
+            {
+              loadType:
+                fallbackResult?.loadType,
+              trackCount:
+                fallbackTracks.length,
+            },
+          );
+
+          /**
+           * Tìm đúng video theo ID.
+           */
+
+          const exactTrack =
+            fallbackTracks.find(
+              (track) => {
+                const uri =
+                  String(
+                    track?.info?.uri ||
+                      '',
+                  );
+
+                return (
+                  uri.includes(
+                    videoId,
+                  ) ||
+                  track?.info?.identifier ===
+                    videoId
+                );
+              },
+            );
+
+          if (exactTrack) {
+            tracks = [
+              exactTrack,
+            ];
+          } else if (
+            fallbackTracks.length
+          ) {
+            /**
+             * Lavalink đôi khi không trả URI
+             * giống URL gốc.
+             *
+             * Trong trường hợp này lấy kết quả
+             * đầu tiên của video ID search.
+             */
+
+            tracks = [
+              fallbackTracks[0],
+            ];
+          }
+        } catch (error) {
+          console.warn(
+            '[USAGI AUDIO] Video ID fallback failed:',
+            error?.message ||
+              error,
+          );
+        }
+      }
+    }
+
+    /**
+     * -------------------------------------------------------
+     * NO RESULT
+     * -------------------------------------------------------
+     */
+
+    if (!tracks.length) {
+      console.warn(
+        '[USAGI AUDIO] YouTube URL could not be resolved:',
+        cleanQuery,
+      );
+
+      return [];
+    }
+
+    /**
+     * -------------------------------------------------------
+     * DIRECT URL = ONE TRACK ONLY
+     * -------------------------------------------------------
+     */
+
+    tracks = [
+      tracks[0],
+    ];
+
+    return tracks.map(
+      (
+        track,
+        index,
+      ) => ({
+        index,
+
+        title:
+          track?.info?.title ||
+          'Unknown YouTube video',
+
+        author:
+          track?.info?.author ||
+          'Unknown',
+
+        uri:
+          track?.info?.uri ||
+          null,
+
+        duration:
+          Number(
+            track?.info?.length,
+          ) || 0,
+
+        thumbnail:
+          track?.info?.artworkUrl ||
+          track?.info?.thumbnail ||
+          null,
+
+        isStream:
+          Boolean(
+            track?.info?.isStream,
+          ),
+
+        track,
+      }),
+    );
+  }
+
+  /**
+   * =======================================================
+   * NORMAL YOUTUBE SEARCH
+   * =======================================================
+   */
 
   let result;
 
   try {
     result =
-      await riffy.resolve({
-        query:
-          resolveQuery,
-
+      await resolveYouTube(
+        riffy,
+        `ytsearch:${cleanQuery}`,
         requester,
-      });
+      );
   } catch (error) {
     console.error(
-      '[USAGI AUDIO] Lavalink resolve error:',
+      '[USAGI AUDIO] YouTube search failed:',
       error,
     );
 
     throw new TitanBotError(
       'YouTube resolve failed',
       ErrorTypes.CONFIGURATION,
-      '🌸 Lavalink không thể tìm hoặc đọc audio YouTube này.',
+      '🌸 Lavalink không thể tìm audio YouTube lúc này.',
     );
   }
-
-  /**
-   * =======================================================
-   * LOAD TYPE
-   * =======================================================
-   */
 
   const loadType =
     String(
@@ -200,27 +500,20 @@ export async function searchYouTubeAudio(
         '',
     ).toUpperCase();
 
-  /**
-   * =======================================================
-   * DEBUG
-   * =======================================================
-   *
-   * Giữ log này để nếu Lavalink gặp vấn đề,
-   * terminal sẽ cho biết nó trả về loại gì.
-   */
+  const tracks =
+    Array.isArray(
+      result?.tracks,
+    )
+      ? result.tracks.filter(Boolean)
+      : [];
 
   console.log(
-    '[USAGI AUDIO] YouTube resolve:',
+    '[USAGI AUDIO] YouTube search:',
     {
       query: cleanQuery,
-      directUrl,
       loadType,
       trackCount:
-        Array.isArray(
-          result?.tracks,
-        )
-          ? result.tracks.length
-          : 0,
+        tracks.length,
     },
   );
 
@@ -240,19 +533,6 @@ export async function searchYouTubeAudio(
 
   /**
    * =======================================================
-   * GET TRACKS
-   * =======================================================
-   */
-
-  let tracks =
-    Array.isArray(
-      result?.tracks,
-    )
-      ? result.tracks.filter(Boolean)
-      : [];
-
-  /**
-   * =======================================================
    * NO TRACKS
    * =======================================================
    */
@@ -263,106 +543,52 @@ export async function searchYouTubeAudio(
 
   /**
    * =======================================================
-   * DIRECT YOUTUBE URL
-   * =======================================================
-   *
-   * QUAN TRỌNG:
-   *
-   * Không kiểm tra:
-   *
-   *     track.info.uri
-   *
-   * bằng regex YouTube nữa.
-   *
-   * Vì Lavalink đã resolve trực tiếp URL mà người dùng
-   * cung cấp.
-   *
-   * Chỉ lấy track đầu tiên.
-   *
-   * Không lấy playlist.
-   */
-
-  if (directUrl) {
-    tracks = [
-      tracks[0],
-    ];
-  }
-
-  /**
-   * =======================================================
-   * SEARCH RESULTS
-   * =======================================================
-   *
-   * Query đã được gửi bằng:
-   *
-   *     ytsearch:<query>
-   *
-   * nên không cần tiếp tục lọc info.uri.
-   *
-   * Lavalink chính là nơi xác định source.
-   *
-   * Giữ tối đa 10 kết quả.
-   */
-
-  if (!directUrl) {
-    tracks =
-      tracks.slice(
-        0,
-        MAX_RESULTS,
-      );
-  }
-
-  /**
-   * =======================================================
-   * NORMALIZE
+   * NORMAL SEARCH RESULT
    * =======================================================
    */
 
-  return tracks.map(
-    (
-      track,
-      index,
-    ) => ({
-      index,
+  return tracks
+    .slice(
+      0,
+      MAX_RESULTS,
+    )
+    .map(
+      (
+        track,
+        index,
+      ) => ({
+        index,
 
-      title:
-        track?.info?.title ||
-        'Unknown YouTube video',
+        title:
+          track?.info?.title ||
+          'Unknown YouTube video',
 
-      author:
-        track?.info?.author ||
-        'Unknown',
+        author:
+          track?.info?.author ||
+          'Unknown',
 
-      uri:
-        track?.info?.uri ||
-        null,
+        uri:
+          track?.info?.uri ||
+          null,
 
-      duration:
-        Number(
-          track?.info?.length,
-        ) || 0,
+        duration:
+          Number(
+            track?.info?.length,
+          ) || 0,
 
-      thumbnail:
-        track?.info?.artworkUrl ||
-        track?.info?.thumbnail ||
-        null,
+        thumbnail:
+          track?.info?.artworkUrl ||
+          track?.info?.thumbnail ||
+          null,
 
-      isStream:
-        Boolean(
-          track?.info?.isStream,
-        ),
+        isStream:
+          Boolean(
+            track?.info?.isStream,
+          ),
 
-      /**
-       * Giữ nguyên track gốc.
-       *
-       * Riffy cần object này để:
-       *
-       *     player.queue.add(track)
-       */
-
-      track,
-    }),
-  );
+        track,
+      }),
+    );
 }
 
 /**
