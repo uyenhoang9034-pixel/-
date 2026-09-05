@@ -85,7 +85,7 @@ async function waitForPlayerConnection(player) {
     }
 }
 
-async function startPlayback(player) {
+export async function startPlayback(player) {
     await waitForPlayerConnection(player);
     await player.play();
 }
