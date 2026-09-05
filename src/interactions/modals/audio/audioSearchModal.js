@@ -4,6 +4,15 @@ import {
 
 import audioManager from '../../../services/audio/audioManager.js';
 
+import {
+  searchYouTubeAudio,
+} from '../../../services/audio/audioYouTube.js';
+
+import {
+  buildAudioSearchResults,
+  buildAudioNoResults,
+} from '../../../services/audio/audioSearchResults.js';
+
 export default {
   name: 'audioSearchModal',
 
@@ -26,27 +35,51 @@ export default {
       });
     }
 
-    const session = audioManager.getOrCreateSession(
-      interaction.guildId,
-    );
+    await interaction.deferReply();
 
-    session.lastSearchQuery = query;
+    try {
+      const results = await searchYouTubeAudio(
+        interaction.client,
+        query,
+      );
 
-    const searchingEmbed = new EmbedBuilder()
-      .setTitle('🔎 Usagi đang tìm kiếm...')
-      .setDescription(
-        [
-          'Usagi đang tìm nội dung trên YouTube ♡',
-          '',
-          `> **${query}**`,
-          '',
-          '⏳ Một chút xíu thôi nhé...',
-        ].join('\n'),
-      )
-      .setColor(0xffb6d9);
+      const session = audioManager.getOrCreateSession(
+        interaction.guildId,
+      );
 
-    await interaction.reply({
-      embeds: [searchingEmbed],
-    });
+      session.lastSearchQuery = query;
+      session.searchResults = results;
+
+      if (!results.length) {
+        return interaction.editReply(
+          buildAudioNoResults(query),
+        );
+      }
+
+      return interaction.editReply(
+        buildAudioSearchResults(
+          query,
+          results,
+        ),
+      );
+    } catch (error) {
+      const errorEmbed = new EmbedBuilder()
+        .setTitle('🌸 Không thể tìm kiếm')
+        .setDescription(
+          [
+            'Usagi gặp vấn đề khi tìm audio trên YouTube.',
+            '',
+            `> ${error?.message || 'Unknown error'}`,
+            '',
+            'Bạn hãy thử lại sau một chút nhé ♡',
+          ].join('\n'),
+        )
+        .setColor(0xed4245);
+
+      return interaction.editReply({
+        embeds: [errorEmbed],
+        components: [],
+      });
+    }
   },
 };
