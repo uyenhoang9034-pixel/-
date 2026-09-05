@@ -9,6 +9,16 @@ import {
 
 const UPDATE_INTERVAL_MS = 15 * 1000;
 const IDLE_DISCONNECT_MS = 30 * 1000;
+function isAudioTrack(track) {
+    return Boolean(track?.info?.__usagiAudio);
+}
+
+function isAudioPlayer(player) {
+    return Boolean(
+        player?.__usagiAudio ||
+        isAudioTrack(player?.current)
+    );
+}
 
 async function editOrSendPlayerMessage(client, guildData, channelId, embed, components) {
     const channel = client.channels.cache.get(channelId);
@@ -42,6 +52,11 @@ async function editOrSendPlayerMessage(client, guildData, channelId, embed, comp
 }
 
 export async function refreshPlayerMessage(client, guildId) {
+    client.riffy.on('queueEnd', async (player) => {
+    if (isAudioPlayer(player)) {
+        return;
+    }
+
     try {
         const player = client.riffy?.players?.get(guildId);
         if (!player?.current) {
