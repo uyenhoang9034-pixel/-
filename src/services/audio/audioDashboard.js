@@ -2,7 +2,7 @@
  * Usagi Audio Dashboard
  *
  * UI builder only.
- * No playback logic lives here.
+ * Playback logic will be added in later phases.
  */
 
 import {
@@ -33,7 +33,7 @@ export function buildAudioSearchEmbed() {
 }
 
 /**
- * Build the main Audio search buttons.
+ * Build the main Audio search button.
  */
 export function buildAudioSearchButtons() {
   const config = AUDIO_DEFAULTS.searchDashboard;
@@ -44,23 +44,11 @@ export function buildAudioSearchButtons() {
       .setLabel(config.searchButtonLabel)
       .setEmoji('🔍')
       .setStyle(ButtonStyle.Primary),
-
-    new ButtonBuilder()
-      .setCustomId('audio:queue')
-      .setLabel('Queue')
-      .setEmoji('📜')
-      .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-      .setCustomId('audio:favorites')
-      .setLabel('Favorites')
-      .setEmoji('♡')
-      .setStyle(ButtonStyle.Secondary),
   );
 }
 
 /**
- * Build the complete search dashboard.
+ * Build the complete Audio search dashboard.
  */
 export function buildAudioSearchDashboard() {
   return {
@@ -70,14 +58,16 @@ export function buildAudioSearchDashboard() {
 }
 
 /**
- * Build the "not found" message.
+ * Build the "no results" embed.
+ *
+ * This will be used when YouTube integration is added.
  */
 export function buildAudioNoResultsEmbed(query) {
   return new EmbedBuilder()
     .setTitle('🌸 Không tìm thấy audio')
     .setDescription(
       [
-        `Usagi không tìm thấy kết quả phù hợp với:`,
+        'Usagi không tìm thấy kết quả phù hợp với:',
         '',
         `> **${query}**`,
         '',
