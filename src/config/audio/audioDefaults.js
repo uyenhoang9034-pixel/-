@@ -1,525 +1,284 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder,
-} from 'discord.js';
-
-import { AUDIO_DEFAULTS } from '../../config/audio/audioDefaults.js';
-
 /**
  * =========================================================
- * USAGI AUDIO — DASHBOARD
- * PHASE 4
+ * USAGI AUDIO
+ * PHASE 4 — DASHBOARD CONFIGURATION
  * =========================================================
  *
- * Chỉ chỉnh giao diện.
- * Không thay đổi logic playback.
- * Không thay đổi customId.
- * Không thay đổi queue / Riffy.
+ * Tất cả phần giao diện Audio được tập trung tại đây.
+ *
+ * Muốn đổi:
+ * - GIF
+ * - màu
+ * - tiêu đề
+ * - mô tả
+ * - placeholder
+ * - tên nút
+ *
+ * chỉ cần sửa file này.
  */
 
-const USAGI_GIF =
-  'https://i.pinimg.com/originals/95/c2/b3/95c2b36734919facb1e2682f387880d1.gif';
-
-/**
- * =========================================================
- * SEARCH DASHBOARD
- * =========================================================
- */
-
-export function buildAudioSearchEmbed() {
-  const config = AUDIO_DEFAULTS.searchDashboard;
-
-  const embed = new EmbedBuilder()
-    .setTitle(
-      config.title ||
-        '🌸 Usagi Audio',
-    )
-    .setDescription(
-      config.description ||
-        'Tìm một câu chuyện, podcast hoặc audio mà bạn muốn nghe cùng Usagi nhé ♡',
-    )
-    .setColor(
-      config.color ||
-        0xffb6d9,
-    );
-
-  /*
-   * Dùng GIF Usagi.
-   * Nếu sau này config.image có giá trị thì ưu tiên config.
-   */
-  embed.setImage(
-    config.image || USAGI_GIF,
-  );
-
-  return embed;
-}
-
-export function buildAudioSearchButtons() {
-  const config =
-    AUDIO_DEFAULTS.searchDashboard;
-
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('audioSearch')
-      .setLabel(
-        config.searchButtonLabel ||
-          'Search Audio',
-      )
-      .setEmoji('🔍')
-      .setStyle(ButtonStyle.Primary),
-  );
-}
-
-export function buildAudioSearchDashboard() {
-  return {
-    embeds: [
-      buildAudioSearchEmbed(),
-    ],
-
-    components: [
-      buildAudioSearchButtons(),
-    ],
-  };
-}
-
-/**
- * =========================================================
- * PLAYER DASHBOARD
- * =========================================================
- */
-
-export function buildAudioPlayerDashboard(
-  track,
-  player,
-  session,
-) {
-  const config =
-    AUDIO_DEFAULTS.playerDashboard;
-
-  const title =
-    track?.info?.title ||
-    'Unknown Audio';
-
-  const author =
-    track?.info?.author ||
-    'Unknown';
-
-  const duration =
-    Number(
-      track?.info?.length,
-    ) || 0;
-
-  const position =
-    Number(
-      player?.position,
-    ) || 0;
-
-  const isPaused =
-    Boolean(
-      player?.paused,
-    );
-
-  const loopMode =
-    session?.loopMode ||
-    'none';
-
-  const volume =
-    Number(
-      session?.volume ?? 100,
-    );
+export const AUDIO_DEFAULTS = {
+  enabled: true,
 
   /**
-   * -------------------------------------------------------
-   * EMBED
-   * -------------------------------------------------------
+   * =======================================================
+   * AUDIO CHANNEL
+   * =======================================================
    */
 
-  const embed =
-    new EmbedBuilder()
-      .setColor(
-        config.color ||
-          0xffb6d9,
-      )
-      .setTitle(
-        config.title ||
-          '🎧 Now Listening',
-      );
+  audioChannelId:
+    '1545469460931154052',
 
   /**
-   * -------------------------------------------------------
-   * TRACK
-   * -------------------------------------------------------
-   */
-
-  const description = [
-    `🎵 **${title}**`,
-    '',
-    `👤 ${author}`,
-    '',
-    '🎀 **Progress**',
-    buildProgressBar(
-      position,
-      duration,
-    ),
-    '',
-    `\`${formatTime(position)} / ${formatTime(duration)}\``,
-    '',
-    `🔊 Volume: **${volume}%**`,
-    `🔁 Loop: **${formatLoopMode(loopMode)}**`,
-    '',
-    isPaused
-      ? '⏸️ **Đang tạm dừng**'
-      : '▶️ **Đang phát**',
-  ];
-
-  embed.setDescription(
-    description.join('\n'),
-  );
-
-  /**
-   * -------------------------------------------------------
-   * USAGI GIF
-   * -------------------------------------------------------
+   * =======================================================
+   * USAGI VISUAL
+   * =======================================================
    *
-   * Dùng thumbnail thay vì setImage để GIF không chiếm
-   * toàn bộ chiều ngang dashboard.
+   * GIF bạn đã chọn.
    */
 
-  embed.setThumbnail(
-    config.image || USAGI_GIF,
-  );
+  usagiGif:
+    'https://i.pinimg.com/originals/95/c2/b3/95c2b36734919facb1e2682f387880d1.gif',
 
   /**
-   * Không dùng thumbnail YouTube nữa.
-   * Dashboard luôn giữ hình ảnh Usagi.
+   * =======================================================
+   * SEARCH DASHBOARD
+   * =======================================================
    */
 
-  return {
-    embeds: [
-      embed,
-    ],
+  searchDashboard: {
+    enabled: true,
 
-    components:
-      buildAudioPlayerButtons(
-        isPaused,
-        loopMode,
-      ),
-  };
-}
+    title:
+      '🌸 𝒰𝓈𝒶𝑔𝒾 𝒜𝓊𝒹𝒾𝑜',
 
-/**
- * =========================================================
- * PLAYER CONTROLS
- * =========================================================
- *
- * GIỮ NGUYÊN toàn bộ customId của Phase 3.
- */
+    description:
+      [
+        '╭─────────────── ♡ ───────────────╮',
+        '',
+        '  ✦ Tìm một câu chuyện',
+        '  ✦ Podcast hoặc audio',
+        '  ✦ Và cùng Usagi lắng nghe nhé',
+        '',
+        '╰─────────────── ♡ ───────────────╯',
+      ].join('\n'),
 
-export function buildAudioPlayerButtons(
-  isPaused = false,
-  loopMode = 'none',
-) {
-  /**
-   * -------------------------------------------------------
-   * ROW 1
-   * -------------------------------------------------------
-   */
+    /**
+     * GIF hiển thị phía dưới dashboard.
+     */
+    image:
+      'https://i.pinimg.com/originals/95/c2/b3/95c2b36734919facb1e2682f387880d1.gif',
 
-  const firstRow =
-    new ActionRowBuilder().addComponents(
+    color:
+      0xffb6d9,
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioPrevious',
-        )
-        .setEmoji('⏮️')
-        .setStyle(
-          ButtonStyle.Secondary,
-        ),
+    placeholder:
+      '🔎 Bạn muốn nghe gì hôm nay?',
 
-      new ButtonBuilder()
-        .setCustomId(
-          isPaused
-            ? 'audioResume'
-            : 'audioPause',
-        )
-        .setEmoji(
-          isPaused
-            ? '▶️'
-            : '⏸️',
-        )
-        .setStyle(
-          ButtonStyle.Primary,
-        ),
+    searchButtonLabel:
+      'Search Audio',
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioSkip',
-        )
-        .setEmoji('⏭️')
-        .setStyle(
-          ButtonStyle.Secondary,
-        ),
+    searchButtonEmoji:
+      '🔍',
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioLoop',
-        )
-        .setEmoji(
-          loopMode === 'none'
-            ? '🔁'
-            : '🔂',
-        )
-        .setStyle(
-          loopMode === 'none'
-            ? ButtonStyle.Secondary
-            : ButtonStyle.Success,
-        ),
+    footer:
+      '♡ Usagi Audio • YouTube Search',
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioStop',
-        )
-        .setEmoji('⏹️')
-        .setStyle(
-          ButtonStyle.Danger,
-        ),
-    );
+    showFooter:
+      true,
+  },
 
   /**
-   * -------------------------------------------------------
-   * ROW 2
-   * -------------------------------------------------------
+   * =======================================================
+   * PLAYER DASHBOARD
+   * =======================================================
    */
 
-  const secondRow =
-    new ActionRowBuilder().addComponents(
+  playerDashboard: {
+    enabled: true,
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioVolumeDown',
-        )
-        .setEmoji('🔉')
-        .setStyle(
-          ButtonStyle.Secondary,
-        ),
+    title:
+      '🎧 𝒩𝑜𝓌 𝐿𝒾𝓈𝓉𝑒𝓃𝒾𝓃𝑔',
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioVolumeUp',
-        )
-        .setEmoji('🔊')
-        .setStyle(
-          ButtonStyle.Secondary,
-        ),
+    description:
+      'Usagi đang cùng bạn lắng nghe ♡',
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioQueue',
-        )
-        .setEmoji('📜')
-        .setLabel('Queue')
-        .setStyle(
-          ButtonStyle.Secondary,
-        ),
+    /**
+     * GIF Usagi.
+     */
+    image:
+      'https://i.pinimg.com/originals/95/c2/b3/95c2b36734919facb1e2682f387880d1.gif',
 
-      new ButtonBuilder()
-        .setCustomId(
-          'audioSearch',
-        )
-        .setEmoji('🔍')
-        .setLabel('Search')
-        .setStyle(
-          ButtonStyle.Primary,
-        ),
-    );
+    color:
+      0xffb6d9,
 
-  return [
-    firstRow,
-    secondRow,
-  ];
-}
+    footer:
+      '♡ Usagi Audio Player',
 
-/**
- * =========================================================
- * PROGRESS BAR
- * =========================================================
- */
+    showFooter:
+      true,
 
-function buildProgressBar(
-  position,
-  duration,
-) {
-  if (
-    !duration ||
-    duration <= 0
-  ) {
-    return '🔴 **LIVE / STREAM**';
-  }
+    /**
+     * Hiển thị thanh tiến trình.
+     */
+    showProgress:
+      true,
 
-  const size = 20;
+    /**
+     * Hiển thị volume.
+     */
+    showVolume:
+      true,
 
-  const progress =
-    Math.min(
-      1,
-      Math.max(
-        0,
-        position / duration,
-      ),
-    );
+    /**
+     * Hiển thị queue.
+     */
+    showQueue:
+      true,
 
-  const filled =
-    Math.round(
-      progress * size,
-    );
+    /**
+     * Hiển thị thông tin tác giả.
+     */
+    showAuthor:
+      true,
 
-  const empty =
-    size - filled;
+    /**
+     * Hiển thị trạng thái Playing / Paused.
+     */
+    showStatus:
+      true,
 
-  return (
-    '╰' +
-    '━'.repeat(
-      Math.max(
-        0,
-        filled,
-      ),
-    ) +
-    (filled > 0
-      ? '●'
-      : '○') +
-    '─'.repeat(
-      Math.max(
-        0,
-        empty,
-      ),
-    ) +
-    '╯'
-  );
-}
+    /**
+     * Hiển thị chế độ Loop.
+     */
+    showLoop:
+      true,
+  },
 
-/**
- * =========================================================
- * FORMAT TIME
- * =========================================================
- */
+  /**
+   * =======================================================
+   * PLAYER BUTTONS
+   * =======================================================
+   *
+   * Chỉ dùng để quản lý giao diện nút.
+   * Custom ID không đổi để không phá interaction hiện tại.
+   */
 
-export function formatTime(ms) {
-  if (
-    !ms ||
-    ms <= 0
-  ) {
-    return '00:00';
-  }
+  playerButtons: {
+    previous: {
+      label: 'Previous',
+      emoji: '⏮️',
+    },
 
-  const totalSeconds =
-    Math.floor(
-      ms / 1000,
-    );
+    pause: {
+      label: 'Pause',
+      emoji: '⏸️',
+    },
 
-  const hours =
-    Math.floor(
-      totalSeconds / 3600,
-    );
+    resume: {
+      label: 'Resume',
+      emoji: '▶️',
+    },
 
-  const minutes =
-    Math.floor(
-      (totalSeconds % 3600) / 60,
-    );
+    skip: {
+      label: 'Skip',
+      emoji: '⏭️',
+    },
 
-  const seconds =
-    totalSeconds % 60;
+    loop: {
+      label: 'Loop',
+      emoji: '🔁',
+    },
 
-  if (hours > 0) {
-    return `${hours}:${String(
-      minutes,
-    ).padStart(
-      2,
-      '0',
-    )}:${String(
-      seconds,
-    ).padStart(
-      2,
-      '0',
-    )}`;
-  }
+    loopActive: {
+      label: 'Loop',
+      emoji: '🔂',
+    },
 
-  return `${String(
-    minutes,
-  ).padStart(
-    2,
-    '0',
-  )}:${String(
-    seconds,
-  ).padStart(
-    2,
-    '0',
-  )}`;
-}
+    stop: {
+      label: 'Stop',
+      emoji: '⏹️',
+    },
 
-/**
- * =========================================================
- * LOOP MODE
- * =========================================================
- */
+    volumeDown: {
+      label: 'Volume -',
+      emoji: '🔉',
+    },
 
-function formatLoopMode(mode) {
-  switch (mode) {
-    case 'track':
-      return 'Track';
+    volumeUp: {
+      label: 'Volume +',
+      emoji: '🔊',
+    },
 
-    case 'queue':
-      return 'Queue';
+    queue: {
+      label: 'Queue',
+      emoji: '📜',
+    },
 
-    default:
-      return 'Off';
-  }
-}
+    search: {
+      label: 'Search',
+      emoji: '🔍',
+    },
+  },
 
-/**
- * =========================================================
- * NO RESULTS
- * =========================================================
- */
+  /**
+   * =======================================================
+   * SEARCH
+   * =======================================================
+   */
 
-export function buildAudioNoResults(
-  query,
-) {
-  const searchDashboard =
-    buildAudioSearchDashboard();
+  search: {
+    maxResults:
+      10,
 
-  const embed =
-    new EmbedBuilder()
-      .setTitle(
-        '🌸 Usagi không tìm thấy gì...',
-      )
-      .setDescription(
-        [
-          'Không tìm thấy audio phù hợp trên **YouTube**.',
-          '',
-          '🔎 **Từ khóa:**',
-          `> ${query}`,
-          '',
-          'Thử tìm bằng từ khóa khác nhé ♡',
-        ].join('\n'),
-      )
-      .setColor(
-        AUDIO_DEFAULTS
-          .searchDashboard
-          .color ||
-          0xffb6d9,
-      )
-      .setThumbnail(
-        USAGI_GIF,
-      );
+    regionCode:
+      'VN',
 
-  return {
-    embeds: [
-      embed,
-    ],
+    relevanceLanguage:
+      'vi',
 
-    components:
-      searchDashboard.components,
-  };
-}
+    safeSearch:
+      'moderate',
+  },
+
+  /**
+   * =======================================================
+   * QUEUE
+   * =======================================================
+   */
+
+  queue: {
+    maxTracks:
+      20,
+
+    loopMode:
+      'none',
+  },
+
+  /**
+   * =======================================================
+   * PERMISSIONS
+   * =======================================================
+   */
+
+  permissions: {
+    controlMode:
+      'voice',
+  },
+
+  /**
+   * =======================================================
+   * AUTO DISCONNECT
+   * =======================================================
+   */
+
+  autoDisconnect: {
+    enabled:
+      true,
+
+    delayMs:
+      60_000,
+  },
+};
+
+export default AUDIO_DEFAULTS;
