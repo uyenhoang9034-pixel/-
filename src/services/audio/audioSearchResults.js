@@ -31,20 +31,18 @@ export function buildAudioSearchResults(query, results) {
       AUDIO_DEFAULTS.searchDashboard.color,
     );
 
-  if (results.length > 0) {
-    embed.addFields(
-      results.slice(0, 10).map((result, index) => ({
-        name: `${index + 1}. ${result.title}`.slice(0, 256),
+  embed.addFields(
+    results.slice(0, 10).map((result, index) => ({
+      name: `${index + 1}. ${result.title}`.slice(0, 256),
 
-        value: [
-          `👤 ${result.author}`,
-          `⏱️ ${formatAudioDuration(result.duration)}`,
-        ].join(' • '),
+      value: [
+        `👤 ${result.author}`,
+        `⏱️ ${formatAudioDuration(result.duration)}`,
+      ].join(' • '),
 
-        inline: false,
-      })),
-    );
-  }
+      inline: false,
+    })),
+  );
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId('audioResults')
@@ -85,7 +83,7 @@ export function buildAudioNoResults(query) {
           [
             'Không tìm thấy audio phù hợp trên **YouTube**.',
             '',
-            `🔎 Từ khóa:',
+            '🔎 Từ khóa:',
             `> **${query}**`,
             '',
             'Thử tìm bằng từ khóa khác nhé ♡',
