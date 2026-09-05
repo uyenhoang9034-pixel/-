@@ -72,15 +72,41 @@ export default {
           .setRequired(false),
     ),
 
-async execute(
-  interaction,
-  guildConfig,
-  client,
-) {
+  async execute(
+    interaction,
+    guildConfig,
+    client,
+  ) {
     if (!interaction.guild) {
       return interaction.reply({
         content:
           '🌸 Lệnh này chỉ có thể sử dụng trong server.',
+        ephemeral: true,
+      });
+    }
+
+    /*
+     * =====================================================
+     * IMPORTANT
+     * =====================================================
+     *
+     * Luôn lấy Discord client trực tiếp từ interaction.
+     *
+     * Không phụ thuộc vào tham số client được truyền
+     * từ command loader.
+     *
+     * Điều này đảm bảo Audio luôn lấy đúng:
+     *
+     * interaction.client.riffy
+     */
+
+    const runtimeClient =
+      interaction.client;
+
+    if (!runtimeClient) {
+      return interaction.reply({
+        content:
+          '🌸 Không thể kết nối với hệ thống bot.',
         ephemeral: true,
       });
     }
@@ -118,20 +144,20 @@ async execute(
 
     /*
      * =====================================================
-     * NORMAL /audio
+     * INPUT
      * =====================================================
-     *
-     * Không có input:
-     *
-     * /audio
-     *
-     * → mở dashboard tìm kiếm như trước.
      */
 
     const input =
       interaction.options
         .getString('input')
         ?.trim();
+
+    /*
+     * =====================================================
+     * NORMAL /audio
+     * =====================================================
+     */
 
     if (!input) {
       session.textChannelId =
@@ -144,28 +170,24 @@ async execute(
 
     /*
      * =====================================================
-     * DIRECT YOUTUBE URL / SEARCH
+     * DIRECT SEARCH / YOUTUBE URL
      * =====================================================
      */
 
     await interaction.deferReply();
 
     try {
-      /*
-       * searchYouTubeAudio() hiện đã được nâng cấp
-       * để tự nhận diện:
-       *
-       * 1. YouTube URL
-       * 2. Từ khóa tìm kiếm
-       *
-       * Với URL → resolve trực tiếp.
-       */
-
       const results =
         await searchYouTubeAudio(
-          client,
+          runtimeClient,
           input,
         );
+
+      /*
+       * ===================================================
+       * NO RESULTS
+       * ===================================================
+       */
 
       if (!results.length) {
         return interaction.editReply({
@@ -237,14 +259,14 @@ async execute(
 
       /*
        * ===================================================
-       * CREATE / GET RIFFY PLAYER
+       * RIFFY PLAYER
        * ===================================================
        */
 
       const {
         player,
       } = await ensurePlayer(
-        client,
+        runtimeClient,
         interaction,
       );
 
@@ -256,7 +278,7 @@ async execute(
 
       /*
        * ===================================================
-       * MARK AS USAGI AUDIO
+       * MARK AUDIO TRACK
        * ===================================================
        */
 
@@ -288,9 +310,6 @@ async execute(
       session.textChannelId =
         channelId;
 
-      session.dashboardMessageId =
-        null;
-
       session.volume =
         Math.max(
           0,
@@ -307,12 +326,6 @@ async execute(
           track,
         );
 
-      /*
-       * ===================================================
-       * AUDIO SESSION QUEUE
-       * ===================================================
-       */
-
       session.queue.push(
         sessionTrack,
       );
@@ -322,7 +335,7 @@ async execute(
 
       /*
        * ===================================================
-       * RIFFY QUEUE
+       * ADD TO RIFFY QUEUE
        * ===================================================
        */
 
@@ -336,7 +349,7 @@ async execute(
 
       /*
        * ===================================================
-       * START PLAYBACK
+       * START
        * ===================================================
        */
 
@@ -364,12 +377,6 @@ async execute(
             ? track
             : null
         );
-
-      /*
-       * ===================================================
-       * SESSION STATE
-       * ===================================================
-       */
 
       if (currentTrack) {
         session.currentTrack =
@@ -404,12 +411,6 @@ async execute(
         );
       }
 
-      /*
-       * ===================================================
-       * AUDIO QUEUED BEHIND CURRENT TRACK
-       * ===================================================
-       */
-
       if (player.current) {
         return interaction.editReply(
           buildAudioPlayerDashboard(
@@ -427,7 +428,7 @@ async execute(
       );
     } catch (error) {
       console.error(
-        '[USAGI AUDIO DIRECT PLAY]',
+        '[USAGI AUDIO]',
         error,
       );
 
