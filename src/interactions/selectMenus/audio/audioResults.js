@@ -137,12 +137,15 @@ export default {
        * ===================================================
        */
 
-      const {
-        player,
-      } = await ensurePlayer(
-        client,
-        interaction,
-      );
+     const {
+  player,
+} = await ensurePlayer(
+  client,
+  interaction,
+  {
+    allowAudio: true,
+  },
+);
 
       if (!player) {
         throw new Error(
@@ -189,6 +192,8 @@ export default {
        */
 
       session.queue ??= [];
+      session.audioActive =
+  true;
 
       session.voiceChannelId =
         voiceChannel.id;
