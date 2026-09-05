@@ -12,12 +12,19 @@ import {
 
 import {
   searchYouTubeAudio,
+  isYouTubeUrl,
 } from '../../services/audio/audioYouTube.js';
 
 import {
   ensurePlayer,
   startPlayback,
 } from '../../services/music/musicActions.js';
+
+/**
+ * =========================================================
+ * CREATE SESSION TRACK
+ * =========================================================
+ */
 
 function createSessionTrack(track) {
   return {
@@ -47,6 +54,12 @@ function createSessionTrack(track) {
   };
 }
 
+/**
+ * =========================================================
+ * CHECK PLAYER IDLE
+ * =========================================================
+ */
+
 function isPlayerIdle(player) {
   return Boolean(
     player &&
@@ -55,6 +68,12 @@ function isPlayerIdle(player) {
     !player.current,
   );
 }
+
+/**
+ * =========================================================
+ * AUDIO COMMAND
+ * =========================================================
+ */
 
 export default {
   data: new SlashCommandBuilder()
@@ -77,6 +96,12 @@ export default {
     guildConfig,
     client,
   ) {
+    /**
+     * =====================================================
+     * SERVER ONLY
+     * =====================================================
+     */
+
     if (!interaction.guild) {
       return interaction.reply({
         content:
@@ -85,19 +110,10 @@ export default {
       });
     }
 
-    /*
+    /**
      * =====================================================
-     * IMPORTANT
+     * REAL DISCORD CLIENT
      * =====================================================
-     *
-     * Luôn lấy Discord client trực tiếp từ interaction.
-     *
-     * Không phụ thuộc vào tham số client được truyền
-     * từ command loader.
-     *
-     * Điều này đảm bảo Audio luôn lấy đúng:
-     *
-     * interaction.client.riffy
      */
 
     const runtimeClient =
@@ -117,15 +133,23 @@ export default {
     const channelId =
       interaction.channelId;
 
+    /**
+     * =====================================================
+     * AUDIO SESSION
+     * =====================================================
+     */
+
     const session =
       audioManager.getOrCreateSession(
         guildId,
       );
 
-    /*
+    /**
      * =====================================================
      * AUDIO TEXT CHANNEL
      * =====================================================
+     *
+     * /audio chỉ được dùng trong channel Audio
      */
 
     if (
@@ -142,7 +166,7 @@ export default {
       });
     }
 
-    /*
+    /**
      * =====================================================
      * INPUT
      * =====================================================
@@ -153,10 +177,16 @@ export default {
         .getString('input')
         ?.trim();
 
-    /*
+    /**
      * =====================================================
-     * NORMAL /audio
+     * NORMAL /AUDIO
      * =====================================================
+     *
+     * Không nhập input:
+     *
+     * /audio
+     *
+     * → mở Search Audio Dashboard
      */
 
     if (!input) {
@@ -168,22 +198,48 @@ export default {
       );
     }
 
-    /*
+    /**
      * =====================================================
-     * DIRECT SEARCH / YOUTUBE URL
+     * DEFER
      * =====================================================
      */
 
     await interaction.deferReply();
 
     try {
-      const results = await searchYouTubeAudio(
-  runtimeClient,
-  input,
-  interaction.user,
-);
+      /**
+       * ===================================================
+       * DETECT YOUTUBE URL
+       * ===================================================
+       */
 
-      /*
+      const directYouTube =
+        isYouTubeUrl(
+          input,
+        );
+
+      /**
+       * ===================================================
+       * SEARCH / RESOLVE
+       * ===================================================
+       *
+       * Nếu là URL:
+       *
+       *     chỉ lấy đúng video đó.
+       *
+       * Nếu là keyword:
+       *
+       *     lấy kết quả search đầu tiên.
+       */
+
+      const results =
+        await searchYouTubeAudio(
+          runtimeClient,
+          input,
+          interaction.user,
+        );
+
+      /**
        * ===================================================
        * NO RESULTS
        * ===================================================
@@ -198,12 +254,16 @@ export default {
               )
               .setDescription(
                 [
-                  'Usagi không tìm thấy video phù hợp trên **YouTube**.',
+                  directYouTube
+                    ? 'Usagi không thể lấy audio từ link YouTube này.'
+                    : 'Usagi không tìm thấy video phù hợp trên **YouTube**.',
                   '',
                   '🔎 **Bạn đã nhập:**',
                   `> ${input}`,
                   '',
-                  'Hãy kiểm tra lại link hoặc thử một từ khóa khác nhé ♡',
+                  directYouTube
+                    ? 'Hãy thử một link YouTube khác nhé ♡'
+                    : 'Hãy thử một từ khóa khác nhé ♡',
                 ].join('\n'),
               )
               .setColor(
@@ -217,6 +277,21 @@ export default {
         });
       }
 
+      /**
+       * ===================================================
+       * ONLY ONE TRACK
+       * ===================================================
+       *
+       * Rất quan trọng:
+       *
+       * Mỗi lần /audio input:<link>
+       *
+       * → chỉ lấy results[0]
+       *
+       * Không lấy playlist.
+       * Không add nhiều video.
+       */
+
       const result =
         results[0];
 
@@ -226,7 +301,7 @@ export default {
         );
       }
 
-      /*
+      /**
        * ===================================================
        * VOICE CHANNEL
        * ===================================================
@@ -257,21 +332,21 @@ export default {
         });
       }
 
-      /*
+      /**
        * ===================================================
        * RIFFY PLAYER
        * ===================================================
        */
 
       const {
-  player,
-} = await ensurePlayer(
-  runtimeClient,
-  interaction,
-  {
-    allowAudio: true,
-  },
-);
+        player,
+      } = await ensurePlayer(
+        runtimeClient,
+        interaction,
+        {
+          allowAudio: true,
+        },
+      );
 
       if (!player) {
         throw new Error(
@@ -279,7 +354,7 @@ export default {
         );
       }
 
-      /*
+      /**
        * ===================================================
        * MARK AUDIO TRACK
        * ===================================================
@@ -296,18 +371,23 @@ export default {
       track.info.requester =
         interaction.user;
 
+      /**
+       * Audio owns this player.
+       */
+
       player.__usagiAudio =
         true;
 
-      /*
+      /**
        * ===================================================
        * SESSION
        * ===================================================
        */
 
       session.queue ??= [];
+
       session.audioActive =
-  true;
+        true;
 
       session.voiceChannelId =
         voiceChannel.id;
@@ -326,10 +406,41 @@ export default {
           ),
         );
 
+      /**
+       * ===================================================
+       * CREATE SESSION TRACK
+       * ===================================================
+       */
+
       const sessionTrack =
         createSessionTrack(
           track,
         );
+
+      /**
+       * ===================================================
+       * CHECK PLAYER STATE BEFORE ADDING
+       * ===================================================
+       *
+       * Nếu player đang phát:
+       *
+       *     → add vào queue
+       *
+       * Nếu player đang rảnh:
+       *
+       *     → add rồi play ngay
+       */
+
+      const wasIdle =
+        isPlayerIdle(
+          player,
+        );
+
+      /**
+       * ===================================================
+       * ADD TO SESSION QUEUE
+       * ===================================================
+       */
 
       session.queue.push(
         sessionTrack,
@@ -338,10 +449,12 @@ export default {
       session.lastSelectedTrack =
         sessionTrack;
 
-      /*
+      /**
        * ===================================================
        * ADD TO RIFFY QUEUE
        * ===================================================
+       *
+       * Chỉ add đúng 1 track.
        */
 
       player.queue.add(
@@ -352,16 +465,23 @@ export default {
         session.volume,
       );
 
-      /*
+      /**
        * ===================================================
-       * START
+       * START ONLY IF IDLE
        * ===================================================
+       *
+       * Đây là phần quan trọng nhất.
+       *
+       * Nếu đang có bài:
+       *
+       *     wasIdle === false
+       *
+       * → KHÔNG gọi play()
+       *
+       * → bài hiện tại tiếp tục chạy.
+       *
+       * Track mới nằm trong queue.
        */
-
-      const wasIdle =
-        isPlayerIdle(
-          player,
-        );
 
       if (wasIdle) {
         await startPlayback(
@@ -369,7 +489,7 @@ export default {
         );
       }
 
-      /*
+      /**
        * ===================================================
        * CURRENT TRACK
        * ===================================================
@@ -390,6 +510,12 @@ export default {
           );
       }
 
+      /**
+       * ===================================================
+       * PLAYER STATE
+       * ===================================================
+       */
+
       session.isPlaying =
         Boolean(
           player.playing,
@@ -400,9 +526,9 @@ export default {
           player.paused,
         );
 
-      /*
+      /**
        * ===================================================
-       * PLAYER DASHBOARD
+       * DASHBOARD
        * ===================================================
        */
 
@@ -416,6 +542,17 @@ export default {
         );
       }
 
+      /**
+       * ===================================================
+       * QUEUED WHILE PLAYING
+       * ===================================================
+       *
+       * Nếu bài hiện tại vẫn đang phát,
+       * giữ dashboard hiện tại.
+       *
+       * Không thay currentTrack thành bài vừa add.
+       */
+
       if (player.current) {
         return interaction.editReply(
           buildAudioPlayerDashboard(
@@ -426,12 +563,24 @@ export default {
         );
       }
 
+      /**
+       * ===================================================
+       * SAFETY CHECK
+       * ===================================================
+       */
+
       throw new Error(
         `Audio was queued but playback did not start. Queue length: ${
           player.queue?.length || 0
         }`,
       );
     } catch (error) {
+      /**
+       * ===================================================
+       * ERROR LOG
+       * ===================================================
+       */
+
       console.error(
         '[USAGI AUDIO]',
         error,
