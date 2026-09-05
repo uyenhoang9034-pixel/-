@@ -213,6 +213,9 @@ export function setupPlayerHandler(client) {
     });
 
     client.riffy.on('playerDisconnect', async (player) => {
+    if (isAudioPlayer(player)) {
+        return;
+    }
         const guildData = getGuildMusicData(player.guildId);
         clearUpdateInterval(guildData);
 
@@ -238,7 +241,10 @@ export function setupPlayerHandler(client) {
         }
     });
 
-    client.riffy.on('trackError', async (player, track, payload) => {
+   client.riffy.on('trackError', async (player, track, payload) => {
+    if (isAudioTrack(track) || isAudioPlayer(player)) {
+        return;
+    }
         logger.error(`Track error in ${player.guildId} for "${track?.info?.title}":`, payload?.error || payload);
         const guildData = getGuildMusicData(player.guildId);
         if (guildData.playerChannelId) {
