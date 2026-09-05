@@ -72,10 +72,11 @@ export default {
           .setRequired(false),
     ),
 
-  async execute(
-    interaction,
-    client,
-  ) {
+async execute(
+  interaction,
+  guildConfig,
+  client,
+) {
     if (!interaction.guild) {
       return interaction.reply({
         content:
