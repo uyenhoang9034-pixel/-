@@ -2,100 +2,18 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 
-import { once } from 'node:events';
-
 import audioManager from '../../../services/audio/audioManager.js';
 
 import {
   ensurePlayer,
+  startPlayback,
 } from '../../../services/music/musicActions.js';
-
-import {
-  formatAudioDuration,
-} from '../../../services/audio/audioYouTube.js';
 
 import {
   buildAudioPlayerDashboard,
 } from '../../../services/audio/audioDashboard.js';
 
 
-const PLAYER_CONNECT_TIMEOUT_MS = 12_000;
-
-
-/**
- * Wait until Riffy has successfully established
- * the Discord voice connection.
- *
- * This follows the same connection flow used
- * by the existing Music system.
- */
-async function waitForPlayerConnection(player) {
-  /*
-   * Already connected.
-   */
-  if (player.connected) {
-    return;
-  }
-
-  /*
-   * Ask Riffy to resolve the connection first.
-   */
-  try {
-    await player.connection.resolve();
-  } catch {
-    /*
-     * If resolve() does not immediately complete,
-     * wait for Riffy's connection event below.
-     */
-  }
-
-  if (player.connected) {
-    return;
-  }
-
-  /*
-   * Wait for Lavalink/Riffy to confirm
-   * that the voice connection is ready.
-   */
-  try {
-    await once(
-      player,
-      'connectionRestored',
-      {
-        signal: AbortSignal.timeout(
-          PLAYER_CONNECT_TIMEOUT_MS,
-        ),
-      },
-    );
-  } catch {
-    /*
-     * Timeout is handled below.
-     */
-  }
-
-  if (!player.connected) {
-    throw new Error(
-      'Usagi chưa thể kết nối vào voice channel. Hãy kiểm tra quyền Connect/Speak của bot rồi thử lại.',
-    );
-  }
-}
-
-
-/**
- * Start playback only after the voice connection
- * has been established.
- */
-async function startAudioPlayback(player) {
-  await waitForPlayerConnection(player);
-
-  await player.play();
-}
-
-
-/**
- * Convert a Riffy track into the format used
- * by the Audio session.
- */
 function createSessionTrack(track) {
   return {
     track,
@@ -139,7 +57,7 @@ export default {
       );
 
     /*
-     * Validate selected search result.
+     * Kiểm tra kết quả tìm kiếm còn tồn tại.
      */
     if (
       !Number.isInteger(
@@ -173,7 +91,7 @@ export default {
     }
 
     /*
-     * User must be inside a voice channel.
+     * Người dùng phải ở trong voice channel.
      */
     const voiceChannel =
       interaction.member?.voice?.channel;
@@ -190,10 +108,9 @@ export default {
 
     try {
       /*
-       * Reuse the existing Riffy player system.
+       * Dùng PLAYER của hệ thống Music hiện tại.
        *
-       * ensurePlayer() is also used by the
-       * existing Music system.
+       * Không tạo Riffy connection riêng.
        */
       const {
         player,
@@ -206,7 +123,7 @@ export default {
         result.track;
 
       /*
-       * Save requester information.
+       * Lưu người yêu cầu audio.
        */
       if (track.info) {
         track.info.requester =
@@ -214,8 +131,7 @@ export default {
       }
 
       /*
-       * Store Audio queue separately from
-       * the existing Music data.
+       * Lưu Audio queue riêng.
        */
       session.queue ??= [];
 
@@ -224,14 +140,14 @@ export default {
       );
 
       /*
-       * Add track to Riffy queue.
+       * Thêm track vào Riffy queue.
        */
       player.queue.add(
         track,
       );
 
       /*
-       * Store current voice/text channel.
+       * Lưu thông tin session.
        */
       session.voiceChannelId =
         voiceChannel.id;
@@ -240,7 +156,7 @@ export default {
         interaction.channelId;
 
       /*
-       * Keep volume synchronized.
+       * Volume mặc định.
        */
       session.volume =
         Number(
@@ -252,10 +168,9 @@ export default {
       );
 
       /*
-       * Check whether player is idle.
+       * Player đang idle?
        *
-       * If it is idle, this selected track
-       * should become the current track.
+       * Nếu có thì bắt đầu phát.
        */
       const shouldStart =
         !player.playing &&
@@ -264,34 +179,36 @@ export default {
 
       if (shouldStart) {
         /*
-         * IMPORTANT:
+         * QUAN TRỌNG:
          *
-         * Wait for the Discord voice connection
-         * before calling player.play().
+         * Dùng chính startPlayback()
+         * của Music system.
+         *
+         * Hàm này đã xử lý:
+         * - Lavalink
+         * - Discord Voice State
+         * - Riffy connection
+         * - player.play()
          */
-        await startAudioPlayback(
+        await startPlayback(
           player,
         );
       }
 
       /*
-       * Riffy normally sets player.current
-       * immediately after playback begins.
+       * Riffy có thể cần một chút thời gian
+       * để cập nhật player.current.
        *
-       * In case it has not updated yet, use
-       * the selected track as temporary fallback.
+       * Fallback về track vừa chọn nếu cần.
        */
       const currentTrack =
         player.current ||
         track;
 
-      const sessionTrack =
+      session.currentTrack =
         createSessionTrack(
           currentTrack,
         );
-
-      session.currentTrack =
-        sessionTrack;
 
       session.isPlaying =
         true;
@@ -300,7 +217,7 @@ export default {
         false;
 
       /*
-       * Show the actual Usagi Audio Player.
+       * Hiển thị Usagi Audio Dashboard.
        */
       return interaction.editReply(
         buildAudioPlayerDashboard(
@@ -309,6 +226,7 @@ export default {
           session,
         ),
       );
+
     } catch (error) {
       return interaction.editReply({
         embeds: [
@@ -325,7 +243,7 @@ export default {
                   'Unknown error'
                 }`,
                 '',
-                'Hãy đảm bảo bot có quyền **Connect** và **Speak** trong voice channel nhé ♡',
+                'Hãy kiểm tra bot có quyền **Connect** và **Speak** trong voice channel nhé ♡',
               ].join('\n'),
             )
             .setColor(
