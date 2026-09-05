@@ -1,22 +1,18 @@
 /**
  * Usagi Audio - YouTube Search
  *
- * Uses the existing Riffy/Lavalink system.
- *
- * IMPORTANT:
- * Audio search is restricted to YouTube.
- * We intentionally use `ytsearch:` instead of the default
- * search platform so this module does not search other platforms.
+ * Audio chỉ tìm trên YouTube.
+ * Playback dùng chung Riffy/Lavalink hiện tại.
  */
 
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+import {
+  TitanBotError,
+  ErrorTypes,
+} from '../../utils/errorHandler.js';
 
 const MAX_RESULTS = 10;
 const MAX_QUERY_LENGTH = 200;
 
-/**
- * Make sure Riffy is available.
- */
 function assertRiffy(client) {
   if (!client?.riffy) {
     throw new TitanBotError(
@@ -27,13 +23,14 @@ function assertRiffy(client) {
   }
 }
 
-/**
- * Search YouTube through Lavalink/Riffy.
- */
-export async function searchYouTubeAudio(client, query) {
+export async function searchYouTubeAudio(
+  client,
+  query,
+) {
   assertRiffy(client);
 
-  const cleanQuery = String(query || '').trim();
+  const cleanQuery =
+    String(query || '').trim();
 
   if (!cleanQuery) {
     throw new TitanBotError(
@@ -43,7 +40,10 @@ export async function searchYouTubeAudio(client, query) {
     );
   }
 
-  if (cleanQuery.length > MAX_QUERY_LENGTH) {
+  if (
+    cleanQuery.length >
+    MAX_QUERY_LENGTH
+  ) {
     throw new TitanBotError(
       'Audio query too long',
       ErrorTypes.USER_INPUT,
@@ -52,93 +52,131 @@ export async function searchYouTubeAudio(client, query) {
   }
 
   /*
-   * IMPORTANT:
+   * QUAN TRỌNG
    *
-   * ytsearch: = YouTube search
+   * Dùng ytsearch:
    *
-   * We do not use:
-   * - ytmsearch:
-   * - spsearch:
-   * - scsearch:
-   * - dzsearch:
+   * - Chỉ tìm YouTube
+   * - Không tìm Spotify
+   * - Không tìm SoundCloud
+   * - Không dùng ytmsearch
+   *
+   * ytmsearch dùng MUSIC client,
+   * trong khi MUSIC không phải playback client.
    */
-  const result = await client.riffy.resolve({
-   query: `ytmsearch:${cleanQuery}`,
-    requester: null,
-  });
+  const result =
+    await client.riffy.resolve({
+      query:
+        `ytsearch:${cleanQuery}`,
 
-  const loadType = String(result?.loadType || '').toUpperCase();
+      requester: null,
+    });
+
+  const loadType =
+    String(
+      result?.loadType || '',
+    ).toUpperCase();
 
   if (
-    loadType === 'NO_MATCHES'
-    || loadType === 'NO_MATCH'
-    || loadType === 'EMPTY'
+    loadType === 'NO_MATCHES' ||
+    loadType === 'NO_MATCH' ||
+    loadType === 'EMPTY'
   ) {
     return [];
   }
 
-  const tracks = Array.isArray(result?.tracks)
-    ? result.tracks
-    : [];
+  const tracks =
+    Array.isArray(
+      result?.tracks,
+    )
+      ? result.tracks
+      : [];
 
   return tracks
     .filter((track) => {
-      const uri = track?.info?.uri || '';
+      const uri =
+        track?.info?.uri || '';
 
-      /*
-       * Extra safety:
-       * only return actual YouTube URLs.
-       */
-      return /(?:youtube\.com|youtu\.be)/i.test(uri);
+      return /(?:youtube\.com|youtu\.be)/i.test(
+        uri,
+      );
     })
     .slice(0, MAX_RESULTS)
-    .map((track, index) => ({
-      index,
+    .map(
+      (track, index) => ({
+        index,
 
-      title:
-        track?.info?.title ||
-        'Unknown YouTube video',
+        title:
+          track?.info?.title ||
+          'Unknown YouTube video',
 
-      author:
-        track?.info?.author ||
-        'Unknown',
+        author:
+          track?.info?.author ||
+          'Unknown',
 
-      uri:
-        track?.info?.uri ||
-        null,
+        uri:
+          track?.info?.uri ||
+          null,
 
-      duration:
-        Number(track?.info?.length) || 0,
+        duration:
+          Number(
+            track?.info?.length,
+          ) || 0,
 
-      thumbnail:
-        track?.info?.artworkUrl ||
-        track?.info?.thumbnail ||
-        null,
+        thumbnail:
+          track?.info?.artworkUrl ||
+          track?.info?.thumbnail ||
+          null,
 
-      isStream:
-        Boolean(track?.info?.isStream),
+        isStream:
+          Boolean(
+            track?.info?.isStream,
+          ),
 
-      track,
-    }));
+        track,
+      }),
+    );
 }
 
-/**
- * Format milliseconds into a Discord-friendly duration.
- */
-export function formatAudioDuration(milliseconds) {
-  if (!milliseconds || milliseconds <= 0) {
+export function formatAudioDuration(
+  milliseconds,
+) {
+  if (
+    !milliseconds ||
+    milliseconds <= 0
+  ) {
     return 'Live';
   }
 
-  const totalSeconds = Math.floor(milliseconds / 1000);
+  const totalSeconds =
+    Math.floor(
+      milliseconds / 1000,
+    );
 
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const hours =
+    Math.floor(
+      totalSeconds / 3600,
+    );
+
+  const minutes =
+    Math.floor(
+      (totalSeconds % 3600) /
+        60,
+    );
+
+  const seconds =
+    totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    return (
+      `${hours}:` +
+      `${String(minutes).padStart(2, '0')}:` +
+      `${String(seconds).padStart(2, '0')}`
+    );
   }
 
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  return (
+    `${minutes}:` +
+    `${String(seconds).padStart(2, '0')}`
+  );
 }
