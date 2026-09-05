@@ -170,9 +170,12 @@ export function setupAudioPlayerEvents(
       }
 
       player.__usagiAudio =
-        true;
+  true;
 
-      session.currentTrack =
+session.audioActive =
+  true;
+
+session.currentTrack =
         createTrackData(
           track,
         );
@@ -353,12 +356,16 @@ export function setupAudioPlayerEvents(
 
       session.currentTrack =
         null;
+      session.audioActive =
+  false;
 
       session.isPlaying =
         false;
 
       session.isPaused =
         false;
+      player.__usagiAudio =
+  false;
 
       /*
        * KHÔNG destroy player ở đây.
@@ -406,12 +413,16 @@ export function setupAudioPlayerEvents(
 
       session.currentTrack =
         null;
+      session.audioActive =
+  false;
 
       session.isPlaying =
         false;
 
       session.isPaused =
         false;
+      player.__usagiAudio =
+  false;
 
       const message =
         await getDashboardMessage(
