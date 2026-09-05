@@ -279,10 +279,15 @@ function formatLoopMode(mode) {
 }
 
 export function buildAudioNoResults(query) {
+  const searchDashboard =
+    buildAudioSearchDashboard();
+
   return {
     embeds: [
       new EmbedBuilder()
-        .setTitle('🌸 Usagi không tìm thấy gì...')
+        .setTitle(
+          '🌸 Usagi không tìm thấy gì...',
+        )
         .setDescription(
           [
             'Không tìm thấy audio phù hợp trên **YouTube**.',
@@ -294,9 +299,13 @@ export function buildAudioNoResults(query) {
           ].join('\n'),
         )
         .setColor(
-          AUDIO_DEFAULTS.searchDashboard.color,
+          AUDIO_DEFAULTS
+            .searchDashboard
+            .color,
         ),
     ],
-    components: [],
+
+    components:
+      searchDashboard.components,
   };
 }
