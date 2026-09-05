@@ -353,13 +353,30 @@ async function handleStop(
   }
 
   try {
-    player.stop();
-  } catch {
-    // ignore
-  }
+  player.stop();
+} catch {
+  // ignore
+}
 
-  session.currentTrack = null;
-  session.queue = [];
+/*
+ * Audio đã nhường quyền điều khiển player.
+ *
+ * Track hiện tại vẫn có __usagiAudio
+ * nên Music sẽ không xử lý nhầm
+ * event stop ngay lập tức.
+ */
+setTimeout(() => {
+  player.__usagiAudio =
+    false;
+}, 500);
+
+session.currentTrack =
+  null;
+
+session.audioActive =
+  false;
+
+session.queue = [];
   session.history = [];
   session.searchResults = [];
   session.isPlaying = false;
