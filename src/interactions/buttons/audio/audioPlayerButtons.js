@@ -379,11 +379,15 @@ function buildQueueEmbed(
 
   if (player?.current) {
     lines.push(
-      `🎧 **Đang phát:** ${
-        player.current.info?.title ||
-        'Unknown'
-      }`,
-    );
+  `⋆.˚✮🎧✮˚.⋆ **Đang phát**`,
+);
+
+lines.push(
+  `> ${
+    player.current.info?.title ||
+    'Unknown'
+  }`,
+);
 
     lines.push('');
   }
@@ -395,7 +399,7 @@ function buildQueueEmbed(
 
   if (!queue.length) {
     lines.push(
-      '📭 Không còn audio trong queue.',
+      '<a:chiikawag11:1541427921674051674> Không còn audio trong queue.',
     );
   } else {
     queue
@@ -414,7 +418,7 @@ function buildQueueEmbed(
 
   return new EmbedBuilder()
     .setTitle(
-      '📜 Usagi Audio Queue',
+      '✨ 𝓤𝓼𝓪𝓰𝓲 𝓐𝓾𝓭𝓲𝓸 𝓠𝓾𝓮𝓾𝓮 ✨',
     )
     .setDescription(
       lines.join('\n'),
