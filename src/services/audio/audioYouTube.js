@@ -63,7 +63,7 @@ export async function searchYouTubeAudio(client, query) {
    * - dzsearch:
    */
   const result = await client.riffy.resolve({
-    query: `ytsearch:${cleanQuery}`,
+   query: `ytmsearch:${cleanQuery}`,
     requester: null,
   });
 
