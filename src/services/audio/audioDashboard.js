@@ -585,35 +585,6 @@ function buildProgressBar(
   return '∘₊✧──────✧₊∘';
 }
 
-  const size = 18;
-
-  const progress =
-    Math.min(
-      1,
-      Math.max(
-        0,
-        position / duration,
-      ),
-    );
-
-  const filled =
-    Math.round(
-      progress * size,
-    );
-
-  const empty =
-    size - filled;
-
-  return (
-    '▰'.repeat(
-      filled,
-    ) +
-    '▱'.repeat(
-      empty,
-    )
-  );
-}
-
 /**
  * =========================================================
  * FORMAT TIME
