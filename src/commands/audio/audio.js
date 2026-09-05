@@ -148,8 +148,6 @@ export default {
      * =====================================================
      * AUDIO TEXT CHANNEL
      * =====================================================
-     *
-     * /audio chỉ được dùng trong channel Audio
      */
 
     if (
@@ -182,11 +180,9 @@ export default {
      * NORMAL /AUDIO
      * =====================================================
      *
-     * Không nhập input:
-     *
      * /audio
      *
-     * → mở Search Audio Dashboard
+     * → mở Search Audio Dashboard.
      */
 
     if (!input) {
@@ -200,6 +196,39 @@ export default {
 
     /**
      * =====================================================
+     * VOICE CHANNEL
+     * =====================================================
+     *
+     * Kiểm tra voice trước khi resolve.
+     */
+
+    const voiceChannel =
+      interaction.member?.voice
+        ?.channel;
+
+    if (!voiceChannel) {
+      return interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle(
+              '🌸 Chưa vào voice channel',
+            )
+            .setDescription(
+              'Bạn cần vào voice channel trước khi phát audio nhé ♡',
+            )
+            .setColor(
+              0xed4245,
+            ),
+        ],
+
+        components:
+          buildAudioSearchDashboard()
+            .components,
+      });
+    }
+
+    /**
+     * =====================================================
      * DEFER
      * =====================================================
      */
@@ -207,6 +236,64 @@ export default {
     await interaction.deferReply();
 
     try {
+      /**
+       * ===================================================
+       * IMPORTANT:
+       * CREATE RIFFY PLAYER FIRST
+       * ===================================================
+       *
+       * Đây là phần sửa lỗi chính.
+       *
+       * Trước đây:
+       *
+       *     resolve YouTube
+       *         ↓
+       *     createConnection
+       *         ↓
+       *     play
+       *
+       * Có thể khiến Riffy chưa nhận đủ
+       * Voice State / Voice Server Update.
+       *
+       * Bây giờ:
+       *
+       *     createConnection
+       *         ↓
+       *     resolve YouTube
+       *         ↓
+       *     add queue
+       *         ↓
+       *     play
+       *
+       * Trong thời gian Lavalink resolve YouTube,
+       * voice connection có thời gian được thiết lập.
+       */
+
+      const {
+        player,
+      } = await ensurePlayer(
+        runtimeClient,
+        interaction,
+        {
+          allowAudio: true,
+        },
+      );
+
+      if (!player) {
+        throw new Error(
+          'Riffy player could not be created.',
+        );
+      }
+
+      /**
+       * Đánh dấu player thuộc Audio.
+       *
+       * Music playerHandler sẽ bỏ qua player này.
+       */
+
+      player.__usagiAudio =
+        true;
+
       /**
        * ===================================================
        * DETECT YOUTUBE URL
@@ -223,13 +310,13 @@ export default {
        * SEARCH / RESOLVE
        * ===================================================
        *
-       * Nếu là URL:
+       * YouTube URL:
        *
-       *     chỉ lấy đúng video đó.
+       *     lấy đúng 1 video.
        *
-       * Nếu là keyword:
+       * Keyword:
        *
-       *     lấy kết quả search đầu tiên.
+       *     lấy kết quả đầu tiên.
        */
 
       const results =
@@ -282,14 +369,12 @@ export default {
        * ONLY ONE TRACK
        * ===================================================
        *
-       * Rất quan trọng:
+       * Mỗi /audio input:<link>
        *
-       * Mỗi lần /audio input:<link>
+       * → chỉ lấy results[0].
        *
-       * → chỉ lấy results[0]
-       *
-       * Không lấy playlist.
-       * Không add nhiều video.
+       * Không playlist.
+       * Không tự lấy thêm video.
        */
 
       const result =
@@ -301,67 +386,14 @@ export default {
         );
       }
 
-      /**
-       * ===================================================
-       * VOICE CHANNEL
-       * ===================================================
-       */
-
-      const voiceChannel =
-        interaction.member?.voice
-          ?.channel;
-
-      if (!voiceChannel) {
-        return interaction.editReply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle(
-                '🌸 Chưa vào voice channel',
-              )
-              .setDescription(
-                'Bạn cần vào voice channel trước khi phát audio nhé ♡',
-              )
-              .setColor(
-                0xed4245,
-              ),
-          ],
-
-          components:
-            buildAudioSearchDashboard()
-              .components,
-        });
-      }
-
-      /**
-       * ===================================================
-       * RIFFY PLAYER
-       * ===================================================
-       */
-
-      const {
-        player,
-      } = await ensurePlayer(
-        runtimeClient,
-        interaction,
-        {
-          allowAudio: true,
-        },
-      );
-
-      if (!player) {
-        throw new Error(
-          'Riffy player could not be created.',
-        );
-      }
+      const track =
+        result.track;
 
       /**
        * ===================================================
        * MARK AUDIO TRACK
        * ===================================================
        */
-
-      const track =
-        result.track;
 
       track.info ??= {};
 
@@ -370,13 +402,6 @@ export default {
 
       track.info.requester =
         interaction.user;
-
-      /**
-       * Audio owns this player.
-       */
-
-      player.__usagiAudio =
-        true;
 
       /**
        * ===================================================
@@ -419,16 +444,8 @@ export default {
 
       /**
        * ===================================================
-       * CHECK PLAYER STATE BEFORE ADDING
+       * CHECK PLAYER STATE
        * ===================================================
-       *
-       * Nếu player đang phát:
-       *
-       *     → add vào queue
-       *
-       * Nếu player đang rảnh:
-       *
-       *     → add rồi play ngay
        */
 
       const wasIdle =
@@ -438,7 +455,7 @@ export default {
 
       /**
        * ===================================================
-       * ADD TO SESSION QUEUE
+       * ADD TO AUDIO SESSION QUEUE
        * ===================================================
        */
 
@@ -457,9 +474,21 @@ export default {
        * Chỉ add đúng 1 track.
        */
 
+      if (!player.queue) {
+        throw new Error(
+          'Riffy player queue is unavailable.',
+        );
+      }
+
       player.queue.add(
         track,
       );
+
+      /**
+       * ===================================================
+       * VOLUME
+       * ===================================================
+       */
 
       player.setVolume(
         session.volume,
@@ -467,20 +496,16 @@ export default {
 
       /**
        * ===================================================
-       * START ONLY IF IDLE
+       * START PLAYBACK
        * ===================================================
        *
-       * Đây là phần quan trọng nhất.
+       * Chỉ play nếu player đang idle.
        *
-       * Nếu đang có bài:
+       * Nếu đang phát:
        *
-       *     wasIdle === false
+       *     → track mới nằm trong queue.
        *
-       * → KHÔNG gọi play()
-       *
-       * → bài hiện tại tiếp tục chạy.
-       *
-       * Track mới nằm trong queue.
+       * Không cắt bài hiện tại.
        */
 
       if (wasIdle) {
@@ -503,18 +528,18 @@ export default {
             : null
         );
 
+      /**
+       * ===================================================
+       * UPDATE SESSION
+       * ===================================================
+       */
+
       if (currentTrack) {
         session.currentTrack =
           createSessionTrack(
             currentTrack,
           );
       }
-
-      /**
-       * ===================================================
-       * PLAYER STATE
-       * ===================================================
-       */
 
       session.isPlaying =
         Boolean(
@@ -528,7 +553,7 @@ export default {
 
       /**
        * ===================================================
-       * DASHBOARD
+       * PLAYER DASHBOARD
        * ===================================================
        */
 
@@ -544,13 +569,12 @@ export default {
 
       /**
        * ===================================================
-       * QUEUED WHILE PLAYING
+       * TRACK QUEUED
        * ===================================================
        *
-       * Nếu bài hiện tại vẫn đang phát,
-       * giữ dashboard hiện tại.
+       * Nếu đang có bài khác phát:
        *
-       * Không thay currentTrack thành bài vừa add.
+       *     giữ dashboard của bài hiện tại.
        */
 
       if (player.current) {
