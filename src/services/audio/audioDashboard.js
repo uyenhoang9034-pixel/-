@@ -180,7 +180,7 @@ export function buildAudioPlayerDashboard(
    * Track title
    */
   descriptionParts.push(
-    `🎧 **${title}**`,
+    `⋆.ೃ࿔🌸*:･ **${title}**`,
   );
 
   /**
@@ -191,7 +191,7 @@ export function buildAudioPlayerDashboard(
   ) {
     descriptionParts.push(
       '',
-      `👤 ${author}`,
+      `<:chiikawa1:1541375141261484072> ${author}`,
     );
   }
 
@@ -246,8 +246,8 @@ export function buildAudioPlayerDashboard(
     descriptionParts.push(
       '',
       isPaused
-        ? '⏸️ **Đang tạm dừng**'
-        : '▶️ **Đang phát**',
+        ? '⋆.˚✮🎧✮˚.⋆ **Đang tạm dừng**'
+        : '⋆.˚✮🎧✮˚.⋆ **Đang phát**',
     );
   }
 
@@ -261,7 +261,7 @@ export function buildAudioPlayerDashboard(
     new EmbedBuilder()
       .setTitle(
         config.title ||
-          '🎧 𝒩𝑜𝓌 𝐿𝒾𝓈𝓉𝑒𝓃𝒾𝓃𝑔',
+          '⋆.ೃ࿔🌸*:･ 𝒩𝑜𝓌 𝐿𝒾𝓈𝓉𝑒𝓃𝒾𝓃𝑔',
       )
       .setDescription(
         descriptionParts.join(
@@ -582,12 +582,8 @@ function buildProgressBar(
   position,
   duration,
 ) {
-  if (
-    !duration ||
-    duration <= 0
-  ) {
-    return '🔴 **Live / Stream**';
-  }
+  return '∘₊✧──────✧₊∘';
+}
 
   const size = 18;
 
