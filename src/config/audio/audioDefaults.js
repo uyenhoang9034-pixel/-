@@ -10,7 +10,7 @@ export const AUDIO_DEFAULTS = {
 
   // The bot will only allow /audio inside this channel.
   // Set this later through the Audio Dashboard.
-  audioChannelId: null,
+  audioChannelId: '1545469460931154052',
 
   // Search dashboard
   searchDashboard: {
