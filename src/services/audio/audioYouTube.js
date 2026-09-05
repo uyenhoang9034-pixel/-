@@ -112,6 +112,7 @@ export function isYouTubeUrl(
 export async function searchYouTubeAudio(
   source,
   query,
+  requester = null,
 ) {
   const {
     riffy,
@@ -172,8 +173,7 @@ export async function searchYouTubeAudio(
       query:
         resolveQuery,
 
-      requester:
-        null,
+      requester,
     });
 
   const loadType =
