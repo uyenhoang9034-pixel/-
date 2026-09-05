@@ -8,11 +8,11 @@ import {
 import { AUDIO_DEFAULTS } from '../../../config/audio/audioDefaults.js';
 
 export default {
-  name: 'audio:search',
+  name: 'audioSearch',
 
   async execute(interaction) {
     const modal = new ModalBuilder()
-      .setCustomId('audio:search-modal')
+      .setCustomId('audioSearchModal')
       .setTitle('🔎 Tìm Audio');
 
     const searchInput = new TextInputBuilder()
