@@ -7,49 +7,134 @@ import {
 
 import { AUDIO_DEFAULTS } from '../../config/audio/audioDefaults.js';
 
+/**
+ * =========================================================
+ * USAGI AUDIO
+ * PHASE 4 — DASHBOARD
+ * =========================================================
+ *
+ * File này CHỈ phụ trách giao diện.
+ *
+ * Không xử lý:
+ * - YouTube search
+ * - Riffy
+ * - Queue
+ * - Playback
+ * - Voice connection
+ *
+ * Không thay đổi customId của các interaction hiện tại.
+ */
+
+/**
+ * =========================================================
+ * SEARCH DASHBOARD
+ * =========================================================
+ */
+
 export function buildAudioSearchEmbed() {
-  const config = AUDIO_DEFAULTS.searchDashboard;
+  const config =
+    AUDIO_DEFAULTS.searchDashboard;
 
-  const embed = new EmbedBuilder()
-    .setTitle(config.title)
-    .setDescription(config.description)
-    .setColor(config.color);
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        config.title ||
+          '🌸 𝒰𝓈𝒶𝑔𝒾 𝒜𝓊𝒹𝒾𝑜',
+      )
+      .setDescription(
+        config.description ||
+          'Tìm một câu chuyện, podcast hoặc audio mà bạn muốn nghe cùng Usagi nhé ♡',
+      )
+      .setColor(
+        config.color ||
+          0xffb6d9,
+      );
 
+  /**
+   * GIF Usagi
+   */
   if (config.image) {
-    embed.setImage(config.image);
+    embed.setImage(
+      config.image,
+    );
+  }
+
+  /**
+   * Footer
+   */
+  if (
+    config.showFooter &&
+    config.footer
+  ) {
+    embed.setFooter({
+      text: config.footer,
+    });
   }
 
   return embed;
 }
 
-export function buildAudioSearchButtons() {
-  const config = AUDIO_DEFAULTS.searchDashboard;
+/**
+ * =========================================================
+ * SEARCH BUTTON
+ * =========================================================
+ */
 
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('audioSearch')
-      .setLabel(config.searchButtonLabel)
-      .setEmoji('🔍')
-      .setStyle(ButtonStyle.Primary),
-  );
+export function buildAudioSearchButtons() {
+  const config =
+    AUDIO_DEFAULTS.searchDashboard;
+
+  return new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(
+          'audioSearch',
+        )
+        .setLabel(
+          config.searchButtonLabel ||
+            'Search Audio',
+        )
+        .setEmoji(
+          config.searchButtonEmoji ||
+            '🔍',
+        )
+        .setStyle(
+          ButtonStyle.Primary,
+        ),
+    );
 }
+
+/**
+ * =========================================================
+ * SEARCH DASHBOARD
+ * =========================================================
+ */
 
 export function buildAudioSearchDashboard() {
   return {
-    embeds: [buildAudioSearchEmbed()],
-    components: [buildAudioSearchButtons()],
+    embeds: [
+      buildAudioSearchEmbed(),
+    ],
+
+    components: [
+      buildAudioSearchButtons(),
+    ],
   };
 }
 
 /**
- * Main Usagi Audio player dashboard.
+ * =========================================================
+ * PLAYER DASHBOARD
+ * =========================================================
  */
+
 export function buildAudioPlayerDashboard(
   track,
   player,
   session,
 ) {
-  const config = AUDIO_DEFAULTS.playerDashboard;
+  const config =
+    AUDIO_DEFAULTS.playerDashboard;
 
   const title =
     track?.info?.title ||
@@ -60,44 +145,143 @@ export function buildAudioPlayerDashboard(
     'Unknown';
 
   const duration =
-    Number(track?.info?.length) || 0;
+    Number(
+      track?.info?.length,
+    ) || 0;
 
   const position =
-    Number(player?.position) || 0;
+    Number(
+      player?.position,
+    ) || 0;
 
   const isPaused =
-    Boolean(player?.paused);
+    Boolean(
+      player?.paused,
+    );
 
   const loopMode =
-    session?.loopMode || 'none';
+    session?.loopMode ||
+    'none';
 
   const volume =
-    Number(session?.volume ?? 100);
+    Number(
+      session?.volume ?? 100,
+    );
 
-  const embed = new EmbedBuilder()
-    .setTitle(config.title)
-    .setDescription(
-      [
-        `🎧 **${title}**`,
-        '',
-        `👤 ${author}`,
-        '',
-        buildProgressBar(
-          position,
-          duration,
+  /**
+   * =======================================================
+   * DESCRIPTION
+   * =======================================================
+   */
+
+  const descriptionParts = [];
+
+  /**
+   * Track title
+   */
+  descriptionParts.push(
+    `🎧 **${title}**`,
+  );
+
+  /**
+   * Author
+   */
+  if (
+    config.showAuthor
+  ) {
+    descriptionParts.push(
+      '',
+      `👤 ${author}`,
+    );
+  }
+
+  /**
+   * Progress
+   */
+  if (
+    config.showProgress
+  ) {
+    descriptionParts.push(
+      '',
+      buildProgressBar(
+        position,
+        duration,
+      ),
+      '',
+      `\`${formatTime(position)} / ${formatTime(duration)}\``,
+    );
+  }
+
+  /**
+   * Volume
+   */
+  if (
+    config.showVolume
+  ) {
+    descriptionParts.push(
+      '',
+      `🔊 Volume: **${volume}%**`,
+    );
+  }
+
+  /**
+   * Loop
+   */
+  if (
+    config.showLoop
+  ) {
+    descriptionParts.push(
+      `🔁 Loop: **${formatLoopMode(
+        loopMode,
+      )}**`,
+    );
+  }
+
+  /**
+   * Status
+   */
+  if (
+    config.showStatus
+  ) {
+    descriptionParts.push(
+      '',
+      isPaused
+        ? '⏸️ **Đang tạm dừng**'
+        : '▶️ **Đang phát**',
+    );
+  }
+
+  /**
+   * =======================================================
+   * EMBED
+   * =======================================================
+   */
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        config.title ||
+          '🎧 𝒩𝑜𝓌 𝐿𝒾𝓈𝓉𝑒𝓃𝒾𝓃𝑔',
+      )
+      .setDescription(
+        descriptionParts.join(
+          '\n',
         ),
-        '',
-        `\`${formatTime(position)} / ${formatTime(duration)}\``,
-        '',
-        `🔊 Volume: **${volume}%**`,
-        `🔁 Loop: **${formatLoopMode(loopMode)}**`,
-        '',
-        isPaused
-          ? '⏸️ **Đang tạm dừng**'
-          : '▶️ **Đang phát**',
-      ].join('\n'),
-    )
-    .setColor(config.color);
+      )
+      .setColor(
+        config.color ||
+          0xffb6d9,
+      );
+
+  /**
+   * =======================================================
+   * IMAGE
+   * =======================================================
+   *
+   * Artwork của audio vẫn được giữ lại.
+   * GIF Usagi dùng làm thumbnail để dashboard không
+   * bị chiếm toàn bộ embed.
+   */
 
   const thumbnail =
     track?.info?.artworkUrl ||
@@ -105,93 +289,282 @@ export function buildAudioPlayerDashboard(
     null;
 
   if (thumbnail) {
-    embed.setImage(thumbnail);
+    embed.setImage(
+      thumbnail,
+    );
   }
 
+  /**
+   * Usagi GIF
+   */
+  if (config.image) {
+    embed.setThumbnail(
+      config.image,
+    );
+  }
+
+  /**
+   * Footer
+   */
+  if (
+    config.showFooter &&
+    config.footer
+  ) {
+    embed.setFooter({
+      text: config.footer,
+    });
+  }
+
+  /**
+   * =======================================================
+   * RETURN
+   * =======================================================
+   */
+
   return {
-    embeds: [embed],
-    components: buildAudioPlayerButtons(
-      isPaused,
-      loopMode,
-    ),
+    embeds: [
+      embed,
+    ],
+
+    components:
+      buildAudioPlayerButtons(
+        isPaused,
+        loopMode,
+      ),
   };
 }
 
 /**
- * Player controls.
+ * =========================================================
+ * PLAYER BUTTONS
+ * =========================================================
+ *
+ * QUAN TRỌNG:
+ *
+ * Không đổi customId.
+ * Các interaction hiện tại của Phase 3 vẫn dùng:
+ *
+ * audioPause
+ * audioResume
+ * audioSkip
+ * audioLoop
+ * audioStop
+ * audioVolumeDown
+ * audioVolumeUp
+ * audioQueue
+ * audioSearch
  */
+
+/**
+ * @param {boolean} isPaused
+ * @param {string} loopMode
+ */
+
 export function buildAudioPlayerButtons(
   isPaused = false,
   loopMode = 'none',
 ) {
+  const config =
+    AUDIO_DEFAULTS.playerButtons;
+
+  /**
+   * =======================================================
+   * ROW 1
+   * =======================================================
+   */
+
   const firstRow =
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('audioPrevious')
-        .setEmoji('⏮️')
-        .setStyle(ButtonStyle.Secondary),
+    new ActionRowBuilder()
+      .addComponents(
 
-      new ButtonBuilder()
-        .setCustomId(
-          isPaused
-            ? 'audioResume'
-            : 'audioPause',
-        )
-        .setEmoji(
-          isPaused
-            ? '▶️'
-            : '⏸️',
-        )
-        .setStyle(ButtonStyle.Primary),
+        /**
+         * PAUSE / RESUME
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            isPaused
+              ? 'audioResume'
+              : 'audioPause',
+          )
+          .setLabel(
+            isPaused
+              ? (
+                config.resume?.label ||
+                'Resume'
+              )
+              : (
+                config.pause?.label ||
+                'Pause'
+              ),
+          )
+          .setEmoji(
+            isPaused
+              ? (
+                config.resume?.emoji ||
+                '▶️'
+              )
+              : (
+                config.pause?.emoji ||
+                '⏸️'
+              ),
+          )
+          .setStyle(
+            ButtonStyle.Primary,
+          ),
 
-      new ButtonBuilder()
-        .setCustomId('audioSkip')
-        .setEmoji('⏭️')
-        .setStyle(ButtonStyle.Secondary),
+        /**
+         * SKIP
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            'audioSkip',
+          )
+          .setLabel(
+            config.skip?.label ||
+              'Skip',
+          )
+          .setEmoji(
+            config.skip?.emoji ||
+              '⏭️',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
 
-      new ButtonBuilder()
-        .setCustomId('audioLoop')
-        .setEmoji(
-          loopMode === 'none'
-            ? '🔁'
-            : '🔂',
-        )
-        .setStyle(
-          loopMode === 'none'
-            ? ButtonStyle.Secondary
-            : ButtonStyle.Success,
-        ),
+        /**
+         * LOOP
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            'audioLoop',
+          )
+          .setLabel(
+            config.loop?.label ||
+              'Loop',
+          )
+          .setEmoji(
+            loopMode === 'none'
+              ? (
+                config.loop?.emoji ||
+                '🔁'
+              )
+              : (
+                config.loopActive?.emoji ||
+                '🔂'
+              ),
+          )
+          .setStyle(
+            loopMode === 'none'
+              ? ButtonStyle.Secondary
+              : ButtonStyle.Success,
+          ),
 
-      new ButtonBuilder()
-        .setCustomId('audioStop')
-        .setEmoji('⏹️')
-        .setStyle(ButtonStyle.Danger),
-    );
+        /**
+         * STOP
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            'audioStop',
+          )
+          .setLabel(
+            config.stop?.label ||
+              'Stop',
+          )
+          .setEmoji(
+            config.stop?.emoji ||
+              '⏹️',
+          )
+          .setStyle(
+            ButtonStyle.Danger,
+          ),
+      );
+
+  /**
+   * =======================================================
+   * ROW 2
+   * =======================================================
+   */
 
   const secondRow =
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('audioVolumeDown')
-        .setEmoji('🔉')
-        .setStyle(ButtonStyle.Secondary),
+    new ActionRowBuilder()
+      .addComponents(
 
-      new ButtonBuilder()
-        .setCustomId('audioVolumeUp')
-        .setEmoji('🔊')
-        .setStyle(ButtonStyle.Secondary),
+        /**
+         * VOLUME DOWN
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            'audioVolumeDown',
+          )
+          .setLabel(
+            config.volumeDown?.label ||
+              'Volume -',
+          )
+          .setEmoji(
+            config.volumeDown?.emoji ||
+              '🔉',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
 
-      new ButtonBuilder()
-        .setCustomId('audioQueue')
-        .setEmoji('📜')
-        .setLabel('Queue')
-        .setStyle(ButtonStyle.Secondary),
+        /**
+         * VOLUME UP
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            'audioVolumeUp',
+          )
+          .setLabel(
+            config.volumeUp?.label ||
+              'Volume +',
+          )
+          .setEmoji(
+            config.volumeUp?.emoji ||
+              '🔊',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
 
-      new ButtonBuilder()
-        .setCustomId('audioSearch')
-        .setEmoji('🔍')
-        .setLabel('Search')
-        .setStyle(ButtonStyle.Primary),
-    );
+        /**
+         * QUEUE
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            'audioQueue',
+          )
+          .setLabel(
+            config.queue?.label ||
+              'Queue',
+          )
+          .setEmoji(
+            config.queue?.emoji ||
+              '📜',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        /**
+         * SEARCH
+         */
+        new ButtonBuilder()
+          .setCustomId(
+            'audioSearch',
+          )
+          .setLabel(
+            config.search?.label ||
+              'Search',
+          )
+          .setEmoji(
+            config.search?.emoji ||
+              '🔍',
+          )
+          .setStyle(
+            ButtonStyle.Primary,
+          ),
+      );
 
   return [
     firstRow,
@@ -200,8 +573,11 @@ export function buildAudioPlayerButtons(
 }
 
 /**
- * Build progress bar.
+ * =========================================================
+ * PROGRESS BAR
+ * =========================================================
  */
+
 function buildProgressBar(
   position,
   duration,
@@ -210,32 +586,44 @@ function buildProgressBar(
     !duration ||
     duration <= 0
   ) {
-    return '🔴 Live / Stream';
+    return '🔴 **Live / Stream**';
   }
 
   const size = 18;
 
-  const progress = Math.min(
-    1,
-    Math.max(
-      0,
-      position / duration,
-    ),
-  );
+  const progress =
+    Math.min(
+      1,
+      Math.max(
+        0,
+        position / duration,
+      ),
+    );
 
-  const filled = Math.round(
-    progress * size,
-  );
+  const filled =
+    Math.round(
+      progress * size,
+    );
+
+  const empty =
+    size - filled;
 
   return (
-    '▰'.repeat(filled) +
-    '▱'.repeat(size - filled)
+    '▰'.repeat(
+      filled,
+    ) +
+    '▱'.repeat(
+      empty,
+    )
   );
 }
 
 /**
- * Format milliseconds.
+ * =========================================================
+ * FORMAT TIME
+ * =========================================================
  */
+
 export function formatTime(ms) {
   if (
     !ms ||
@@ -245,10 +633,14 @@ export function formatTime(ms) {
   }
 
   const totalSeconds =
-    Math.floor(ms / 1000);
+    Math.floor(
+      ms / 1000,
+    );
 
   const hours =
-    Math.floor(totalSeconds / 3600);
+    Math.floor(
+      totalSeconds / 3600,
+    );
 
   const minutes =
     Math.floor(
@@ -258,14 +650,31 @@ export function formatTime(ms) {
   const seconds =
     totalSeconds % 60;
 
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  if (
+    hours > 0
+  ) {
+    return (
+      `${hours}:` +
+      `${String(minutes).padStart(2, '0')}:` +
+      `${String(seconds).padStart(2, '0')}`
+    );
   }
 
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return (
+    `${String(minutes).padStart(2, '0')}:` +
+    `${String(seconds).padStart(2, '0')}`
+  );
 }
 
-function formatLoopMode(mode) {
+/**
+ * =========================================================
+ * LOOP MODE
+ * =========================================================
+ */
+
+function formatLoopMode(
+  mode,
+) {
   switch (mode) {
     case 'track':
       return 'Track';
@@ -278,9 +687,17 @@ function formatLoopMode(mode) {
   }
 }
 
-export function buildAudioNoResults(query) {
-  const searchDashboard =
-    buildAudioSearchDashboard();
+/**
+ * =========================================================
+ * NO RESULTS
+ * =========================================================
+ */
+
+export function buildAudioNoResults(
+  query,
+) {
+  const config =
+    AUDIO_DEFAULTS.searchDashboard;
 
   return {
     embeds: [
@@ -292,20 +709,32 @@ export function buildAudioNoResults(query) {
           [
             'Không tìm thấy audio phù hợp trên **YouTube**.',
             '',
-            '🔎 Từ khóa:',
-            `> **${query}**`,
+            '🔎 **Từ khóa:**',
+            `> ${query}`,
             '',
             'Thử tìm bằng từ khóa khác nhé ♡',
           ].join('\n'),
         )
         .setColor(
-          AUDIO_DEFAULTS
-            .searchDashboard
-            .color,
+          config.color ||
+            0xffb6d9,
+        )
+        .setThumbnail(
+          config.image ||
+            null,
+        )
+        .setFooter(
+          config.showFooter &&
+          config.footer
+            ? {
+                text: config.footer,
+              }
+            : null,
         ),
     ],
 
-    components:
-      searchDashboard.components,
+    components: [
+      buildAudioSearchButtons(),
+    ],
   };
 }
