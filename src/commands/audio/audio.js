@@ -264,11 +264,14 @@ export default {
        */
 
       const {
-        player,
-      } = await ensurePlayer(
-        runtimeClient,
-        interaction,
-      );
+  player,
+} = await ensurePlayer(
+  runtimeClient,
+  interaction,
+  {
+    allowAudio: true,
+  },
+);
 
       if (!player) {
         throw new Error(
@@ -303,6 +306,8 @@ export default {
        */
 
       session.queue ??= [];
+      session.audioActive =
+  true;
 
       session.voiceChannelId =
         voiceChannel.id;
