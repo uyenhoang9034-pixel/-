@@ -5,7 +5,7 @@ import {
 import audioManager from '../../../services/audio/audioManager.js';
 
 export default {
-  name: 'audio:search-modal',
+  name: 'audioSearchModal',
 
   async execute(interaction) {
     const query = interaction.fields
@@ -15,6 +15,13 @@ export default {
     if (!query) {
       return interaction.reply({
         content: '🌸 Bạn chưa nhập nội dung cần tìm.',
+        ephemeral: true,
+      });
+    }
+
+    if (query.length > 200) {
+      return interaction.reply({
+        content: '🌸 Nội dung tìm kiếm quá dài.',
         ephemeral: true,
       });
     }
