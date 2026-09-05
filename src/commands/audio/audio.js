@@ -177,11 +177,11 @@ export default {
     await interaction.deferReply();
 
     try {
-      const results =
-        await searchYouTubeAudio(
-          runtimeClient,
-          input,
-        );
+      const results = await searchYouTubeAudio(
+  runtimeClient,
+  input,
+  interaction.user,
+);
 
       /*
        * ===================================================
