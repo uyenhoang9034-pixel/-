@@ -11,8 +11,8 @@ import {
 
 import {
   buildAudioPlayerDashboard,
+  buildAudioSearchDashboard,
 } from '../../../services/audio/audioDashboard.js';
-
 
 function createSessionTrack(track) {
   return {
@@ -41,11 +41,13 @@ function createSessionTrack(track) {
   };
 }
 
-
 export default {
   name: 'audioResults',
 
-  async execute(interaction, client) {
+  async execute(
+    interaction,
+    client,
+  ) {
     const session =
       audioManager.getOrCreateSession(
         interaction.guildId,
@@ -56,9 +58,6 @@ export default {
         interaction.values?.[0],
       );
 
-    /*
-     * Kiểm tra kết quả tìm kiếm còn tồn tại.
-     */
     if (
       !Number.isInteger(
         selectedIndex,
@@ -66,13 +65,13 @@ export default {
       selectedIndex < 0 ||
       selectedIndex >=
         (
-          session.searchResults?.length ||
-          0
+          session.searchResults
+            ?.length || 0
         )
     ) {
       return interaction.reply({
         content:
-          '🌸 Kết quả này đã hết hạn. Hãy tìm kiếm lại nhé.',
+          '🌸 Kết quả tìm kiếm đã hết hạn. Hãy tìm lại nhé.',
         ephemeral: true,
       });
     }
@@ -85,21 +84,19 @@ export default {
     if (!result?.track) {
       return interaction.reply({
         content:
-          '🌸 Audio này không còn khả dụng. Hãy tìm lại nhé.',
+          '🌸 Audio này không còn khả dụng.',
         ephemeral: true,
       });
     }
 
-    /*
-     * Người dùng phải ở trong voice channel.
-     */
     const voiceChannel =
-      interaction.member?.voice?.channel;
+      interaction.member?.voice
+        ?.channel;
 
     if (!voiceChannel) {
       return interaction.reply({
         content:
-          '🌸 Bạn cần vào voice channel trước khi nghe audio nhé.',
+          '🌸 Bạn cần vào voice channel trước khi nghe.',
         ephemeral: true,
       });
     }
@@ -107,11 +104,6 @@ export default {
     await interaction.deferUpdate();
 
     try {
-      /*
-       * Dùng PLAYER của hệ thống Music hiện tại.
-       *
-       * Không tạo Riffy connection riêng.
-       */
       const {
         player,
       } = await ensurePlayer(
@@ -123,15 +115,22 @@ export default {
         result.track;
 
       /*
-       * Lưu người yêu cầu audio.
+       * ===================================================
+       * ĐÁNH DẤU TRACK LÀ AUDIO
+       * ===================================================
+       *
+       * Music playerHandler sẽ bỏ qua track này.
        */
-      if (track.info) {
-        track.info.requester =
-          interaction.user;
-      }
+      track.info ??= {};
+
+      track.info.__usagiAudio =
+        true;
+
+      track.info.requester =
+        interaction.user;
 
       /*
-       * Lưu Audio queue riêng.
+       * Audio queue riêng.
        */
       session.queue ??= [];
 
@@ -139,25 +138,16 @@ export default {
         createSessionTrack(track),
       );
 
-      /*
-       * Thêm track vào Riffy queue.
-       */
-      player.queue.add(
-        track,
-      );
-
-      /*
-       * Lưu thông tin session.
-       */
       session.voiceChannelId =
         voiceChannel.id;
 
       session.textChannelId =
         interaction.channelId;
 
-      /*
-       * Volume mặc định.
-       */
+      session.dashboardMessageId =
+        interaction.message?.id ||
+        session.dashboardMessageId;
+
       session.volume =
         Number(
           session.volume ?? 100,
@@ -168,9 +158,15 @@ export default {
       );
 
       /*
-       * Player đang idle?
+       * Đánh dấu PLAYER đang phục vụ Audio.
        *
-       * Nếu có thì bắt đầu phát.
+       * Music event handler sẽ kiểm tra
+       * player.current / queue track.
+       */
+      player.__usagiAudio = true;
+
+      /*
+       * Chỉ play nếu player đang idle.
        */
       const shouldStart =
         !player.playing &&
@@ -178,28 +174,14 @@ export default {
         !player.current;
 
       if (shouldStart) {
-        /*
-         * QUAN TRỌNG:
-         *
-         * Dùng chính startPlayback()
-         * của Music system.
-         *
-         * Hàm này đã xử lý:
-         * - Lavalink
-         * - Discord Voice State
-         * - Riffy connection
-         * - player.play()
-         */
         await startPlayback(
           player,
         );
       }
 
       /*
-       * Riffy có thể cần một chút thời gian
-       * để cập nhật player.current.
-       *
-       * Fallback về track vừa chọn nếu cần.
+       * Riffy có thể chưa cập nhật
+       * player.current ngay lập tức.
        */
       const currentTrack =
         player.current ||
@@ -211,13 +193,16 @@ export default {
         );
 
       session.isPlaying =
-        true;
+        Boolean(
+          player.playing ||
+          currentTrack,
+        );
 
       session.isPaused =
-        false;
+        Boolean(player.paused);
 
       /*
-       * Hiển thị Usagi Audio Dashboard.
+       * Giữ dashboard.
        */
       return interaction.editReply(
         buildAudioPlayerDashboard(
@@ -226,31 +211,47 @@ export default {
           session,
         ),
       );
-
     } catch (error) {
+      /*
+       * QUAN TRỌNG:
+       *
+       * KHÔNG dùng components: [].
+       *
+       * Nếu playback fail,
+       * người dùng vẫn phải có nút Search.
+       */
       return interaction.editReply({
         embeds: [
           new EmbedBuilder()
             .setTitle(
-              '🌸 Không thể phát audio',
+              '🌸 Usagi chưa thể phát audio',
             )
             .setDescription(
               [
-                'Usagi tìm thấy audio nhưng không thể bắt đầu phát.',
+                'YouTube đã trả về kết quả nhưng Lavalink chưa thể phát audio này.',
+
                 '',
-                `> ${
+
+                `🔎 **${result.title || 'Audio'}**`,
+
+                '',
+
+                `⚠️ ${
                   error?.message ||
-                  'Unknown error'
+                  'Unknown playback error'
                 }`,
+
                 '',
-                'Hãy kiểm tra bot có quyền **Connect** và **Speak** trong voice channel nhé ♡',
+
+                'Bạn có thể tìm một kết quả khác bằng nút **Search** bên dưới.',
               ].join('\n'),
             )
-            .setColor(
-              0xed4245,
-            ),
+            .setColor(0xed4245),
         ],
-        components: [],
+
+        components:
+          buildAudioSearchDashboard()
+            .components,
       });
     }
   },
