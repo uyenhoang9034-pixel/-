@@ -40,7 +40,7 @@ export function buildAudioSearchButtons() {
 
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId('audio:search')
+      .setCustomId('audioSearch')
       .setLabel(config.searchButtonLabel)
       .setEmoji('🔍')
       .setStyle(ButtonStyle.Primary),
