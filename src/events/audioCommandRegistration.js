@@ -6,24 +6,19 @@ export default {
   once: true,
 
   async execute(client) {
-    const guildId =
-      client.config?.bot?.guildId ||
-      process.env.GUILD_ID;
-
-    const clientId =
-      client.config?.bot?.clientId ||
-      process.env.CLIENT_ID;
+    const guildId = process.env.GUILD_ID;
+    const clientId = process.env.CLIENT_ID;
 
     if (!guildId) {
       logger.warn(
-        '[Audio] GUILD_ID is not configured. Skipping guild registration.',
+        '[Audio] GUILD_ID is not configured. Skipping /audio registration.',
       );
       return;
     }
 
     if (!clientId) {
       logger.warn(
-        '[Audio] CLIENT_ID is not configured. Skipping guild registration.',
+        '[Audio] CLIENT_ID is not configured. Skipping /audio registration.',
       );
       return;
     }
@@ -32,27 +27,25 @@ export default {
 
     if (!audioCommand?.data) {
       logger.warn(
-        '[Audio] /audio command was not found in client.commands.',
+        '[Audio] /audio was not found in client.commands.',
       );
       return;
     }
 
     try {
-      const commandData = audioCommand.data.toJSON();
-
       await client.rest.put(
         `/applications/${clientId}/guilds/${guildId}/commands`,
         {
-          body: [commandData],
+          body: [audioCommand.data.toJSON()],
         },
       );
 
       logger.info(
-        `[Audio] Successfully registered /audio to guild ${guildId}.`,
+        `[Audio] /audio registered successfully for guild ${guildId}.`,
       );
     } catch (error) {
       logger.error(
-        '[Audio] Failed to register /audio command:',
+        '[Audio] Failed to register /audio:',
         error,
       );
     }
