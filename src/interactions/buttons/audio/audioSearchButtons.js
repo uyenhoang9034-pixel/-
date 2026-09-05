@@ -7,32 +7,28 @@ import {
 
 import { AUDIO_DEFAULTS } from '../../../config/audio/audioDefaults.js';
 
-export async function handleAudioSearchButton(interaction) {
-  if (interaction.customId !== 'audio:search') {
-    return false;
-  }
+export default {
+  name: 'audio:search',
 
-  const modal = new ModalBuilder()
-    .setCustomId('audio:search-modal')
-    .setTitle('🔎 Tìm Audio');
+  async execute(interaction) {
+    const modal = new ModalBuilder()
+      .setCustomId('audio:search-modal')
+      .setTitle('🔎 Tìm Audio');
 
-  const searchInput = new TextInputBuilder()
-    .setCustomId('query')
-    .setLabel('Bạn muốn nghe gì?')
-    .setPlaceholder(
-      AUDIO_DEFAULTS.searchDashboard.placeholder,
-    )
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-    .setMaxLength(200);
+    const searchInput = new TextInputBuilder()
+      .setCustomId('query')
+      .setLabel('Bạn muốn nghe gì?')
+      .setPlaceholder(
+        AUDIO_DEFAULTS.searchDashboard.placeholder,
+      )
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true)
+      .setMaxLength(200);
 
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(searchInput),
-  );
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(searchInput),
+    );
 
-  await interaction.showModal(modal);
-
-  return true;
-}
-
-export default handleAudioSearchButton;
+    await interaction.showModal(modal);
+  },
+};
