@@ -39,9 +39,10 @@ export default {
 
     try {
       const results = await searchYouTubeAudio(
-        interaction.client,
-        query,
-      );
+  interaction.client,
+  query,
+  interaction.user,
+);
 
       const session = audioManager.getOrCreateSession(
         interaction.guildId,
