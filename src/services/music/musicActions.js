@@ -259,10 +259,6 @@ export async function playQuery(
     interaction,
     query,
 ) {
-    assertLavalinkNodeAvailable(
-        client,
-    );
-
     if (
         YOUTUBE_URL_PATTERN.test(
             query,
