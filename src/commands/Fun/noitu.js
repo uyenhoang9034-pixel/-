@@ -78,7 +78,7 @@ const WORD_CHAIN_SETUP_IMAGE =
  * Đây là ảnh Leaderboard bạn vừa gửi.
  */
 const WORD_CHAIN_LEADERBOARD_IMAGE =
-  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png';
+  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424571668729856/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png';
 
 /**
  * =========================================================
