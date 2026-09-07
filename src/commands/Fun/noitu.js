@@ -52,8 +52,11 @@ const WORD_CHAIN_EMOJIS = {
   newRound:
     '<a:animeg3:1546040346717331477>',
 
-  leaderboard:
-    '⋆.ೃ࿔🏆*:･',
+  leaderboardStart:
+    '<a:trangtrig2:1546040703375904801>',
+
+  leaderboardEnd:
+    '<a:trangtrig3:1546040818261954610>',
 
   words:
     '<a:trangtrig17:1546048098415939655>',
@@ -288,8 +291,9 @@ export default {
           .getSubcommand();
 
       /**
-       * Status / leaderboard / restart
-       * không yêu cầu Manage Server.
+       * =================================================
+       * PUBLIC COMMANDS
+       * =================================================
        */
 
       const isPublicView =
@@ -327,8 +331,9 @@ export default {
       }
 
       /**
-       * Chỉ các lệnh quản trị
-       * mới cần ManageGuild.
+       * =================================================
+       * ADMIN COMMANDS
+       * =================================================
        */
 
       const adminSubcommands =
@@ -371,9 +376,9 @@ export default {
         );
 
       /**
-       * ===================================================
+       * =================================================
        * SETUP
-       * ===================================================
+       * =================================================
        */
 
       if (
@@ -452,25 +457,31 @@ export default {
             updatedConfig.currentWord,
           );
 
+        /**
+         * =================================================
+         * GAME START MESSAGE
+         * =================================================
+         */
+
         await channel
-  .send({
-    embeds: [
-      createEmbed({
-        title:
-          '⋆.ೃ࿔🌸*:･「Nối Từ」— Game On!',
+          .send({
+            embeds: [
+              createEmbed({
+                title:
+                  '⋆.ೃ࿔🌸*:･「Nối Từ」— Game On!',
 
-        description:
-          `${WORD_CHAIN_EMOJIS.mode} Chế độ: **${modeInfo.label}**\n` +
-          `${'<a:trangtrig18:1546068102817775626>'} Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
-          `${'<a:catg1:1541439053256462396>'} Từ mở đầu: **${updatedConfig.currentWord}**\n` +
-          `${'<a:catg1:1541439053256462396>'} Bắt đầu từ mới với: **${nextSyllable}**`,
+                description:
+                  `${WORD_CHAIN_EMOJIS.mode} Chế độ: **${modeInfo.label}**\n` +
+                  `<a:trangtrig18:1546068102817775626> Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
+                  `<a:catg1:1541439053256462396> Từ mở đầu: **${updatedConfig.currentWord}**\n` +
+                  `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${nextSyllable}**`,
 
-        color:
-          'primary',
-      }),
-    ],
-  })
-  .catch(() => {});
+                color:
+                  'primary',
+              }),
+            ],
+          })
+          .catch(() => {});
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -487,9 +498,9 @@ export default {
       }
 
       /**
-       * ===================================================
+       * =================================================
        * MODE
-       * ===================================================
+       * =================================================
        */
 
       if (
@@ -546,9 +557,9 @@ export default {
       }
 
       /**
-       * ===================================================
+       * =================================================
        * RESET — ADMIN
-       * ===================================================
+       * =================================================
        */
 
       if (
@@ -603,9 +614,9 @@ export default {
       }
 
       /**
-       * ===================================================
+       * =================================================
        * RESTART — PLAYER
-       * ===================================================
+       * =================================================
        */
 
       if (
@@ -636,9 +647,9 @@ export default {
       }
 
       /**
-       * ===================================================
+       * =================================================
        * DISABLE
-       * ===================================================
+       * =================================================
        */
 
       if (
@@ -680,9 +691,9 @@ export default {
       }
 
       /**
-       * ===================================================
+       * =================================================
        * STATUS
-       * ===================================================
+       * =================================================
        */
 
       if (
@@ -801,66 +812,113 @@ export default {
       }
 
       /**
-       * ===================================================
+       * =================================================
        * LEADERBOARD
-       * ===================================================
+       * =================================================
        */
 
       if (
         subcommand ===
         'leaderboard'
       ) {
-        const topPlayers =
+        /**
+         * Lấy riêng bảng PvE.
+         */
+        const botPlayers =
           buildWordChainLeaderboard(
             config,
+            'bot',
           );
 
-        if (
-          topPlayers.length === 0
-        ) {
-          return await InteractionHelper.safeEditReply(
-            interaction,
-            {
-              embeds: [
-                infoEmbed(
-                  'Bảng Xếp Hạng Nối Từ',
-                  'Chưa có người chơi nào trả lời đúng trong minigame nối từ.',
-                ),
-              ],
-            },
+        /**
+         * Lấy riêng bảng PvP.
+         */
+        const pvpPlayers =
+          buildWordChainLeaderboard(
+            config,
+            'pvp',
           );
+
+        /**
+         * =================================================
+         * FORMAT PLAYER LIST
+         * =================================================
+         */
+
+        function formatLeaderboard(
+          players,
+        ) {
+          if (
+            !players ||
+            players.length === 0
+          ) {
+            return '*Chưa có người chơi nào.*';
+          }
+
+          return players
+            .map(
+              (
+                entry,
+                index,
+              ) => {
+                const medal =
+                  index === 0
+                    ? '🥇'
+                    : index === 1
+                      ? '🥈'
+                      : index === 2
+                        ? '🥉'
+                        : `**#${index + 1}**`;
+
+                return (
+                  `${medal} <@${entry.userId}>: ` +
+                  `**${formatNumber(entry.score)} từ** ` +
+                  `${WORD_CHAIN_EMOJIS.words}`
+                );
+              },
+            )
+            .join('\n');
         }
 
-        const lines =
-          topPlayers.map(
-            (
-              entry,
-              index,
-            ) => {
-              const medal =
-                index === 0
-                  ? '🥇'
-                  : index === 1
-                    ? '🥈'
-                    : index === 2
-                      ? '🥉'
-                      : `**#${index + 1}**`;
-
-              return (
-                `${medal} <@${entry.userId}>: ` +
-                `**${formatNumber(entry.score)} từ** ` +
-                `${WORD_CHAIN_EMOJIS.words}`
-              );
-            },
-          );
+        /**
+         * =================================================
+         * BUILD LEADERBOARD EMBED
+         * =================================================
+         */
 
         const embed =
           createEmbed({
             title:
-              '⋆.ೃ࿔🏆*:･ 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓝𝓸̂́𝓲 𝓣𝓾̛̀',
+              `${WORD_CHAIN_EMOJIS.leaderboardStart} ⋆.࿔🏆･ 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓝𝓸̂́𝓲 𝓣𝓾̛̀ ${WORD_CHAIN_EMOJIS.leaderboardEnd}`,
 
             description:
-              lines.join('\n'),
+              [
+                /**
+                 * ================================
+                 * PvE
+                 * ================================
+                 */
+
+                `${WORD_CHAIN_EMOJIS.mode} **Đấu với Bot (PvE)**`,
+
+                formatLeaderboard(
+                  botPlayers,
+                ),
+
+                '',
+
+                /**
+                 * ================================
+                 * PvP
+                 * ================================
+                 */
+
+                `${WORD_CHAIN_EMOJIS.mode} **Đấu với người chơi (PvP)**`,
+
+                formatLeaderboard(
+                  pvpPlayers,
+                ),
+              ].join('\n'),
 
             color:
               'primary',
@@ -954,9 +1012,11 @@ async function restartGame(
       `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${nextStart}**!`,
     );
 
-    await channel.send(
-      messages.join('\n'),
-    ).catch(() => {});
+    await channel
+      .send(
+        messages.join('\n'),
+      )
+      .catch(() => {});
   }
 
   return await InteractionHelper.safeEditReply(
