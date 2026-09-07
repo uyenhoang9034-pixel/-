@@ -140,6 +140,12 @@ export default {
         `Message received from ${message.author.tag}: ${message.content}`,
       );
 
+      /**
+       * =====================================================
+       * COUNTING
+       * =====================================================
+       */
+
       const countingProcessed =
         await handleCountingGame(
           message,
@@ -149,6 +155,12 @@ export default {
       let wordChainProcessed =
         false;
 
+      /**
+       * =====================================================
+       * WORD CHAIN
+       * =====================================================
+       */
+
       if (!countingProcessed) {
         wordChainProcessed =
           await handleWordChain(
@@ -156,6 +168,12 @@ export default {
             client,
           );
       }
+
+      /**
+       * =====================================================
+       * AUTORESPONDER / PREFIX / LEVELING
+       * =====================================================
+       */
 
       if (
         !countingProcessed &&
@@ -590,8 +608,6 @@ async function handleWordChain(
      * =====================================================
      * IGNORE COMMANDS
      * =====================================================
-     *
-     * Các command không phải lượt nối từ.
      */
 
     if (
@@ -611,40 +627,25 @@ async function handleWordChain(
     const normalized =
       normalizeWord(content);
 
+    if (!normalized) {
+      return false;
+    }
+
     /**
      * =====================================================
      * FORMAT CHECK
      * =====================================================
      *
-     * CHỈ ĐÚNG 2 TIẾNG MỚI ĐƯỢC XỬ LÝ
-     *
-     * Đây phải là bước kiểm tra TRƯỚC:
-     *
-     * - PvP lastUserId
-     * - canChain()
-     * - usedWords
-     * - isValidWord()
-     * - recordUserFailure()
-     * - recordUserSuccess()
-     * - streak
-     * - leaderboard
+     * CHỈ XỬ LÝ ĐÚNG 2 TIẾNG.
      *
      * Ví dụ:
      *
-     * "bạn"              → IGNORE
-     * "bạn bè nhé"       → IGNORE
-     * "😂"               → IGNORE
-     * "😂😂"             → IGNORE
-     * "bạn 😂"           → IGNORE
-     * "bạn bè"           → XỬ LÝ
-     *
-     * Không đúng 2 tiếng:
-     *
-     * ❌ Không X
-     * ❌ Không V
-     * ❌ Không streak
-     * ❌ Không leaderboard
-     * ❌ Không thông báo lỗi
+     * bạn              -> IGNORE
+     * bạn bè nhé       -> IGNORE
+     * 😂               -> IGNORE
+     * 😂😂             -> IGNORE
+     * bạn 😂           -> IGNORE
+     * bạn bè           -> XỬ LÝ
      */
 
     const parts =
@@ -663,7 +664,9 @@ async function handleWordChain(
     }
 
     /**
-     * Từ hiện tại cần nối tiếp.
+     * =====================================================
+     * NEEDED SYLLABLE
+     * =====================================================
      */
 
     const needed =
@@ -673,10 +676,10 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * PVP — KHÔNG ĐƯỢC TỰ NỐI 2 LƯỢT
+     * PVP — SAME USER CANNOT PLAY TWICE
      * =====================================================
      *
-     * CHỈ chạy tới đây nếu message đã đúng 2 tiếng.
+     * Chỉ áp dụng sau khi message đã đúng 2 tiếng.
      */
 
     if (
@@ -714,7 +717,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * SAI TIẾNG NỐI
+     * WRONG CHAIN
      * =====================================================
      */
 
@@ -755,7 +758,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * TRÙNG TỪ
+     * USED WORD
      * =====================================================
      */
 
@@ -797,7 +800,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * KHÔNG CÓ TRONG TỪ ĐIỂN
+     * DICTIONARY CHECK
      * =====================================================
      */
 
@@ -836,30 +839,13 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * ĐÚNG
+     * USER CORRECT
      * =====================================================
      */
 
     await message.react(
       WORD_CHAIN_EMOJIS.correct,
     ).catch(() => {});
-
-    /**
-     * =====================================================
-     * GHI NHẬN USER
-     * =====================================================
-     *
-     * PvE:
-     *
-     * - V +1
-     * - streak cá nhân +1
-     * - BOT không tính streak
-     *
-     * PvP:
-     *
-     * - V +1
-     * - streak chung +1
-     */
 
     const afterUserSuccess =
       await recordUserSuccess(
@@ -874,11 +860,11 @@ async function handleWordChain(
      * PVP
      * =====================================================
      *
-     * Người chơi trả lời đúng:
+     * User đúng:
+     * - +V
+     * - +global streak
      *
-     * → chỉ tick.
-     *
-     * Không gửi thông báo ngay.
+     * Không gửi message ngay.
      */
 
     if (
@@ -894,9 +880,7 @@ async function handleWordChain(
         );
 
       /**
-       * ===================================================
-       * KHÔNG CÒN TỪ ĐỂ NỐI
-       * ===================================================
+       * Không còn từ để nối.
        */
 
       if (!nextWord) {
@@ -928,22 +912,17 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * PVE / BOT
+     * PVE
      * =====================================================
      *
-     * streak ở đây là streak CÁ NHÂN của user.
+     * User:
+     * - +V
+     * - +personal streak
      *
-     * Ví dụ:
-     *
-     * User A → đúng = 1
-     * Bot
-     * User A → đúng = 2
-     * Bot
-     * User A → đúng = 3
-     *
-     * → Chuỗi hiện tại: 3
-     *
-     * Bot tuyệt đối không + streak.
+     * Bot:
+     * - không +V
+     * - không +X
+     * - không +streak
      */
 
     const updatedUsedWords = [
@@ -965,13 +944,14 @@ async function handleWordChain(
 
     if (!botWord) {
       const endedStreak =
-        afterUserSuccess
-          .personalStreaks
-          ?.bot
-          ?.[
-            message.author.id
-          ] ||
-        0;
+        Number(
+          afterUserSuccess
+            .personalStreaks
+            ?.bot
+            ?.[
+              message.author.id
+            ] || 0,
+        );
 
       const finalWord =
         normalized;
@@ -997,7 +977,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * BOT NỐI TIẾP
+     * BOT RESPONSE DELAY
      * =====================================================
      */
 
@@ -1013,8 +993,9 @@ async function handleWordChain(
           /**
            * Nếu game đã:
            *
-           * - restart
            * - disable
+           * - restart
+           * - reset
            * - đổi mode
            * - đổi currentWord
            *
@@ -1032,13 +1013,38 @@ async function handleWordChain(
           }
 
           /**
-           * Bot chỉ cập nhật currentWord.
+           * Kiểm tra botWord vẫn hợp lệ
+           * và chưa bị dùng.
+           */
+
+          if (
+            !isValidWord(botWord)
+          ) {
+            return;
+          }
+
+          const latestUsedWords =
+            latestConfig.usedWords || [];
+
+          if (
+            latestUsedWords.includes(
+              botWord,
+            )
+          ) {
+            return;
+          }
+
+          /**
+           * Bot chỉ cập nhật:
            *
-           * Không:
+           * - currentWord
+           * - usedWords
            *
-           * - +V
-           * - +X
-           * - +streak
+           * Không tăng:
+           *
+           * - V
+           * - X
+           * - streak
            */
 
           await recordBotSuccess(
