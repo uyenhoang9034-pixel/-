@@ -100,7 +100,7 @@ const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
 
 const WORD_CHAIN_EMOJIS = {
   streak:
-    '<a:trangtrig19:1546068350030053406>',
+    '<a:trangtrig29:1546385117478527016>',
 
   correct:
     '✅',
@@ -115,7 +115,7 @@ const WORD_CHAIN_EMOJIS = {
     '<a:animeg3:1546040346717331477>',
 
   botSuccess:
-    '<a:trangtrig29:1546385117478527016>',
+    '<a:trangtrig19:1546068350030053406>',
 
   wrongWord:
     '<a:capybarag1:1546058369566122015>',
