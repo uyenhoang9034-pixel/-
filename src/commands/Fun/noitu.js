@@ -24,7 +24,6 @@ import {
   disableWordChain,
   resetWordChainGame,
   buildWordChainLeaderboard,
-  saveWordChainConfig,
   isValidWord,
   normalizeWord,
   getLastSyllable,
@@ -45,13 +44,41 @@ import {
  * =========================================================
  * FIXED IMAGES
  * =========================================================
+ *
+ * QUAN TRỌNG:
+ *
+ * Không dùng:
+ *
+ * ?ex=...
+ * ?is=...
+ * ?hm=...
+ *
+ * vì đây là signed Discord CDN URL có thời hạn.
+ *
+ * Discord có thể tự refresh attachment CDN URL
+ * khi URL được truyền vào embed mà không có các
+ * query parameter này.
+ *
+ * =========================================================
  */
 
+/**
+ * ẢNH DÙNG CHO:
+ *
+ * /noitu setup
+ */
 const WORD_CHAIN_SETUP_IMAGE =
-  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png?ex=6a9fbba7&is=6a9e6a27&hm=9626f53c551aab68783820f5fbd0ab21b6d9c0d448a7441e5e86485ae0f660af&';
+  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png';
 
+/**
+ * ẢNH DÙNG CHO:
+ *
+ * /noitu leaderboard
+ *
+ * Đây là ảnh Leaderboard bạn vừa gửi.
+ */
 const WORD_CHAIN_LEADERBOARD_IMAGE =
-  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png?ex=6a9fbb9d&is=6a9e6a1d&hm=f8cf4f400bd0fa69c80accdb3fabe64e60f73c4139181bdcedd187c6b9da8a83&';
+  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png';
 
 /**
  * =========================================================
@@ -109,9 +136,7 @@ const WORD_CHAIN_EMOJIS = {
  * =========================================================
  */
 
-function formatNumber(
-  number,
-) {
+function formatNumber(number) {
   return Number(
     number || 0,
   ).toLocaleString(
@@ -138,12 +163,11 @@ export default {
      * SETUP
      * =====================================================
      *
-     * Không cho chọn channel/mode nữa.
+     * PvP:
+     * 1545291672504508416
      *
-     * Hai channel đã được cố định:
-     *
-     * PvP -> 1545291672504508416
-     * PvE -> 1546428675367505920
+     * PvE:
+     * 1546428675367505920
      */
 
     .addSubcommand(
@@ -153,13 +177,10 @@ export default {
           .setDescription(
             'Thiết lập Nối Từ cho cả hai kênh cố định',
           )
-
           .addStringOption(
             (option) =>
               option
-                .setName(
-                  'start_word',
-                )
+                .setName('start_word')
                 .setDescription(
                   'Từ ghép 2 tiếng khởi đầu cho cả hai chế độ',
                 ),
@@ -179,7 +200,6 @@ export default {
           .setDescription(
             'Khởi động lại một chế độ tại kênh cố định',
           )
-
           .addStringOption(
             (option) =>
               option
@@ -242,10 +262,7 @@ export default {
      *
      * EVERYONE ĐƯỢC DÙNG.
      *
-     * Reset theo channel:
-     *
-     * PvP channel -> reset PvP
-     * PvE channel -> reset PvE
+     * Chỉ reset game ở channel hiện tại.
      */
 
     .addSubcommand(
@@ -255,13 +272,10 @@ export default {
           .setDescription(
             'Làm mới ván Nối Từ hiện tại',
           )
-
           .addStringOption(
             (option) =>
               option
-                .setName(
-                  'start_word',
-                )
+                .setName('start_word')
                 .setDescription(
                   'Từ ghép 2 tiếng khởi đầu',
                 ),
@@ -300,8 +314,12 @@ export default {
 
     /**
      * =====================================================
-     * HINT
+     * GOIY
      * =====================================================
+     *
+     * Everyone được dùng.
+     *
+     * WORD_CHAIN_HINT_LIMIT = 3
      */
 
     .addSubcommand(
@@ -315,13 +333,14 @@ export default {
 
   category: 'Fun',
 
-  async execute(
-    interaction,
-  ) {
+  async execute(interaction) {
     try {
       const subcommand =
         interaction.options.getSubcommand();
 
+      /**
+       * Những lệnh này trả lời công khai.
+       */
       const isPublicView =
         subcommand === 'status' ||
         subcommand === 'leaderboard' ||
@@ -363,8 +382,15 @@ export default {
        * mode
        * disable
        *
-       * reset / restart / leaderboard / goiy / status:
-       * everyone
+       * Các lệnh còn lại:
+       *
+       * reset
+       * restart
+       * status
+       * leaderboard
+       * goiy
+       *
+       * => everyone.
        */
 
       const adminSubcommands =
@@ -437,6 +463,12 @@ export default {
           );
         }
 
+        /**
+         * ---------------------------------------------------
+         * FETCH FIXED CHANNELS
+         * ---------------------------------------------------
+         */
+
         const pvpChannel =
           await interaction.guild.channels
             .fetch(
@@ -481,14 +513,25 @@ export default {
           );
         }
 
-        const updatedPvp =
-          await activateWordChain(
-            interaction.client,
-            guildId,
-            WORD_CHAIN_CHANNELS.pvp,
-            'pvp',
-            startWordInput,
-          );
+        /**
+         * ---------------------------------------------------
+         * ACTIVATE PVP
+         * ---------------------------------------------------
+         */
+
+        await activateWordChain(
+          interaction.client,
+          guildId,
+          WORD_CHAIN_CHANNELS.pvp,
+          'pvp',
+          startWordInput,
+        );
+
+        /**
+         * ---------------------------------------------------
+         * ACTIVATE PVE
+         * ---------------------------------------------------
+         */
 
         const updatedConfig =
           await activateWordChain(
@@ -498,6 +541,12 @@ export default {
             'bot',
             startWordInput,
           );
+
+        /**
+         * ---------------------------------------------------
+         * GET GAMES
+         * ---------------------------------------------------
+         */
 
         const pvpGame =
           getWordChainGame(
@@ -523,7 +572,7 @@ export default {
 
         /**
          * ===================================================
-         * PVP PANEL
+         * PVP SETUP PANEL
          * ===================================================
          */
 
@@ -542,6 +591,11 @@ export default {
               'primary',
           });
 
+        /**
+         * ẢNH SETUP.
+         *
+         * Đây KHÔNG phải ảnh leaderboard.
+         */
         pvpEmbed.setImage(
           WORD_CHAIN_SETUP_IMAGE,
         );
@@ -563,7 +617,7 @@ export default {
 
         /**
          * ===================================================
-         * BOT PANEL
+         * PVE SETUP PANEL
          * ===================================================
          */
 
@@ -582,6 +636,9 @@ export default {
               'primary',
           });
 
+        /**
+         * ẢNH SETUP.
+         */
         botEmbed.setImage(
           WORD_CHAIN_SETUP_IMAGE,
         );
@@ -841,6 +898,10 @@ export default {
        * =====================================================
        * RESET
        * =====================================================
+       *
+       * EVERYONE.
+       *
+       * Chỉ reset mode của channel hiện tại.
        */
 
       if (
@@ -1034,6 +1095,12 @@ export default {
        * =====================================================
        * LEADERBOARD
        * =====================================================
+       *
+       * ẢNH LỚN:
+       *
+       * setImage()
+       *
+       * KHÔNG dùng setThumbnail().
        */
 
       if (
@@ -1111,8 +1178,19 @@ export default {
           });
 
         /**
-         * ẢNH LỚN.
+         * ===================================================
+         * LEADERBOARD IMAGE
+         * ===================================================
+         *
+         * Đây là ảnh BỰ.
+         *
+         * Không dùng:
+         * embed.setThumbnail(...)
+         *
+         * mà dùng:
+         * embed.setImage(...)
          */
+
         embed.setImage(
           WORD_CHAIN_LEADERBOARD_IMAGE,
         );
@@ -1131,6 +1209,10 @@ export default {
        * =====================================================
        * GOIY
        * =====================================================
+       *
+       * EVERYONE.
+       *
+       * 3 lần / chuỗi.
        */
 
       if (
@@ -1211,17 +1293,18 @@ export default {
          * KHÔNG CÒN TỪ
          * ===================================================
          *
-         * Đây là bug bạn vừa báo:
+         * Nếu không còn từ để gợi ý:
          *
-         * Trước:
-         * "Hiện tại không còn từ phù hợp..."
+         * 1. Không trừ lượt hint.
+         * 2. Kết thúc chuỗi.
+         * 3. Reset streak.
+         * 4. Reset usedWords.
+         * 5. Reset hint.
+         * 6. Tạo round mới.
          *
-         * Bây giờ:
-         * -> kết thúc round
-         * -> reset streak
-         * -> reset hint
-         * -> reset usedWords
-         * -> tạo round mới
+         * Không còn gửi:
+         *
+         * "Hiện tại không còn từ phù hợp để gợi ý..."
          */
 
         if (
@@ -1303,6 +1386,10 @@ export default {
             },
           );
         }
+
+        /**
+         * Fallback.
+         */
 
         return await InteractionHelper.safeEditReply(
           interaction,
