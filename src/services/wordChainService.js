@@ -864,44 +864,4 @@ export function buildWordChainLeaderboard(
   return Object.entries(
     leaderboard,
   )
-    .map(
-      ([userId, score]) => ({
-        userId,
-
-        score:
-          Number(score) || 0,
-      }),
-    )
-    .filter(
-      (entry) =>
-        entry.score > 0,
-    )
-    .sort(
-      (a, b) =>
-        b.score - a.score,
-    )
-    .slice(
-      0,
-      10,
-    );
-}
-    .map(
-      ([userId, score]) => ({
-        userId,
-        score:
-          Number(score) || 0,
-      }),
-    )
-    .filter(
-      (entry) =>
-        entry.score > 0,
-    )
-    .sort(
-      (a, b) =>
-        b.score - a.score,
-    )
-    .slice(
-      0,
-      10,
-    );
 }
