@@ -26,6 +26,7 @@ import {
   normalizeWord,
   getLastSyllable,
   getRandomStartWord,
+  useWordChainHint,
   WORD_CHAIN_MODES,
 } from '../../services/wordChainService.js';
 
@@ -66,6 +67,18 @@ const WORD_CHAIN_EMOJIS = {
 
   words:
     '<a:trangtrig17:1546048098415939655>',
+
+  hint:
+    '<a:heartg1:1545307544808071258>',
+
+  hintEnd:
+    '<a:animeg1:1546040066676101224>',
+
+  hintLimit:
+    '<:jz6:1546154773693075566>',
+
+  botSuccess:
+    '<a:trangtrig29:1546385117478527016>',
 };
 
 function formatNumber(
@@ -245,6 +258,31 @@ export default {
           )
           .setDescription(
             'Xem bảng xếp hạng Nối Từ',
+          ),
+    )
+
+    /**
+     * =====================================================
+     * HINT
+     * =====================================================
+     *
+     * /noitu goiy
+     *
+     * - Tối đa 2 lần / một chuỗi / một người
+     * - PvE và PvP đều dùng được
+     * - Không cộng V
+     * - Không cộng X
+     * - Không tăng streak
+     * - Không ảnh hưởng leaderboard
+     */
+    .addSubcommand(
+      (subcommand) =>
+        subcommand
+          .setName(
+            'goiy',
+          )
+          .setDescription(
+            'Nhận một từ gợi ý để nối tiếp',
           ),
     ),
 
@@ -852,6 +890,186 @@ export default {
           },
         );
       }
+
+      /**
+       * =================================================
+       * GOIY
+       * =================================================
+       *
+       * /noitu goiy
+       *
+       * Mỗi người chỉ có 2 lượt gợi ý
+       * trong MỘT chuỗi.
+       *
+       * Ví dụ:
+       *
+       * Chuỗi 10  → đã dùng 2 lượt → không dùng tiếp
+       * Chuỗi 50  → đã dùng 2 lượt → không dùng tiếp
+       * Chuỗi 70  → đã dùng 2 lượt → không dùng tiếp
+       *
+       * Khi restart/reset:
+       *
+       * → hintUses được reset về 0.
+       */
+
+      if (
+        subcommand ===
+        'goiy'
+      ) {
+        /**
+         * Game chưa bật.
+         */
+
+        if (
+          !config.enabled ||
+          !config.channelId
+        ) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.UNKNOWN,
+
+              message:
+                'Server chưa kích hoạt minigame nối từ. Hãy dùng `/noitu setup` trước.',
+            },
+          );
+        }
+
+        /**
+         * Kiểm tra người dùng đang dùng
+         * đúng kênh chơi nối từ.
+         *
+         * Không bắt buộc nếu command được
+         * dùng ở channel khác trong server,
+         * nhưng để tránh gợi ý nhầm game,
+         * chỉ cho dùng tại channel game.
+         */
+
+        if (
+          interaction.channelId !==
+          config.channelId
+        ) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.USER_INPUT,
+
+              message:
+                `Bạn chỉ có thể sử dụng \`/noitu goiy\` tại kênh <#${config.channelId}>.`,
+            },
+          );
+        }
+
+        /**
+         * Gọi service đã có sẵn
+         * trong wordChainService.js.
+         *
+         * Service tự xử lý:
+         *
+         * - mode bot / pvp
+         * - userId
+         * - giới hạn 2 lượt
+         * - dictionary
+         * - currentWord
+         * - usedWords
+         * - reset theo chuỗi
+         */
+
+        const hintResult =
+          await useWordChainHint(
+            interaction.client,
+            guildId,
+            interaction.user.id,
+          );
+
+        /**
+         * =================================================
+         * HẾT LƯỢT GỢI Ý
+         * =================================================
+         */
+
+        if (
+          hintResult.reason ===
+          'limit'
+        ) {
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            {
+              content:
+                `Xin lỗi bạn, bạn đã sử dụng hết lượt gợi ý của mình. Vui lòng dùng lệnh reset hoặc tự suy nghĩ từ để nối tiếp! ${WORD_CHAIN_EMOJIS.hintLimit}`,
+
+              embeds: [],
+              components: [],
+            },
+          );
+        }
+
+        /**
+         * =================================================
+         * KHÔNG CÓ TỪ ĐỂ GỢI Ý
+         * =================================================
+         *
+         * Trường hợp này KHÔNG trừ lượt.
+         */
+
+        if (
+          hintResult.reason ===
+          'no_word'
+        ) {
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            {
+              content:
+                `${WORD_CHAIN_EMOJIS.end} Hiện tại không còn từ phù hợp để gợi ý cho **${config.currentWord || 'từ hiện tại'}**.`,
+
+              embeds: [],
+              components: [],
+            },
+          );
+        }
+
+        /**
+         * =================================================
+         * GỢI Ý THÀNH CÔNG
+         * =================================================
+         */
+
+        if (
+          hintResult.ok &&
+          hintResult.word
+        ) {
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            {
+              content:
+                `${WORD_CHAIN_EMOJIS.hint} Cảm ơn bạn đã sử dụng gợi ý của bé bot cute phô mai que. Gợi ý của bạn là **${hintResult.word}**! Chúc bạn đạt được chuỗi cao nhé hehee! ${WORD_CHAIN_EMOJIS.hintEnd}`,
+
+              embeds: [],
+
+              components: [],
+            },
+          );
+        }
+
+        /**
+         * =================================================
+         * FALLBACK
+         * =================================================
+         */
+
+        return await InteractionHelper.safeEditReply(
+          interaction,
+          {
+            content:
+              '🌸 Usagi hiện chưa thể đưa ra gợi ý. Bạn thử lại nhé!',
+
+            embeds: [],
+            components: [],
+          },
+        );
+      }
     } catch (error) {
       logger.error(
         'Error executing noitu command:',
@@ -904,6 +1122,21 @@ async function restartGame(
           requestedStartWord,
         )
       : getRandomStartWord();
+
+  /**
+   * resetWordChainGame() hiện tại
+   * đã reset:
+   *
+   * - currentWord
+   * - lastUserId
+   * - usedWords
+   * - currentStreak
+   * - personalStreaks
+   * - hintUses
+   *
+   * nên không cần reset hintUses
+   * thêm lần nữa ở đây.
+   */
 
   await resetWordChainGame(
     interaction.client,
