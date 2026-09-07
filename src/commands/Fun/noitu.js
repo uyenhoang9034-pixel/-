@@ -51,7 +51,7 @@ const WORD_CHAIN_SETUP_IMAGE =
   'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png?ex=6a9fbba7&is=6a9e6a27&hm=9626f53c551aab68783820f5fbd0ab21b6d9c0d448a7441e5e86485ae0f660af&';
 
 const WORD_CHAIN_LEADERBOARD_IMAGE =
-  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png?ex=6a9fbba7&is=6a9e6a27&hm=9626f53c551aab68783820f5fbd0ab21b6d9c0d448a7441e5e86485ae0f660af&';
+  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png?ex=6a9fbb9d&is=6a9e6a1d&hm=f8cf4f400bd0fa69c80accdb3fabe64e60f73c4139181bdcedd187c6b9da8a83&';
 
 /**
  * =========================================================
