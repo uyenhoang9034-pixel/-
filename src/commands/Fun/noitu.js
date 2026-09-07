@@ -46,6 +46,12 @@ const WORD_CHAIN_EMOJIS = {
   info:
     '<a:trangtrig19:1546068350030053406>',
 
+  correct:
+    '✅',
+
+  wrong:
+    '❌',
+
   end:
     '<a:animeg2:1546040159886114846>',
 
@@ -62,10 +68,14 @@ const WORD_CHAIN_EMOJIS = {
     '<a:trangtrig17:1546048098415939655>',
 };
 
-function formatNumber(number) {
+function formatNumber(
+  number,
+) {
   return Number(
     number || 0,
-  ).toLocaleString('en-US');
+  ).toLocaleString(
+    'en-US',
+  );
 }
 
 export default {
@@ -75,12 +85,6 @@ export default {
       'Quản lý minigame Nối từ Tiếng Việt (Word Chain)',
     )
     .setDMPermission(false)
-
-    /**
-     * =====================================================
-     * SETUP
-     * =====================================================
-     */
 
     .addSubcommand(
       (subcommand) =>
@@ -143,12 +147,6 @@ export default {
           ),
     )
 
-    /**
-     * =====================================================
-     * MODE
-     * =====================================================
-     */
-
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -184,12 +182,6 @@ export default {
           ),
     )
 
-    /**
-     * =====================================================
-     * DISABLE
-     * =====================================================
-     */
-
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -201,12 +193,6 @@ export default {
           ),
     )
 
-    /**
-     * =====================================================
-     * STATUS
-     * =====================================================
-     */
-
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -217,12 +203,6 @@ export default {
             'Xem trạng thái hiện tại của minigame',
           ),
     )
-
-    /**
-     * =====================================================
-     * RESET — ADMIN
-     * =====================================================
-     */
 
     .addSubcommand(
       (subcommand) =>
@@ -246,12 +226,6 @@ export default {
           ),
     )
 
-    /**
-     * =====================================================
-     * RESTART — PLAYER
-     * =====================================================
-     */
-
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -262,12 +236,6 @@ export default {
             'Kết thúc chuỗi hiện tại và bắt đầu từ mới',
           ),
     )
-
-    /**
-     * =====================================================
-     * LEADERBOARD
-     * =====================================================
-     */
 
     .addSubcommand(
       (subcommand) =>
@@ -289,12 +257,6 @@ export default {
       const subcommand =
         interaction.options
           .getSubcommand();
-
-      /**
-       * =================================================
-       * PUBLIC COMMANDS
-       * =================================================
-       */
 
       const isPublicView =
         subcommand ===
@@ -329,12 +291,6 @@ export default {
 
         return;
       }
-
-      /**
-       * =================================================
-       * ADMIN COMMANDS
-       * =================================================
-       */
 
       const adminSubcommands =
         new Set([
@@ -457,12 +413,6 @@ export default {
             updatedConfig.currentWord,
           );
 
-        /**
-         * =================================================
-         * GAME START MESSAGE
-         * =================================================
-         */
-
         await channel
           .send({
             embeds: [
@@ -558,7 +508,7 @@ export default {
 
       /**
        * =================================================
-       * RESET — ADMIN
+       * RESET
        * =================================================
        */
 
@@ -615,7 +565,7 @@ export default {
 
       /**
        * =================================================
-       * RESTART — PLAYER
+       * RESTART
        * =================================================
        */
 
@@ -821,29 +771,17 @@ export default {
         subcommand ===
         'leaderboard'
       ) {
-        /**
-         * Lấy riêng bảng PvE.
-         */
         const botPlayers =
           buildWordChainLeaderboard(
             config,
             'bot',
           );
 
-        /**
-         * Lấy riêng bảng PvP.
-         */
         const pvpPlayers =
           buildWordChainLeaderboard(
             config,
             'pvp',
           );
-
-        /**
-         * =================================================
-         * FORMAT PLAYER LIST
-         * =================================================
-         */
 
         function formatLeaderboard(
           players,
@@ -870,21 +808,14 @@ export default {
                         ? '🥉'
                         : `**#${index + 1}**`;
 
-                return (
-                  `${medal} <@${entry.userId}>: ` +
-                  `**${formatNumber(entry.score)} từ** ` +
-                  `${WORD_CHAIN_EMOJIS.words}`
-                );
+                return [
+                  `${medal} <@${entry.userId}>: **${formatNumber(entry.correct)} từ** ${WORD_CHAIN_EMOJIS.words}`,
+                  `　${WORD_CHAIN_EMOJIS.wrong} **${formatNumber(entry.wrong)}**  ·  ${WORD_CHAIN_EMOJIS.correct} **${formatNumber(entry.correct)}**`,
+                ].join('\n');
               },
             )
             .join('\n');
         }
-
-        /**
-         * =================================================
-         * BUILD LEADERBOARD EMBED
-         * =================================================
-         */
 
         const embed =
           createEmbed({
@@ -893,12 +824,6 @@ export default {
 
             description:
               [
-                /**
-                 * ================================
-                 * PvE
-                 * ================================
-                 */
-
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với Bot (PvE)**`,
 
                 formatLeaderboard(
@@ -906,12 +831,6 @@ export default {
                 ),
 
                 '',
-
-                /**
-                 * ================================
-                 * PvP
-                 * ================================
-                 */
 
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với người chơi (PvP)**`,
 
