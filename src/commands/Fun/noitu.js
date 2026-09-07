@@ -44,28 +44,14 @@ import {
  * =========================================================
  * FIXED IMAGES
  * =========================================================
- *
- * QUAN TRỌNG:
- *
- * Không dùng:
- *
- * ?ex=...
- * ?is=...
- * ?hm=...
- *
- * vì đây là signed Discord CDN URL có thời hạn.
- *
- * Discord có thể tự refresh attachment CDN URL
- * khi URL được truyền vào embed mà không có các
- * query parameter này.
- *
- * =========================================================
  */
 
 /**
  * ẢNH DÙNG CHO:
  *
  * /noitu setup
+ *
+ * Đây là ảnh lớn cố định của phần setup.
  */
 const WORD_CHAIN_SETUP_IMAGE =
   'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png';
@@ -75,11 +61,36 @@ const WORD_CHAIN_SETUP_IMAGE =
  *
  * /noitu leaderboard
  *
- * Đây là ảnh Leaderboard bạn vừa gửi.
+ * Đây là ảnh lớn riêng của Leaderboard.
  */
 const WORD_CHAIN_LEADERBOARD_IMAGE =
   'https://cdn.discordapp.com/attachments/1541300740947968020/1546424571668729856/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png';
-const WORD_CHAIN_COLOR = '#F4A6C8';
+
+/**
+ * =========================================================
+ * COLORS
+ * =========================================================
+ *
+ * LEADERBOARD:
+ * - Giữ màu hồng.
+ *
+ * SETUP:
+ * - Dùng màu xanh dương.
+ */
+
+/**
+ * Màu hồng cho Leaderboard.
+ */
+const WORD_CHAIN_COLOR =
+  '#F4A6C8';
+
+/**
+ * Màu xanh dương cho /noitu setup.
+ *
+ * Chỉ áp dụng cho embed setup PvP + PvE.
+ */
+const WORD_CHAIN_SETUP_COLOR =
+  '#6EA8FE';
 
 /**
  * =========================================================
@@ -342,6 +353,7 @@ export default {
       /**
        * Những lệnh này trả lời công khai.
        */
+
       const isPublicView =
         subcommand === 'status' ||
         subcommand === 'leaderboard' ||
@@ -518,6 +530,10 @@ export default {
          * ---------------------------------------------------
          * ACTIVATE PVP
          * ---------------------------------------------------
+         *
+         * Nếu không nhập start_word:
+         * service sẽ tự chọn từ ngẫu nhiên
+         * trong dictionary.
          */
 
         await activateWordChain(
@@ -532,6 +548,9 @@ export default {
          * ---------------------------------------------------
          * ACTIVATE PVE
          * ---------------------------------------------------
+         *
+         * Nếu không nhập start_word:
+         * service tiếp tục chọn một từ ngẫu nhiên.
          */
 
         const updatedConfig =
@@ -575,6 +594,12 @@ export default {
          * ===================================================
          * PVP SETUP PANEL
          * ===================================================
+         *
+         * CHANGED:
+         *
+         * color = WORD_CHAIN_SETUP_COLOR
+         *
+         * => xanh dương.
          */
 
         const pvpEmbed =
@@ -589,14 +614,13 @@ export default {
               `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${pvpNext}**`,
 
             color:
-  WORD_CHAIN_COLOR,
+              WORD_CHAIN_SETUP_COLOR,
           });
 
         /**
-         * ẢNH SETUP.
-         *
-         * Đây KHÔNG phải ảnh leaderboard.
+         * ẢNH SETUP CỐ ĐỊNH.
          */
+
         pvpEmbed.setImage(
           WORD_CHAIN_SETUP_IMAGE,
         );
@@ -634,12 +658,13 @@ export default {
               `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${botNext}**`,
 
             color:
-  WORD_CHAIN_COLOR,
+              WORD_CHAIN_SETUP_COLOR,
           });
 
         /**
-         * ẢNH SETUP.
+         * ẢNH SETUP CỐ ĐỊNH.
          */
+
         botEmbed.setImage(
           WORD_CHAIN_SETUP_IMAGE,
         );
@@ -728,6 +753,13 @@ export default {
             },
           );
         }
+
+        /**
+         * Không truyền startWord.
+         *
+         * activateWordChain()
+         * sẽ lấy từ ngẫu nhiên từ dictionary.
+         */
 
         const updated =
           await activateWordChain(
@@ -881,8 +913,14 @@ export default {
               },
             ],
 
+            /**
+             * STATUS giữ nguyên màu hiện tại.
+             *
+             * Chỉ SETUP đổi sang xanh.
+             */
+
             color:
-  WORD_CHAIN_COLOR,
+              WORD_CHAIN_COLOR,
           });
 
         return await InteractionHelper.safeEditReply(
@@ -968,12 +1006,24 @@ export default {
           );
         }
 
+        /**
+         * Nếu người dùng tự nhập từ:
+         * dùng từ đó.
+         *
+         * Nếu không:
+         * lấy từ random từ dictionary
+         * và loại currentWord để tránh
+         * lặp lại ngay round trước.
+         */
+
         const nextStart =
           startWordInput
             ? normalizeWord(
                 startWordInput,
               )
-            : getRandomStartWord();
+            : getRandomStartWord([
+                game.currentWord,
+              ].filter(Boolean));
 
         await resetWordChainGame(
           interaction.client,
@@ -1060,8 +1110,16 @@ export default {
           game.currentWord ||
           'Chưa có';
 
+        /**
+         * Random từ dictionary.
+         *
+         * Không lấy lại currentWord.
+         */
+
         const nextStart =
-          getRandomStartWord();
+          getRandomStartWord([
+            game.currentWord,
+          ].filter(Boolean));
 
         await recordBreak(
           interaction.client,
@@ -1097,11 +1155,15 @@ export default {
        * LEADERBOARD
        * =====================================================
        *
-       * ẢNH LỚN:
+       * PvP:
+       * - Xếp theo tổng số từ đúng.
        *
-       * setImage()
+       * PvE:
+       * - Xếp theo bestStreak cao nhất.
        *
-       * KHÔNG dùng setThumbnail().
+       * ẢNH:
+       * - Dùng setImage()
+       * - Không dùng setThumbnail()
        */
 
       if (
@@ -1120,8 +1182,27 @@ export default {
             'pvp',
           );
 
+        /**
+         * ===================================================
+         * FORMAT LEADERBOARD
+         * ===================================================
+         *
+         * PvE và PvP hiển thị khác nhau:
+         *
+         * PvE:
+         *    Chuỗi cao nhất
+         *
+         * PvP:
+         *    Tổng số từ đúng
+         *
+         * Vẫn hiển thị:
+         *    ❌ số sai
+         *    ✅ số đúng
+         */
+
         function formatLeaderboard(
           players,
+          mode,
         ) {
           if (
             !players ||
@@ -1129,6 +1210,9 @@ export default {
           ) {
             return '*Chưa có người chơi nào.*';
           }
+
+          const isPvE =
+            mode === 'bot';
 
           return players
             .map(
@@ -1145,8 +1229,35 @@ export default {
                         ? '🥉'
                         : `**#${index + 1}**`;
 
+                /**
+                 * PvE:
+                 *
+                 * score = bestStreak
+                 *
+                 * PvP:
+                 *
+                 * score = correct
+                 */
+
+                const mainScore =
+                  isPvE
+                    ? Number(
+                        entry.bestStreak ??
+                          entry.score ??
+                          0,
+                      )
+                    : Number(
+                        entry.correct ||
+                          0,
+                      );
+
+                const mainLabel =
+                  isPvE
+                    ? 'chuỗi'
+                    : 'từ';
+
                 return [
-                  `${medal} <@${entry.userId}>: **${formatNumber(entry.correct)} từ** ${WORD_CHAIN_EMOJIS.words}`,
+                  `${medal} <@${entry.userId}>: **${formatNumber(mainScore)} ${mainLabel}** ${WORD_CHAIN_EMOJIS.words}`,
                   `　${WORD_CHAIN_EMOJIS.wrong} **${formatNumber(entry.wrong)}**  ·  ${WORD_CHAIN_EMOJIS.correct} **${formatNumber(entry.correct)}**`,
                 ].join('\n');
               },
@@ -1164,6 +1275,7 @@ export default {
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với Bot (PvE)**`,
                 formatLeaderboard(
                   botPlayers,
+                  'bot',
                 ),
 
                 '',
@@ -1171,11 +1283,16 @@ export default {
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với người chơi (PvP)**`,
                 formatLeaderboard(
                   pvpPlayers,
+                  'pvp',
                 ),
               ].join('\n'),
 
-           color:
-  WORD_CHAIN_COLOR,
+            /**
+             * LEADERBOARD GIỮ NGUYÊN MÀU HỒNG.
+             */
+
+            color:
+              WORD_CHAIN_COLOR,
           });
 
         /**
@@ -1183,13 +1300,9 @@ export default {
          * LEADERBOARD IMAGE
          * ===================================================
          *
-         * Đây là ảnh BỰ.
+         * Ảnh BỰ.
          *
-         * Không dùng:
-         * embed.setThumbnail(...)
-         *
-         * mà dùng:
-         * embed.setImage(...)
+         * KHÔNG dùng thumbnail.
          */
 
         embed.setImage(
@@ -1302,10 +1415,6 @@ export default {
          * 4. Reset usedWords.
          * 5. Reset hint.
          * 6. Tạo round mới.
-         *
-         * Không còn gửi:
-         *
-         * "Hiện tại không còn từ phù hợp để gợi ý..."
          */
 
         if (
@@ -1324,6 +1433,14 @@ export default {
               mode,
             );
 
+          /**
+           * PvE:
+           * lấy streak của user hiện tại.
+           *
+           * PvP:
+           * lấy streak chung.
+           */
+
           const endedStreak =
             Number(
               mode === 'bot'
@@ -1339,8 +1456,16 @@ export default {
             latestGame.currentWord ||
             'từ hiện tại';
 
+          /**
+           * Random round mới.
+           *
+           * Không lấy lại từ hiện tại.
+           */
+
           const nextStart =
-            getRandomStartWord();
+            getRandomStartWord([
+              latestGame.currentWord,
+            ].filter(Boolean));
 
           await recordBreak(
             interaction.client,
@@ -1389,7 +1514,9 @@ export default {
         }
 
         /**
-         * Fallback.
+         * ===================================================
+         * FALLBACK
+         * ===================================================
          */
 
         return await InteractionHelper.safeEditReply(
