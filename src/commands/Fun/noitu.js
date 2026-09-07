@@ -79,6 +79,7 @@ const WORD_CHAIN_SETUP_IMAGE =
  */
 const WORD_CHAIN_LEADERBOARD_IMAGE =
   'https://cdn.discordapp.com/attachments/1541300740947968020/1546424571668729856/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png';
+const WORD_CHAIN_COLOR = '#F4A6C8';
 
 /**
  * =========================================================
@@ -588,7 +589,7 @@ export default {
               `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${pvpNext}**`,
 
             color:
-              'primary',
+  WORD_CHAIN_COLOR,
           });
 
         /**
@@ -633,7 +634,7 @@ export default {
               `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${botNext}**`,
 
             color:
-              'primary',
+  WORD_CHAIN_COLOR,
           });
 
         /**
@@ -881,7 +882,7 @@ export default {
             ],
 
             color:
-              'primary',
+  WORD_CHAIN_COLOR,
           });
 
         return await InteractionHelper.safeEditReply(
@@ -1173,8 +1174,8 @@ export default {
                 ),
               ].join('\n'),
 
-            color:
-              'primary',
+           color:
+  WORD_CHAIN_COLOR,
           });
 
         /**
