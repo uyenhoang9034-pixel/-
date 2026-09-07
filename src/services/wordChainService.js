@@ -119,7 +119,10 @@ const DEFAULT_WORD_CHAIN_CONFIG = {
 
   bestStreak: 0,
 
-  leaderboard: {},
+  leaderboard: {
+  bot: {},
+  pvp: {},
+},
 };
 
 function normalizeWordChainConfig(state) {
@@ -139,14 +142,60 @@ function normalizeWordChainConfig(state) {
       ? normalized.usedWords
       : [];
 
-  normalized.leaderboard =
-    normalized.leaderboard &&
-    typeof normalized.leaderboard ===
-      'object'
-      ? {
-          ...normalized.leaderboard,
-        }
-      : {};
+  const rawLeaderboard =
+  normalized.leaderboard &&
+  typeof normalized.leaderboard ===
+    'object'
+    ? normalized.leaderboard
+    : {};
+
+const hasModeLeaderboard =
+  rawLeaderboard.bot ||
+  rawLeaderboard.pvp;
+
+if (hasModeLeaderboard) {
+  normalized.leaderboard = {
+    bot:
+      rawLeaderboard.bot &&
+      typeof rawLeaderboard.bot ===
+        'object'
+        ? {
+            ...rawLeaderboard.bot,
+          }
+        : {},
+
+    pvp:
+      rawLeaderboard.pvp &&
+      typeof rawLeaderboard.pvp ===
+        'object'
+        ? {
+            ...rawLeaderboard.pvp,
+          }
+        : {},
+  };
+} else {
+  /**
+   * Dữ liệu leaderboard cũ
+   *
+   * Trước khi tách PvE / PvP,
+   * leaderboard có dạng:
+   *
+   * {
+   *   userId: score
+   * }
+   *
+   * Không thể biết chính xác dữ liệu cũ
+   * thuộc mode nào nên giữ lại ở PvE
+   * để không làm mất dữ liệu.
+   */
+  normalized.leaderboard = {
+    bot: {
+      ...rawLeaderboard,
+    },
+
+    pvp: {},
+  };
+}
 
   normalized.currentStreak =
     Number(
@@ -618,13 +667,24 @@ export async function recordUserSuccess(
   const normalized =
     normalizeWord(word);
 
+  const mode =
+    current.mode === 'pvp'
+      ? 'pvp'
+      : 'bot';
+
   const leaderboard = {
-    ...current.leaderboard,
+    bot: {
+      ...(current.leaderboard?.bot || {}),
+    },
+
+    pvp: {
+      ...(current.leaderboard?.pvp || {}),
+    },
   };
 
-  leaderboard[userId] =
+  leaderboard[mode][userId] =
     Number(
-      leaderboard[userId] || 0,
+      leaderboard[mode][userId] || 0,
     ) + 1;
 
   const nextStreak =
@@ -796,10 +856,35 @@ export async function recordBreak(
 
 export function buildWordChainLeaderboard(
   config,
+  mode = 'bot',
 ) {
+  const leaderboard =
+    config?.leaderboard?.[mode] || {};
+
   return Object.entries(
-    config.leaderboard || {},
+    leaderboard,
   )
+    .map(
+      ([userId, score]) => ({
+        userId,
+
+        score:
+          Number(score) || 0,
+      }),
+    )
+    .filter(
+      (entry) =>
+        entry.score > 0,
+    )
+    .sort(
+      (a, b) =>
+        b.score - a.score,
+    )
+    .slice(
+      0,
+      10,
+    );
+}
     .map(
       ([userId, score]) => ({
         userId,
