@@ -26,6 +26,7 @@ import {
   normalizeWord,
   getLastSyllable,
   getRandomStartWord,
+  recordBreak,
   useWordChainHint,
   WORD_CHAIN_MODES,
 } from '../../services/wordChainService.js';
@@ -36,6 +37,32 @@ import {
   replyUserError,
   ErrorTypes,
 } from '../../utils/errorHandler.js';
+
+/**
+ * =========================================================
+ * WORD CHAIN IMAGES
+ * =========================================================
+ *
+ * Ảnh cố định dùng cho:
+ *
+ * - /noitu setup
+ * - /noitu leaderboard
+ *
+ * Dùng setImage() nên ảnh sẽ hiển thị lớn,
+ * KHÔNG phải thumbnail.
+ */
+
+const WORD_CHAIN_SETUP_IMAGE =
+  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png?ex=6a9fbba7&is=6a9e6a27&hm=9626f53c551aab68783820f5fbd0ab21b6d9c0d448a7441e5e86485ae0f660af&';
+
+const WORD_CHAIN_LEADERBOARD_IMAGE =
+  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png?ex=6a9fbba7&is=6a9e6a27&hm=9626f53c551aab68783820f5fbd0ab21b6d9c0d448a7441e5e86485ae0f660af&';
+
+/**
+ * =========================================================
+ * WORD CHAIN EMOJIS
+ * =========================================================
+ */
 
 const WORD_CHAIN_EMOJIS = {
   title:
@@ -81,6 +108,12 @@ const WORD_CHAIN_EMOJIS = {
     '<a:trangtrig29:1546385117478527016>',
 };
 
+/**
+ * =========================================================
+ * FORMAT NUMBER
+ * =========================================================
+ */
+
 function formatNumber(
   number,
 ) {
@@ -91,6 +124,12 @@ function formatNumber(
   );
 }
 
+/**
+ * =========================================================
+ * COMMAND
+ * =========================================================
+ */
+
 export default {
   data: new SlashCommandBuilder()
     .setName('noitu')
@@ -98,6 +137,12 @@ export default {
       'Quản lý minigame Nối từ Tiếng Việt (Word Chain)',
     )
     .setDMPermission(false)
+
+    /**
+     * =====================================================
+     * SETUP
+     * =====================================================
+     */
 
     .addSubcommand(
       (subcommand) =>
@@ -160,6 +205,12 @@ export default {
           ),
     )
 
+    /**
+     * =====================================================
+     * MODE
+     * =====================================================
+     */
+
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -195,6 +246,12 @@ export default {
           ),
     )
 
+    /**
+     * =====================================================
+     * DISABLE
+     * =====================================================
+     */
+
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -206,6 +263,12 @@ export default {
           ),
     )
 
+    /**
+     * =====================================================
+     * STATUS
+     * =====================================================
+     */
+
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -216,6 +279,12 @@ export default {
             'Xem trạng thái hiện tại của minigame',
           ),
     )
+
+    /**
+     * =====================================================
+     * RESET
+     * =====================================================
+     */
 
     .addSubcommand(
       (subcommand) =>
@@ -239,6 +308,12 @@ export default {
           ),
     )
 
+    /**
+     * =====================================================
+     * RESTART
+     * =====================================================
+     */
+
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -249,6 +324,12 @@ export default {
             'Kết thúc chuỗi hiện tại và bắt đầu từ mới',
           ),
     )
+
+    /**
+     * =====================================================
+     * LEADERBOARD
+     * =====================================================
+     */
 
     .addSubcommand(
       (subcommand) =>
@@ -275,6 +356,7 @@ export default {
      * - Không tăng streak
      * - Không ảnh hưởng leaderboard
      */
+
     .addSubcommand(
       (subcommand) =>
         subcommand
@@ -295,6 +377,13 @@ export default {
       const subcommand =
         interaction.options
           .getSubcommand();
+
+      /**
+       * Những command này hiển thị công khai.
+       *
+       * setup / mode / disable / reset / goiy
+       * vẫn ephemeral.
+       */
 
       const isPublicView =
         subcommand ===
@@ -329,6 +418,12 @@ export default {
 
         return;
       }
+
+      /**
+       * =====================================================
+       * ADMIN SUBCOMMANDS
+       * =====================================================
+       */
 
       const adminSubcommands =
         new Set([
@@ -370,9 +465,9 @@ export default {
         );
 
       /**
-       * =================================================
+       * =====================================================
        * SETUP
-       * =================================================
+       * =====================================================
        */
 
       if (
@@ -414,6 +509,10 @@ export default {
           );
         }
 
+        /**
+         * Kiểm tra từ khởi đầu.
+         */
+
         if (
           startWordInput &&
           !isValidWord(
@@ -431,6 +530,10 @@ export default {
             },
           );
         }
+
+        /**
+         * Kích hoạt game.
+         */
 
         const updatedConfig =
           await activateWordChain(
@@ -451,25 +554,54 @@ export default {
             updatedConfig.currentWord,
           );
 
+        /**
+         * ===================================================
+         * GỬI PANEL SETUP VÀO CHANNEL GAME
+         * ===================================================
+         *
+         * Ảnh cố định.
+         *
+         * Dùng setImage()
+         * => ảnh lớn ở cuối embed.
+         */
+
+        const setupEmbed =
+          createEmbed({
+            title:
+              '⋆.ೃ࿔🌸*:･「Nối Từ」— Game On!',
+
+            description:
+              `${WORD_CHAIN_EMOJIS.mode} Chế độ: **${modeInfo.label}**\n` +
+              `<a:trangtrig18:1546068102817775626> Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
+              `<a:catg1:1541439053256462396> Từ mở đầu: **${updatedConfig.currentWord}**\n` +
+              `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${nextSyllable}**`,
+
+            color:
+              'primary',
+          });
+
+        setupEmbed.setImage(
+          WORD_CHAIN_SETUP_IMAGE,
+        );
+
         await channel
           .send({
             embeds: [
-              createEmbed({
-                title:
-                  '⋆.ೃ࿔🌸*:･「Nối Từ」— Game On!',
-
-                description:
-                  `${WORD_CHAIN_EMOJIS.mode} Chế độ: **${modeInfo.label}**\n` +
-                  `<a:trangtrig18:1546068102817775626> Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
-                  `<a:catg1:1541439053256462396> Từ mở đầu: **${updatedConfig.currentWord}**\n` +
-                  `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${nextSyllable}**`,
-
-                color:
-                  'primary',
-              }),
+              setupEmbed,
             ],
           })
-          .catch(() => {});
+          .catch(
+            (error) => {
+              logger.warn(
+                'Failed to send word chain setup embed:',
+                error,
+              );
+            },
+          );
+
+        /**
+         * Phản hồi riêng cho admin.
+         */
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -486,9 +618,9 @@ export default {
       }
 
       /**
-       * =================================================
+       * =====================================================
        * MODE
-       * =================================================
+       * =====================================================
        */
 
       if (
@@ -545,9 +677,9 @@ export default {
       }
 
       /**
-       * =================================================
+       * =====================================================
        * RESET
-       * =================================================
+       * =====================================================
        */
 
       if (
@@ -602,9 +734,9 @@ export default {
       }
 
       /**
-       * =================================================
+       * =====================================================
        * RESTART
-       * =================================================
+       * =====================================================
        */
 
       if (
@@ -635,9 +767,9 @@ export default {
       }
 
       /**
-       * =================================================
+       * =====================================================
        * DISABLE
-       * =================================================
+       * =====================================================
        */
 
       if (
@@ -679,9 +811,9 @@ export default {
       }
 
       /**
-       * =================================================
+       * =====================================================
        * STATUS
-       * =================================================
+       * =====================================================
        */
 
       if (
@@ -800,9 +932,9 @@ export default {
       }
 
       /**
-       * =================================================
+       * =====================================================
        * LEADERBOARD
-       * =================================================
+       * =====================================================
        */
 
       if (
@@ -881,6 +1013,16 @@ export default {
               'primary',
           });
 
+        /**
+         * Ảnh leaderboard lớn.
+         *
+         * KHÔNG dùng setThumbnail().
+         */
+
+        embed.setImage(
+          WORD_CHAIN_LEADERBOARD_IMAGE,
+        );
+
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -892,24 +1034,22 @@ export default {
       }
 
       /**
-       * =================================================
+       * =====================================================
        * GOIY
-       * =================================================
+       * =====================================================
        *
        * /noitu goiy
        *
        * Mỗi người chỉ có 2 lượt gợi ý
        * trong MỘT chuỗi.
        *
-       * Ví dụ:
+       * Nếu không còn từ phù hợp:
        *
-       * Chuỗi 10  → đã dùng 2 lượt → không dùng tiếp
-       * Chuỗi 50  → đã dùng 2 lượt → không dùng tiếp
-       * Chuỗi 70  → đã dùng 2 lượt → không dùng tiếp
-       *
-       * Khi restart/reset:
-       *
-       * → hintUses được reset về 0.
+       * → kết thúc round
+       * → reset streak
+       * → reset hint
+       * → reset usedWords
+       * → tạo round mới
        */
 
       if (
@@ -917,7 +1057,9 @@ export default {
         'goiy'
       ) {
         /**
-         * Game chưa bật.
+         * ===================================================
+         * GAME CHƯA BẬT
+         * ===================================================
          */
 
         if (
@@ -937,13 +1079,9 @@ export default {
         }
 
         /**
-         * Kiểm tra người dùng đang dùng
-         * đúng kênh chơi nối từ.
-         *
-         * Không bắt buộc nếu command được
-         * dùng ở channel khác trong server,
-         * nhưng để tránh gợi ý nhầm game,
-         * chỉ cho dùng tại channel game.
+         * ===================================================
+         * KIỂM TRA CHANNEL
+         * ===================================================
          */
 
         if (
@@ -963,18 +1101,9 @@ export default {
         }
 
         /**
-         * Gọi service đã có sẵn
-         * trong wordChainService.js.
-         *
-         * Service tự xử lý:
-         *
-         * - mode bot / pvp
-         * - userId
-         * - giới hạn 2 lượt
-         * - dictionary
-         * - currentWord
-         * - usedWords
-         * - reset theo chuỗi
+         * ===================================================
+         * GỌI HINT SERVICE
+         * ===================================================
          */
 
         const hintResult =
@@ -985,9 +1114,9 @@ export default {
           );
 
         /**
-         * =================================================
+         * ===================================================
          * HẾT LƯỢT GỢI Ý
-         * =================================================
+         * ===================================================
          */
 
         if (
@@ -998,7 +1127,7 @@ export default {
             interaction,
             {
               content:
-                `Xin lỗi bạn, bạn đã sử dụng hết lượt gợi ý của mình. Vui lòng dùng lệnh reset hoặc tự suy nghĩ từ để nối tiếp! ${WORD_CHAIN_EMOJIS.hintLimit}`,
+                `Xin lỗi bạn, bạn đã sử dụng hết lượt gợi ý của mình. Vui lòng tự suy nghĩ từ để nối tiếp! ${WORD_CHAIN_EMOJIS.hintLimit}`,
 
               embeds: [],
               components: [],
@@ -1007,22 +1136,62 @@ export default {
         }
 
         /**
-         * =================================================
-         * KHÔNG CÓ TỪ ĐỂ GỢI Ý
-         * =================================================
+         * ===================================================
+         * KHÔNG CÒN TỪ ĐỂ GỢI Ý
+         * ===================================================
          *
-         * Trường hợp này KHÔNG trừ lượt.
+         * Đây là phần đã sửa.
+         *
+         * Trước đây:
+         *
+         * - chỉ báo "không còn từ"
+         * - không reset game
+         *
+         * Bây giờ:
+         *
+         * - lấy streak hiện tại
+         * - lấy từ cuối
+         * - tạo từ mở đầu mới
+         * - recordBreak()
+         * - reset round
+         * - bắt đầu round mới
          */
 
         if (
           hintResult.reason ===
           'no_word'
         ) {
+          const endedStreak =
+            Number(
+              config.currentStreak || 0,
+            );
+
+          const finalWord =
+            config.currentWord ||
+            'từ hiện tại';
+
+          const nextStart =
+            getRandomStartWord();
+
+          /**
+           * Kết thúc round hiện tại
+           * và tạo round mới.
+           */
+
+          await recordBreak(
+            interaction.client,
+            guildId,
+            nextStart,
+          );
+
           return await InteractionHelper.safeEditReply(
             interaction,
             {
               content:
-                `${WORD_CHAIN_EMOJIS.end} Hiện tại không còn từ phù hợp để gợi ý cho **${config.currentWord || 'từ hiện tại'}**.`,
+                [
+                  `${WORD_CHAIN_EMOJIS.end} Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
+                  `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${nextStart}**!`,
+                ].join('\n'),
 
               embeds: [],
               components: [],
@@ -1031,9 +1200,9 @@ export default {
         }
 
         /**
-         * =================================================
+         * ===================================================
          * GỢI Ý THÀNH CÔNG
-         * =================================================
+         * ===================================================
          */
 
         if (
@@ -1054,9 +1223,9 @@ export default {
         }
 
         /**
-         * =================================================
+         * ===================================================
          * FALLBACK
-         * =================================================
+         * ===================================================
          */
 
         return await InteractionHelper.safeEditReply(
@@ -1124,8 +1293,7 @@ async function restartGame(
       : getRandomStartWord();
 
   /**
-   * resetWordChainGame() hiện tại
-   * đã reset:
+   * resetWordChainGame() đã reset:
    *
    * - currentWord
    * - lastUserId
@@ -1133,9 +1301,6 @@ async function restartGame(
    * - currentStreak
    * - personalStreaks
    * - hintUses
-   *
-   * nên không cần reset hintUses
-   * thêm lần nữa ở đây.
    */
 
   await resetWordChainGame(
