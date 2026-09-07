@@ -1,7 +1,6 @@
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
-  ChannelType,
   MessageFlags,
 } from 'discord.js';
 
@@ -16,6 +15,10 @@ import {
 } from '../../utils/interactionHelper.js';
 
 import {
+  WORD_CHAIN_CHANNELS,
+  WORD_CHAIN_HINT_LIMIT,
+  getWordChainModeForChannel,
+  getWordChainGame,
   getWordChainConfig,
   activateWordChain,
   disableWordChain,
@@ -40,16 +43,8 @@ import {
 
 /**
  * =========================================================
- * WORD CHAIN IMAGES
+ * FIXED IMAGES
  * =========================================================
- *
- * Ảnh cố định dùng cho:
- *
- * - /noitu setup
- * - /noitu leaderboard
- *
- * Dùng setImage() nên ảnh sẽ hiển thị lớn,
- * KHÔNG phải thumbnail.
  */
 
 const WORD_CHAIN_SETUP_IMAGE =
@@ -60,7 +55,7 @@ const WORD_CHAIN_LEADERBOARD_IMAGE =
 
 /**
  * =========================================================
- * WORD CHAIN EMOJIS
+ * EMOJIS
  * =========================================================
  */
 
@@ -134,7 +129,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName('noitu')
     .setDescription(
-      'Quản lý minigame Nối từ Tiếng Việt (Word Chain)',
+      'Quản lý minigame Nối từ Tiếng Việt',
     )
     .setDMPermission(false)
 
@@ -142,6 +137,13 @@ export default {
      * =====================================================
      * SETUP
      * =====================================================
+     *
+     * Không cho chọn channel/mode nữa.
+     *
+     * Hai channel đã được cố định:
+     *
+     * PvP -> 1545291672504508416
+     * PvE -> 1546428675367505920
      */
 
     .addSubcommand(
@@ -149,48 +151,7 @@ export default {
         subcommand
           .setName('setup')
           .setDescription(
-            'Kích hoạt minigame nối từ trong một kênh chat',
-          )
-
-          .addChannelOption(
-            (option) =>
-              option
-                .setName(
-                  'channel',
-                )
-                .setDescription(
-                  'Kênh văn bản dùng để chơi nối từ',
-                )
-                .setRequired(true)
-                .addChannelTypes(
-                  ChannelType.GuildText,
-                ),
-          )
-
-          .addStringOption(
-            (option) =>
-              option
-                .setName(
-                  'mode',
-                )
-                .setDescription(
-                  'Chế độ chơi',
-                )
-                .setRequired(true)
-                .addChoices(
-                  {
-                    name:
-                      'Đấu với Bot (PvE)',
-                    value:
-                      'bot',
-                  },
-                  {
-                    name:
-                      'Đấu với người chơi (PvP)',
-                    value:
-                      'pvp',
-                  },
-                ),
+            'Thiết lập Nối Từ cho cả hai kênh cố định',
           )
 
           .addStringOption(
@@ -200,7 +161,7 @@ export default {
                   'start_word',
                 )
                 .setDescription(
-                  'Từ ghép 2 tiếng khởi đầu',
+                  'Từ ghép 2 tiếng khởi đầu cho cả hai chế độ',
                 ),
           ),
     )
@@ -216,17 +177,15 @@ export default {
         subcommand
           .setName('mode')
           .setDescription(
-            'Thay đổi chế độ chơi nối từ',
+            'Khởi động lại một chế độ tại kênh cố định',
           )
 
           .addStringOption(
             (option) =>
               option
-                .setName(
-                  'mode',
-                )
+                .setName('mode')
                 .setDescription(
-                  'Chọn chế độ chơi mới',
+                  'Chọn chế độ',
                 )
                 .setRequired(true)
                 .addChoices(
@@ -255,11 +214,9 @@ export default {
     .addSubcommand(
       (subcommand) =>
         subcommand
-          .setName(
-            'disable',
-          )
+          .setName('disable')
           .setDescription(
-            'Tắt minigame nối từ',
+            'Tắt cả hai chế độ Nối Từ',
           ),
     )
 
@@ -272,11 +229,9 @@ export default {
     .addSubcommand(
       (subcommand) =>
         subcommand
-          .setName(
-            'status',
-          )
+          .setName('status')
           .setDescription(
-            'Xem trạng thái hiện tại của minigame',
+            'Xem trạng thái Nối Từ',
           ),
     )
 
@@ -284,16 +239,21 @@ export default {
      * =====================================================
      * RESET
      * =====================================================
+     *
+     * EVERYONE ĐƯỢC DÙNG.
+     *
+     * Reset theo channel:
+     *
+     * PvP channel -> reset PvP
+     * PvE channel -> reset PvE
      */
 
     .addSubcommand(
       (subcommand) =>
         subcommand
-          .setName(
-            'reset',
-          )
+          .setName('reset')
           .setDescription(
-            'Làm mới ván nối từ',
+            'Làm mới ván Nối Từ hiện tại',
           )
 
           .addStringOption(
@@ -317,11 +277,9 @@ export default {
     .addSubcommand(
       (subcommand) =>
         subcommand
-          .setName(
-            'restart',
-          )
+          .setName('restart')
           .setDescription(
-            'Kết thúc chuỗi hiện tại và bắt đầu từ mới',
+            'Kết thúc chuỗi hiện tại và bắt đầu lượt mới',
           ),
     )
 
@@ -334,9 +292,7 @@ export default {
     .addSubcommand(
       (subcommand) =>
         subcommand
-          .setName(
-            'leaderboard',
-          )
+          .setName('leaderboard')
           .setDescription(
             'Xem bảng xếp hạng Nối Từ',
           ),
@@ -346,23 +302,12 @@ export default {
      * =====================================================
      * HINT
      * =====================================================
-     *
-     * /noitu goiy
-     *
-     * - Tối đa 2 lần / một chuỗi / một người
-     * - PvE và PvP đều dùng được
-     * - Không cộng V
-     * - Không cộng X
-     * - Không tăng streak
-     * - Không ảnh hưởng leaderboard
      */
 
     .addSubcommand(
       (subcommand) =>
         subcommand
-          .setName(
-            'goiy',
-          )
+          .setName('goiy')
           .setDescription(
             'Nhận một từ gợi ý để nối tiếp',
           ),
@@ -375,23 +320,13 @@ export default {
   ) {
     try {
       const subcommand =
-        interaction.options
-          .getSubcommand();
-
-      /**
-       * Những command này hiển thị công khai.
-       *
-       * setup / mode / disable / reset / goiy
-       * vẫn ephemeral.
-       */
+        interaction.options.getSubcommand();
 
       const isPublicView =
-        subcommand ===
-          'status' ||
-        subcommand ===
-          'leaderboard' ||
-        subcommand ===
-          'restart';
+        subcommand === 'status' ||
+        subcommand === 'leaderboard' ||
+        subcommand === 'restart' ||
+        subcommand === 'reset';
 
       const deferSuccess =
         await InteractionHelper.safeDefer(
@@ -421,8 +356,15 @@ export default {
 
       /**
        * =====================================================
-       * ADMIN SUBCOMMANDS
+       * ADMIN ONLY
        * =====================================================
+       *
+       * setup
+       * mode
+       * disable
+       *
+       * reset / restart / leaderboard / goiy / status:
+       * everyone
        */
 
       const adminSubcommands =
@@ -430,7 +372,6 @@ export default {
           'setup',
           'mode',
           'disable',
-          'reset',
         ]);
 
       if (
@@ -471,47 +412,12 @@ export default {
        */
 
       if (
-        subcommand ===
-        'setup'
+        subcommand === 'setup'
       ) {
-        const channel =
-          interaction.options
-            .getChannel(
-              'channel',
-            );
-
-        const mode =
-          interaction.options
-            .getString(
-              'mode',
-            );
-
         const startWordInput =
-          interaction.options
-            .getString(
-              'start_word',
-            );
-
-        if (
-          !channel ||
-          channel.type !==
-            ChannelType.GuildText
-        ) {
-          return await replyUserError(
-            interaction,
-            {
-              type:
-                ErrorTypes.VALIDATION,
-
-              message:
-                'Vui lòng chọn một kênh chat văn bản hợp lệ.',
-            },
+          interaction.options.getString(
+            'start_word',
           );
-        }
-
-        /**
-         * Kiểm tra từ khởi đầu.
-         */
 
         if (
           startWordInput &&
@@ -531,77 +437,169 @@ export default {
           );
         }
 
-        /**
-         * Kích hoạt game.
-         */
+        const pvpChannel =
+          await interaction.guild.channels
+            .fetch(
+              WORD_CHAIN_CHANNELS.pvp,
+            )
+            .catch(
+              () => null,
+            );
+
+        const botChannel =
+          await interaction.guild.channels
+            .fetch(
+              WORD_CHAIN_CHANNELS.bot,
+            )
+            .catch(
+              () => null,
+            );
+
+        if (!pvpChannel) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.UNKNOWN,
+
+              message:
+                `Không tìm thấy kênh PvP <#${WORD_CHAIN_CHANNELS.pvp}> trong server.`,
+            },
+          );
+        }
+
+        if (!botChannel) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.UNKNOWN,
+
+              message:
+                `Không tìm thấy kênh PvE <#${WORD_CHAIN_CHANNELS.bot}> trong server.`,
+            },
+          );
+        }
+
+        const updatedPvp =
+          await activateWordChain(
+            interaction.client,
+            guildId,
+            WORD_CHAIN_CHANNELS.pvp,
+            'pvp',
+            startWordInput,
+          );
 
         const updatedConfig =
           await activateWordChain(
             interaction.client,
             guildId,
-            channel.id,
-            mode,
+            WORD_CHAIN_CHANNELS.bot,
+            'bot',
             startWordInput,
           );
 
-        const modeInfo =
-          WORD_CHAIN_MODES[
-            mode
-          ];
+        const pvpGame =
+          getWordChainGame(
+            updatedConfig,
+            'pvp',
+          );
 
-        const nextSyllable =
+        const botGame =
+          getWordChainGame(
+            updatedConfig,
+            'bot',
+          );
+
+        const pvpNext =
           getLastSyllable(
-            updatedConfig.currentWord,
+            pvpGame.currentWord,
+          );
+
+        const botNext =
+          getLastSyllable(
+            botGame.currentWord,
           );
 
         /**
          * ===================================================
-         * GỬI PANEL SETUP VÀO CHANNEL GAME
+         * PVP PANEL
          * ===================================================
-         *
-         * Ảnh cố định.
-         *
-         * Dùng setImage()
-         * => ảnh lớn ở cuối embed.
          */
 
-        const setupEmbed =
+        const pvpEmbed =
           createEmbed({
             title:
-              '⋆.ೃ࿔🌸*:･「Nối Từ」— Game On!',
+              '⋆.ೃ࿔🌸*:･「Nối Từ」— PvP Game On!',
 
             description:
-              `${WORD_CHAIN_EMOJIS.mode} Chế độ: **${modeInfo.label}**\n` +
-              `<a:trangtrig18:1546068102817775626> Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
-              `<a:catg1:1541439053256462396> Từ mở đầu: **${updatedConfig.currentWord}**\n` +
-              `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${nextSyllable}**`,
+              `${WORD_CHAIN_EMOJIS.mode} Chế độ: **Đấu với người chơi (PvP)**\n` +
+              `<a:trangtrig18:1546068102817775626> Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Hai người chơi sẽ thay phiên nhau nối từ!\n\n` +
+              `<a:catg1:1541439053256462396> Từ mở đầu: **${pvpGame.currentWord}**\n` +
+              `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${pvpNext}**`,
 
             color:
               'primary',
           });
 
-        setupEmbed.setImage(
+        pvpEmbed.setImage(
           WORD_CHAIN_SETUP_IMAGE,
         );
 
-        await channel
+        await pvpChannel
           .send({
             embeds: [
-              setupEmbed,
+              pvpEmbed,
             ],
           })
           .catch(
             (error) => {
               logger.warn(
-                'Failed to send word chain setup embed:',
+                'Failed to send PvP setup embed:',
                 error,
               );
             },
           );
 
         /**
-         * Phản hồi riêng cho admin.
+         * ===================================================
+         * BOT PANEL
+         * ===================================================
          */
+
+        const botEmbed =
+          createEmbed({
+            title:
+              '⋆.ೃ࿔🌸*:･「Nối Từ」— Bot Game On!',
+
+            description:
+              `${WORD_CHAIN_EMOJIS.mode} Chế độ: **Đấu với Bot (PvE)**\n` +
+              `<a:trangtrig18:1546068102817775626> Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Usagi sẽ tự động nối từ tiếp theo!\n\n` +
+              `<a:catg1:1541439053256462396> Từ mở đầu: **${botGame.currentWord}**\n` +
+              `<a:catg1:1541439053256462396> Bắt đầu từ mới với: **${botNext}**`,
+
+            color:
+              'primary',
+          });
+
+        botEmbed.setImage(
+          WORD_CHAIN_SETUP_IMAGE,
+        );
+
+        await botChannel
+          .send({
+            embeds: [
+              botEmbed,
+            ],
+          })
+          .catch(
+            (error) => {
+              logger.warn(
+                'Failed to send PvE setup embed:',
+                error,
+              );
+            },
+          );
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -609,8 +607,10 @@ export default {
             embeds: [
               successEmbed(
                 'Thiết Lập Thành Công',
-                `Đã kích hoạt minigame nối từ tại kênh ${channel} với chế độ **${modeInfo.label}**.\n` +
-                  `Từ khởi đầu hiện tại là: **${updatedConfig.currentWord}** (tiếng cần nối: \`${nextSyllable}\`).`,
+                `Đã thiết lập Nối Từ cho cả hai kênh cố định.\n\n` +
+                  `⚔️ PvP: <#${WORD_CHAIN_CHANNELS.pvp}>\n` +
+                  `🤖 PvE: <#${WORD_CHAIN_CHANNELS.bot}>\n\n` +
+                  `Mỗi chế độ hiện có một ván chơi riêng.`,
               ),
             ],
           },
@@ -624,19 +624,41 @@ export default {
        */
 
       if (
-        subcommand ===
-        'mode'
+        subcommand === 'mode'
       ) {
         const newMode =
-          interaction.options
-            .getString(
-              'mode',
+          interaction.options.getString(
+            'mode',
+          );
+
+        const channelId =
+          WORD_CHAIN_CHANNELS[
+            newMode
+          ];
+
+        if (!channelId) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.VALIDATION,
+
+              message:
+                'Chế độ nối từ không hợp lệ.',
+            },
+          );
+        }
+
+        const channel =
+          await interaction.guild.channels
+            .fetch(
+              channelId,
+            )
+            .catch(
+              () => null,
             );
 
-        if (
-          !config.enabled ||
-          !config.channelId
-        ) {
+        if (!channel) {
           return await replyUserError(
             interaction,
             {
@@ -644,33 +666,172 @@ export default {
                 ErrorTypes.UNKNOWN,
 
               message:
-                'Server chưa thiết lập kênh nối từ. Hãy dùng `/noitu setup` trước.',
+                `Không tìm thấy kênh cố định cho chế độ ${newMode}.`,
             },
           );
         }
 
-        config.mode =
-          newMode;
+        const updated =
+          await activateWordChain(
+            interaction.client,
+            guildId,
+            channelId,
+            newMode,
+            null,
+          );
 
-        await saveWordChainConfig(
-          interaction.client,
-          guildId,
-          config,
-        );
+        const game =
+          getWordChainGame(
+            updated,
+            newMode,
+          );
 
         const modeInfo =
           WORD_CHAIN_MODES[
             newMode
           ];
 
+        const nextSyllable =
+          getLastSyllable(
+            game.currentWord,
+          );
+
+        await channel
+          .send(
+            [
+              `${WORD_CHAIN_EMOJIS.newRound} **${modeInfo.label}** đã được quản lý khởi động lại.`,
+              `${WORD_CHAIN_EMOJIS.info} Từ mới: **${game.currentWord}**`,
+              `${WORD_CHAIN_EMOJIS.info} Tiếng cần nối: **${nextSyllable}**`,
+            ].join('\n'),
+          )
+          .catch(() => {});
+
         return await InteractionHelper.safeEditReply(
           interaction,
           {
             embeds: [
               successEmbed(
-                'Đã Đổi Chế Độ Chơi',
-                `Chế độ nối từ đã được chuyển sang: **${modeInfo.label}** (${modeInfo.description}).`,
+                'Đã Đổi / Khởi Động Chế Độ',
+                `**${modeInfo.label}** hiện hoạt động tại <#${channelId}>.\n\n` +
+                  `Từ khởi đầu: **${game.currentWord}**`,
               ),
+            ],
+          },
+        );
+      }
+
+      /**
+       * =====================================================
+       * DISABLE
+       * =====================================================
+       */
+
+      if (
+        subcommand === 'disable'
+      ) {
+        if (
+          !config.enabled
+        ) {
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            {
+              embeds: [
+                infoEmbed(
+                  'Trạng Thái',
+                  'Cả hai chế độ Nối Từ hiện đã tắt.',
+                ),
+              ],
+            },
+          );
+        }
+
+        await disableWordChain(
+          interaction.client,
+          guildId,
+        );
+
+        return await InteractionHelper.safeEditReply(
+          interaction,
+          {
+            embeds: [
+              successEmbed(
+                'Đã Tắt Minigame',
+                'Đã tắt cả PvP và PvE Nối Từ.',
+              ),
+            ],
+          },
+        );
+      }
+
+      /**
+       * =====================================================
+       * STATUS
+       * =====================================================
+       */
+
+      if (
+        subcommand === 'status'
+      ) {
+        const pvpGame =
+          getWordChainGame(
+            config,
+            'pvp',
+          );
+
+        const botGame =
+          getWordChainGame(
+            config,
+            'bot',
+          );
+
+        const embed =
+          createEmbed({
+            title:
+              '⋆.ೃ࿔🌸*:･𝓣𝓻𝓪̣𝓷𝓰 𝓣𝓱𝓪́𝓲 𝓝𝓸̂́𝓲 𝓣𝓾̛̀',
+
+            fields: [
+              {
+                name:
+                  `${WORD_CHAIN_EMOJIS.mode} PvP`,
+
+                value:
+                  pvpGame.enabled
+                    ? [
+                        `Kênh: <#${WORD_CHAIN_CHANNELS.pvp}>`,
+                        `Từ hiện tại: **${pvpGame.currentWord || 'Chưa có'}**`,
+                        `Chuỗi: **${pvpGame.currentStreak || 0}**`,
+                      ].join('\n')
+                    : 'Đang tắt',
+
+                inline: false,
+              },
+
+              {
+                name:
+                  `${WORD_CHAIN_EMOJIS.mode} PvE — Bot`,
+
+                value:
+                  botGame.enabled
+                    ? [
+                        `Kênh: <#${WORD_CHAIN_CHANNELS.bot}>`,
+                        `Từ hiện tại: **${botGame.currentWord || 'Chưa có'}**`,
+                        `Chuỗi cá nhân: **được lưu riêng theo người chơi**`,
+                      ].join('\n')
+                    : 'Đang tắt',
+
+                inline: false,
+              },
+            ],
+
+            color:
+              'primary',
+          });
+
+        return await InteractionHelper.safeEditReply(
+          interaction,
+          {
+            embeds: [
+              embed,
             ],
           },
         );
@@ -683,13 +844,33 @@ export default {
        */
 
       if (
-        subcommand ===
-        'reset'
+        subcommand === 'reset'
       ) {
-        if (
-          !config.enabled ||
-          !config.channelId
-        ) {
+        const mode =
+          getWordChainModeForChannel(
+            interaction.channelId,
+          );
+
+        if (!mode) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.USER_INPUT,
+
+              message:
+                `\`/noitu reset\` chỉ dùng được tại kênh PvP <#${WORD_CHAIN_CHANNELS.pvp}> hoặc kênh PvE <#${WORD_CHAIN_CHANNELS.bot}>.`,
+            },
+          );
+        }
+
+        const game =
+          getWordChainGame(
+            config,
+            mode,
+          );
+
+        if (!game.enabled) {
           return await replyUserError(
             interaction,
             {
@@ -697,16 +878,15 @@ export default {
                 ErrorTypes.UNKNOWN,
 
               message:
-                'Server chưa kích hoạt minigame nối từ. Hãy dùng `/noitu setup` trước.',
+                `Chế độ ${mode === 'pvp' ? 'PvP' : 'PvE'} hiện chưa được bật. Hãy nhờ quản lý dùng \`/noitu setup\`.`,
             },
           );
         }
 
         const startWordInput =
-          interaction.options
-            .getString(
-              'start_word',
-            );
+          interaction.options.getString(
+            'start_word',
+          );
 
         if (
           startWordInput &&
@@ -726,10 +906,40 @@ export default {
           );
         }
 
-        return await restartGame(
+        const nextStart =
+          startWordInput
+            ? normalizeWord(
+                startWordInput,
+              )
+            : getRandomStartWord();
+
+        await resetWordChainGame(
+          interaction.client,
+          guildId,
+          nextStart,
+          mode,
+        );
+
+        await interaction.channel
+          .send(
+            [
+              `${WORD_CHAIN_EMOJIS.newRound} Lượt **${mode === 'pvp' ? 'PvP' : 'PvE'}** đã được làm mới!`,
+              `${WORD_CHAIN_EMOJIS.info} Từ bắt đầu: **${nextStart}**`,
+              `${WORD_CHAIN_EMOJIS.info} Tiếng cần nối: **${getLastSyllable(nextStart)}**`,
+            ].join('\n'),
+          )
+          .catch(() => {});
+
+        return await InteractionHelper.safeEditReply(
           interaction,
-          config,
-          startWordInput,
+          {
+            embeds: [
+              successEmbed(
+                'Đã Reset',
+                `Lượt ${mode === 'pvp' ? 'PvP' : 'PvE'} đã được làm mới với từ **${nextStart}**.`,
+              ),
+            ],
+          },
         );
       }
 
@@ -740,13 +950,33 @@ export default {
        */
 
       if (
-        subcommand ===
-        'restart'
+        subcommand === 'restart'
       ) {
-        if (
-          !config.enabled ||
-          !config.channelId
-        ) {
+        const mode =
+          getWordChainModeForChannel(
+            interaction.channelId,
+          );
+
+        if (!mode) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.USER_INPUT,
+
+              message:
+                `\`/noitu restart\` chỉ dùng được tại kênh PvP <#${WORD_CHAIN_CHANNELS.pvp}> hoặc PvE <#${WORD_CHAIN_CHANNELS.bot}>.`,
+            },
+          );
+        }
+
+        const game =
+          getWordChainGame(
+            config,
+            mode,
+          );
+
+        if (!game.enabled) {
           return await replyUserError(
             interaction,
             {
@@ -754,178 +984,47 @@ export default {
                 ErrorTypes.UNKNOWN,
 
               message:
-                'Server chưa kích hoạt minigame nối từ.',
+                'Chế độ này hiện chưa được bật.',
             },
           );
         }
 
-        return await restartGame(
-          interaction,
-          config,
-          null,
-        );
-      }
-
-      /**
-       * =====================================================
-       * DISABLE
-       * =====================================================
-       */
-
-      if (
-        subcommand ===
-        'disable'
-      ) {
-        if (
-          !config.enabled
-        ) {
-          return await InteractionHelper.safeEditReply(
-            interaction,
-            {
-              embeds: [
-                infoEmbed(
-                  'Trạng Thái',
-                  'Minigame nối từ hiện tại đã đang tắt.',
-                ),
-              ],
-            },
+        const endedStreak =
+          Number(
+            game.currentStreak || 0,
           );
-        }
 
-        await disableWordChain(
+        const finalWord =
+          game.currentWord ||
+          'Chưa có';
+
+        const nextStart =
+          getRandomStartWord();
+
+        await recordBreak(
           interaction.client,
           guildId,
+          nextStart,
+          mode,
         );
+
+        await interaction.channel
+          .send(
+            [
+              `${WORD_CHAIN_EMOJIS.end} Chuỗi hiện tại kết thúc sau **${endedStreak}** với **${finalWord}**.`,
+              `${WORD_CHAIN_EMOJIS.newRound} Lượt mới bắt đầu với **${nextStart}**!`,
+            ].join('\n'),
+          )
+          .catch(() => {});
 
         return await InteractionHelper.safeEditReply(
           interaction,
           {
             embeds: [
               successEmbed(
-                'Đã Tắt Minigame',
-                'Trò chơi nối từ đã bị vô hiệu hóa trên server này.',
+                'Đã Bắt Đầu Lượt Mới',
+                `Lượt mới bắt đầu với **${nextStart}**.`,
               ),
-            ],
-          },
-        );
-      }
-
-      /**
-       * =====================================================
-       * STATUS
-       * =====================================================
-       */
-
-      if (
-        subcommand ===
-        'status'
-      ) {
-        if (
-          !config.enabled ||
-          !config.channelId
-        ) {
-          return await InteractionHelper.safeEditReply(
-            interaction,
-            {
-              embeds: [
-                infoEmbed(
-                  'Trạng Thái Minigame',
-                  'Minigame nối từ chưa được kích hoạt trên server. Dùng `/noitu setup` để bắt đầu.',
-                ),
-              ],
-            },
-          );
-        }
-
-        const modeInfo =
-          WORD_CHAIN_MODES[
-            config.mode
-          ] ||
-          WORD_CHAIN_MODES.bot;
-
-        const nextSyllable =
-          getLastSyllable(
-            config.currentWord,
-          );
-
-        const embed =
-          createEmbed({
-            title:
-              '⋆.ೃ࿔🌸*:･𝓣𝓻𝓪̣𝓷𝓰 𝓣𝓱𝓪́𝓲 𝓝𝓸̂́𝓲 𝓣𝓾̛̀',
-
-            fields: [
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.mode} Chế độ`,
-
-                value:
-                  `**${modeInfo.label}**`,
-
-                inline: true,
-              },
-
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.info} Chuỗi hiện tại`,
-
-                value:
-                  `🔥 **${config.currentStreak || 0}** từ`,
-
-                inline: true,
-              },
-
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.info} Từ hiện tại`,
-
-                value:
-                  `**${config.currentWord || 'Chưa có'}**`,
-
-                inline: true,
-              },
-
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.info} Từ tiếp theo`,
-
-                value:
-                  nextSyllable
-                    ? `👉 **${nextSyllable}**`
-                    : 'Bất kỳ',
-
-                inline: true,
-              },
-
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.info} Kỷ lục cao nhất`,
-
-                value:
-                  `🏆 **${config.bestStreak || 0}** từ`,
-
-                inline: true,
-              },
-
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.info} Số từ đã dùng ván này`,
-
-                value:
-                  `${config.usedWords?.length || 0} từ`,
-
-                inline: true,
-              },
-            ],
-
-            color:
-              'primary',
-          });
-
-        return await InteractionHelper.safeEditReply(
-          interaction,
-          {
-            embeds: [
-              embed,
             ],
           },
         );
@@ -995,7 +1094,6 @@ export default {
             description:
               [
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với Bot (PvE)**`,
-
                 formatLeaderboard(
                   botPlayers,
                 ),
@@ -1003,7 +1101,6 @@ export default {
                 '',
 
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với người chơi (PvP)**`,
-
                 formatLeaderboard(
                   pvpPlayers,
                 ),
@@ -1014,11 +1111,8 @@ export default {
           });
 
         /**
-         * Ảnh leaderboard lớn.
-         *
-         * KHÔNG dùng setThumbnail().
+         * ẢNH LỚN.
          */
-
         embed.setImage(
           WORD_CHAIN_LEADERBOARD_IMAGE,
         );
@@ -1037,34 +1131,37 @@ export default {
        * =====================================================
        * GOIY
        * =====================================================
-       *
-       * /noitu goiy
-       *
-       * Mỗi người chỉ có 2 lượt gợi ý
-       * trong MỘT chuỗi.
-       *
-       * Nếu không còn từ phù hợp:
-       *
-       * → kết thúc round
-       * → reset streak
-       * → reset hint
-       * → reset usedWords
-       * → tạo round mới
        */
 
       if (
-        subcommand ===
-        'goiy'
+        subcommand === 'goiy'
       ) {
-        /**
-         * ===================================================
-         * GAME CHƯA BẬT
-         * ===================================================
-         */
+        const mode =
+          getWordChainModeForChannel(
+            interaction.channelId,
+          );
+
+        if (!mode) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.USER_INPUT,
+
+              message:
+                `Bạn chỉ có thể dùng \`/noitu goiy\` tại kênh PvP <#${WORD_CHAIN_CHANNELS.pvp}> hoặc PvE <#${WORD_CHAIN_CHANNELS.bot}>.`,
+            },
+          );
+        }
+
+        const game =
+          getWordChainGame(
+            config,
+            mode,
+          );
 
         if (
-          !config.enabled ||
-          !config.channelId
+          !game.enabled
         ) {
           return await replyUserError(
             interaction,
@@ -1073,49 +1170,22 @@ export default {
                 ErrorTypes.UNKNOWN,
 
               message:
-                'Server chưa kích hoạt minigame nối từ. Hãy dùng `/noitu setup` trước.',
+                'Chế độ Nối Từ tại kênh này hiện chưa được bật.',
             },
           );
         }
-
-        /**
-         * ===================================================
-         * KIỂM TRA CHANNEL
-         * ===================================================
-         */
-
-        if (
-          interaction.channelId !==
-          config.channelId
-        ) {
-          return await replyUserError(
-            interaction,
-            {
-              type:
-                ErrorTypes.USER_INPUT,
-
-              message:
-                `Bạn chỉ có thể sử dụng \`/noitu goiy\` tại kênh <#${config.channelId}>.`,
-            },
-          );
-        }
-
-        /**
-         * ===================================================
-         * GỌI HINT SERVICE
-         * ===================================================
-         */
 
         const hintResult =
           await useWordChainHint(
             interaction.client,
             guildId,
             interaction.user.id,
+            mode,
           );
 
         /**
          * ===================================================
-         * HẾT LƯỢT GỢI Ý
+         * HẾT 3 LƯỢT
          * ===================================================
          */
 
@@ -1127,9 +1197,10 @@ export default {
             interaction,
             {
               content:
-                `Xin lỗi bạn, bạn đã sử dụng hết lượt gợi ý của mình. Vui lòng tự suy nghĩ từ để nối tiếp! ${WORD_CHAIN_EMOJIS.hintLimit}`,
+                `Bạn đã sử dụng hết **${WORD_CHAIN_HINT_LIMIT} lượt gợi ý** trong chuỗi này. ${WORD_CHAIN_EMOJIS.hintLimit}`,
 
               embeds: [],
+
               components: [],
             },
           );
@@ -1137,51 +1208,61 @@ export default {
 
         /**
          * ===================================================
-         * KHÔNG CÒN TỪ ĐỂ GỢI Ý
+         * KHÔNG CÒN TỪ
          * ===================================================
          *
-         * Đây là phần đã sửa.
+         * Đây là bug bạn vừa báo:
          *
-         * Trước đây:
-         *
-         * - chỉ báo "không còn từ"
-         * - không reset game
+         * Trước:
+         * "Hiện tại không còn từ phù hợp..."
          *
          * Bây giờ:
-         *
-         * - lấy streak hiện tại
-         * - lấy từ cuối
-         * - tạo từ mở đầu mới
-         * - recordBreak()
-         * - reset round
-         * - bắt đầu round mới
+         * -> kết thúc round
+         * -> reset streak
+         * -> reset hint
+         * -> reset usedWords
+         * -> tạo round mới
          */
 
         if (
           hintResult.reason ===
           'no_word'
         ) {
+          const latestConfig =
+            await getWordChainConfig(
+              interaction.client,
+              guildId,
+            );
+
+          const latestGame =
+            getWordChainGame(
+              latestConfig,
+              mode,
+            );
+
           const endedStreak =
             Number(
-              config.currentStreak || 0,
+              mode === 'bot'
+                ? latestGame
+                    .personalStreaks?.[
+                      interaction.user.id
+                    ] || 0
+                : latestGame
+                    .currentStreak || 0,
             );
 
           const finalWord =
-            config.currentWord ||
+            latestGame.currentWord ||
             'từ hiện tại';
 
           const nextStart =
             getRandomStartWord();
 
-          /**
-           * Kết thúc round hiện tại
-           * và tạo round mới.
-           */
-
           await recordBreak(
             interaction.client,
             guildId,
             nextStart,
+            mode,
           );
 
           return await InteractionHelper.safeEditReply(
@@ -1194,6 +1275,7 @@ export default {
                 ].join('\n'),
 
               embeds: [],
+
               components: [],
             },
           );
@@ -1201,7 +1283,7 @@ export default {
 
         /**
          * ===================================================
-         * GỢI Ý THÀNH CÔNG
+         * HINT SUCCESS
          * ===================================================
          */
 
@@ -1213,7 +1295,7 @@ export default {
             interaction,
             {
               content:
-                `${WORD_CHAIN_EMOJIS.hint} Cảm ơn bạn đã sử dụng gợi ý của bé bot cute phô mai que. Gợi ý của bạn là **${hintResult.word}**! Chúc bạn đạt được chuỗi cao nhé hehee! ${WORD_CHAIN_EMOJIS.hintEnd}`,
+                `${WORD_CHAIN_EMOJIS.hint} Gợi ý của bé Usagi là **${hintResult.word}**! Bạn còn **${hintResult.remaining} lượt gợi ý** trong chuỗi này. ${WORD_CHAIN_EMOJIS.hintEnd}`,
 
               embeds: [],
 
@@ -1222,12 +1304,6 @@ export default {
           );
         }
 
-        /**
-         * ===================================================
-         * FALLBACK
-         * ===================================================
-         */
-
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -1235,6 +1311,7 @@ export default {
               '🌸 Usagi hiện chưa thể đưa ra gợi ý. Bạn thử lại nhé!',
 
             embeds: [],
+
             components: [],
           },
         );
@@ -1258,93 +1335,3 @@ export default {
     }
   },
 };
-
-/**
- * =========================================================
- * RESTART HELPER
- * =========================================================
- */
-
-async function restartGame(
-  interaction,
-  config,
-  requestedStartWord = null,
-) {
-  const guildId =
-    interaction.guildId;
-
-  const endedStreak =
-    Number(
-      config.currentStreak || 0,
-    );
-
-  const finalWord =
-    config.currentWord ||
-    'Chưa có';
-
-  const nextStart =
-    requestedStartWord &&
-    isValidWord(
-      requestedStartWord,
-    )
-      ? normalizeWord(
-          requestedStartWord,
-        )
-      : getRandomStartWord();
-
-  /**
-   * resetWordChainGame() đã reset:
-   *
-   * - currentWord
-   * - lastUserId
-   * - usedWords
-   * - currentStreak
-   * - personalStreaks
-   * - hintUses
-   */
-
-  await resetWordChainGame(
-    interaction.client,
-    guildId,
-    nextStart,
-  );
-
-  const channel =
-    interaction.guild.channels.cache.get(
-      config.channelId,
-    );
-
-  if (channel) {
-    const messages = [];
-
-    if (
-      endedStreak > 0
-    ) {
-      messages.push(
-        `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
-      );
-    }
-
-    messages.push(
-      `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${nextStart}**!`,
-    );
-
-    await channel
-      .send(
-        messages.join('\n'),
-      )
-      .catch(() => {});
-  }
-
-  return await InteractionHelper.safeEditReply(
-    interaction,
-    {
-      embeds: [
-        successEmbed(
-          'Đã Bắt Đầu Lượt Mới',
-          `Lượt nối từ mới đã bắt đầu với từ **${nextStart}**.`,
-        ),
-      ],
-    },
-  );
-}
