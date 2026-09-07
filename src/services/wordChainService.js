@@ -17,7 +17,6 @@ const WORD_CHAIN_KEY_PREFIX = 'wordChain:';
 let validWordsSet = new Set();
 let startWordMap = new Map();
 let isDictionaryLoaded = false;
-let lastRandomStartWord = null;
 
 export const WORD_CHAIN_MODES = {
   pvp: {
@@ -935,35 +934,70 @@ export function findBotNextWord(
     );
 
   if (
-    !candidates?.length
+    !candidates ||
+    candidates.length === 0
   ) {
     return null;
   }
 
   const usedSet =
     new Set(
-      usedWords.map(
-        normalizeWord,
-      ),
+      Array.isArray(
+        usedWords,
+      )
+        ? usedWords
+            .map(
+              normalizeWord,
+            )
+            .filter(Boolean)
+        : [],
     );
 
-  const available =
+  const availableCandidates =
     candidates.filter(
-      (word) =>
-        !usedSet.has(word),
+      (word) => {
+        if (
+          !validWordsSet.has(
+            word,
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          !isValidWord(
+            word,
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          usedSet.has(
+            word,
+          )
+        ) {
+          return false;
+        }
+
+        return true;
+      },
     );
 
   if (
-    !available.length
+    availableCandidates.length === 0
   ) {
     return null;
   }
 
-  return available[
+  const randomIndex =
     Math.floor(
       Math.random() *
-        available.length,
-    )
+        availableCandidates.length,
+    );
+
+  return availableCandidates[
+    randomIndex
   ];
 }
 
@@ -974,143 +1008,71 @@ export function findBotNextWord(
  * Không còn danh sách:
  * gia đình / bạn bè / học sinh...
  */
-export function getRandomStartWord() {
+export function getRandomStartWord(
+  excludeWords = [],
+) {
   initDictionary();
+
+  const excluded =
+    new Set(
+      Array.isArray(
+        excludeWords,
+      )
+        ? excludeWords
+            .map(
+              normalizeWord,
+            )
+            .filter(Boolean)
+        : [],
+    );
+
+  const availableWords =
+    Array.from(
+      validWordsSet,
+    ).filter(
+      (word) =>
+        !excluded.has(
+          word,
+        ) &&
+        isValidWord(
+          word,
+        ),
+    );
+
+  if (
+    availableWords.length > 0
+  ) {
+    return availableWords[
+      Math.floor(
+        Math.random() *
+          availableWords.length,
+      )
+    ];
+  }
 
   const allWords =
     Array.from(
       validWordsSet,
-    );
-
-  if (
-    allWords.length === 0
-  ) {
-    return 'học sinh';
-  }
-
-  return allWords[
-    Math.floor(
-      Math.random() *
-        allWords.length,
-    )
-  ];
-}
-
-export async function useWordChainHint(
-  client,
-  guildId,
-  userId,
-  mode = 'bot',
-) {
-  initDictionary();
-
-  const resolvedMode =
-    mode === 'pvp'
-      ? 'pvp'
-      : 'bot';
-
-  const current =
-    await getWordChainConfig(
-      client,
-      guildId,
-    );
-
-  const game =
-    getWordChainGame(
-      current,
-      resolvedMode,
-    );
-
-  const used =
-    Math.max(
-      0,
-      Math.min(
-        WORD_CHAIN_HINT_LIMIT,
-        Number(
-          game.hintUses?.[
-            userId
-          ] || 0,
+    ).filter(
+      (word) =>
+        isValidWord(
+          word,
         ),
-      ),
     );
 
   if (
-    used >=
-    WORD_CHAIN_HINT_LIMIT
+    allWords.length > 0
   ) {
-    return {
-      ok: false,
-      reason: 'limit',
-      used,
-      remaining: 0,
-      word: null,
-    };
+    return allWords[
+      Math.floor(
+        Math.random() *
+          allWords.length,
+      )
+    ];
   }
 
-  const word =
-    findBotNextWord(
-      game.currentWord,
-      game.usedWords || [],
-    );
-
-  /*
-   * Không còn từ:
-   * không trừ lượt.
-   *
-   * noitu.js sẽ tự kết thúc round.
-   */
-  if (!word) {
-    return {
-      ok: false,
-      reason: 'no_word',
-      used,
-      remaining:
-        WORD_CHAIN_HINT_LIMIT -
-        used,
-      word: null,
-    };
-  }
-
-  const hintUses = {
-    ...(game.hintUses || {}),
-  };
-
-  hintUses[userId] =
-    used + 1;
-
-  current.games[
-    resolvedMode
-  ] = {
-    ...game,
-    hintUses,
-  };
-
-  const updated =
-    await saveWordChainConfig(
-      client,
-      guildId,
-      current,
-    );
-
-  return {
-    ok: true,
-
-    reason: null,
-
-    used:
-      used + 1,
-
-    remaining:
-      WORD_CHAIN_HINT_LIMIT -
-      (used + 1),
-
-    word,
-
-    config:
-      updated,
-  };
+  return 'học sinh';
 }
-
 export async function recordUserSuccess(
   client,
   guildId,
