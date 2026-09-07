@@ -73,6 +73,9 @@ import {
 } from '../services/autoresponder/responseBuilder.js';
 
 import {
+  WORD_CHAIN_CHANNELS,
+  getWordChainModeForChannel,
+  getWordChainGame,
   getWordChainConfig,
   isValidWord,
   canChain,
@@ -121,6 +124,12 @@ const WORD_CHAIN_EMOJIS = {
     '<a:meongg14:1546092766826864661>',
 };
 
+/**
+ * =========================================================
+ * EVENT
+ * =========================================================
+ */
+
 export default {
   name: Events.MessageCreate,
 
@@ -140,12 +149,6 @@ export default {
         `Message received from ${message.author.tag}: ${message.content}`,
       );
 
-      /**
-       * =====================================================
-       * COUNTING
-       * =====================================================
-       */
-
       const countingProcessed =
         await handleCountingGame(
           message,
@@ -155,25 +158,15 @@ export default {
       let wordChainProcessed =
         false;
 
-      /**
-       * =====================================================
-       * WORD CHAIN
-       * =====================================================
-       */
-
-      if (!countingProcessed) {
+      if (
+        !countingProcessed
+      ) {
         wordChainProcessed =
           await handleWordChain(
             message,
             client,
           );
       }
-
-      /**
-       * =====================================================
-       * AUTORESPONDER / PREFIX / LEVELING
-       * =====================================================
-       */
 
       if (
         !countingProcessed &&
@@ -185,7 +178,9 @@ export default {
             client,
           );
 
-        if (!autoresponderProcessed) {
+        if (
+          !autoresponderProcessed
+        ) {
           await handlePrefixCommand(
             message,
             client,
@@ -277,10 +272,6 @@ async function handlePrefixCommand(
         commandName,
       );
 
-    logger.info(
-      `Resolved command name: ${resolvedCommandName}`,
-    );
-
     const command =
       client.commands.get(
         resolvedCommandName,
@@ -366,21 +357,20 @@ async function handlePrefixCommand(
         restriction.blocked &&
         restriction.reason
       ) {
-        const embed =
-          createEmbed({
-            title:
-              'Slash Command Only',
-
-            description:
-              `${restriction.reason}\nUse \`/${resolvedCommandName}\` instead.`,
-
-            color:
-              'info',
-          });
-
         await message.channel
           .send({
-            embeds: [embed],
+            embeds: [
+              createEmbed({
+                title:
+                  'Slash Command Only',
+
+                description:
+                  `${restriction.reason}\nUse \`/${resolvedCommandName}\` instead.`,
+
+                color:
+                  'info',
+              }),
+            ],
           })
           .catch(() => {});
       }
@@ -399,21 +389,20 @@ async function handlePrefixCommand(
         command.category,
       ))
     ) {
-      const embed =
-        createEmbed({
-          title:
-            'Command Disabled',
-
-          description:
-            'This command has been disabled for this server.',
-
-          color:
-            'error',
-        });
-
       await message.channel
         .send({
-          embeds: [embed],
+          embeds: [
+            createEmbed({
+              title:
+                'Command Disabled',
+
+              description:
+                'This command has been disabled for this server.',
+
+              color:
+                'error',
+            }),
+          ],
         })
         .catch(() => {});
 
@@ -444,30 +433,25 @@ async function handlePrefixCommand(
           abuseProtection.remainingMs,
         );
 
-      const embed =
-        createEmbed({
-          title:
-            'Command Cooldown',
-
-          description:
-            `This command is on cooldown. Please wait ${formattedCooldown} before trying again.`,
-
-          color:
-            'error',
-        });
-
       await message.channel
         .send({
-          embeds: [embed],
+          embeds: [
+            createEmbed({
+              title:
+                'Command Cooldown',
+
+              description:
+                `This command is on cooldown. Please wait ${formattedCooldown} before trying again.`,
+
+              color:
+                'error',
+            }),
+          ],
         })
         .catch(() => {});
 
       return;
     }
-
-    logger.info(
-      `Executing prefix command: ${prefix}${commandName} (resolved to ${resolvedCommandName}) by ${message.author.tag}`,
-    );
 
     await executePrefixCommand(
       command,
@@ -525,7 +509,9 @@ async function handleCountingGame(
       message.author.id ===
         config.lastUserId;
 
-    if (invalidAttempt) {
+    if (
+      invalidAttempt
+    ) {
       await message.delete()
         .catch(() => {});
 
@@ -545,11 +531,14 @@ async function handleCountingGame(
           `❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`,
         );
 
-      setTimeout(() => {
-        failureMessage
-          .delete()
-          .catch(() => {});
-      }, 10000);
+      setTimeout(
+        () => {
+          failureMessage
+            .delete()
+            .catch(() => {});
+        },
+        10000,
+      );
 
       return true;
     }
@@ -575,6 +564,16 @@ async function handleCountingGame(
  * =========================================================
  * WORD CHAIN
  * =========================================================
+ *
+ * QUAN TRỌNG:
+ *
+ * PvP và PvE chạy độc lập.
+ *
+ * PvP:
+ * 1545291672504508416
+ *
+ * PvE:
+ * 1546428675367505920
  */
 
 async function handleWordChain(
@@ -582,17 +581,36 @@ async function handleWordChain(
   client,
 ) {
   try {
+    /**
+     * =====================================================
+     * RESOLVE MODE THEO CHANNEL
+     * =====================================================
+     */
+
+    const mode =
+      getWordChainModeForChannel(
+        message.channel.id,
+      );
+
+    if (!mode) {
+      return false;
+    }
+
     const config =
       await getWordChainConfig(
         client,
         message.guild.id,
       );
 
+    const game =
+      getWordChainGame(
+        config,
+        mode,
+      );
+
     if (
       !config.enabled ||
-      !config.channelId ||
-      message.channel.id !==
-        config.channelId
+      !game.enabled
     ) {
       return false;
     }
@@ -606,7 +624,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * IGNORE COMMANDS
+     * IGNORE COMMAND
      * =====================================================
      */
 
@@ -625,7 +643,9 @@ async function handleWordChain(
      */
 
     const normalized =
-      normalizeWord(content);
+      normalizeWord(
+        content,
+      );
 
     if (!normalized) {
       return false;
@@ -633,19 +653,8 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * FORMAT CHECK
+     * EXACTLY 2 SYLLABLES
      * =====================================================
-     *
-     * CHỈ XỬ LÝ ĐÚNG 2 TIẾNG.
-     *
-     * Ví dụ:
-     *
-     * bạn              -> IGNORE
-     * bạn bè nhé       -> IGNORE
-     * 😂               -> IGNORE
-     * 😂😂             -> IGNORE
-     * bạn 😂           -> IGNORE
-     * bạn bè           -> XỬ LÝ
      */
 
     const parts =
@@ -657,40 +666,44 @@ async function handleWordChain(
       parts.length !== 2 ||
       !parts.every(
         (part) =>
-          /^\p{L}+$/u.test(part),
+          /^\p{L}+$/u.test(
+            part,
+          ),
       )
     ) {
+      /**
+       * Không đúng 2 tiếng:
+       *
+       * - không X
+       * - không V
+       * - không streak
+       * - không leaderboard
+       * - không thông báo
+       */
       return false;
     }
 
-    /**
-     * =====================================================
-     * NEEDED SYLLABLE
-     * =====================================================
-     */
-
     const needed =
       getLastSyllable(
-        config.currentWord,
+        game.currentWord,
       );
 
     /**
      * =====================================================
      * PVP — SAME USER CANNOT PLAY TWICE
      * =====================================================
-     *
-     * Chỉ áp dụng sau khi message đã đúng 2 tiếng.
      */
 
     if (
-      config.mode === 'pvp' &&
-      config.lastUserId ===
+      mode === 'pvp' &&
+      game.lastUserId ===
         message.author.id
     ) {
       await recordUserFailure(
         client,
         message.guild.id,
         message.author.id,
+        mode,
       );
 
       await message.react(
@@ -699,7 +712,7 @@ async function handleWordChain(
 
       const warnMsg =
         await message.reply(
-          `Bạn đã sử dụng một từ không khớp với từ trước đó. Bạn cần bắt đầu một từ mới với "${needed}" ! ${WORD_CHAIN_EMOJIS.wrongChain}`,
+          `Bạn đã sử dụng một từ không khớp với lượt chơi. Hãy để người chơi khác nối tiếp từ **${needed}**! ${WORD_CHAIN_EMOJIS.wrongChain}`,
         ).catch(() => null);
 
       if (warnMsg) {
@@ -722,9 +735,9 @@ async function handleWordChain(
      */
 
     if (
-      config.currentWord &&
+      game.currentWord &&
       !canChain(
-        config.currentWord,
+        game.currentWord,
         normalized,
       )
     ) {
@@ -732,6 +745,7 @@ async function handleWordChain(
         client,
         message.guild.id,
         message.author.id,
+        mode,
       );
 
       await message.react(
@@ -740,7 +754,7 @@ async function handleWordChain(
 
       const warnMsg =
         await message.reply(
-          `Bạn đã sử dụng một từ không khớp với từ trước đó. Bạn cần bắt đầu một từ mới với "${needed}" ! ${WORD_CHAIN_EMOJIS.wrongChain}`,
+          `Bạn đã sử dụng một từ không khớp với từ trước đó. Bạn cần bắt đầu bằng **${needed}**! ${WORD_CHAIN_EMOJIS.wrongChain}`,
         ).catch(() => null);
 
       if (warnMsg) {
@@ -763,7 +777,7 @@ async function handleWordChain(
      */
 
     const usedWords =
-      config.usedWords || [];
+      game.usedWords || [];
 
     if (
       usedWords.includes(
@@ -774,6 +788,7 @@ async function handleWordChain(
         client,
         message.guild.id,
         message.author.id,
+        mode,
       );
 
       await message.react(
@@ -782,7 +797,7 @@ async function handleWordChain(
 
       const warnMsg =
         await message.reply(
-          `Bạn đã sử dụng một từ sai, xin vui lòng bắt đầu một từ mới với "${needed}". ${WORD_CHAIN_EMOJIS.wrongWord}`,
+          `Bạn đã sử dụng từ này rồi. Hãy bắt đầu một từ mới với **${needed}**! ${WORD_CHAIN_EMOJIS.wrongWord}`,
         ).catch(() => null);
 
       if (warnMsg) {
@@ -800,7 +815,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * DICTIONARY CHECK
+     * DICTIONARY
      * =====================================================
      */
 
@@ -813,6 +828,7 @@ async function handleWordChain(
         client,
         message.guild.id,
         message.author.id,
+        mode,
       );
 
       await message.react(
@@ -821,7 +837,7 @@ async function handleWordChain(
 
       const warnMsg =
         await message.reply(
-          `Bạn đã sử dụng một từ sai, xin vui lòng bắt đầu một từ mới với "${needed}". ${WORD_CHAIN_EMOJIS.wrongWord}`,
+          `Từ này không hợp lệ. Hãy bắt đầu một từ mới với **${needed}**! ${WORD_CHAIN_EMOJIS.wrongWord}`,
         ).catch(() => null);
 
       if (warnMsg) {
@@ -853,22 +869,17 @@ async function handleWordChain(
         message.guild.id,
         message.author.id,
         normalized,
+        mode,
       );
 
     /**
      * =====================================================
      * PVP
      * =====================================================
-     *
-     * User đúng:
-     * - +V
-     * - +global streak
-     *
-     * Không gửi message ngay.
      */
 
     if (
-      config.mode === 'pvp'
+      mode === 'pvp'
     ) {
       const nextWord =
         findBotNextWord(
@@ -880,12 +891,21 @@ async function handleWordChain(
         );
 
       /**
-       * Không còn từ để nối.
+       * Không còn bất kỳ từ nào
+       * để người tiếp theo nối.
+       *
+       * -> kết thúc round ngay.
        */
 
       if (!nextWord) {
         const endedStreak =
-          afterUserSuccess.currentStreak;
+          Number(
+            afterUserSuccess
+              .games
+              ?.pvp
+              ?.currentStreak ||
+              0,
+          );
 
         const finalWord =
           normalized;
@@ -897,14 +917,17 @@ async function handleWordChain(
           client,
           message.guild.id,
           nextStart,
+          'pvp',
         );
 
-        await message.channel.send(
-          [
-            `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
-            `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${nextStart}**!`,
-          ].join('\n'),
-        ).catch(() => {});
+        await message.channel
+          .send(
+            [
+              `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
+              `${WORD_CHAIN_EMOJIS.newRound} Lượt PvP mới đã bắt đầu với từ **${nextStart}**!`,
+            ].join('\n'),
+          )
+          .catch(() => {});
       }
 
       return true;
@@ -912,17 +935,8 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * PVE
+     * PVE / BOT
      * =====================================================
-     *
-     * User:
-     * - +V
-     * - +personal streak
-     *
-     * Bot:
-     * - không +V
-     * - không +X
-     * - không +streak
      */
 
     const updatedUsedWords = [
@@ -946,8 +960,9 @@ async function handleWordChain(
       const endedStreak =
         Number(
           afterUserSuccess
-            .personalStreaks
+            .games
             ?.bot
+            ?.personalStreaks
             ?.[
               message.author.id
             ] || 0,
@@ -963,21 +978,24 @@ async function handleWordChain(
         client,
         message.guild.id,
         nextStart,
+        'bot',
       );
 
-      await message.channel.send(
-        [
-          `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
-          `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${nextStart}**!`,
-        ].join('\n'),
-      ).catch(() => {});
+      await message.channel
+        .send(
+          [
+            `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
+            `${WORD_CHAIN_EMOJIS.newRound} Lượt PvE mới đã bắt đầu với từ **${nextStart}**!`,
+          ].join('\n'),
+        )
+        .catch(() => {});
 
       return true;
     }
 
     /**
      * =====================================================
-     * BOT RESPONSE DELAY
+     * BOT RESPONSE
      * =====================================================
      */
 
@@ -990,41 +1008,44 @@ async function handleWordChain(
               message.guild.id,
             );
 
+          const latestGame =
+            getWordChainGame(
+              latestConfig,
+              'bot',
+            );
+
           /**
-           * Nếu game đã:
+           * Game đã thay đổi:
            *
            * - disable
-           * - restart
            * - reset
-           * - đổi mode
-           * - đổi currentWord
+           * - restart
+           * - mode/setup
+           * - currentWord thay đổi
            *
-           * thì bỏ lượt bot cũ.
+           * -> bỏ lượt bot cũ.
            */
 
           if (
             !latestConfig.enabled ||
-            latestConfig.mode !==
-              'bot' ||
-            latestConfig.currentWord !==
+            !latestGame.enabled ||
+            latestGame.currentWord !==
               normalized
           ) {
             return;
           }
 
-          /**
-           * Kiểm tra botWord vẫn hợp lệ
-           * và chưa bị dùng.
-           */
-
           if (
-            !isValidWord(botWord)
+            !isValidWord(
+              botWord,
+            )
           ) {
             return;
           }
 
           const latestUsedWords =
-            latestConfig.usedWords || [];
+            latestGame.usedWords ||
+            [];
 
           if (
             latestUsedWords.includes(
@@ -1034,28 +1055,12 @@ async function handleWordChain(
             return;
           }
 
-          /**
-           * Bot chỉ cập nhật:
-           *
-           * - currentWord
-           * - usedWords
-           *
-           * Không tăng:
-           *
-           * - V
-           * - X
-           * - streak
-           */
-
           await recordBotSuccess(
             client,
             message.guild.id,
             botWord,
+            'bot',
           );
-
-          /**
-           * Lấy state mới nhất.
-           */
 
           const finalConfig =
             await getWordChainConfig(
@@ -1063,23 +1068,93 @@ async function handleWordChain(
               message.guild.id,
             );
 
+          const finalGame =
+            getWordChainGame(
+              finalConfig,
+              'bot',
+            );
+
           const personalStreak =
             Number(
-              finalConfig
+              finalGame
                 .personalStreaks
-                ?.bot
                 ?.[
                   message.author.id
                 ] || 0,
             );
 
-          await message.channel.send(
-            [
-              `${WORD_CHAIN_EMOJIS.end} Vip pro! <@${message.author.id}> đã trả lời đúng!`,
-              `${WORD_CHAIN_EMOJIS.botSuccess} Chuỗi hiện tại: **${personalStreak}**!`,
-              `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${botWord}**!`,
-            ].join('\n'),
-          ).catch(() => {});
+          /**
+           * =================================================
+           * BOT SEND WORD
+           * =================================================
+           */
+
+          await message.channel
+            .send(
+              [
+                `${WORD_CHAIN_EMOJIS.botSuccess} **${botWord}**`,
+                `${WORD_CHAIN_EMOJIS.streak} <@${message.author.id}> — Chuỗi hiện tại: **${personalStreak}**!`,
+                `${WORD_CHAIN_EMOJIS.newRound} Tiếng tiếp theo: **${getLastSyllable(botWord)}**`,
+              ].join('\n'),
+            )
+            .catch(() => {});
+
+          /**
+           * =================================================
+           * BOT WORD IS DEAD END
+           * =================================================
+           *
+           * Sau khi bot vừa nối xong, kiểm tra xem
+           * còn từ nào cho người chơi tiếp theo không.
+           *
+           * Nếu không:
+           *
+           * -> kết thúc round
+           * -> reset
+           * -> round mới.
+           */
+
+          const afterBotConfig =
+            await getWordChainConfig(
+              client,
+              message.guild.id,
+            );
+
+          const afterBotGame =
+            getWordChainGame(
+              afterBotConfig,
+              'bot',
+            );
+
+          const nextPossibleWord =
+            findBotNextWord(
+              afterBotGame.currentWord,
+              afterBotGame.usedWords ||
+                [],
+            );
+
+          if (
+            !nextPossibleWord
+          ) {
+            const nextStart =
+              getRandomStartWord();
+
+            await recordBreak(
+              client,
+              message.guild.id,
+              nextStart,
+              'bot',
+            );
+
+            await message.channel
+              .send(
+                [
+                  `${WORD_CHAIN_EMOJIS.end} Không còn từ phù hợp để nối tiếp **${botWord}**.`,
+                  `${WORD_CHAIN_EMOJIS.newRound} Lượt PvE mới đã bắt đầu với từ **${nextStart}**!`,
+                ].join('\n'),
+              )
+              .catch(() => {});
+          }
         } catch (botErr) {
           logger.error(
             'Error sending bot response in word chain:',
@@ -1158,7 +1233,9 @@ async function handleLeveling(
           .fetch(
             message.author.id,
           )
-          .catch(() => null);
+          .catch(
+            () => null,
+          );
 
       if (
         member &&
