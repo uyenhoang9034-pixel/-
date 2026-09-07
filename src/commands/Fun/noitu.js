@@ -461,7 +461,7 @@ export default {
 
         description:
           `${WORD_CHAIN_EMOJIS.mode} Chế độ: **${modeInfo.label}**\n` +
-          `${'<:trangtrig18:1546068102817775626>'} Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
+          `${'<a:trangtrig18:1546068102817775626>'} Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
           `${'<a:catg1:1541439053256462396>'} Từ mở đầu: **${updatedConfig.currentWord}**\n` +
           `${'<a:catg1:1541439053256462396>'} Bắt đầu từ mới với: **${nextSyllable}**`,
 
