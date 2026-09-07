@@ -1,10 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * =========================================================
+ * WORD CHAIN CONSTANTS
+ * =========================================================
+ */
 
 export const WORD_CHAIN_CHANNELS = {
   pvp: '1545291672504508416',
@@ -12,28 +19,51 @@ export const WORD_CHAIN_CHANNELS = {
 };
 
 export const WORD_CHAIN_HINT_LIMIT = 3;
+
 const WORD_CHAIN_KEY_PREFIX = 'wordChain:';
+
+/**
+ * =========================================================
+ * DICTIONARY
+ * =========================================================
+ */
 
 let validWordsSet = new Set();
 let startWordMap = new Map();
 let isDictionaryLoaded = false;
 
+/**
+ * =========================================================
+ * WORD CHAIN MODES
+ * =========================================================
+ */
+
 export const WORD_CHAIN_MODES = {
   pvp: {
     label: 'Đấu với người chơi (PvP)',
-    description: 'Các thành viên trong server thay phiên nhau nối từ.',
+    description:
+      'Các thành viên trong server thay phiên nhau nối từ.',
     value: 'pvp',
   },
 
   bot: {
     label: 'Đấu với Bot (PvE)',
-    description: 'Người chơi nối từ, Bot sẽ tự động tìm từ nối tiếp.',
+    description:
+      'Người chơi nối từ, Bot sẽ tự động tìm từ nối tiếp.',
     value: 'bot',
   },
 };
 
+/**
+ * =========================================================
+ * INIT DICTIONARY
+ * =========================================================
+ */
+
 export function initDictionary() {
-  if (isDictionaryLoaded) return;
+  if (isDictionaryLoaded) {
+    return;
+  }
 
   try {
     const dictPath = path.join(
@@ -45,36 +75,85 @@ export function initDictionary() {
       logger.warn(
         `Vietnamese dictionary file not found at ${dictPath}`,
       );
+
       return;
     }
 
-    const words = JSON.parse(
-      fs.readFileSync(dictPath, 'utf8'),
-    );
+    const rawData =
+      fs.readFileSync(
+        dictPath,
+        'utf8',
+      );
+
+    const words =
+      JSON.parse(rawData);
+
+    if (!Array.isArray(words)) {
+      logger.error(
+        'Vietnamese dictionary must be an array.',
+      );
+
+      return;
+    }
 
     validWordsSet = new Set();
     startWordMap = new Map();
 
     for (const word of words) {
-      const cleaned = String(word)
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, ' ');
+      const cleaned =
+        String(word)
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, ' ');
 
-      if (!cleaned) continue;
+      if (!cleaned) {
+        continue;
+      }
 
-      validWordsSet.add(cleaned);
+      const parts =
+        cleaned.split(' ');
 
-      const parts = cleaned.split(' ');
+      /**
+       * Chỉ nhận từ ghép đúng 2 tiếng.
+       */
+      if (
+        parts.length !== 2
+      ) {
+        continue;
+      }
 
-      if (parts.length !== 2) continue;
+      /**
+       * Chỉ nhận chữ cái.
+       *
+       * Cho phép Unicode tiếng Việt.
+       */
+      if (
+        !parts.every(
+          (part) =>
+            /^\p{L}+$/u.test(part),
+        )
+      ) {
+        continue;
+      }
 
-      if (!startWordMap.has(parts[0])) {
-        startWordMap.set(parts[0], []);
+      validWordsSet.add(
+        cleaned,
+      );
+
+      const first =
+        parts[0];
+
+      if (
+        !startWordMap.has(first)
+      ) {
+        startWordMap.set(
+          first,
+          [],
+        );
       }
 
       startWordMap
-        .get(parts[0])
+        .get(first)
         .push(cleaned);
     }
 
@@ -93,12 +172,22 @@ export function initDictionary() {
 
 initDictionary();
 
-function createDefaultGame(mode) {
+/**
+ * =========================================================
+ * DEFAULT GAME
+ * =========================================================
+ */
+
+function createDefaultGame(
+  mode,
+) {
   return {
     enabled: false,
 
     channelId:
-      WORD_CHAIN_CHANNELS[mode] || null,
+      WORD_CHAIN_CHANNELS[
+        mode
+      ] || null,
 
     mode,
 
@@ -112,11 +201,31 @@ function createDefaultGame(mode) {
 
     bestStreak: 0,
 
+    /**
+     * PvE:
+     * {
+     *   userId: streak
+     * }
+     *
+     * PvP:
+     * không dùng personal streak.
+     */
     personalStreaks: {},
 
+    /**
+     * {
+     *   userId: number
+     * }
+     */
     hintUses: {},
   };
 }
+
+/**
+ * =========================================================
+ * DEFAULT CONFIG
+ * =========================================================
+ */
 
 const DEFAULT_WORD_CHAIN_CONFIG = {
   enabled: false,
@@ -126,8 +235,15 @@ const DEFAULT_WORD_CHAIN_CONFIG = {
   mode: 'bot',
 
   games: {
-    pvp: createDefaultGame('pvp'),
-    bot: createDefaultGame('bot'),
+    pvp:
+      createDefaultGame(
+        'pvp',
+      ),
+
+    bot:
+      createDefaultGame(
+        'bot',
+      ),
   },
 
   leaderboard: {
@@ -135,6 +251,12 @@ const DEFAULT_WORD_CHAIN_CONFIG = {
     pvp: {},
   },
 };
+
+/**
+ * =========================================================
+ * GET MODE BY CHANNEL
+ * =========================================================
+ */
 
 export function getWordChainModeForChannel(
   channelId,
@@ -156,6 +278,12 @@ export function getWordChainModeForChannel(
   return null;
 }
 
+/**
+ * =========================================================
+ * NORMALIZE LEADERBOARD
+ * =========================================================
+ */
+
 function normalizeLeaderboardMode(
   leaderboard,
 ) {
@@ -169,58 +297,81 @@ function normalizeLeaderboardMode(
   const normalized = {};
 
   for (
-    const [userId, value]
-    of Object.entries(leaderboard)
+    const [
+      userId,
+      value,
+    ] of Object.entries(
+      leaderboard,
+    )
   ) {
     if (
       value &&
       typeof value === 'object'
     ) {
       normalized[userId] = {
-        correct: Math.max(
-          0,
-          Number(
-            value.correct || 0,
+        correct:
+          Math.max(
+            0,
+            Number(
+              value.correct ||
+                0,
+            ),
           ),
-        ),
 
-        wrong: Math.max(
-          0,
-          Number(
-            value.wrong || 0,
+        wrong:
+          Math.max(
+            0,
+            Number(
+              value.wrong ||
+                0,
+            ),
           ),
-        ),
 
-        /*
+        /**
          * PvE:
-         * Lưu chuỗi cao nhất của từng người.
+         * chuỗi cao nhất.
          */
-        bestStreak: Math.max(
+        bestStreak:
+          Math.max(
+            0,
+            Number(
+              value.bestStreak ||
+                0,
+            ),
+          ),
+      };
+
+      continue;
+    }
+
+    /**
+     * Migration dữ liệu cũ:
+     *
+     * userId: score
+     */
+    normalized[userId] = {
+      correct:
+        Math.max(
           0,
           Number(
-            value.bestStreak || 0,
+            value || 0,
           ),
         ),
-      };
-    } else {
-      /*
-       * Dữ liệu leaderboard cũ.
-       */
-      normalized[userId] = {
-        correct: Math.max(
-          0,
-          Number(value || 0),
-        ),
 
-        wrong: 0,
+      wrong: 0,
 
-        bestStreak: 0,
-      };
-    }
+      bestStreak: 0,
+    };
   }
 
   return normalized;
 }
+
+/**
+ * =========================================================
+ * NORMALIZE PERSONAL STREAK
+ * =========================================================
+ */
 
 function normalizePersonalStreaks(
   value,
@@ -233,17 +384,30 @@ function normalizePersonalStreaks(
   }
 
   return Object.fromEntries(
-    Object.entries(value).map(
-      ([userId, streak]) => [
+    Object.entries(
+      value,
+    ).map(
+      ([
+        userId,
+        streak,
+      ]) => [
         userId,
         Math.max(
           0,
-          Number(streak || 0),
+          Number(
+            streak || 0,
+          ),
         ),
       ],
     ),
   );
 }
+
+/**
+ * =========================================================
+ * NORMALIZE HINT USES
+ * =========================================================
+ */
 
 function normalizeHintUses(
   value,
@@ -256,14 +420,21 @@ function normalizeHintUses(
   }
 
   return Object.fromEntries(
-    Object.entries(value).map(
-      ([userId, uses]) => [
+    Object.entries(
+      value,
+    ).map(
+      ([
+        userId,
+        uses,
+      ]) => [
         userId,
         Math.max(
           0,
           Math.min(
             WORD_CHAIN_HINT_LIMIT,
-            Number(uses || 0),
+            Number(
+              uses || 0,
+            ),
           ),
         ),
       ],
@@ -271,22 +442,39 @@ function normalizeHintUses(
   );
 }
 
+/**
+ * =========================================================
+ * NORMALIZE GAME
+ * =========================================================
+ */
+
 function normalizeGame(
   rawGame,
   mode,
 ) {
   const game = {
-    ...createDefaultGame(mode),
+    ...createDefaultGame(
+      mode,
+    ),
+
     ...(rawGame || {}),
   };
 
-  game.mode = mode;
+  game.mode =
+    mode;
 
+  /**
+   * Channel luôn cố định.
+   */
   game.channelId =
-    WORD_CHAIN_CHANNELS[mode];
+    WORD_CHAIN_CHANNELS[
+      mode
+    ];
 
   game.enabled =
-    Boolean(game.enabled);
+    Boolean(
+      game.enabled,
+    );
 
   game.currentWord =
     game.currentWord
@@ -296,14 +484,17 @@ function normalizeGame(
       : null;
 
   game.lastUserId =
-    game.lastUserId || null;
+    game.lastUserId ||
+    null;
 
   game.usedWords =
     Array.isArray(
       game.usedWords,
     )
       ? game.usedWords
-          .map(normalizeWord)
+          .map(
+            normalizeWord,
+          )
           .filter(Boolean)
       : [];
 
@@ -311,7 +502,8 @@ function normalizeGame(
     Math.max(
       0,
       Number(
-        game.currentStreak || 0,
+        game.currentStreak ||
+          0,
       ),
     );
 
@@ -319,7 +511,8 @@ function normalizeGame(
     Math.max(
       0,
       Number(
-        game.bestStreak || 0,
+        game.bestStreak ||
+          0,
       ),
     );
 
@@ -336,6 +529,12 @@ function normalizeGame(
   return game;
 }
 
+/**
+ * =========================================================
+ * NORMALIZE WHOLE CONFIG
+ * =========================================================
+ */
+
 function normalizeWordChainConfig(
   state,
 ) {
@@ -344,6 +543,12 @@ function normalizeWordChainConfig(
     typeof state === 'object'
       ? state
       : {};
+
+  /**
+   * -------------------------------------------------------
+   * LEADERBOARD
+   * -------------------------------------------------------
+   */
 
   const rawLeaderboard =
     raw.leaderboard &&
@@ -366,6 +571,12 @@ function normalizeWordChainConfig(
             ),
         }
       : {
+          /**
+           * Migration config cũ.
+           *
+           * Leaderboard cũ được giữ
+           * ở PvE.
+           */
           bot:
             normalizeLeaderboardMode(
               rawLeaderboard,
@@ -374,9 +585,15 @@ function normalizeWordChainConfig(
           pvp: {},
         };
 
+  /**
+   * -------------------------------------------------------
+   * GAMES
+   * -------------------------------------------------------
+   */
+
   let games;
 
-  /*
+  /**
    * Config mới.
    */
   if (
@@ -384,20 +601,25 @@ function normalizeWordChainConfig(
     typeof raw.games === 'object'
   ) {
     games = {
-      pvp: normalizeGame(
-        raw.games.pvp,
-        'pvp',
-      ),
+      pvp:
+        normalizeGame(
+          raw.games.pvp,
+          'pvp',
+        ),
 
-      bot: normalizeGame(
-        raw.games.bot,
-        'bot',
-      ),
+      bot:
+        normalizeGame(
+          raw.games.bot,
+          'bot',
+        ),
     };
   } else {
-    /*
-     * Migration config cũ.
+    /**
+     * -----------------------------------------------------
+     * MIGRATE CONFIG CŨ
+     * -----------------------------------------------------
      */
+
     const oldMode =
       raw.mode === 'pvp'
         ? 'pvp'
@@ -407,7 +629,9 @@ function normalizeWordChainConfig(
       normalizeGame(
         {
           enabled:
-            Boolean(raw.enabled),
+            Boolean(
+              raw.enabled,
+            ),
 
           channelId:
             raw.channelId,
@@ -442,15 +666,20 @@ function normalizeWordChainConfig(
             ] ||
             raw.hintUses,
         },
+
         oldMode,
       );
 
     games = {
       pvp:
-        createDefaultGame('pvp'),
+        createDefaultGame(
+          'pvp',
+        ),
 
       bot:
-        createDefaultGame('bot'),
+        createDefaultGame(
+          'bot',
+        ),
     };
 
     games[oldMode] =
@@ -473,7 +702,8 @@ function normalizeWordChainConfig(
     leaderboard,
 
     channelId:
-      raw.channelId || null,
+      raw.channelId ||
+      null,
 
     mode:
       raw.mode === 'pvp'
@@ -482,21 +712,38 @@ function normalizeWordChainConfig(
   };
 }
 
+/**
+ * =========================================================
+ * STORAGE
+ * =========================================================
+ */
+
 function getStorageKey(
   guildId,
 ) {
   return `${WORD_CHAIN_KEY_PREFIX}${guildId}`;
 }
 
+/**
+ * =========================================================
+ * GET CONFIG
+ * =========================================================
+ */
+
 export async function getWordChainConfig(
   client,
   guildId,
 ) {
   try {
-    return normalizeWordChainConfig(
+    const rawState =
       await client.db.get(
-        getStorageKey(guildId),
-      ),
+        getStorageKey(
+          guildId,
+        ),
+      );
+
+    return normalizeWordChainConfig(
+      rawState,
     );
   } catch (error) {
     logger.error(
@@ -511,6 +758,12 @@ export async function getWordChainConfig(
   }
 }
 
+/**
+ * =========================================================
+ * SAVE CONFIG
+ * =========================================================
+ */
+
 export async function saveWordChainConfig(
   client,
   guildId,
@@ -522,12 +775,20 @@ export async function saveWordChainConfig(
     );
 
   await client.db.set(
-    getStorageKey(guildId),
+    getStorageKey(
+      guildId,
+    ),
     normalized,
   );
 
   return normalized;
 }
+
+/**
+ * =========================================================
+ * GET GAME
+ * =========================================================
+ */
 
 export function getWordChainGame(
   config,
@@ -542,9 +803,16 @@ export function getWordChainGame(
     config?.games?.[
       resolvedMode
     ],
+
     resolvedMode,
   );
 }
+
+/**
+ * =========================================================
+ * ACTIVATE
+ * =========================================================
+ */
 
 export async function activateWordChain(
   client,
@@ -573,6 +841,13 @@ export async function activateWordChain(
         )
       : null;
 
+  /**
+   * Nếu setup truyền từ hợp lệ
+   * thì dùng từ đó.
+   *
+   * Nếu không:
+   * chọn ngẫu nhiên toàn dictionary.
+   */
   const initialWord =
     normalizedStart &&
     isValidWord(
@@ -580,6 +855,14 @@ export async function activateWordChain(
     )
       ? normalizedStart
       : getRandomStartWord();
+
+  const oldGame =
+    current.games?.[
+      resolvedMode
+    ] ||
+    createDefaultGame(
+      resolvedMode,
+    );
 
   current.games[
     resolvedMode
@@ -612,19 +895,24 @@ export async function activateWordChain(
     currentStreak:
       0,
 
+    /**
+     * Giữ best streak cũ.
+     */
     bestStreak:
       Number(
-        current.games?.[
-          resolvedMode
-        ]?.bestStreak || 0,
+        oldGame.bestStreak ||
+          0,
       ),
 
-    personalStreaks: {},
+    personalStreaks:
+      {},
 
-    hintUses: {},
+    hintUses:
+      {},
   };
 
-  current.enabled = true;
+  current.enabled =
+    true;
 
   current.mode =
     resolvedMode;
@@ -640,6 +928,12 @@ export async function activateWordChain(
     current,
   );
 }
+
+/**
+ * =========================================================
+ * DISABLE ALL
+ * =========================================================
+ */
 
 export async function disableWordChain(
   client,
@@ -667,6 +961,12 @@ export async function disableWordChain(
   );
 }
 
+/**
+ * =========================================================
+ * DISABLE ONE MODE
+ * =========================================================
+ */
+
 export async function disableWordChainMode(
   client,
   guildId,
@@ -685,7 +985,8 @@ export async function disableWordChainMode(
 
   current.games[
     resolvedMode
-  ].enabled = false;
+  ].enabled =
+    false;
 
   current.enabled =
     Boolean(
@@ -699,6 +1000,12 @@ export async function disableWordChainMode(
     current,
   );
 }
+
+/**
+ * =========================================================
+ * RESET GAME
+ * =========================================================
+ */
 
 export async function resetWordChainGame(
   client,
@@ -719,13 +1026,6 @@ export async function resetWordChainGame(
       guildId,
     );
 
-  const normalizedStart =
-    startWord
-      ? normalizeWord(
-          startWord,
-        )
-      : null;
-
   const existingGame =
     current.games[
       resolvedMode
@@ -734,15 +1034,27 @@ export async function resetWordChainGame(
       resolvedMode,
     );
 
+  const normalizedStart =
+    startWord
+      ? normalizeWord(
+          startWord,
+        )
+      : null;
+
+  /**
+   * Nếu không truyền startWord:
+   * lấy random từ toàn dictionary.
+   *
+   * Không còn danh sách cố định
+   * gia đình / bạn bè / học sinh...
+   */
   const initialWord =
     normalizedStart &&
     isValidWord(
       normalizedStart,
     )
       ? normalizedStart
-      : getRandomStartWord(
-          existingGame.usedWords || [],
-        );
+      : getRandomStartWord();
 
   current.games[
     resolvedMode
@@ -774,9 +1086,27 @@ export async function resetWordChainGame(
     currentStreak:
       0,
 
-    personalStreaks: {},
+    /**
+     * Giữ best streak.
+     */
+    bestStreak:
+      Number(
+        existingGame.bestStreak ||
+          0,
+      ),
 
-    hintUses: {},
+    /**
+     * Reset streak hiện tại
+     * của round.
+     */
+    personalStreaks:
+      {},
+
+    /**
+     * Reset hint.
+     */
+    hintUses:
+      {},
   };
 
   current.enabled =
@@ -791,6 +1121,12 @@ export async function resetWordChainGame(
     current,
   );
 }
+
+/**
+ * =========================================================
+ * NORMALIZE WORD
+ * =========================================================
+ */
 
 export function normalizeWord(
   word,
@@ -808,13 +1144,21 @@ export function normalizeWord(
     .replace(/\s+/g, ' ');
 }
 
+/**
+ * =========================================================
+ * VALID WORD
+ * =========================================================
+ */
+
 export function isValidWord(
   word,
 ) {
   initDictionary();
 
   const cleaned =
-    normalizeWord(word);
+    normalizeWord(
+      word,
+    );
 
   if (!cleaned) {
     return false;
@@ -823,12 +1167,18 @@ export function isValidWord(
   const parts =
     cleaned.split(' ');
 
+  /**
+   * Phải đúng 2 tiếng.
+   */
   if (
     parts.length !== 2
   ) {
     return false;
   }
 
+  /**
+   * Chỉ chữ cái.
+   */
   if (
     !parts.every(
       (part) =>
@@ -844,6 +1194,12 @@ export function isValidWord(
     cleaned,
   );
 }
+
+/**
+ * =========================================================
+ * CAN CHAIN
+ * =========================================================
+ */
 
 export function canChain(
   prevWord,
@@ -879,6 +1235,12 @@ export function canChain(
   );
 }
 
+/**
+ * =========================================================
+ * LAST SYLLABLE
+ * =========================================================
+ */
+
 export function getLastSyllable(
   word,
 ) {
@@ -896,6 +1258,12 @@ export function getLastSyllable(
     : '';
 }
 
+/**
+ * =========================================================
+ * FIRST SYLLABLE
+ * =========================================================
+ */
+
 export function getFirstSyllable(
   word,
 ) {
@@ -912,6 +1280,18 @@ export function getFirstSyllable(
     ? parts[0]
     : '';
 }
+
+/**
+ * =========================================================
+ * FIND NEXT WORD
+ * =========================================================
+ *
+ * Tìm ngẫu nhiên một từ:
+ *
+ * - nối được với từ hiện tại
+ * - có trong dictionary
+ * - chưa được dùng
+ */
 
 export function findBotNextWord(
   prevWord,
@@ -957,22 +1337,6 @@ export function findBotNextWord(
     candidates.filter(
       (word) => {
         if (
-          !validWordsSet.has(
-            word,
-          )
-        ) {
-          return false;
-        }
-
-        if (
-          !isValidWord(
-            word,
-          )
-        ) {
-          return false;
-        }
-
-        if (
           usedSet.has(
             word,
           )
@@ -980,7 +1344,9 @@ export function findBotNextWord(
           return false;
         }
 
-        return true;
+        return isValidWord(
+          word,
+        );
       },
     );
 
@@ -1002,12 +1368,17 @@ export function findBotNextWord(
 }
 
 /**
- * Mỗi round chọn một từ
- * ngẫu nhiên từ toàn bộ dictionary.
+ * =========================================================
+ * RANDOM START WORD
+ * =========================================================
  *
- * Không còn danh sách:
- * gia đình / bạn bè / học sinh...
+ * Mỗi round:
+ * lấy ngẫu nhiên một từ trong
+ * toàn bộ dictionary.
+ *
+ * Không còn danh sách cố định.
  */
+
 export function getRandomStartWord(
   excludeWords = [],
 ) {
@@ -1050,6 +1421,10 @@ export function getRandomStartWord(
     ];
   }
 
+  /**
+   * Fallback nếu dictionary
+   * nhỏ hơn exclude list.
+   */
   const allWords =
     Array.from(
       validWordsSet,
@@ -1071,8 +1446,238 @@ export function getRandomStartWord(
     ];
   }
 
+  /**
+   * Fallback cuối cùng.
+   */
   return 'học sinh';
 }
+
+/**
+ * =========================================================
+ * WORD CHAIN HINT
+ * =========================================================
+ *
+ * Mỗi user có tối đa:
+ *
+ * 3 hint / round.
+ *
+ * Hint:
+ * - không tính V
+ * - không tính X
+ * - không tăng streak
+ * - không thay đổi currentWord
+ * - không thêm vào usedWords
+ *
+ * Nếu không còn từ:
+ * - KHÔNG trừ hint
+ * - trả reason = no_word
+ *
+ * noitu.js có thể dùng kết quả
+ * này để kết thúc round.
+ */
+
+export async function useWordChainHint(
+  client,
+  guildId,
+  userId,
+  mode = 'bot',
+) {
+  initDictionary();
+
+  const resolvedMode =
+    mode === 'pvp'
+      ? 'pvp'
+      : 'bot';
+
+  const current =
+    await getWordChainConfig(
+      client,
+      guildId,
+    );
+
+  const game =
+    getWordChainGame(
+      current,
+      resolvedMode,
+    );
+
+  /**
+   * Game không hoạt động.
+   */
+  if (
+    !game.enabled
+  ) {
+    return {
+      ok: false,
+
+      reason:
+        'disabled',
+
+      used: 0,
+
+      remaining:
+        WORD_CHAIN_HINT_LIMIT,
+
+      word: null,
+
+      config:
+        current,
+    };
+  }
+
+  const hintUses = {
+    ...(game.hintUses || {}),
+  };
+
+  const used =
+    Math.max(
+      0,
+      Math.min(
+        WORD_CHAIN_HINT_LIMIT,
+        Number(
+          hintUses[userId] ||
+            0,
+        ),
+      ),
+    );
+
+  /**
+   * -------------------------------------------------------
+   * ĐÃ HẾT HINT
+   * -------------------------------------------------------
+   */
+
+  if (
+    used >=
+    WORD_CHAIN_HINT_LIMIT
+  ) {
+    return {
+      ok: false,
+
+      reason:
+        'limit',
+
+      used,
+
+      remaining: 0,
+
+      word: null,
+
+      config:
+        current,
+    };
+  }
+
+  /**
+   * -------------------------------------------------------
+   * TÌM TỪ GỢI Ý
+   * -------------------------------------------------------
+   */
+
+  const word =
+    findBotNextWord(
+      game.currentWord,
+
+      game.usedWords ||
+        [],
+    );
+
+  /**
+   * -------------------------------------------------------
+   * KHÔNG CÒN TỪ
+   * -------------------------------------------------------
+   *
+   * Không tăng hintUses.
+   *
+   * Quan trọng:
+   *
+   * Đây KHÔNG phải lỗi.
+   *
+   * noitu.js có thể xử lý:
+   *
+   * reason === 'no_word'
+   *
+   * để kết thúc round.
+   */
+
+  if (!word) {
+    return {
+      ok: false,
+
+      reason:
+        'no_word',
+
+      used,
+
+      remaining:
+        WORD_CHAIN_HINT_LIMIT -
+        used,
+
+      word: null,
+
+      config:
+        current,
+    };
+  }
+
+  /**
+   * -------------------------------------------------------
+   * CÓ TỪ
+   * -------------------------------------------------------
+   */
+
+  hintUses[userId] =
+    used + 1;
+
+  current.games[
+    resolvedMode
+  ] = {
+    ...game,
+
+    hintUses,
+  };
+
+  const updated =
+    await saveWordChainConfig(
+      client,
+      guildId,
+      current,
+    );
+
+  return {
+    ok: true,
+
+    reason: null,
+
+    used:
+      used + 1,
+
+    remaining:
+      WORD_CHAIN_HINT_LIMIT -
+      (used + 1),
+
+    word,
+
+    config:
+      updated,
+  };
+}
+
+/**
+ * =========================================================
+ * RECORD USER SUCCESS
+ * =========================================================
+ *
+ * PvE:
+ * - +1 correct
+ * - +1 personal streak
+ * - update bestStreak
+ *
+ * PvP:
+ * - +1 correct
+ * - +1 streak chung
+ */
+
 export async function recordUserSuccess(
   client,
   guildId,
@@ -1098,7 +1703,9 @@ export async function recordUserSuccess(
     );
 
   const normalized =
-    normalizeWord(word);
+    normalizeWord(
+      word,
+    );
 
   const leaderboard = {
     bot: {
@@ -1150,7 +1757,7 @@ export async function recordUserSuccess(
           bestStreak: 0,
         };
 
-  /*
+  /**
    * +1 từ đúng.
    */
   stats.correct += 1;
@@ -1162,13 +1769,15 @@ export async function recordUserSuccess(
       game.personalStreaks,
     );
 
+  /**
+   * -------------------------------------------------------
+   * PVE
+   * -------------------------------------------------------
+   */
+
   if (
     resolvedMode === 'bot'
   ) {
-    /*
-     * PvE:
-     * mỗi người có streak riêng.
-     */
     nextStreak =
       Number(
         personalStreaks[
@@ -1178,22 +1787,27 @@ export async function recordUserSuccess(
 
     personalStreaks[
       userId
-    ] = nextStreak;
+    ] =
+      nextStreak;
 
-    /*
-     * Lưu best streak vĩnh viễn
-     * cho leaderboard PvE.
+    /**
+     * Leaderboard PvE:
+     * tính theo chuỗi cao nhất.
      */
     stats.bestStreak =
       Math.max(
         stats.bestStreak,
         nextStreak,
       );
-  } else {
-    /*
-     * PvP:
-     * dùng streak chung của ván.
-     */
+  }
+
+  /**
+   * -------------------------------------------------------
+   * PVP
+   * -------------------------------------------------------
+   */
+
+  else {
     nextStreak =
       Number(
         game.currentStreak ||
@@ -1205,6 +1819,12 @@ export async function recordUserSuccess(
     resolvedMode
   ][userId] =
     stats;
+
+  /**
+   * -------------------------------------------------------
+   * UPDATE GAME
+   * -------------------------------------------------------
+   */
 
   current.games[
     resolvedMode
@@ -1219,6 +1839,7 @@ export async function recordUserSuccess(
 
     usedWords: [
       ...(game.usedWords || []),
+
       normalized,
     ],
 
@@ -1228,7 +1849,8 @@ export async function recordUserSuccess(
     bestStreak:
       Math.max(
         Number(
-          game.bestStreak || 0,
+          game.bestStreak ||
+            0,
         ),
         nextStreak,
       ),
@@ -1254,6 +1876,18 @@ export async function recordUserSuccess(
     current,
   );
 }
+
+/**
+ * =========================================================
+ * RECORD USER FAILURE
+ * =========================================================
+ *
+ * Mỗi lượt sai:
+ *
+ * +1 X
+ *
+ * Không reset streak ở đây.
+ */
 
 export async function recordUserFailure(
   client,
@@ -1339,6 +1973,23 @@ export async function recordUserFailure(
   );
 }
 
+/**
+ * =========================================================
+ * RECORD BOT SUCCESS
+ * =========================================================
+ *
+ * Bot:
+ *
+ * - không + V
+ * - không + X
+ * - không + streak
+ *
+ * Chỉ:
+ *
+ * - đổi currentWord
+ * - thêm usedWords
+ */
+
 export async function recordBotSuccess(
   client,
   guildId,
@@ -1377,16 +2028,20 @@ export async function recordBotSuccess(
 
     usedWords: [
       ...(game.usedWords || []),
+
       normalized,
     ],
 
-    /*
+    /**
      * Bot không phải player.
      */
     lastUserId:
       game.lastUserId ||
       null,
 
+    /**
+     * Không tăng streak.
+     */
     currentStreak:
       Number(
         game.currentStreak ||
@@ -1394,12 +2049,35 @@ export async function recordBotSuccess(
       ),
   };
 
+  current.enabled =
+    Boolean(
+      current.games.pvp.enabled ||
+      current.games.bot.enabled,
+    );
+
   return saveWordChainConfig(
     client,
     guildId,
     current,
   );
 }
+
+/**
+ * =========================================================
+ * BREAK / END ROUND
+ * =========================================================
+ *
+ * Khi round kết thúc:
+ *
+ * - currentWord -> từ mới
+ * - lastUserId -> null
+ * - usedWords -> reset
+ * - currentStreak -> 0
+ * - personalStreaks -> reset
+ * - hintUses -> reset
+ *
+ * Leaderboard KHÔNG reset.
+ */
 
 export async function recordBreak(
   client,
@@ -1433,18 +2111,19 @@ export async function recordBreak(
         )
       : null;
 
+  /**
+   * Nếu không có startWord:
+   * chọn random từ dictionary.
+   *
+   * Không dùng danh sách cố định.
+   */
   const initialWord =
     normalizedStart &&
     isValidWord(
       normalizedStart,
     )
       ? normalizedStart
-      : getRandomStartWord(
-          [
-            ...(game.usedWords || []),
-            game.currentWord,
-          ].filter(Boolean),
-        );
+      : getRandomStartWord();
 
   current.games[
     resolvedMode
@@ -1476,9 +2155,26 @@ export async function recordBreak(
     currentStreak:
       0,
 
-    personalStreaks: {},
+    /**
+     * Không xoá bestStreak.
+     */
+    bestStreak:
+      Number(
+        game.bestStreak ||
+          0,
+      ),
 
-    hintUses: {},
+    /**
+     * Reset streak hiện tại.
+     */
+    personalStreaks:
+      {},
+
+    /**
+     * Reset 3 lượt hint.
+     */
+    hintUses:
+      {},
   };
 
   current.enabled =
@@ -1493,6 +2189,23 @@ export async function recordBreak(
     current,
   );
 }
+
+/**
+ * =========================================================
+ * LEADERBOARD
+ * =========================================================
+ *
+ * PvP:
+ *   score = correct
+ *
+ * PvE:
+ *   score = bestStreak
+ *
+ * Vì vậy:
+ *
+ * PvE Top 1 = người có chuỗi
+ * cao nhất từng đạt với Bot.
+ */
 
 export function buildWordChainLeaderboard(
   config,
@@ -1512,7 +2225,10 @@ export function buildWordChainLeaderboard(
     leaderboard,
   )
     .map(
-      ([userId, value]) => {
+      ([
+        userId,
+        value,
+      ]) => {
         const stats =
           value &&
           typeof value === 'object'
@@ -1558,10 +2274,14 @@ export function buildWordChainLeaderboard(
                 bestStreak: 0,
               };
 
-        /*
-         * PvE:
-         * xếp theo bestStreak.
+        /**
+         * ---------------------------------------------------
+         * PVE
+         * ---------------------------------------------------
+         *
+         * Xếp theo chuỗi cao nhất.
          */
+
         if (
           resolvedMode === 'bot'
         ) {
@@ -1582,10 +2302,15 @@ export function buildWordChainLeaderboard(
           };
         }
 
-        /*
-         * PvP:
-         * giữ nguyên xếp theo số từ đúng.
+        /**
+         * ---------------------------------------------------
+         * PVP
+         * ---------------------------------------------------
+         *
+         * Giữ nguyên:
+         * xếp theo số từ đúng.
          */
+
         return {
           userId,
 
@@ -1603,6 +2328,13 @@ export function buildWordChainLeaderboard(
         };
       },
     )
+
+    /**
+     * -----------------------------------------------------
+     * FILTER
+     * -----------------------------------------------------
+     */
+
     .filter(
       (entry) =>
         resolvedMode === 'bot'
@@ -1612,8 +2344,24 @@ export function buildWordChainLeaderboard(
           : entry.correct > 0 ||
             entry.wrong > 0,
     )
+
+    /**
+     * -----------------------------------------------------
+     * SORT
+     * -----------------------------------------------------
+     */
+
     .sort(
-      (a, b) => {
+      (
+        a,
+        b,
+      ) => {
+        /**
+         * Điểm chính.
+         *
+         * PvP = correct
+         * PvE = bestStreak
+         */
         if (
           b.score !==
           a.score
@@ -1624,6 +2372,10 @@ export function buildWordChainLeaderboard(
           );
         }
 
+        /**
+         * Nếu bằng điểm:
+         * ưu tiên correct.
+         */
         if (
           b.correct !==
           a.correct
@@ -1634,9 +2386,13 @@ export function buildWordChainLeaderboard(
           );
         }
 
+        /**
+         * Cuối cùng:
+         * ít lỗi hơn đứng trên.
+         */
         return (
-          b.wrong -
-          a.wrong
+          a.wrong -
+          b.wrong
         );
       },
     );
