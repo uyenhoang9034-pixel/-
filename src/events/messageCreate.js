@@ -81,6 +81,7 @@ import {
   findBotNextWord,
   getRandomStartWord,
   recordUserSuccess,
+  recordUserFailure,
   recordBotSuccess,
   recordBreak,
 } from '../services/wordChainService.js';
@@ -586,10 +587,8 @@ async function handleWordChain(
     }
 
     /**
-     * Slash / prefix command
-     * không được tính là lượt nối.
+     * Không xử lý command như một lượt nối từ.
      */
-
     if (
       content.startsWith('/') ||
       content.startsWith('!') ||
@@ -620,6 +619,12 @@ async function handleWordChain(
       config.lastUserId ===
         message.author.id
     ) {
+      await recordUserFailure(
+        client,
+        message.guild.id,
+        message.author.id,
+      );
+
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
       ).catch(() => {});
@@ -651,6 +656,12 @@ async function handleWordChain(
     if (
       parts.length !== 2
     ) {
+      await recordUserFailure(
+        client,
+        message.guild.id,
+        message.author.id,
+      );
+
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
       ).catch(() => {});
@@ -686,6 +697,12 @@ async function handleWordChain(
         normalized,
       )
     ) {
+      await recordUserFailure(
+        client,
+        message.guild.id,
+        message.author.id,
+      );
+
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
       ).catch(() => {});
@@ -722,6 +739,12 @@ async function handleWordChain(
         normalized,
       )
     ) {
+      await recordUserFailure(
+        client,
+        message.guild.id,
+        message.author.id,
+      );
+
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
       ).catch(() => {});
@@ -755,6 +778,12 @@ async function handleWordChain(
         normalized,
       )
     ) {
+      await recordUserFailure(
+        client,
+        message.guild.id,
+        message.author.id,
+      );
+
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
       ).catch(() => {});
@@ -788,11 +817,18 @@ async function handleWordChain(
     ).catch(() => {});
 
     /**
-     * Ghi nhận lượt đúng của người chơi.
+     * =====================================================
+     * GHI NHẬN USER
+     * =====================================================
      *
-     * Đây là nơi:
-     * - leaderboard +1
-     * - streak +1
+     * PvE:
+     *   V +1
+     *   streak cá nhân +1
+     *   BOT KHÔNG tính streak
+     *
+     * PvP:
+     *   V +1
+     *   streak chung +1
      */
 
     const afterUserSuccess =
@@ -808,9 +844,10 @@ async function handleWordChain(
      * PVP
      * =====================================================
      *
-     * Chỉ tick.
+     * Người chơi đúng:
+     * → chỉ tick
      *
-     * Không gửi thông báo khi đúng.
+     * Không gửi thông báo ngay.
      */
 
     if (
@@ -826,10 +863,7 @@ async function handleWordChain(
         );
 
       /**
-       * Không còn bất kỳ từ nào
-       * có thể nối tiếp.
-       *
-       * → kết thúc streak.
+       * Không còn từ để nối.
        */
 
       if (!nextWord) {
@@ -863,6 +897,22 @@ async function handleWordChain(
      * =====================================================
      * PVE / BOT
      * =====================================================
+     *
+     * Quan trọng:
+     *
+     * streak ở đây là streak CÁ NHÂN của user.
+     *
+     * Ví dụ:
+     *
+     * User A → đúng = streak 1
+     * Bot
+     * User A → đúng = streak 2
+     * Bot
+     * User A → đúng = streak 3
+     *
+     * → hiển thị Chuỗi hiện tại: 3
+     *
+     * Bot tuyệt đối không + streak.
      */
 
     const updatedUsedWords = [
@@ -877,12 +927,19 @@ async function handleWordChain(
       );
 
     /**
-     * Bot không còn từ.
+     * =====================================================
+     * BOT KHÔNG CÒN TỪ
+     * =====================================================
      */
 
     if (!botWord) {
       const endedStreak =
-        afterUserSuccess.currentStreak;
+        afterUserSuccess
+          .personalStreaks
+          ?.bot?.[
+            message.author.id
+          ] ||
+        0;
 
       const finalWord =
         normalized;
@@ -910,8 +967,6 @@ async function handleWordChain(
      * =====================================================
      * BOT NỐI TIẾP
      * =====================================================
-     *
-     * Đợi 1 giây để nhìn tự nhiên hơn.
      */
 
     setTimeout(
@@ -924,8 +979,9 @@ async function handleWordChain(
             );
 
           /**
-           * Nếu game đã bị restart / đổi mode
-           * trong lúc Bot đang chờ thì bỏ lượt cũ.
+           * Nếu game đã restart,
+           * disable hoặc đổi mode thì
+           * bỏ lượt bot cũ.
            */
 
           if (
@@ -938,17 +994,47 @@ async function handleWordChain(
             return;
           }
 
-          const botState =
-            await recordBotSuccess(
+          /**
+           * Bot chỉ cập nhật currentWord.
+           *
+           * KHÔNG:
+           * - +V
+           * - +X
+           * - +streak
+           */
+
+          await recordBotSuccess(
+            client,
+            message.guild.id,
+            botWord,
+          );
+
+          /**
+           * Lấy lại state sau khi bot
+           * cập nhật để lấy đúng streak
+           * của user.
+           */
+
+          const finalConfig =
+            await getWordChainConfig(
               client,
               message.guild.id,
-              botWord,
+            );
+
+          const personalStreak =
+            Number(
+              finalConfig
+                .personalStreaks
+                ?.bot
+                ?.[
+                  message.author.id
+                ] || 0,
             );
 
           await message.channel.send(
             [
               `${WORD_CHAIN_EMOJIS.end} Vip pro! <@${message.author.id}> đã trả lời đúng!`,
-              `${WORD_CHAIN_EMOJIS.botSuccess} Chuỗi hiện tại: **${botState.currentStreak}**!`,
+              `${WORD_CHAIN_EMOJIS.botSuccess} Chuỗi hiện tại: **${personalStreak}**!`,
               `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${botWord}**!`,
             ].join('\n'),
           ).catch(() => {});
