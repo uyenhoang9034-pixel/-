@@ -453,24 +453,24 @@ export default {
           );
 
         await channel
-          .send({
-            embeds: [
-              createEmbed({
-                title:
-                  '🎮 Trò Chơi Nối Từ Tiếng Việt Đã Bắt Đầu!',
+  .send({
+    embeds: [
+      createEmbed({
+        title:
+          '⋆.ೃ࿔🌸*:･「Nối Từ」— Game On!',
 
-                description:
-                  `Chế độ: **${modeInfo.label}**\n` +
-                  `Luật chơi: Gõ từ ghép gồm đúng **2 tiếng** bắt đầu bằng tiếng cuối cùng của từ trước.\n\n` +
-                  `👉 Từ mở đầu: **${updatedConfig.currentWord}**\n` +
-                  `🎯 Tiếng cần nối tiếp: **${nextSyllable}**`,
+        description:
+          `${WORD_CHAIN_EMOJIS.mode} Chế độ: **${modeInfo.label}**\n` +
+          `${'<:trangtrig18:1546068102817775626>'} Luật chơi: Gõ một từ ghép gồm đúng 2 tiếng, bắt đầu bằng tiếng cuối của từ trước. Nối tiếp thật nhanh và đừng để mất lượt nhé! <a:trangtrig6:1546043036390260756>\n\n` +
+          `${'<a:catg1:1541439053256462396>'} Từ mở đầu: **${updatedConfig.currentWord}**\n` +
+          `${'<a:catg1:1541439053256462396>'} Bắt đầu từ mới với: **${nextSyllable}**`,
 
-                color:
-                  'primary',
-              }),
-            ],
-          })
-          .catch(() => {});
+        color:
+          'primary',
+      }),
+    ],
+  })
+  .catch(() => {});
 
         return await InteractionHelper.safeEditReply(
           interaction,
