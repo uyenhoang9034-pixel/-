@@ -587,8 +587,13 @@ async function handleWordChain(
     }
 
     /**
-     * Không xử lý command như một lượt nối từ.
+     * =====================================================
+     * IGNORE COMMANDS
+     * =====================================================
+     *
+     * Các command không phải lượt nối từ.
      */
+
     if (
       content.startsWith('/') ||
       content.startsWith('!') ||
@@ -597,11 +602,69 @@ async function handleWordChain(
       return false;
     }
 
+    /**
+     * =====================================================
+     * NORMALIZE
+     * =====================================================
+     */
+
     const normalized =
       normalizeWord(content);
 
+    /**
+     * =====================================================
+     * FORMAT CHECK
+     * =====================================================
+     *
+     * CHỈ ĐÚNG 2 TIẾNG MỚI ĐƯỢC XỬ LÝ
+     *
+     * Đây phải là bước kiểm tra TRƯỚC:
+     *
+     * - PvP lastUserId
+     * - canChain()
+     * - usedWords
+     * - isValidWord()
+     * - recordUserFailure()
+     * - recordUserSuccess()
+     * - streak
+     * - leaderboard
+     *
+     * Ví dụ:
+     *
+     * "bạn"              → IGNORE
+     * "bạn bè nhé"       → IGNORE
+     * "😂"               → IGNORE
+     * "😂😂"             → IGNORE
+     * "bạn 😂"           → IGNORE
+     * "bạn bè"           → XỬ LÝ
+     *
+     * Không đúng 2 tiếng:
+     *
+     * ❌ Không X
+     * ❌ Không V
+     * ❌ Không streak
+     * ❌ Không leaderboard
+     * ❌ Không thông báo lỗi
+     */
+
     const parts =
-      normalized.split(' ');
+      normalized
+        .split(/\s+/)
+        .filter(Boolean);
+
+    if (
+      parts.length !== 2 ||
+      !parts.every(
+        (part) =>
+          /^\p{L}+$/u.test(part),
+      )
+    ) {
+      return false;
+    }
+
+    /**
+     * Từ hiện tại cần nối tiếp.
+     */
 
     const needed =
       getLastSyllable(
@@ -612,6 +675,8 @@ async function handleWordChain(
      * =====================================================
      * PVP — KHÔNG ĐƯỢC TỰ NỐI 2 LƯỢT
      * =====================================================
+     *
+     * CHỈ chạy tới đây nếu message đã đúng 2 tiếng.
      */
 
     if (
@@ -632,43 +697,6 @@ async function handleWordChain(
       const warnMsg =
         await message.reply(
           `Bạn đã sử dụng một từ không khớp với từ trước đó. Bạn cần bắt đầu một từ mới với "${needed}" ! ${WORD_CHAIN_EMOJIS.wrongChain}`,
-        ).catch(() => null);
-
-      if (warnMsg) {
-        setTimeout(
-          () =>
-            warnMsg
-              .delete()
-              .catch(() => {}),
-          6000,
-        );
-      }
-
-      return true;
-    }
-
-    /**
-     * =====================================================
-     * PHẢI ĐÚNG 2 TIẾNG
-     * =====================================================
-     */
-
-    if (
-      parts.length !== 2
-    ) {
-      await recordUserFailure(
-        client,
-        message.guild.id,
-        message.author.id,
-      );
-
-      await message.react(
-        WORD_CHAIN_EMOJIS.wrong,
-      ).catch(() => {});
-
-      const warnMsg =
-        await message.reply(
-          `Bạn đã sử dụng một từ sai, xin vui lòng bắt đầu một từ mới với "${needed}". ${WORD_CHAIN_EMOJIS.wrongWord}`,
         ).catch(() => null);
 
       if (warnMsg) {
@@ -822,13 +850,15 @@ async function handleWordChain(
      * =====================================================
      *
      * PvE:
-     *   V +1
-     *   streak cá nhân +1
-     *   BOT KHÔNG tính streak
+     *
+     * - V +1
+     * - streak cá nhân +1
+     * - BOT không tính streak
      *
      * PvP:
-     *   V +1
-     *   streak chung +1
+     *
+     * - V +1
+     * - streak chung +1
      */
 
     const afterUserSuccess =
@@ -844,8 +874,9 @@ async function handleWordChain(
      * PVP
      * =====================================================
      *
-     * Người chơi đúng:
-     * → chỉ tick
+     * Người chơi trả lời đúng:
+     *
+     * → chỉ tick.
      *
      * Không gửi thông báo ngay.
      */
@@ -863,7 +894,9 @@ async function handleWordChain(
         );
 
       /**
-       * Không còn từ để nối.
+       * ===================================================
+       * KHÔNG CÒN TỪ ĐỂ NỐI
+       * ===================================================
        */
 
       if (!nextWord) {
@@ -898,19 +931,17 @@ async function handleWordChain(
      * PVE / BOT
      * =====================================================
      *
-     * Quan trọng:
-     *
      * streak ở đây là streak CÁ NHÂN của user.
      *
      * Ví dụ:
      *
-     * User A → đúng = streak 1
+     * User A → đúng = 1
      * Bot
-     * User A → đúng = streak 2
+     * User A → đúng = 2
      * Bot
-     * User A → đúng = streak 3
+     * User A → đúng = 3
      *
-     * → hiển thị Chuỗi hiện tại: 3
+     * → Chuỗi hiện tại: 3
      *
      * Bot tuyệt đối không + streak.
      */
@@ -936,7 +967,8 @@ async function handleWordChain(
       const endedStreak =
         afterUserSuccess
           .personalStreaks
-          ?.bot?.[
+          ?.bot
+          ?.[
             message.author.id
           ] ||
         0;
@@ -979,9 +1011,14 @@ async function handleWordChain(
             );
 
           /**
-           * Nếu game đã restart,
-           * disable hoặc đổi mode thì
-           * bỏ lượt bot cũ.
+           * Nếu game đã:
+           *
+           * - restart
+           * - disable
+           * - đổi mode
+           * - đổi currentWord
+           *
+           * thì bỏ lượt bot cũ.
            */
 
           if (
@@ -997,7 +1034,8 @@ async function handleWordChain(
           /**
            * Bot chỉ cập nhật currentWord.
            *
-           * KHÔNG:
+           * Không:
+           *
            * - +V
            * - +X
            * - +streak
@@ -1010,9 +1048,7 @@ async function handleWordChain(
           );
 
           /**
-           * Lấy lại state sau khi bot
-           * cập nhật để lấy đúng streak
-           * của user.
+           * Lấy state mới nhất.
            */
 
           const finalConfig =
