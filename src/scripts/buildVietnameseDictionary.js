@@ -25,15 +25,15 @@ const MIN_WORD_LENGTH = 1;
 const MAX_WORD_LENGTH = 20;
 
 /**
- * Nếu true:
+ * Chuẩn hóa chữ thường.
+ *
+ * Ví dụ:
  *
  * "BẠN BÈ"
  * "Bạn Bè"
  * "bạn bè"
  *
- * → đều trở thành:
- *
- * "bạn bè"
+ * → "bạn bè"
  */
 const NORMALIZE_LOWERCASE = true;
 
@@ -50,10 +50,10 @@ function normalizeWord(value) {
     return '';
   }
 
-  let word =
-    value
-      .trim()
-      .replace(/\s+/g, ' ');
+  let word = value
+    .trim()
+    .normalize('NFC')
+    .replace(/\s+/g, ' ');
 
   if (
     NORMALIZE_LOWERCASE
@@ -93,15 +93,15 @@ function isValidTwoSyllableWord(
   /**
    * Chỉ cho phép chữ cái Unicode.
    *
-   * Có hỗ trợ:
-   *
-   * ă â ê ô ơ ư
-   * và toàn bộ dấu tiếng Việt.
+   * \p{L} hỗ trợ Unicode,
+   * bao gồm toàn bộ chữ tiếng Việt.
    */
   if (
     !parts.every(
       (part) =>
-        /^\p{L}+$/u.test(part),
+        /^\p{L}+$/u.test(
+          part,
+        ),
     )
   ) {
     return false;
@@ -196,7 +196,9 @@ function buildDictionary(
       continue;
     }
 
-    dictionary.add(word);
+    dictionary.add(
+      word,
+    );
   }
 
   return {
