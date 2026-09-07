@@ -141,6 +141,35 @@ const DEFAULT_WORD_CHAIN_CONFIG = {
 
   /**
    * =======================================================
+   * HINT USES
+   * =======================================================
+   *
+   * Mỗi người chơi có tối đa 2 lượt gợi ý
+   * trong một chuỗi.
+   *
+   * Khi:
+   *
+   * - setup
+   * - reset
+   * - restart
+   * - chuỗi kết thúc
+   *
+   * → toàn bộ lượt gợi ý được reset.
+   *
+   * Không ảnh hưởng:
+   *
+   * - V
+   * - X
+   * - streak
+   * - leaderboard
+   */
+  hintUses: {
+    bot: {},
+    pvp: {},
+  },
+
+  /**
+   * =======================================================
    * LEADERBOARD
    * =======================================================
    *
@@ -289,6 +318,56 @@ function normalizePersonalStreaks(
   };
 }
 
+function normalizeHintUses(
+  hintUses,
+) {
+  if (
+    !hintUses ||
+    typeof hintUses !== 'object'
+  ) {
+    return {
+      bot: {},
+      pvp: {},
+    };
+  }
+
+  const normalizeMode =
+    (mode) =>
+      mode &&
+      typeof mode === 'object'
+        ? Object.fromEntries(
+            Object.entries(
+              mode,
+            ).map(
+              ([userId, value]) => [
+                userId,
+                Math.max(
+                  0,
+                  Math.min(
+                    2,
+                    Number(
+                      value || 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : {};
+
+  return {
+    bot:
+      normalizeMode(
+        hintUses.bot,
+      ),
+
+    pvp:
+      normalizeMode(
+        hintUses.pvp,
+      ),
+  };
+}
+
 function normalizeWordChainConfig(
   state,
 ) {
@@ -371,6 +450,17 @@ function normalizeWordChainConfig(
   normalized.personalStreaks =
     normalizePersonalStreaks(
       normalized.personalStreaks,
+    );
+
+  /**
+   * =======================================================
+   * HINT USE MIGRATION
+   * =======================================================
+   */
+
+  normalized.hintUses =
+    normalizeHintUses(
+      normalized.hintUses,
     );
 
   normalized.currentStreak =
@@ -498,6 +588,11 @@ export async function activateWordChain(
       bot: {},
       pvp: {},
     },
+
+    hintUses: {
+      bot: {},
+      pvp: {},
+    },
   };
 
   return saveWordChainConfig(
@@ -575,6 +670,11 @@ export async function resetWordChainGame(
     currentStreak: 0,
 
     personalStreaks: {
+      bot: {},
+      pvp: {},
+    },
+
+    hintUses: {
       bot: {},
       pvp: {},
     },
@@ -852,6 +952,151 @@ export function getRandomStartWord() {
 
 /**
  * =========================================================
+ * WORD CHAIN HINT
+ * =========================================================
+ *
+ * Mỗi user:
+ *
+ * - tối đa 2 lần / chuỗi
+ * - không phụ thuộc streak
+ * - không phụ thuộc số chuỗi
+ *
+ * Gợi ý:
+ *
+ * - lấy trực tiếp từ dictionary
+ * - phải nối được với currentWord
+ * - không được là từ đã dùng
+ *
+ * Không thay đổi:
+ *
+ * - currentWord
+ * - usedWords
+ * - streak
+ * - leaderboard
+ * - V
+ * - X
+ */
+
+export async function useWordChainHint(
+  client,
+  guildId,
+  userId,
+) {
+  initDictionary();
+
+  const current =
+    await getWordChainConfig(
+      client,
+      guildId,
+    );
+
+  const mode =
+    current.mode === 'pvp'
+      ? 'pvp'
+      : 'bot';
+
+  const hintUses = {
+    bot: {
+      ...(current.hintUses?.bot || {}),
+    },
+
+    pvp: {
+      ...(current.hintUses?.pvp || {}),
+    },
+  };
+
+  const used =
+    Math.max(
+      0,
+      Math.min(
+        2,
+        Number(
+          hintUses[mode][userId] || 0,
+        ),
+      ),
+    );
+
+  /**
+   * Đã dùng hết 2 lượt.
+   */
+
+  if (
+    used >= 2
+  ) {
+    return {
+      ok: false,
+      reason: 'limit',
+      used,
+      remaining: 0,
+      word: null,
+    };
+  }
+
+  /**
+   * Tìm từ có thể nối.
+   */
+
+  const word =
+    findBotNextWord(
+      current.currentWord,
+      current.usedWords || [],
+    );
+
+  /**
+   * Không còn từ nào để gợi ý.
+   *
+   * Không trừ lượt.
+   */
+
+  if (!word) {
+    return {
+      ok: false,
+      reason: 'no_word',
+      used,
+      remaining:
+        2 - used,
+      word: null,
+    };
+  }
+
+  /**
+   * Chỉ khi tìm được từ hợp lệ
+   * mới tính là đã sử dụng 1 lượt.
+   */
+
+  hintUses[mode][userId] =
+    used + 1;
+
+  const updated =
+    await saveWordChainConfig(
+      client,
+      guildId,
+      {
+        ...current,
+        hintUses,
+      },
+    );
+
+  return {
+    ok: true,
+
+    reason: null,
+
+    used:
+      used + 1,
+
+    remaining:
+      2 - (used + 1),
+
+    word,
+
+    config:
+      updated,
+  };
+}
+
+/**
+ * =========================================================
  * RECORD USER SUCCESS
  * =========================================================
  *
@@ -904,6 +1149,7 @@ export async function recordUserSuccess(
    * Hỗ trợ cả dữ liệu cũ
    * dạng number.
    */
+
   const stats =
     existingStats &&
     typeof existingStats === 'object'
@@ -954,6 +1200,7 @@ export async function recordUserSuccess(
      *
      * Bot không liên quan.
      */
+
     nextStreak =
       Number(
         personalStreaks.bot[userId] || 0,
@@ -968,6 +1215,7 @@ export async function recordUserSuccess(
      * Tất cả người chơi dùng chung
      * một streak của ván.
      */
+
     nextStreak =
       Number(
         current.currentStreak || 0,
@@ -1136,6 +1384,7 @@ export async function recordBotSuccess(
      * Không dùng bot như một
      * người chơi thật.
      */
+
     lastUserId:
       current.lastUserId ||
       null,
@@ -1151,6 +1400,7 @@ export async function recordBotSuccess(
      * currentStreak hiện tại vẫn
      * là streak của user PvE.
      */
+
     currentStreak:
       Number(
         current.currentStreak || 0,
@@ -1174,6 +1424,8 @@ export async function recordBotSuccess(
  * - PvP: reset global streak.
  * - PvE: reset streak cá nhân của tất cả user
  *   để bắt đầu một round mới.
+ *
+ * Đồng thời reset toàn bộ lượt gợi ý.
  */
 
 export async function recordBreak(
@@ -1213,6 +1465,11 @@ export async function recordBreak(
       0,
 
     personalStreaks: {
+      bot: {},
+      pvp: {},
+    },
+
+    hintUses: {
       bot: {},
       pvp: {},
     },
@@ -1257,6 +1514,7 @@ export function buildWordChainLeaderboard(
         /**
          * Dữ liệu mới.
          */
+
         if (
           value &&
           typeof value === 'object'
@@ -1288,6 +1546,7 @@ export function buildWordChainLeaderboard(
         /**
          * Dữ liệu cũ.
          */
+
         const correct =
           Math.max(
             0,
