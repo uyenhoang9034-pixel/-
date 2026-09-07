@@ -974,65 +974,26 @@ export function findBotNextWord(
  * Không còn danh sách:
  * gia đình / bạn bè / học sinh...
  */
-export function getRandomStartWord(
-  excludeWords = [],
-) {
+export function getRandomStartWord() {
   initDictionary();
-
-  const excluded =
-    new Set(
-      excludeWords.map(
-        normalizeWord,
-      ),
-    );
-
-  if (
-    lastRandomStartWord
-  ) {
-    excluded.add(
-      lastRandomStartWord,
-    );
-  }
 
   const allWords =
     Array.from(
-      startWordMap.values(),
-    ).flat();
-
-  const uniqueWords =
-    [
-      ...new Set(
-        allWords,
-      ),
-    ];
-
-  const available =
-    uniqueWords.filter(
-      (word) =>
-        !excluded.has(word),
+      validWordsSet,
     );
 
-  const pool =
-    available.length
-      ? available
-      : uniqueWords;
-
-  if (pool.length) {
-    const selected =
-      pool[
-        Math.floor(
-          Math.random() *
-            pool.length,
-        )
-      ];
-
-    lastRandomStartWord =
-      selected;
-
-    return selected;
+  if (
+    allWords.length === 0
+  ) {
+    return 'học sinh';
   }
 
-  return 'học sinh';
+  return allWords[
+    Math.floor(
+      Math.random() *
+        allWords.length,
+    )
+  ];
 }
 
 export async function useWordChainHint(
