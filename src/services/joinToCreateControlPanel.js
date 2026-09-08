@@ -5,9 +5,6 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 import {
   getJoinToCreateConfig,
   saveJoinToCreateConfig,
@@ -15,11 +12,6 @@ import {
 
 import { logger } from '../utils/logger.js';
 
-const __filename =
-  fileURLToPath(import.meta.url);
-
-const __dirname =
-  path.dirname(__filename);
 
 export const JTC_PANEL_IMAGE_PATH =
   path.join(
