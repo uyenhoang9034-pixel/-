@@ -1,6 +1,5 @@
 import {
   ActionRowBuilder,
-  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
