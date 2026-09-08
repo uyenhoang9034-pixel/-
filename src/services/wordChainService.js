@@ -1467,8 +1467,7 @@ export async function activateWordChain(
         Boolean(
           current.games.pvp
             .enabled ||
-          current.games.bot
-            .enabled,
+          current.games.bot.enabled,
         );
 
       /**
@@ -1987,43 +1986,44 @@ export async function recordUserSuccess(
           word,
         );
 
-     /**
- * -----------------------------------------------------
- * SAFETY CHECK
- * -----------------------------------------------------
- *
- * messageCreate.js đã check trước đó,
- * nhưng giữa lúc check và lúc save có thể
- * có message khác cập nhật game.
- *
- * Nếu state hiện tại không còn khớp:
- * KHÔNG được ghi đè state mới.
- */
-if (
-  !game.enabled ||
-  !isValidWord(
-    normalized,
-  ) ||
-  (
-    game.currentWord &&
-    !canChain(
-      game.currentWord,
-      normalized,
-    )
-  ) ||
-  game.usedWords.includes(
-    normalized,
-  ) ||
-  (
-    resolvedMode === 'pvp' &&
-    game.lastUserId === userId
-  )
-) {
-  return {
-    ...current,
-    __wordChainAccepted: false,
-  };
-}
+      /**
+       * -----------------------------------------------------
+       * SAFETY CHECK
+       * -----------------------------------------------------
+       *
+       * messageCreate.js đã check trước đó,
+       * nhưng giữa lúc check và lúc save có thể
+       * có message khác cập nhật game.
+       *
+       * Nếu state hiện tại không còn khớp:
+       * KHÔNG được ghi đè state mới.
+       */
+      if (
+        !game.enabled ||
+        !isValidWord(
+          normalized,
+        ) ||
+        (
+          game.currentWord &&
+          !canChain(
+            game.currentWord,
+            normalized,
+          )
+        ) ||
+        game.usedWords.includes(
+          normalized,
+        ) ||
+        (
+          resolvedMode === 'pvp' &&
+          game.lastUserId === userId
+        )
+      ) {
+        return {
+          ...current,
+          __wordChainAccepted: false,
+        };
+      }
+
       const leaderboard = {
         bot: {
           ...(current.leaderboard
@@ -2153,11 +2153,28 @@ if (
             .enabled,
         );
 
-      return saveWordChainConfig(
-        client,
-        guildId,
-        current,
-      );
+      /**
+       * =====================================================
+       * QUAN TRỌNG
+       * =====================================================
+       *
+       * Chỉ đánh dấu accepted SAU KHI
+       * database save thành công.
+       *
+       * messageCreate.js sẽ dùng flag này
+       * để quyết định có react ✅ hay không.
+       */
+      const saved =
+        await saveWordChainConfig(
+          client,
+          guildId,
+          current,
+        );
+
+      return {
+        ...saved,
+        __wordChainAccepted: true,
+      };
     },
   );
 }
@@ -2280,358 +2297,4 @@ export async function recordBotSuccess(
     resolvedMode,
     async () => {
       const current =
-        await getWordChainConfig(
-          client,
-          guildId,
-        );
-
-      const game =
-        getWordChainGame(
-          current,
-          resolvedMode,
-        );
-
-      const normalized =
-        normalizeWord(
-          botWord,
-        );
-
-      /**
-       * Không cho Bot ghi một
-       * response stale.
-       */
-      if (
-        !game.enabled ||
-        !isValidWord(
-          normalized,
-        ) ||
-        (
-          game.currentWord &&
-          !canChain(
-            game.currentWord,
-            normalized,
-          )
-        ) ||
-        game.usedWords.includes(
-          normalized,
-        )
-      ) {
-        return current;
-      }
-
-      current.games[
-        resolvedMode
-      ] = {
-        ...game,
-
-        currentWord:
-          normalized,
-
-        usedWords: [
-          ...game.usedWords,
-          normalized,
-        ],
-
-        /**
-         * Bot không phải player.
-         *
-         * Giữ lastUserId của user
-         * vừa chơi.
-         */
-        lastUserId:
-          game.lastUserId,
-      };
-
-      current.enabled =
-        Boolean(
-          current.games.pvp
-            .enabled ||
-          current.games.bot
-            .enabled,
-        );
-
-      return saveWordChainConfig(
-        client,
-        guildId,
-        current,
-      );
-    },
-  );
-}
-
-/**
- * =========================================================
- * RECORD BREAK
- * =========================================================
- *
- * Kết thúc round:
- *
- * - currentWord -> từ mới
- * - lastUserId -> null
- * - usedWords -> reset
- * - currentStreak -> 0
- * - personalStreaks -> reset
- * - hintUses -> reset
- *
- * Không reset:
- *
- * - leaderboard
- * - bestStreak
- */
-
-export async function recordBreak(
-  client,
-  guildId,
-  newStartWord = null,
-  mode = 'bot',
-) {
-  const resolvedMode =
-    mode === 'pvp'
-      ? 'pvp'
-      : 'bot';
-
-  return withStateLock(
-    guildId,
-    resolvedMode,
-    async () => {
-      initDictionary();
-
-      const current =
-        await getWordChainConfig(
-          client,
-          guildId,
-        );
-
-      const game =
-        getWordChainGame(
-          current,
-          resolvedMode,
-        );
-
-      const initialWord =
-        chooseStartWord(
-          newStartWord,
-          game.currentWord
-            ? [
-                game.currentWord,
-              ]
-            : [],
-        );
-
-      current.games[
-        resolvedMode
-      ] = {
-        ...game,
-
-        enabled:
-          game.enabled,
-
-        channelId:
-          WORD_CHAIN_CHANNELS[
-            resolvedMode
-          ],
-
-        mode:
-          resolvedMode,
-
-        currentWord:
-          initialWord,
-
-        lastUserId:
-          null,
-
-        usedWords:
-          initialWord
-            ? [initialWord]
-            : [],
-
-        currentStreak:
-          0,
-
-        /**
-         * Giữ kỷ lục.
-         */
-        bestStreak:
-          game.bestStreak,
-
-        /**
-         * Round mới.
-         */
-        personalStreaks:
-          {},
-
-        /**
-         * 3 hint mới.
-         */
-        hintUses:
-          {},
-      };
-
-      current.enabled =
-        Boolean(
-          current.games.pvp
-            .enabled ||
-          current.games.bot
-            .enabled,
-        );
-
-      return saveWordChainConfig(
-        client,
-        guildId,
-        current,
-      );
-    },
-  );
-}
-
-/**
- * =========================================================
- * LEADERBOARD
- * =========================================================
- *
- * PvP:
- *   score = correct
- *
- * PvE:
- *   score = bestStreak
- */
-
-export function buildWordChainLeaderboard(
-  config,
-  mode = 'bot',
-) {
-  const resolvedMode =
-    mode === 'pvp'
-      ? 'pvp'
-      : 'bot';
-
-  const leaderboard =
-    config?.leaderboard?.[
-      resolvedMode
-    ] || {};
-
-  return Object.entries(
-    leaderboard,
-  )
-    .map(
-      ([
-        userId,
-        value,
-      ]) => {
-        const stats =
-          getUserStats(
-            leaderboard,
-            userId,
-          );
-
-        /**
-         * ---------------------------------------------------
-         * PVE
-         * ---------------------------------------------------
-         */
-
-        if (
-          resolvedMode ===
-          'bot'
-        ) {
-          return {
-            userId,
-
-            score:
-              stats.bestStreak,
-
-            bestStreak:
-              stats.bestStreak,
-
-            correct:
-              stats.correct,
-
-            wrong:
-              stats.wrong,
-          };
-        }
-
-        /**
-         * ---------------------------------------------------
-         * PVP
-         * ---------------------------------------------------
-         */
-
-        return {
-          userId,
-
-          score:
-            stats.correct,
-
-          correct:
-            stats.correct,
-
-          wrong:
-            stats.wrong,
-
-          bestStreak:
-            stats.bestStreak,
-        };
-      },
-    )
-    .filter(
-      (entry) =>
-        resolvedMode ===
-        'bot'
-          ? entry.bestStreak >
-              0 ||
-            entry.correct >
-              0 ||
-            entry.wrong >
-              0
-          : entry.correct >
-              0 ||
-            entry.wrong >
-              0,
-    )
-    .sort(
-      (
-        a,
-        b,
-      ) => {
-        /**
-         * Điểm chính:
-         *
-         * PvP = correct
-         * PvE = bestStreak
-         */
-        if (
-          b.score !==
-          a.score
-        ) {
-          return (
-            b.score -
-            a.score
-          );
-        }
-
-        /**
-         * Nếu cùng điểm:
-         * nhiều correct hơn đứng trên.
-         */
-        if (
-          b.correct !==
-          a.correct
-        ) {
-          return (
-            b.correct -
-            a.correct
-          );
-        }
-
-        /**
-         * Cuối cùng:
-         * ít wrong hơn đứng trên.
-         */
-        return (
-          a.wrong -
-          b.wrong
-        );
-      },
-    );
-}
+       
