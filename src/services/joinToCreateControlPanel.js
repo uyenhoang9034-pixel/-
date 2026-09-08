@@ -122,7 +122,7 @@ export function buildJoinToCreateControlPanel() {
       )
       .setDescription(
         [
-          'Cảm ơn và chào mừng bạn đã đến với bảng điều khiển room voice cá nhân! <a:heartg3:1546047728314884226>',
+          'Cảm ơn và chào mừng bạn đã đến với bảng điều khiển voice room cá nhân! <a:heartg3:1546047728314884226>',
           '',
           '<a:trangtrig6:1546043036390260756> Bạn có thể quản lý **voice room** do chính mình tạo bằng các nút bên dưới. Chỉ có thể sử dụng bảng điều khiển sau khi tạo phòng!',
           '',
