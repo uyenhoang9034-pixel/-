@@ -13,10 +13,10 @@ const MODERATION_IMAGE_URL =
 
 const EMOJIS = {
     decoration:
-        '<a:bang3:1546891744237461635>',
+        '<a:bang6:1546906224388350035>',
 
     ban:
-        '<:ban1:1546897486889750669>',
+        '<a:bang5:1546905838986330124>',
 
     reasonEnd:
         '<a:bang1:1546891405371117668>',
@@ -105,6 +105,17 @@ export default {
             return;
         }
 
+        /**
+         * TEST ONLY
+         *
+         * Không ban thật.
+         * Không tạo case thật.
+         * Không ghi database.
+         */
+
+        const fakeCaseId =
+            'TEST-001';
+
         const embed =
             new EmbedBuilder()
                 .setColor(
@@ -131,7 +142,7 @@ export default {
 
                         '',
                         `${EMOJIS.ban} **Case**`,
-                        '#TEST-001',
+                        `#${fakeCaseId}`,
                     ].join('\n'),
                 )
                 .setImage(
