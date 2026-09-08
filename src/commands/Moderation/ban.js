@@ -1,46 +1,210 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-import { successEmbed } from '../../utils/embeds.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { ModerationService } from '../../services/moderation/moderationService.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+import {
+    SlashCommandBuilder,
+    PermissionFlagsBits,
+    EmbedBuilder,
+} from 'discord.js';
+
+import {
+    successEmbed,
+} from '../../utils/embeds.js';
+
+import {
+    InteractionHelper,
+} from '../../utils/interactionHelper.js';
+
+import {
+    ModerationService,
+} from '../../services/moderation/moderationService.js';
+
+import {
+    TitanBotError,
+    ErrorTypes,
+} from '../../utils/errorHandler.js';
+
+/**
+ * =========================================================
+ * USAGI MODERATION
+ * =========================================================
+ */
+
+const MODERATION_CHANNEL_ID =
+    '1546893787123556404';
+
+const EMOJIS = {
+    decoration:
+        '<a:bang3:1546891744237461635>',
+
+    banTitle:
+        '<a:bang1:1546891405371117668>',
+
+    ban:
+        '<:ban1:1546891613261922377>',
+
+    reasonEnd:
+        '<a:bang4:1546891928769929298>',
+};
+
+/**
+ * =========================================================
+ * SEND USAGI BAN LOG
+ * =========================================================
+ */
+
+async function sendUsagiBanLog({
+    guild,
+    target,
+    moderator,
+    reason,
+    caseId,
+}) {
+    const channel =
+        await guild.channels
+            .fetch(
+                MODERATION_CHANNEL_ID,
+            )
+            .catch(
+                () => null,
+            );
+
+    if (
+        !channel ||
+        !channel.isTextBased()
+    ) {
+        return;
+    }
+
+    const embed =
+        new EmbedBuilder()
+            .setColor(
+                0xf29ab2,
+            )
+            .setTitle(
+                `${EMOJIS.decoration} 𝓤𝓼𝓪𝓰𝓲 𝓜𝓸𝓭𝓮𝓻𝓪𝓽𝓲𝓸𝓷 ${EMOJIS.decoration}`,
+            )
+            .setDescription(
+                [
+                    `${EMOJIS.banTitle} **Thành viên đã bị BAN**`,
+
+                    '',
+                    `${EMOJIS.ban} **Thành viên**`,
+                    `<@${target.id}>`,
+
+                    '',
+                    `${EMOJIS.ban} **Người xử lý**`,
+                    `<@${moderator.id}>`,
+
+                    '',
+                    `${EMOJIS.ban} **Lý do**`,
+                    `Vi phạm nội quy: ${reason} ${EMOJIS.reasonEnd}`,
+
+                    '',
+                    `${EMOJIS.ban} **Case**`,
+                    `#${caseId}`,
+                ].join('\n'),
+            )
+            .setTimestamp();
+
+    await channel
+        .send({
+            embeds: [
+                embed,
+            ],
+        })
+        .catch(
+            () => {},
+        );
+}
+
+/**
+ * =========================================================
+ * COMMAND
+ * =========================================================
+ */
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName("ban")
-        .setDescription("Ban a user from the server")
-        .addUserOption((option) =>
-            option
-                .setName("target")
-                .setDescription("The user to ban")
-                .setRequired(true),
-        )
-        .addStringOption((option) =>
-            option.setName("reason").setDescription("Reason for the ban"),
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
-    category: "moderation",
+    data:
+        new SlashCommandBuilder()
+            .setName(
+                'ban',
+            )
+            .setDescription(
+                'Ban a user from the server',
+            )
+            .addUserOption(
+                (option) =>
+                    option
+                        .setName(
+                            'target',
+                        )
+                        .setDescription(
+                            'The user to ban',
+                        )
+                        .setRequired(
+                            true,
+                        ),
+            )
+            .addStringOption(
+                (option) =>
+                    option
+                        .setName(
+                            'reason',
+                        )
+                        .setDescription(
+                            'Reason for the ban',
+                        ),
+            )
+            .setDefaultMemberPermissions(
+                PermissionFlagsBits.BanMembers,
+            ),
 
-    async execute(interaction, config, client) {
-        const user = interaction.options.getUser("target");
-        const reason = interaction.options.getString("reason") || "No reason provided";
+    category:
+        'moderation',
+
+    async execute(
+        interaction,
+        config,
+        client,
+    ) {
+        const user =
+            interaction.options
+                .getUser(
+                    'target',
+                );
+
+        const reason =
+            interaction.options
+                .getString(
+                    'reason',
+                ) ||
+            'Không có lý do';
 
         if (!user) {
             throw new TitanBotError(
                 'Missing target user',
                 ErrorTypes.USER_INPUT,
                 'You must specify a user to ban.',
-                { subtype: 'invalid_user' },
+                {
+                    subtype:
+                        'invalid_user',
+                },
             );
         }
 
-        if (user.id === interaction.user.id) {
+        if (
+            user.id ===
+            interaction.user.id
+        ) {
             throw new TitanBotError(
                 'Cannot ban self',
                 ErrorTypes.VALIDATION,
                 'You cannot ban yourself.',
             );
         }
-        if (user.id === client.user.id) {
+
+        if (
+            user.id ===
+            client.user.id
+        ) {
             throw new TitanBotError(
                 'Cannot ban bot',
                 ErrorTypes.VALIDATION,
@@ -48,20 +212,72 @@ export default {
             );
         }
 
-        const result = await ModerationService.banUser({
-            guild: interaction.guild,
-            user,
-            moderator: interaction.member,
+        /**
+         * =================================================
+         * BAN THẬT
+         * =================================================
+         *
+         * Giữ nguyên ModerationService hiện tại.
+         *
+         * Service này vẫn:
+         * - ban
+         * - tạo case
+         * - log moderation cũ
+         */
+
+        const result =
+            await ModerationService
+                .banUser({
+                    guild:
+                        interaction.guild,
+
+                    user,
+
+                    moderator:
+                        interaction.member,
+
+                    reason,
+                });
+
+        /**
+         * =================================================
+         * USAGI LOG
+         * =================================================
+         */
+
+        await sendUsagiBanLog({
+            guild:
+                interaction.guild,
+
+            target:
+                user,
+
+            moderator:
+                interaction.user,
+
             reason,
+
+            caseId:
+                result.caseId,
         });
 
-        await InteractionHelper.universalReply(interaction, {
-            embeds: [
-                successEmbed(
-                    `🚫 **Banned** ${user.tag}`,
-                    `**Reason:** ${reason}\n**Case ID:** #${result.caseId}`,
-                ),
-            ],
-        });
+        /**
+         * =================================================
+         * COMMAND RESPONSE
+         * =================================================
+         */
+
+        await InteractionHelper
+            .universalReply(
+                interaction,
+                {
+                    embeds: [
+                        successEmbed(
+                            `🚫 **Banned** ${user.tag}`,
+                            `**Reason:** ${reason}\n**Case ID:** #${result.caseId}`,
+                        ),
+                    ],
+                },
+            );
     },
 };
