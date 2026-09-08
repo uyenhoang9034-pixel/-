@@ -1,10 +1,8 @@
 import {
   ActionRowBuilder,
-  ButtonStyle,
   ChannelType,
   MessageFlags,
   ModalBuilder,
-  PermissionFlagsBits,
   StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -22,7 +20,7 @@ import {
 
 /**
  * =========================================================
- * HELPERS
+ * EPHEMERAL REPLY
  * =========================================================
  */
 
@@ -36,6 +34,7 @@ async function replyEphemeral(
   ) {
     return interaction.followUp({
       content,
+
       flags:
         MessageFlags.Ephemeral,
     });
@@ -43,9 +42,94 @@ async function replyEphemeral(
 
   return interaction.reply({
     content,
+
     flags:
       MessageFlags.Ephemeral,
   });
+}
+
+/**
+ * =========================================================
+ * USER ROOM PREFERENCES
+ * =========================================================
+ *
+ * Các setting được lưu lâu dài:
+ *
+ * - name
+ * - userLimit
+ * - rtcRegion
+ * - locked
+ * - hidden
+ *
+ * Khi temporary room bị xóa,
+ * các setting này KHÔNG bị xóa.
+ */
+
+function getUserPreferences(
+  config,
+  userId,
+) {
+  return {
+    name:
+      null,
+
+    userLimit:
+      null,
+
+    rtcRegion:
+      null,
+
+    locked:
+      false,
+
+    hidden:
+      false,
+
+    ...(
+      config.userPreferences?.[
+        userId
+      ] || {}
+    ),
+  };
+}
+
+async function saveUserPreferences(
+  client,
+  guildId,
+  config,
+  userId,
+  updates,
+) {
+  config.userPreferences =
+    config.userPreferences ||
+    {};
+
+  const current =
+    getUserPreferences(
+      config,
+      userId,
+    );
+
+  config.userPreferences[
+    userId
+  ] = {
+    ...current,
+
+    ...updates,
+
+    updatedAt:
+      Date.now(),
+  };
+
+  await saveJoinToCreateConfig(
+    client,
+    guildId,
+    config,
+  );
+
+  return config.userPreferences[
+    userId
+  ];
 }
 
 /**
@@ -92,8 +176,12 @@ async function getOwnedRoom(
 
     const channel =
       await interaction.guild.channels
-        .fetch(channelId)
-        .catch(() => null);
+        .fetch(
+          channelId,
+        )
+        .catch(
+          () => null,
+        );
 
     if (
       !channel ||
@@ -147,13 +235,17 @@ async function requireOwnedRoom(
  * =========================================================
  */
 
-function parseUserId(value) {
+function parseUserId(
+  value,
+) {
   if (!value) {
     return null;
   }
 
   const match =
-    String(value).match(
+    String(
+      value,
+    ).match(
       /\d{17,20}/,
     );
 
@@ -176,27 +268,39 @@ async function showTargetModal(
 ) {
   const input =
     new TextInputBuilder()
-      .setCustomId('user')
-      .setLabel(label)
+      .setCustomId(
+        'user',
+      )
+      .setLabel(
+        label,
+      )
       .setPlaceholder(
         'Dán @mention hoặc User ID',
       )
       .setStyle(
         TextInputStyle.Short,
       )
-      .setRequired(true);
+      .setRequired(
+        true,
+      );
 
   const row =
     new ActionRowBuilder()
-      .addComponents(input);
+      .addComponents(
+        input,
+      );
 
   const modal =
     new ModalBuilder()
       .setCustomId(
         `jtc_room_modal:${action}`,
       )
-      .setTitle(title)
-      .addComponents(row);
+      .setTitle(
+        title,
+      )
+      .addComponents(
+        row,
+      );
 
   await interaction.showModal(
     modal,
@@ -218,8 +322,8 @@ async function handleButton(
       .split(':')[1];
 
   /**
-   * Kiểm tra ownership trước
-   * mọi action.
+   * Kiểm tra ownership
+   * trước mọi action.
    */
 
   const owned =
@@ -234,9 +338,12 @@ async function handleButton(
 
   const {
     channel,
+    config,
   } = owned;
 
-  switch (action) {
+  switch (
+    action
+  ) {
     /**
      * -------------------------------------------------------
      * RENAME
@@ -244,9 +351,17 @@ async function handleButton(
      */
 
     case 'name': {
+      const preferences =
+        getUserPreferences(
+          config,
+          interaction.user.id,
+        );
+
       const input =
         new TextInputBuilder()
-          .setCustomId('name')
+          .setCustomId(
+            'name',
+          )
           .setLabel(
             'Tên phòng mới',
           )
@@ -256,8 +371,32 @@ async function handleButton(
           .setStyle(
             TextInputStyle.Short,
           )
-          .setMaxLength(100)
-          .setRequired(true);
+          .setMaxLength(
+            100,
+          )
+          .setRequired(
+            true,
+          );
+
+      /**
+       * Nếu từng lưu tên rồi
+       * thì hiện tên cũ trong modal.
+       */
+
+      if (
+        typeof preferences.name ===
+          'string' &&
+        preferences.name.trim()
+      ) {
+        input.setValue(
+          preferences.name
+            .trim()
+            .slice(
+              0,
+              100,
+            ),
+        );
+      }
 
       const modal =
         new ModalBuilder()
@@ -269,7 +408,9 @@ async function handleButton(
           )
           .addComponents(
             new ActionRowBuilder()
-              .addComponents(input),
+              .addComponents(
+                input,
+              ),
           );
 
       await interaction.showModal(
@@ -286,9 +427,26 @@ async function handleButton(
      */
 
     case 'limit': {
+      const preferences =
+        getUserPreferences(
+          config,
+          interaction.user.id,
+        );
+
+      const savedLimit =
+        preferences.userLimit !==
+          null &&
+        preferences.userLimit !==
+          undefined
+          ? preferences.userLimit
+          : channel.userLimit ||
+            0;
+
       const input =
         new TextInputBuilder()
-          .setCustomId('limit')
+          .setCustomId(
+            'limit',
+          )
           .setLabel(
             'Giới hạn thành viên',
           )
@@ -300,11 +458,12 @@ async function handleButton(
           )
           .setValue(
             String(
-              channel.userLimit ||
-              0,
+              savedLimit,
             ),
           )
-          .setRequired(true);
+          .setRequired(
+            true,
+          );
 
       const modal =
         new ModalBuilder()
@@ -316,7 +475,9 @@ async function handleButton(
           )
           .addComponents(
             new ActionRowBuilder()
-              .addComponents(input),
+              .addComponents(
+                input,
+              ),
           );
 
       await interaction.showModal(
@@ -333,13 +494,26 @@ async function handleButton(
      */
 
     case 'lock': {
-      await channel.permissionOverwrites
+      await channel
+        .permissionOverwrites
         .edit(
           interaction.guild.id,
           {
-            Connect: false,
+            Connect:
+              false,
           },
         );
+
+      await saveUserPreferences(
+        client,
+        interaction.guild.id,
+        config,
+        interaction.user.id,
+        {
+          locked:
+            true,
+        },
+      );
 
       await replyEphemeral(
         interaction,
@@ -356,13 +530,26 @@ async function handleButton(
      */
 
     case 'unlock': {
-      await channel.permissionOverwrites
+      await channel
+        .permissionOverwrites
         .edit(
           interaction.guild.id,
           {
-            Connect: true,
+            Connect:
+              true,
           },
         );
+
+      await saveUserPreferences(
+        client,
+        interaction.guild.id,
+        config,
+        interaction.user.id,
+        {
+          locked:
+            false,
+        },
+      );
 
       await replyEphemeral(
         interaction,
@@ -379,7 +566,8 @@ async function handleButton(
      */
 
     case 'hide': {
-      await channel.permissionOverwrites
+      await channel
+        .permissionOverwrites
         .edit(
           interaction.guild.id,
           {
@@ -389,10 +577,12 @@ async function handleButton(
         );
 
       /**
-       * Owner vẫn nhìn thấy.
+       * Owner vẫn nhìn thấy
+       * phòng của chính mình.
        */
 
-      await channel.permissionOverwrites
+      await channel
+        .permissionOverwrites
         .edit(
           interaction.user.id,
           {
@@ -403,6 +593,17 @@ async function handleButton(
               true,
           },
         );
+
+      await saveUserPreferences(
+        client,
+        interaction.guild.id,
+        config,
+        interaction.user.id,
+        {
+          hidden:
+            true,
+        },
+      );
 
       await replyEphemeral(
         interaction,
@@ -419,7 +620,8 @@ async function handleButton(
      */
 
     case 'show': {
-      await channel.permissionOverwrites
+      await channel
+        .permissionOverwrites
         .edit(
           interaction.guild.id,
           {
@@ -427,6 +629,17 @@ async function handleButton(
               true,
           },
         );
+
+      await saveUserPreferences(
+        client,
+        interaction.guild.id,
+        config,
+        interaction.user.id,
+        {
+          hidden:
+            false,
+        },
+      );
 
       await replyEphemeral(
         interaction,
@@ -442,7 +655,7 @@ async function handleButton(
      * -------------------------------------------------------
      */
 
-    case 'allow':
+    case 'allow': {
       await showTargetModal(
         interaction,
         'allow',
@@ -451,6 +664,7 @@ async function handleButton(
       );
 
       return true;
+    }
 
     /**
      * -------------------------------------------------------
@@ -458,7 +672,7 @@ async function handleButton(
      * -------------------------------------------------------
      */
 
-    case 'block':
+    case 'block': {
       await showTargetModal(
         interaction,
         'block',
@@ -467,6 +681,7 @@ async function handleButton(
       );
 
       return true;
+    }
 
     /**
      * -------------------------------------------------------
@@ -474,7 +689,7 @@ async function handleButton(
      * -------------------------------------------------------
      */
 
-    case 'kick':
+    case 'kick': {
       await showTargetModal(
         interaction,
         'kick',
@@ -483,6 +698,7 @@ async function handleButton(
       );
 
       return true;
+    }
 
     /**
      * -------------------------------------------------------
@@ -490,7 +706,7 @@ async function handleButton(
      * -------------------------------------------------------
      */
 
-    case 'transfer':
+    case 'transfer': {
       await showTargetModal(
         interaction,
         'transfer',
@@ -499,6 +715,7 @@ async function handleButton(
       );
 
       return true;
+    }
 
     /**
      * -------------------------------------------------------
@@ -507,6 +724,16 @@ async function handleButton(
      */
 
     case 'region': {
+      const preferences =
+        getUserPreferences(
+          config,
+          interaction.user.id,
+        );
+
+      const currentRegion =
+        preferences.rtcRegion ||
+        'automatic';
+
       const select =
         new StringSelectMenuBuilder()
           .setCustomId(
@@ -519,50 +746,91 @@ async function handleButton(
             {
               label:
                 'Automatic',
+
               value:
                 'automatic',
+
               emoji:
                 '🌐',
+
+              default:
+                currentRegion ===
+                'automatic',
             },
+
             {
               label:
                 'Singapore',
+
               value:
                 'singapore',
+
               emoji:
                 '🇸🇬',
+
+              default:
+                currentRegion ===
+                'singapore',
             },
+
             {
               label:
                 'Hong Kong',
+
               value:
                 'hongkong',
+
               emoji:
                 '🇭🇰',
+
+              default:
+                currentRegion ===
+                'hongkong',
             },
+
             {
               label:
                 'Japan',
+
               value:
                 'japan',
+
               emoji:
                 '🇯🇵',
+
+              default:
+                currentRegion ===
+                'japan',
             },
+
             {
               label:
                 'Sydney',
+
               value:
                 'sydney',
+
               emoji:
                 '🇦🇺',
+
+              default:
+                currentRegion ===
+                'sydney',
             },
+
             {
               label:
                 'India',
+
               value:
                 'india',
+
               emoji:
                 '🇮🇳',
+
+              default:
+                currentRegion ===
+                'india',
             },
           );
 
@@ -604,6 +872,15 @@ async function handleButton(
         flags:
           MessageFlags.Ephemeral,
       });
+
+      /**
+       * Chỉ xóa temporary channel.
+       *
+       * KHÔNG xóa userPreferences.
+       *
+       * Vì vậy lần sau tạo room,
+       * setting cũ vẫn được sử dụng.
+       */
 
       await unregisterTemporaryChannel(
         client,
@@ -662,7 +939,10 @@ async function handleModal(
    * -------------------------------------------------------
    */
 
-  if (action === 'name') {
+  if (
+    action ===
+    'name'
+  ) {
     const name =
       interaction.fields
         .getTextInputValue(
@@ -696,6 +976,21 @@ async function handleModal(
       `Temporary voice room renamed by ${interaction.user.id}`,
     );
 
+    /**
+     * Lưu lâu dài tên phòng
+     * của user.
+     */
+
+    await saveUserPreferences(
+      client,
+      interaction.guild.id,
+      config,
+      interaction.user.id,
+      {
+        name,
+      },
+    );
+
     await replyEphemeral(
       interaction,
       `✏️ Đã đổi tên phòng thành **${name}**.`,
@@ -710,7 +1005,10 @@ async function handleModal(
    * -------------------------------------------------------
    */
 
-  if (action === 'limit') {
+  if (
+    action ===
+    'limit'
+  ) {
     const value =
       interaction.fields
         .getTextInputValue(
@@ -718,7 +1016,9 @@ async function handleModal(
         );
 
     const limit =
-      Number(value);
+      Number(
+        value,
+      );
 
     if (
       !Number.isInteger(
@@ -737,6 +1037,22 @@ async function handleModal(
 
     await channel.setUserLimit(
       limit,
+    );
+
+    /**
+     * Lưu lâu dài limit
+     * của user.
+     */
+
+    await saveUserPreferences(
+      client,
+      interaction.guild.id,
+      config,
+      interaction.user.id,
+      {
+        userLimit:
+          limit,
+      },
     );
 
     await replyEphemeral(
@@ -789,12 +1105,16 @@ async function handleModal(
 
   const targetMember =
     await interaction.guild.members
-      .fetch(targetId)
+      .fetch(
+        targetId,
+      )
       .catch(
         () => null,
       );
 
-  if (!targetMember) {
+  if (
+    !targetMember
+  ) {
     await replyEphemeral(
       interaction,
       '❌ Không tìm thấy thành viên này trong server.',
@@ -809,8 +1129,12 @@ async function handleModal(
    * -------------------------------------------------------
    */
 
-  if (action === 'allow') {
-    await channel.permissionOverwrites
+  if (
+    action ===
+    'allow'
+  ) {
+    await channel
+      .permissionOverwrites
       .edit(
         targetId,
         {
@@ -839,8 +1163,12 @@ async function handleModal(
    * -------------------------------------------------------
    */
 
-  if (action === 'block') {
-    await channel.permissionOverwrites
+  if (
+    action ===
+    'block'
+  ) {
+    await channel
+      .permissionOverwrites
       .edit(
         targetId,
         {
@@ -877,7 +1205,10 @@ async function handleModal(
    * -------------------------------------------------------
    */
 
-  if (action === 'kick') {
+  if (
+    action ===
+    'kick'
+  ) {
     if (
       targetMember.voice
         ?.channelId !==
@@ -930,7 +1261,9 @@ async function handleModal(
     const info =
       config
         .temporaryChannels
-        ?.[channel.id];
+        ?.[
+          channel.id
+        ];
 
     if (!info) {
       await replyEphemeral(
@@ -941,14 +1274,23 @@ async function handleModal(
       return true;
     }
 
+    /**
+     * Chỉ chuyển ownership
+     * của room hiện tại.
+     *
+     * Không chuyển userPreferences.
+     */
+
     info.ownerId =
       targetId;
 
     /**
-     * Chủ cũ mất quyền đặc biệt.
+     * Chủ cũ mất quyền
+     * đặc biệt của room.
      */
 
-    await channel.permissionOverwrites
+    await channel
+      .permissionOverwrites
       .delete(
         interaction.user.id,
       )
@@ -957,10 +1299,12 @@ async function handleModal(
       );
 
     /**
-     * Chủ mới có quyền điều khiển.
+     * Chủ mới có quyền
+     * điều khiển room.
      */
 
-    await channel.permissionOverwrites
+    await channel
+      .permissionOverwrites
       .edit(
         targetId,
         {
@@ -1021,10 +1365,29 @@ async function handleRegion(
   const region =
     interaction.values[0];
 
-  await owned.channel.setRTCRegion(
-    region === 'automatic'
+  const rtcRegion =
+    region ===
+      'automatic'
       ? null
-      : region,
+      : region;
+
+  await owned.channel
+    .setRTCRegion(
+      rtcRegion,
+    );
+
+  /**
+   * Lưu region lâu dài.
+   */
+
+  await saveUserPreferences(
+    client,
+    interaction.guild.id,
+    owned.config,
+    interaction.user.id,
+    {
+      rtcRegion,
+    },
   );
 
   await interaction.update({
@@ -1034,7 +1397,8 @@ async function handleRegion(
         ? '🌐 Voice Region đã chuyển về **Automatic**.'
         : `🌏 Voice Region đã chuyển sang **${region}**.`,
 
-    components: [],
+    components:
+      [],
   });
 
   return true;
@@ -1089,7 +1453,9 @@ export async function handleJoinToCreateControl(
     }
 
     return false;
-  } catch (error) {
+  } catch (
+    error
+  ) {
     logger.error(
       'Join to Create control error:',
       error,
