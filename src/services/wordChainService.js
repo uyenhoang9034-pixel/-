@@ -1987,39 +1987,43 @@ export async function recordUserSuccess(
           word,
         );
 
-      /**
-       * -----------------------------------------------------
-       * SAFETY CHECK
-       * -----------------------------------------------------
-       *
-       * Đây là check cực kỳ quan trọng.
-       *
-       * messageCreate.js đã check trước đó,
-       * nhưng giữa lúc check và lúc save có thể
-       * có message khác cập nhật game.
-       *
-       * Nếu state hiện tại không còn khớp:
-       * KHÔNG được ghi đè state mới.
-       */
-      if (
-        !game.enabled ||
-        !isValidWord(
-          normalized,
-        ) ||
-        (
-          game.currentWord &&
-          !canChain(
-            game.currentWord,
-            normalized,
-          )
-        ) ||
-        game.usedWords.includes(
-          normalized,
-        )
-      ) {
-        return current;
-      }
-
+     /**
+ * -----------------------------------------------------
+ * SAFETY CHECK
+ * -----------------------------------------------------
+ *
+ * messageCreate.js đã check trước đó,
+ * nhưng giữa lúc check và lúc save có thể
+ * có message khác cập nhật game.
+ *
+ * Nếu state hiện tại không còn khớp:
+ * KHÔNG được ghi đè state mới.
+ */
+if (
+  !game.enabled ||
+  !isValidWord(
+    normalized,
+  ) ||
+  (
+    game.currentWord &&
+    !canChain(
+      game.currentWord,
+      normalized,
+    )
+  ) ||
+  game.usedWords.includes(
+    normalized,
+  ) ||
+  (
+    resolvedMode === 'pvp' &&
+    game.lastUserId === userId
+  )
+) {
+  return {
+    ...current,
+    __wordChainAccepted: false,
+  };
+}
       const leaderboard = {
         bot: {
           ...(current.leaderboard
