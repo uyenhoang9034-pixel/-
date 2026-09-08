@@ -1,6 +1,6 @@
 import {
     ChannelType,
-    PermissionFlagsBits
+    PermissionFlagsBits,
 } from 'discord.js';
 
 import {
@@ -8,20 +8,24 @@ import {
     registerTemporaryChannel,
     unregisterTemporaryChannel,
     getTemporaryChannelInfo,
-    formatChannelName
+    formatChannelName,
 } from '../utils/database.js';
 
 import {
-    sanitizeInput
+    sanitizeInput,
 } from '../utils/validation.js';
 
 import {
-    logger
+    logger,
 } from '../utils/logger.js';
 
 import {
-    handleMusicVoiceState
+    handleMusicVoiceState,
 } from '../services/music/musicVoiceState.js';
+
+import {
+    handleVoiceLevelState,
+} from '../services/leveling/voiceLevelService.js';
 
 const channelCreationCooldown =
     new Map();
@@ -56,10 +60,44 @@ export default {
         newState,
         client,
     ) {
+        /**
+         * =====================================================
+         * IGNORE BOT
+         * =====================================================
+         */
+
         if (
-            newState.member.user.bot
+            newState.member
+                ?.user
+                ?.bot
         ) {
             return;
+        }
+
+        /**
+         * =====================================================
+         * USAGI VOICE LEVEL
+         * =====================================================
+         *
+         * Chạy độc lập với Join-to-Create.
+         *
+         * Vì vậy kể cả Join-to-Create bị disable,
+         * Voice Level vẫn hoạt động.
+         */
+
+        try {
+            await handleVoiceLevelState(
+                client,
+                oldState,
+                newState,
+            );
+        } catch (
+            error
+        ) {
+            logger.error(
+                'Voice leveling error:',
+                error,
+            );
         }
 
         const guildId =
@@ -80,11 +118,46 @@ export default {
                     guildId,
                 );
 
+            /**
+             * =================================================
+             * JOIN TO CREATE DISABLED
+             * =================================================
+             *
+             * Chỉ dừng Join-to-Create.
+             *
+             * Voice Level phía trên đã được
+             * xử lý rồi.
+             */
+
             if (
                 !config.enabled ||
                 config.triggerChannels
-                    .length === 0
+                    .length ===
+                    0
             ) {
+                /**
+                 * Music vẫn phải được xử lý.
+                 */
+
+                if (
+                    client.config
+                        ?.features
+                        ?.music
+                ) {
+                    await handleMusicVoiceState(
+                        client,
+                        oldState,
+                        newState,
+                    ).catch(
+                        error => {
+                            logger.error(
+                                'Music voice state handler error:',
+                                error,
+                            );
+                        },
+                    );
+                }
+
                 return;
             }
 
@@ -141,7 +214,6 @@ export default {
                     config,
                 );
             }
-
         } catch (
             error
         ) {
@@ -215,9 +287,7 @@ export default {
                     config.temporaryChannels ||
                     {},
                 ).find(
-                    (
-                        tempChannelId,
-                    ) => {
+                    tempChannelId => {
                         const tempInfo =
                             config
                                 .temporaryChannels[
@@ -315,14 +385,6 @@ export default {
                 return;
             }
 
-            /**
-             * Phòng trống:
-             * xóa temporary room.
-             *
-             * userPreferences
-             * KHÔNG bị xóa.
-             */
-
             if (
                 channel.members.size ===
                 0
@@ -332,14 +394,7 @@ export default {
                     channel,
                     state.guild.id,
                 );
-            }
-
-            /**
-             * Owner rời nhưng
-             * còn người khác.
-             */
-
-            else if (
+            } else if (
                 tempChannelInfo.ownerId ===
                 member.id
             ) {
@@ -372,10 +427,6 @@ export default {
             newState,
             config,
         ) {
-            /**
-             * Xử lý room cũ.
-             */
-
             if (
                 oldState.channel
             ) {
@@ -392,7 +443,8 @@ export default {
                     if (
                         oldState.channel
                             .members
-                            .size === 0
+                            .size ===
+                        0
                     ) {
                         await deleteTemporaryChannel(
                             client,
@@ -421,11 +473,6 @@ export default {
                     }
                 }
             }
-
-            /**
-             * User chuyển vào
-             * trigger channel.
-             */
 
             if (
                 config.triggerChannels
@@ -520,7 +567,8 @@ export default {
                     config
                         .channelOptions?.[
                         triggerChannel.id
-                    ] || {};
+                    ] ||
+                    {};
 
                 const nameTemplate =
                     channelOptions
@@ -539,12 +587,8 @@ export default {
                     config
                         .userPreferences?.[
                         member.id
-                    ] || {};
-
-                /**
-                 * Nếu user từng set limit,
-                 * ưu tiên setting cá nhân.
-                 */
+                    ] ||
+                    {};
 
                 let userLimit =
                     userPreferences
@@ -562,14 +606,10 @@ export default {
                             99,
                             Number(
                                 userLimit,
-                            ) || 0,
+                            ) ||
+                            0,
                         ),
                     );
-
-                /**
-                 * Bitrate vẫn lấy
-                 * setting server.
-                 */
 
                 const bitrate =
                     clampVoiceBitrate(
@@ -579,10 +619,6 @@ export default {
                             .bitrate ??
                         DEFAULT_VOICE_BITRATE,
                     );
-
-                /**
-                 * Custom room name.
-                 */
 
                 const savedRoomName =
                     typeof userPreferences
@@ -596,10 +632,6 @@ export default {
                             .trim()
                         : null;
 
-                /**
-                 * Region.
-                 */
-
                 const savedRegion =
                     typeof userPreferences
                         .rtcRegion ===
@@ -611,10 +643,6 @@ export default {
                             .rtcRegion
                             .trim()
                         : null;
-
-                /**
-                 * Privacy.
-                 */
 
                 const savedLocked =
                     userPreferences
@@ -630,18 +658,10 @@ export default {
                     `Creating temporary channel for user ${member.id} with user limit: ${userLimit}`,
                 );
 
-                /**
-                 * =================================================
-                 * GENERATE ROOM NAME
-                 * =================================================
-                 */
-
                 const existingChannels =
                     guild.channels.cache
                         .filter(
-                            (
-                                channel,
-                            ) =>
+                            channel =>
                                 channel.parentId ===
                                     triggerChannel.parentId &&
                                 channel.name
@@ -652,11 +672,6 @@ export default {
                         .size;
 
                 let finalName;
-
-                /**
-                 * User custom name
-                 * luôn được ưu tiên.
-                 */
 
                 if (
                     savedRoomName
@@ -710,11 +725,6 @@ export default {
                         finalName,
                     );
 
-                /**
-                 * User đã rời trigger
-                 * thì hủy create.
-                 */
-
                 if (
                     !member.voice
                         ?.channel ||
@@ -753,10 +763,6 @@ export default {
                         [],
                 };
 
-                /**
-                 * LOCKED?
-                 */
-
                 if (
                     savedLocked
                 ) {
@@ -772,10 +778,6 @@ export default {
                             PermissionFlagsBits.Connect,
                         );
                 }
-
-                /**
-                 * HIDDEN?
-                 */
 
                 if (
                     savedHidden
@@ -819,19 +821,10 @@ export default {
 
                             bitrate,
 
-                            /**
-                             * null =
-                             * Discord Automatic.
-                             */
-
                             rtcRegion:
                                 savedRegion,
 
                             permissionOverwrites: [
-                                /**
-                                 * OWNER
-                                 */
-
                                 {
                                     id:
                                         member.id,
@@ -844,10 +837,6 @@ export default {
                                         PermissionFlagsBits.MoveMembers,
                                     ],
                                 },
-
-                                /**
-                                 * EVERYONE
-                                 */
 
                                 everyoneOverwrite,
                             ],
@@ -869,7 +858,7 @@ export default {
 
                 /**
                  * =================================================
-                 * MOVE USER INTO ROOM
+                 * MOVE USER
                  * =================================================
                  */
 
@@ -892,7 +881,6 @@ export default {
                 logger.info(
                     `Created temporary voice channel ${tempChannel.name} (${tempChannel.id}) for user ${member.user.tag} in guild ${guild.name} with user limit ${userLimit}`,
                 );
-
             } catch (
                 error
             ) {
@@ -934,14 +922,6 @@ export default {
             guildId,
         ) {
             try {
-                /**
-                 * Chỉ unregister room.
-                 *
-                 * userPreferences được
-                 * lưu riêng trong config
-                 * và không bị xóa.
-                 */
-
                 await unregisterTemporaryChannel(
                     client,
                     guildId,
@@ -955,7 +935,6 @@ export default {
                 logger.info(
                     `Deleted temporary voice channel ${channel.name} (${channel.id}) in guild ${channel.guild.name}`,
                 );
-
             } catch (
                 error
             ) {
@@ -1020,7 +999,8 @@ export default {
                             .channelOptions?.[
                             tempChannelInfo
                                 .triggerChannelId
-                        ] || {};
+                        ] ||
+                        {};
 
                     const nameTemplate =
                         channelOptions
@@ -1028,14 +1008,6 @@ export default {
                         config
                             .channelNameTemplate ||
                         "{username}'s Room";
-
-                    /**
-                     * Ownership chuyển tự động
-                     * chỉ áp dụng cho room hiện tại.
-                     *
-                     * Không ghi đè preferences
-                     * của chủ cũ/chủ mới.
-                     */
 
                     const newChannelName =
                         sanitizeVoiceChannelName(
@@ -1082,7 +1054,6 @@ export default {
                 logger.info(
                     `Transferred ownership of temporary channel ${channel.id} to user ${newOwnerId}`,
                 );
-
             } catch (
                 error
             ) {
@@ -1109,9 +1080,7 @@ export default {
                 oldState,
                 newState,
             ).catch(
-                (
-                    error,
-                ) => {
+                error => {
                     logger.error(
                         'Music voice state handler error:',
                         error,
@@ -1255,7 +1224,8 @@ function trimCooldownMapIfNeeded() {
         let index = 0;
         index <
         removeCount;
-        index += 1
+        index +=
+        1
     ) {
         channelCreationCooldown
             .delete(
