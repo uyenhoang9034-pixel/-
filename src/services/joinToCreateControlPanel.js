@@ -10,14 +10,30 @@ import {
   saveJoinToCreateConfig,
 } from '../utils/database.js';
 
-import { logger } from '../utils/logger.js';
+import {
+  logger,
+} from '../utils/logger.js';
 
+/**
+ * =========================================================
+ * USAGI PANEL IMAGE
+ * =========================================================
+ *
+ * DÁN LINK ẢNH TRỰC TIẾP CỦA BẠN VÀO ĐÂY.
+ *
+ * Nên dùng:
+ *
+ * https://cdn.discordapp.com/attachments/...
+ *
+ * hoặc:
+ *
+ * https://media.discordapp.net/attachments/...
+ *
+ * Link phải mở trực tiếp ra ảnh.
+ */
 
-export const JTC_PANEL_IMAGE_PATH =
-  path.join(
-    __dirname,
-    '../assets/usagi-voice-panel.png',
-  );
+export const USAGI_PANEL_IMAGE_URL =
+  'https://i.pinimg.com/736x/52/b6/04/52b604fb4972b0894d68284d9fcd30d0.jpg';
 
 /**
  * =========================================================
@@ -28,7 +44,9 @@ export const JTC_PANEL_IMAGE_PATH =
 export function buildJoinToCreateControlPanel() {
   const embed =
     new EmbedBuilder()
-      .setColor(0xffb7cf)
+      .setColor(
+        0xffb7cf,
+      )
       .setTitle(
         '🐰・Usagi Voice Room',
       )
@@ -42,16 +60,36 @@ export function buildJoinToCreateControlPanel() {
           '> Bạn cần tạo phòng trước khi sử dụng bảng điều khiển.',
         ].join('\n'),
       )
-      .setImage(
-        'attachment://usagi-voice-panel.png',
-      )
       .setFooter({
         text:
           'Usagi TempVoice • Phòng sẽ tự xóa khi không còn người',
       });
 
   /**
+   * =========================================================
+   * PANEL IMAGE
+   * =========================================================
+   *
+   * Chỉ set ảnh nếu URL đã được cấu hình.
+   *
+   * Điều này giúp bot không crash nếu bạn
+   * quên thay placeholder.
+   */
+
+  if (
+    USAGI_PANEL_IMAGE_URL &&
+    USAGI_PANEL_IMAGE_URL !==
+      'DAN_LINK_ANH_USAGI_CUA_BAN_VAO_DAY'
+  ) {
+    embed.setImage(
+      USAGI_PANEL_IMAGE_URL,
+    );
+  }
+
+  /**
+   * =========================================================
    * ROW 1
+   * =========================================================
    */
 
   const row1 =
@@ -61,8 +99,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:name',
           )
-          .setLabel('Đổi tên')
-          .setEmoji('✏️')
+          .setLabel(
+            'Đổi tên',
+          )
+          .setEmoji(
+            '✏️',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -71,8 +113,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:limit',
           )
-          .setLabel('Giới hạn')
-          .setEmoji('👥')
+          .setLabel(
+            'Giới hạn',
+          )
+          .setEmoji(
+            '👥',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -81,8 +127,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:lock',
           )
-          .setLabel('Khóa')
-          .setEmoji('🔒')
+          .setLabel(
+            'Khóa',
+          )
+          .setEmoji(
+            '🔒',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -91,8 +141,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:unlock',
           )
-          .setLabel('Mở khóa')
-          .setEmoji('🔓')
+          .setLabel(
+            'Mở khóa',
+          )
+          .setEmoji(
+            '🔓',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -101,15 +155,21 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:hide',
           )
-          .setLabel('Ẩn phòng')
-          .setEmoji('🙈')
+          .setLabel(
+            'Ẩn phòng',
+          )
+          .setEmoji(
+            '🙈',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
       );
 
   /**
+   * =========================================================
    * ROW 2
+   * =========================================================
    */
 
   const row2 =
@@ -119,8 +179,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:show',
           )
-          .setLabel('Hiện phòng')
-          .setEmoji('👁️')
+          .setLabel(
+            'Hiện phòng',
+          )
+          .setEmoji(
+            '👁️',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -129,8 +193,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:allow',
           )
-          .setLabel('Cho phép')
-          .setEmoji('💌')
+          .setLabel(
+            'Cho phép',
+          )
+          .setEmoji(
+            '💌',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -139,8 +207,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:block',
           )
-          .setLabel('Chặn')
-          .setEmoji('🚫')
+          .setLabel(
+            'Chặn',
+          )
+          .setEmoji(
+            '🚫',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -149,8 +221,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:kick',
           )
-          .setLabel('Kick')
-          .setEmoji('👢')
+          .setLabel(
+            'Kick',
+          )
+          .setEmoji(
+            '👢',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -159,15 +235,21 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:transfer',
           )
-          .setLabel('Chuyển chủ')
-          .setEmoji('👑')
+          .setLabel(
+            'Chuyển chủ',
+          )
+          .setEmoji(
+            '👑',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
       );
 
   /**
+   * =========================================================
    * ROW 3
+   * =========================================================
    */
 
   const row3 =
@@ -177,8 +259,12 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:region',
           )
-          .setLabel('Region')
-          .setEmoji('🌏')
+          .setLabel(
+            'Region',
+          )
+          .setEmoji(
+            '🌏',
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -187,33 +273,26 @@ export function buildJoinToCreateControlPanel() {
           .setCustomId(
             'jtc_room:delete',
           )
-          .setLabel('Xóa phòng')
-          .setEmoji('🗑️')
+          .setLabel(
+            'Xóa phòng',
+          )
+          .setEmoji(
+            '🗑️',
+          )
           .setStyle(
             ButtonStyle.Danger,
           ),
       );
 
-  const attachment =
-    new AttachmentBuilder(
-      JTC_PANEL_IMAGE_PATH,
-      {
-        name:
-          'usagi-voice-panel.png',
-      },
-    );
-
   return {
-    embeds: [embed],
+    embeds: [
+      embed,
+    ],
 
     components: [
       row1,
       row2,
       row3,
-    ],
-
-    files: [
-      attachment,
     ],
   };
 }
@@ -236,8 +315,14 @@ export async function createJoinToCreateControlPanel(
     );
 
   /**
-   * Nếu panel cũ còn tồn tại,
-   * xóa trước để tránh duplicate.
+   * =========================================================
+   * DELETE OLD PANEL
+   * =========================================================
+   *
+   * Nếu panel cũ vẫn còn tồn tại,
+   * xóa message cũ trước khi tạo message mới.
+   *
+   * Điều này tránh spam nhiều panel.
    */
 
   if (
@@ -265,7 +350,9 @@ export async function createJoinToCreateControlPanel(
             () => null,
           );
 
-      if (oldMessage) {
+      if (
+        oldMessage
+      ) {
         await oldMessage
           .delete()
           .catch(
@@ -275,6 +362,12 @@ export async function createJoinToCreateControlPanel(
     }
   }
 
+  /**
+   * =========================================================
+   * SEND NEW PANEL
+   * =========================================================
+   */
+
   const payload =
     buildJoinToCreateControlPanel();
 
@@ -282,6 +375,12 @@ export async function createJoinToCreateControlPanel(
     await channel.send(
       payload,
     );
+
+  /**
+   * =========================================================
+   * SAVE PANEL LOCATION
+   * =========================================================
+   */
 
   config.controlChannelId =
     channel.id;
@@ -296,8 +395,13 @@ export async function createJoinToCreateControlPanel(
   );
 
   logger.info(
-    `Created Join to Create control panel ${panelMessage.id} in ${guild.id}`,
+    `Created Join to Create control panel ${panelMessage.id} in guild ${guild.id}`,
   );
 
   return panelMessage;
 }
+
+export default {
+  buildJoinToCreateControlPanel,
+  createJoinToCreateControlPanel,
+};
