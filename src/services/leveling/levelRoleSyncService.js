@@ -1,108 +1,261 @@
-import { logger } from '../../utils/logger.js';
-import { getLevelingConfig, getUserLevelData, saveLevelingConfig } from './leveling.js';
+import {
+    logger,
+} from '../../utils/logger.js';
 
-import { getUserLevelPrefix } from '../../utils/database/keys.js';
+import {
+    getUserLevelData,
+} from './leveling.js';
 
-async function listLevelUserIds(client, guildId) {
-    if (!client.db?.list) return [];
+import {
+    getUserLevelPrefix,
+} from '../../utils/database/keys.js';
 
-    const prefixes = [getUserLevelPrefix(guildId), `${guildId}:leveling:users:`];
-    const userIds = new Set();
+import {
+    syncHighestLevelRole,
+} from './levelRoleService.js';
 
-    for (const prefix of prefixes) {
-        let keys = await client.db.list(prefix).catch(() => []);
-        if (!Array.isArray(keys)) {
-            keys = typeof keys === 'object' && keys !== null ? Object.keys(keys) : [];
+/**
+ * =========================================================
+ * GET ALL LEVEL USER IDS
+ * =========================================================
+ */
+
+async function listLevelUserIds(
+    client,
+    guildId,
+) {
+    if (
+        !client.db?.list
+    ) {
+        return [];
+    }
+
+    const prefixes = [
+        getUserLevelPrefix(
+            guildId,
+        ),
+
+        `${guildId}:leveling:users:`,
+    ];
+
+    const userIds =
+        new Set();
+
+    for (
+        const prefix
+        of prefixes
+    ) {
+        let keys =
+            await client.db
+                .list(
+                    prefix,
+                )
+                .catch(
+                    () => [],
+                );
+
+        if (
+            !Array.isArray(
+                keys,
+            )
+        ) {
+            keys =
+                typeof keys ===
+                    'object' &&
+                keys !== null
+                    ? Object.keys(
+                          keys,
+                      )
+                    : [];
         }
 
-        for (const key of keys) {
-            if (!key.startsWith(prefix)) continue;
-            const userId = key.slice(prefix.length);
-            if (/^\d{17,19}$/.test(userId)) userIds.add(userId);
+        for (
+            const key
+            of keys
+        ) {
+            if (
+                !key.startsWith(
+                    prefix,
+                )
+            ) {
+                continue;
+            }
+
+            const userId =
+                key.slice(
+                    prefix.length,
+                );
+
+            if (
+                /^\d{17,20}$/.test(
+                    userId,
+                )
+            ) {
+                userIds.add(
+                    userId,
+                );
+            }
         }
     }
 
-    return [...userIds];
+    return [
+        ...userIds,
+    ];
 }
 
-async function tryAwardRole(member, roleId, level) {
-    const role = member.guild.roles.cache.get(roleId) || (await member.guild.roles.fetch(roleId).catch(() => null));
-    if (!role || member.roles.cache.has(roleId)) return false;
+/**
+ * =========================================================
+ * RECONCILE LEVEL ROLES
+ * =========================================================
+ *
+ * HỆ THỐNG USAGI:
+ *
+ * Chỉ giữ DUY NHẤT role cảnh giới
+ * cao nhất tương ứng với level.
+ *
+ * Ví dụ:
+ *
+ * Lv.1
+ * -> Luyện Khí
+ *
+ * Lv.10
+ * -> bỏ Luyện Khí
+ * -> thêm Trúc Cơ
+ *
+ * Lv.20
+ * -> bỏ Trúc Cơ
+ * -> thêm Kim Đan
+ *
+ * Lv.999
+ * -> chỉ giữ Chân Tiên
+ *
+ * Hàm này chạy khi bot Ready để
+ * tự sửa role nếu trước đó bị lệch.
+ * =========================================================
+ */
 
-    await member.roles.add(role, `Level ${level} reward (startup sync)`);
-    return true;
-}
-
-export async function reconcileLevelRoles(client, guildId = null) {
+export async function reconcileLevelRoles(
+    client,
+    guildId = null,
+) {
     const summary = {
-        scannedGuilds: 0,
-        prunedRewardEntries: 0,
-        rolesReAwarded: 0,
-        errors: 0,
+        scannedGuilds:
+            0,
+
+        prunedRewardEntries:
+            0,
+
+        rolesReAwarded:
+            0,
+
+        errors:
+            0,
     };
 
-    const guilds = guildId
-        ? [client.guilds.cache.get(guildId)].filter(Boolean)
-        : [...client.guilds.cache.values()];
+    const guilds =
+        guildId
+            ? [
+                  client.guilds.cache
+                      .get(
+                          guildId,
+                      ),
+              ].filter(
+                  Boolean,
+              )
+            : [
+                  ...client.guilds.cache
+                      .values(),
+              ];
 
-    for (const guild of guilds) {
-        summary.scannedGuilds += 1;
+    for (
+        const guild
+        of guilds
+    ) {
+        summary.scannedGuilds +=
+            1;
 
         try {
-            const cfg = await getLevelingConfig(client, guild.id);
-            if (cfg.enabled === false) continue;
+            const userIds =
+                await listLevelUserIds(
+                    client,
+                    guild.id,
+                );
 
-            const rewards = { ...(cfg.roleRewards || {}) };
-            if (Object.keys(rewards).length === 0) continue;
+            for (
+                const userId
+                of userIds
+            ) {
+                try {
+                    const levelData =
+                        await getUserLevelData(
+                            client,
+                            guild.id,
+                            userId,
+                        );
 
-            let configChanged = false;
+                    const member =
+                        await guild.members
+                            .fetch(
+                                userId,
+                            )
+                            .catch(
+                                () =>
+                                    null,
+                            );
 
-            for (const [level, roleId] of Object.entries(rewards)) {
-                const role =
-                    guild.roles.cache.get(roleId) || (await guild.roles.fetch(roleId).catch(() => null));
-                if (!role) {
-                    delete rewards[level];
-                    configChanged = true;
-                    summary.prunedRewardEntries += 1;
+                    if (
+                        !member
+                    ) {
+                        continue;
+                    }
+
+                    const result =
+                        await syncHighestLevelRole(
+                            member,
+                            levelData.level,
+                        );
+
+                    /**
+                     * Không phụ thuộc hoàn toàn
+                     * vào kiểu return của service.
+                     *
+                     * Nếu sync thành công thì
+                     * coi như đã reconcile member.
+                     */
+
+                    if (
+                        result !==
+                        false
+                    ) {
+                        summary.rolesReAwarded +=
+                            1;
+                    }
+                } catch (
+                    userError
+                ) {
+                    summary.errors +=
+                        1;
+
                     logger.warn(
-                        `Removed missing level ${level} reward role ${roleId} from config in guild ${guild.id}`,
+                        `Could not reconcile level role for ${userId} in guild ${guild.id}:`,
+                        userError
+                            ?.message ||
+                            userError,
                     );
                 }
             }
+        } catch (
+            error
+        ) {
+            summary.errors +=
+                1;
 
-            if (configChanged) {
-                cfg.roleRewards = rewards;
-                await saveLevelingConfig(client, guild.id, cfg);
-            }
-
-            if (Object.keys(rewards).length === 0) continue;
-
-            const userIds = await listLevelUserIds(client, guild.id);
-
-            for (const userId of userIds) {
-                const levelData = await getUserLevelData(client, guild.id, userId);
-                const member = await guild.members.fetch(userId).catch(() => null);
-                if (!member) continue;
-
-                for (const [levelStr, roleId] of Object.entries(rewards)) {
-                    const requiredLevel = Number(levelStr);
-                    if (!Number.isFinite(requiredLevel) || levelData.level < requiredLevel) continue;
-
-                    try {
-                        const awarded = await tryAwardRole(member, roleId, requiredLevel);
-                        if (awarded) summary.rolesReAwarded += 1;
-                    } catch (awardError) {
-                        summary.errors += 1;
-                        logger.warn(
-                            `Could not re-award level ${requiredLevel} role to ${userId} in guild ${guild.id}:`,
-                            awardError.message,
-                        );
-                    }
-                }
-            }
-        } catch (error) {
-            summary.errors += 1;
-            logger.warn(`Level role sync failed for guild ${guild.id}:`, error.message);
+            logger.warn(
+                `Level role sync failed for guild ${guild.id}:`,
+                error
+                    ?.message ||
+                    error,
+            );
         }
     }
 
