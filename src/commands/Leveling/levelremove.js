@@ -1,90 +1,163 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
-import { logger } from '../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
-import { checkUserPermissions } from '../../utils/permissionGuard.js';
-import { removeLevels, getUserLevelData, getLevelingConfig } from '../../services/leveling/leveling.js';
-import { createEmbed } from '../../utils/embeds.js';
+import {
+    SlashCommandBuilder,
+    PermissionFlagsBits,
+} from 'discord.js';
 
-import { InteractionHelper } from '../../utils/interactionHelper.js';
+import {
+    logger,
+} from '../../utils/logger.js';
+
+import {
+    removeLevels,
+    getUserLevelData,
+    getLevelingConfig,
+} from '../../services/leveling/leveling.js';
+
+import {
+    syncHighestLevelRole,
+} from '../../services/leveling/levelRoleService.js';
+
+import {
+    LEVELING_MAX_LEVEL,
+} from '../../config/leveling/levelingSystem.js';
+
+import {
+    InteractionHelper,
+} from '../../utils/interactionHelper.js';
+
 export default {
-  data: new SlashCommandBuilder()
-    .setName('levelremove')
-    .setDescription('Remove levels from a user')
-    .addUserOption((option) =>
-      option
-        .setName('user')
-        .setDescription('The user to remove levels from')
-        .setRequired(true)
-    )
-    .addIntegerOption((option) =>
-      option
-        .setName('levels')
-        .setDescription('Number of levels to remove')
-        .setRequired(true)
-        .setMinValue(1)
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .setDMPermission(false),
-  category: 'Leveling',
+    data:
+        new SlashCommandBuilder()
+            .setName('levelremove')
+            .setDescription('Giảm level của thành viên')
 
-  async execute(interaction, config, client) {
-    await InteractionHelper.safeDefer(interaction);
+            .addUserOption(option =>
+                option
+                    .setName('user')
+                    .setDescription('Thành viên muốn giảm level')
+                    .setRequired(true),
+            )
 
-    const hasPermission = await checkUserPermissions(
-      interaction,
-      PermissionFlagsBits.ManageGuild,
-      'You need ManageGuild permission to use this command.'
-    );
-    if (!hasPermission) return;
+            .addIntegerOption(option =>
+                option
+                    .setName('levels')
+                    .setDescription('Số level muốn giảm')
+                    .setRequired(true)
+                    .setMinValue(1)
+                    .setMaxValue(LEVELING_MAX_LEVEL),
+            )
 
-    const levelingConfig = await getLevelingConfig(client, interaction.guildId);
-    if (!levelingConfig?.enabled) {
-      await InteractionHelper.safeEditReply(interaction, {
-        embeds: [
-          new EmbedBuilder()
-            .setColor('#f1c40f')
-            .setDescription('The leveling system is currently disabled on this server.')
-        ],
-        flags: MessageFlags.Ephemeral
-      });
-      return;
-    }
+            .setDefaultMemberPermissions(
+                PermissionFlagsBits.ManageGuild,
+            )
 
-    const targetUser = interaction.options.getUser('user');
-    const levelsToRemove = interaction.options.getInteger('levels');
+            .setDMPermission(false),
 
-    const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
-    if (!member) {
-      throw new TitanBotError(
-        `User ${targetUser.id} not found in this guild`,
-        ErrorTypes.USER_INPUT,
-        'The specified user is not in this server.'
-      );
-    }
+    category:
+        'Leveling',
 
-    const userData = await getUserLevelData(client, interaction.guildId, targetUser.id);
-    if (userData.level === 0) {
-      throw new TitanBotError(
-        `User ${targetUser.id} is already at minimum level`,
-        ErrorTypes.VALIDATION,
-        `${targetUser.tag} is already at level 0 and cannot have levels removed.`
-      );
-    }
+    async execute(
+        interaction,
+        config,
+        client,
+    ) {
+        await InteractionHelper.safeDefer(
+            interaction,
+        );
 
-    const updatedData = await removeLevels(client, interaction.guildId, targetUser.id, levelsToRemove);
+        const levelingConfig =
+            await getLevelingConfig(
+                client,
+                interaction.guildId,
+            );
 
-    await InteractionHelper.safeEditReply(interaction, {
-      embeds: [
-        createEmbed({
-          title: 'Levels Removed',
-          description: `Successfully removed ${levelsToRemove} levels from ${targetUser.tag}.\n**New Level:** ${updatedData.level}`,
-          color: 'success'
-        })
-      ]
-    });
+        if (
+            !levelingConfig?.enabled
+        ) {
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        'Hệ thống level hiện đang tắt.',
+                },
+            );
 
-    logger.info(
-      `[ADMIN] User ${interaction.user.tag} removed ${levelsToRemove} levels from ${targetUser.tag} in guild ${interaction.guildId}`
-    );
-  }
+            return;
+        }
+
+        const targetUser =
+            interaction.options.getUser(
+                'user',
+                true,
+            );
+
+        const levelsToRemove =
+            interaction.options.getInteger(
+                'levels',
+                true,
+            );
+
+        const member =
+            await interaction.guild.members
+                .fetch(targetUser.id)
+                .catch(() => null);
+
+        if (!member) {
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        'Không tìm thấy thành viên này trong server.',
+                },
+            );
+
+            return;
+        }
+
+        const oldData =
+            await getUserLevelData(
+                client,
+                interaction.guildId,
+                targetUser.id,
+            );
+
+        if (
+            oldData.level <= 0
+        ) {
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        `${member} hiện đang ở **Lv.0**, không thể giảm thêm.`,
+                },
+            );
+
+            return;
+        }
+
+        const updatedData =
+            await removeLevels(
+                client,
+                interaction.guildId,
+                targetUser.id,
+                levelsToRemove,
+            );
+
+        await syncHighestLevelRole(
+            member,
+            updatedData.level,
+        );
+
+        await InteractionHelper.safeEditReply(
+            interaction,
+            {
+                content:
+                    `Đã giảm level của ${member}.\n**Lv.${oldData.level} → Lv.${updatedData.level}**`,
+            },
+        );
+
+        logger.info(
+            `[LEVEL] ${interaction.user.tag} removed ${levelsToRemove} levels from ${targetUser.tag}. New level: ${updatedData.level}`,
+        );
+    },
 };
