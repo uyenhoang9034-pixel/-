@@ -120,6 +120,9 @@ export function getAutorespondersKey(guildId) {
     return `guild:${guildId}:autoresponders`;
 }
 
+export function getAutoReactsKey(guildId) {
+    return `guild:${guildId}:autoreacts`;
+}
 
 export function getGiveawayEntryKey(userId, giveawayId) {
     return `giveaway:${userId}:${giveawayId}`;
