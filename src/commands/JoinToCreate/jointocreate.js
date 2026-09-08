@@ -13,6 +13,9 @@ import {
     logConfigurationChange,
     getConfiguration
 } from '../../services/joinToCreateService.js';
+import {
+  createJoinToCreateControlPanel,
+} from '../../services/joinToCreateControlPanel.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -189,6 +192,44 @@ async function handleSetupSubcommand(interaction, client) {
             bitrate: bitrate * 1000,
             categoryId: category?.id
         });
+        /**
+ * =========================================================
+ * CREATE USAGI VOICE CONTROL CHANNEL
+ * =========================================================
+ */
+
+logger.debug(
+    'Creating Usagi temporary voice control channel...'
+);
+
+const controlChannel =
+    await interaction.guild.channels.create({
+        name: '🌸・voice-control',
+        type: ChannelType.GuildText,
+        parent: category?.id,
+        permissionOverwrites: [
+            {
+                id: interaction.guild.id,
+                allow: [
+                    PermissionFlagsBits.ViewChannel,
+                    PermissionFlagsBits.ReadMessageHistory,
+                ],
+                deny: [
+                    PermissionFlagsBits.SendMessages,
+                ],
+            },
+        ],
+    });
+
+await createJoinToCreateControlPanel(
+    client,
+    interaction.guild,
+    controlChannel,
+);
+
+logger.info(
+    `Created Usagi voice control channel ${controlChannel.id} for guild ${guildId}`
+);
 
         await logConfigurationChange(client, guildId, interaction.user.id, 'Initialized Join to Create', {
             channelId: triggerChannel.id,
