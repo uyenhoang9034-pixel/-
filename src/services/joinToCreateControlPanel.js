@@ -18,22 +18,86 @@ import {
  * =========================================================
  * USAGI PANEL IMAGE
  * =========================================================
- *
- * DÁN LINK ẢNH TRỰC TIẾP CỦA BẠN VÀO ĐÂY.
- *
- * Nên dùng:
- *
- * https://cdn.discordapp.com/attachments/...
- *
- * hoặc:
- *
- * https://media.discordapp.net/attachments/...
- *
- * Link phải mở trực tiếp ra ảnh.
  */
 
 export const USAGI_PANEL_IMAGE_URL =
   'https://i.pinimg.com/736x/52/b6/04/52b604fb4972b0894d68284d9fcd30d0.jpg';
+
+/**
+ * =========================================================
+ * CUSTOM EMOJIS
+ * =========================================================
+ */
+
+const JTC_EMOJIS = {
+  /**
+   * Đổi tên
+   * Giới hạn
+   */
+  edit: {
+    id: '1546047240265797682',
+    name: 'trangtrig10',
+    animated: true,
+  },
+
+  /**
+   * Khóa
+   * Mở khóa
+   * Ẩn phòng
+   */
+  privacy: {
+    id: '1546058092016312381',
+    name: 'knifeg1',
+    animated: true,
+  },
+
+  /**
+   * Hiện phòng
+   * Cho phép
+   */
+  allow: {
+    id: '1546041656648929380',
+    name: 'ilyg1',
+    animated: true,
+  },
+
+  /**
+   * Chặn
+   * Kick
+   */
+  block: {
+    id: '1546041273813827645',
+    name: 'trangtrig4',
+    animated: true,
+  },
+
+  /**
+   * Chuyển chủ
+   */
+  transfer: {
+    id: '1546047912969113622',
+    name: 'trangtrig14',
+    animated: true,
+  },
+
+  /**
+   * Region
+   */
+  region: {
+    id: '1546093044535660644',
+    name: 'trangtri1',
+    animated: false,
+  },
+
+  /**
+   * Xóa phòng
+   */
+  delete: {
+    id: '1546013742679064658',
+    name: 'anime2',
+    animated: false,
+  },
+};
 
 /**
  * =========================================================
@@ -42,23 +106,31 @@ export const USAGI_PANEL_IMAGE_URL =
  */
 
 export function buildJoinToCreateControlPanel() {
+  /**
+   * =======================================================
+   * EMBED
+   * =======================================================
+   */
+
   const embed =
     new EmbedBuilder()
       .setColor(
         0xffb7cf,
       )
       .setTitle(
-        '🐰・Usagi Voice Room',
+        '<a:trangtrig2:1546040703375904801> 𝓤𝓼𝓪𝓰𝓲 𝓥𝓸𝓲𝓬𝓮 𝓡𝓸𝓸𝓶 <a:trangtrig3:1546040818261954610>',
       )
       .setDescription(
         [
-          'Chào mừng đến với bảng điều khiển phòng Voice riêng! 🌸',
+          'Cảm ơn và chào mừng bạn đã đến với bảng điều khiển room voice cá nhân! <a:heartg3:1546047728314884226>',
           '',
-          'Bạn có thể quản lý **phòng Voice do chính mình tạo** bằng các nút bên dưới.',
+          '<a:trangtrig6:1546043036390260756> Bạn có thể quản lý **voice room** do chính mình tạo bằng các nút bên dưới. Chỉ có thể sử dụng bảng điều khiển sau khi tạo phòng!',
           '',
-          '> Chỉ **chủ phòng** mới có thể thay đổi cài đặt của phòng.',
-          '> Bạn cần tạo phòng trước khi sử dụng bảng điều khiển.',
+          '<a:trangtrig6:1546043036390260756> Chỉ **chủ phòng** mới có thể thay đổi cài đặt của phòng.',
         ].join('\n'),
+      )
+      .setImage(
+        USAGI_PANEL_IMAGE_URL,
       )
       .setFooter({
         text:
@@ -66,35 +138,24 @@ export function buildJoinToCreateControlPanel() {
       });
 
   /**
-   * =========================================================
-   * PANEL IMAGE
-   * =========================================================
-   *
-   * Chỉ set ảnh nếu URL đã được cấu hình.
-   *
-   * Điều này giúp bot không crash nếu bạn
-   * quên thay placeholder.
-   */
-
-  if (
-    USAGI_PANEL_IMAGE_URL &&
-    USAGI_PANEL_IMAGE_URL !==
-      'DAN_LINK_ANH_USAGI_CUA_BAN_VAO_DAY'
-  ) {
-    embed.setImage(
-      USAGI_PANEL_IMAGE_URL,
-    );
-  }
-
-  /**
-   * =========================================================
+   * =======================================================
    * ROW 1
-   * =========================================================
+   * =======================================================
+   *
+   * Đổi tên
+   * Giới hạn
+   * Khóa
+   * Mở khóa
+   * Ẩn phòng
    */
 
   const row1 =
     new ActionRowBuilder()
       .addComponents(
+        /**
+         * ĐỔI TÊN
+         */
+
         new ButtonBuilder()
           .setCustomId(
             'jtc_room:name',
@@ -103,11 +164,15 @@ export function buildJoinToCreateControlPanel() {
             'Đổi tên',
           )
           .setEmoji(
-            '✏️',
+            JTC_EMOJIS.edit,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * GIỚI HẠN
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -117,11 +182,15 @@ export function buildJoinToCreateControlPanel() {
             'Giới hạn',
           )
           .setEmoji(
-            '👥',
+            JTC_EMOJIS.edit,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * KHÓA
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -131,11 +200,15 @@ export function buildJoinToCreateControlPanel() {
             'Khóa',
           )
           .setEmoji(
-            '🔒',
+            JTC_EMOJIS.privacy,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * MỞ KHÓA
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -145,11 +218,15 @@ export function buildJoinToCreateControlPanel() {
             'Mở khóa',
           )
           .setEmoji(
-            '🔓',
+            JTC_EMOJIS.privacy,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * ẨN PHÒNG
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -159,7 +236,7 @@ export function buildJoinToCreateControlPanel() {
             'Ẩn phòng',
           )
           .setEmoji(
-            '🙈',
+            JTC_EMOJIS.privacy,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -167,14 +244,24 @@ export function buildJoinToCreateControlPanel() {
       );
 
   /**
-   * =========================================================
+   * =======================================================
    * ROW 2
-   * =========================================================
+   * =======================================================
+   *
+   * Hiện phòng
+   * Cho phép
+   * Chặn
+   * Kick
+   * Chuyển chủ
    */
 
   const row2 =
     new ActionRowBuilder()
       .addComponents(
+        /**
+         * HIỆN PHÒNG
+         */
+
         new ButtonBuilder()
           .setCustomId(
             'jtc_room:show',
@@ -183,11 +270,15 @@ export function buildJoinToCreateControlPanel() {
             'Hiện phòng',
           )
           .setEmoji(
-            '👁️',
+            JTC_EMOJIS.allow,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * CHO PHÉP
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -197,11 +288,15 @@ export function buildJoinToCreateControlPanel() {
             'Cho phép',
           )
           .setEmoji(
-            '💌',
+            JTC_EMOJIS.allow,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * CHẶN
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -211,11 +306,15 @@ export function buildJoinToCreateControlPanel() {
             'Chặn',
           )
           .setEmoji(
-            '🚫',
+            JTC_EMOJIS.block,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * KICK
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -225,11 +324,15 @@ export function buildJoinToCreateControlPanel() {
             'Kick',
           )
           .setEmoji(
-            '👢',
+            JTC_EMOJIS.block,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * CHUYỂN CHỦ
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -239,7 +342,7 @@ export function buildJoinToCreateControlPanel() {
             'Chuyển chủ',
           )
           .setEmoji(
-            '👑',
+            JTC_EMOJIS.transfer,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -247,14 +350,21 @@ export function buildJoinToCreateControlPanel() {
       );
 
   /**
-   * =========================================================
+   * =======================================================
    * ROW 3
-   * =========================================================
+   * =======================================================
+   *
+   * Region
+   * Xóa phòng
    */
 
   const row3 =
     new ActionRowBuilder()
       .addComponents(
+        /**
+         * REGION
+         */
+
         new ButtonBuilder()
           .setCustomId(
             'jtc_room:region',
@@ -263,11 +373,15 @@ export function buildJoinToCreateControlPanel() {
             'Region',
           )
           .setEmoji(
-            '🌏',
+            JTC_EMOJIS.region,
           )
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        /**
+         * XÓA PHÒNG
+         */
 
         new ButtonBuilder()
           .setCustomId(
@@ -277,7 +391,7 @@ export function buildJoinToCreateControlPanel() {
             'Xóa phòng',
           )
           .setEmoji(
-            '🗑️',
+            JTC_EMOJIS.delete,
           )
           .setStyle(
             ButtonStyle.Danger,
@@ -315,14 +429,15 @@ export async function createJoinToCreateControlPanel(
     );
 
   /**
-   * =========================================================
+   * =======================================================
    * DELETE OLD PANEL
-   * =========================================================
+   * =======================================================
    *
    * Nếu panel cũ vẫn còn tồn tại,
    * xóa message cũ trước khi tạo message mới.
    *
-   * Điều này tránh spam nhiều panel.
+   * Điều này tránh việc một server có nhiều
+   * bảng điều khiển Join to Create giống nhau.
    */
 
   if (
@@ -363,13 +478,19 @@ export async function createJoinToCreateControlPanel(
   }
 
   /**
-   * =========================================================
-   * SEND NEW PANEL
-   * =========================================================
+   * =======================================================
+   * BUILD PANEL
+   * =======================================================
    */
 
   const payload =
     buildJoinToCreateControlPanel();
+
+  /**
+   * =======================================================
+   * SEND PANEL
+   * =======================================================
+   */
 
   const panelMessage =
     await channel.send(
@@ -377,9 +498,9 @@ export async function createJoinToCreateControlPanel(
     );
 
   /**
-   * =========================================================
+   * =======================================================
    * SAVE PANEL LOCATION
-   * =========================================================
+   * =======================================================
    */
 
   config.controlChannelId =
@@ -400,6 +521,12 @@ export async function createJoinToCreateControlPanel(
 
   return panelMessage;
 }
+
+/**
+ * =========================================================
+ * DEFAULT EXPORT
+ * =========================================================
+ */
 
 export default {
   buildJoinToCreateControlPanel,
