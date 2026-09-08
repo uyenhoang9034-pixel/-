@@ -16,29 +16,6 @@ import {
     logger,
 } from '../../utils/logger.js';
 
-/**
- * =========================================================
- * LEVEL RESET ALL
- * =========================================================
- *
- * LỆNH NGUY HIỂM:
- *
- * Reset toàn bộ:
- *
- * - Level
- * - XP
- * - Total XP
- * - Last message
- * - Voice progress
- * - Role cảnh giới
- *
- * về trạng thái ban đầu.
- *
- * Dùng khi chuyển từ Level System cũ
- * sang Usagi Level System mới.
- * =========================================================
- */
-
 export default {
     data:
         new SlashCommandBuilder()
@@ -57,14 +34,9 @@ export default {
 
     async execute(
         interaction,
+        config,
         client,
     ) {
-        /**
-         * =====================================================
-         * ADMIN ONLY
-         * =====================================================
-         */
-
         if (
             !interaction.memberPermissions
                 ?.has(
@@ -100,10 +72,22 @@ export default {
             return;
         }
 
+        if (
+            !client?.db ||
+            typeof client.db.set !==
+                'function'
+        ) {
+            await interaction.editReply(
+                '❌ Database hiện không khả dụng.',
+            );
+
+            return;
+        }
+
         try {
             /**
              * =================================================
-             * FIND OLD LEVEL DATABASE KEYS
+             * FIND LEVEL USER IDS
              * =================================================
              */
 
@@ -119,7 +103,8 @@ export default {
                 new Set();
 
             if (
-                client.db?.list
+                typeof client.db.list ===
+                'function'
             ) {
                 for (
                     const prefix
@@ -131,8 +116,7 @@ export default {
                                 prefix,
                             )
                             .catch(
-                                () =>
-                                    [],
+                                () => [],
                             );
 
                     if (
@@ -156,6 +140,8 @@ export default {
                         of keys
                     ) {
                         if (
+                            typeof key !==
+                                'string' ||
                             !key.startsWith(
                                 prefix,
                             )
@@ -183,11 +169,13 @@ export default {
 
             /**
              * =================================================
-             * ALSO FETCH SERVER MEMBERS
+             * FETCH ALL MEMBERS
              * =================================================
              *
-             * Việc này giúp xóa role cảnh giới
-             * kể cả member không còn record level.
+             * Làm vậy để:
+             *
+             * - reset member chưa được tìm thấy từ DB list
+             * - gỡ role cảnh giới khỏi toàn bộ member
              */
 
             const members =
@@ -195,8 +183,7 @@ export default {
                     .fetch()
                     .catch(
                         () =>
-                            guild.members
-                                .cache,
+                            guild.members.cache,
                     );
 
             for (
@@ -234,12 +221,6 @@ export default {
                 of userIds
             ) {
                 try {
-                    /**
-                     * -----------------------------------------
-                     * LEVEL DATA
-                     * -----------------------------------------
-                     */
-
                     const levelData = {
                         level:
                             0,
@@ -255,7 +236,9 @@ export default {
                     };
 
                     /**
-                     * Ghi đè cả key canonical.
+                     * =========================================
+                     * CANONICAL LEVEL DATA
+                     * =========================================
                      */
 
                     const canonicalPrefix =
@@ -269,8 +252,9 @@ export default {
                     );
 
                     /**
-                     * Nếu repo cũ từng dùng legacy key
-                     * thì ghi đè luôn.
+                     * =========================================
+                     * LEGACY LEVEL DATA
+                     * =========================================
                      */
 
                     await client.db
@@ -279,17 +263,20 @@ export default {
                             levelData,
                         )
                         .catch(
-                            () => {},
+                            error => {
+                                logger.debug(
+                                    `Legacy level reset skipped for ${userId}:`,
+                                    error
+                                        ?.message ||
+                                        error,
+                                );
+                            },
                         );
 
                     /**
-                     * -----------------------------------------
+                     * =========================================
                      * VOICE PROGRESS
-                     * -----------------------------------------
-                     *
-                     * 30 phút = 1 level.
-                     *
-                     * Reset phần phút voice còn dư về 0.
+                     * =========================================
                      */
 
                     await client.db
@@ -301,13 +288,20 @@ export default {
                             },
                         )
                         .catch(
-                            () => {},
+                            error => {
+                                logger.debug(
+                                    `Voice level reset skipped for ${userId}:`,
+                                    error
+                                        ?.message ||
+                                        error,
+                                );
+                            },
                         );
 
                     /**
-                     * -----------------------------------------
+                     * =========================================
                      * REMOVE LEVEL ROLES
-                     * -----------------------------------------
+                     * =========================================
                      */
 
                     const member =
@@ -332,24 +326,25 @@ export default {
                             rolesToRemove.length >
                             0
                         ) {
-                            await member.roles
-                                .remove(
-                                    rolesToRemove,
-                                    'Reset toàn bộ Usagi Level System',
-                                )
-                                .catch(
-                                    error => {
-                                        logger.warn(
-                                            `Failed removing level roles from ${userId}:`,
-                                            error
-                                                ?.message ||
-                                                error,
-                                        );
-                                    },
-                                );
+                            try {
+                                await member.roles
+                                    .remove(
+                                        rolesToRemove,
+                                        'Reset toàn bộ Usagi Level System',
+                                    );
 
-                            removedRoles +=
-                                rolesToRemove.length;
+                                removedRoles +=
+                                    rolesToRemove.length;
+                            } catch (
+                                roleError
+                            ) {
+                                logger.warn(
+                                    `Failed removing level roles from ${userId}:`,
+                                    roleError
+                                        ?.message ||
+                                        roleError,
+                                );
+                            }
                         }
                     }
 
@@ -379,12 +374,19 @@ export default {
             await interaction.editReply(
                 [
                     '✅ **Usagi Level System đã được reset!**',
+
                     '',
+
                     `👤 Thành viên đã xử lý: **${resetUsers}**`,
+
                     `🎭 Role cảnh giới đã gỡ: **${removedRoles}**`,
+
                     `⚠️ Lỗi: **${errors}**`,
+
                     '',
+
                     'Tất cả người chơi hiện bắt đầu lại từ **Lv.0**.',
+
                     'Tin nhắn và Voice sau thời điểm này sẽ sử dụng hệ thống level mới.',
                 ].join(
                     '\n',
