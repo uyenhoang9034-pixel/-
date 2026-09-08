@@ -1,215 +1,176 @@
 import {
     SlashCommandBuilder,
     PermissionFlagsBits,
-    MessageFlags,
 } from 'discord.js';
+
+import {
+    logger,
+} from '../../utils/logger.js';
+
+import {
+    setUserLevel,
+    getUserLevelData,
+    getLevelingConfig,
+} from '../../services/leveling/leveling.js';
+
+import {
+    syncHighestLevelRole,
+} from '../../services/leveling/levelRoleService.js';
 
 import {
     sendLevelAnnouncement,
 } from '../../services/leveling/levelAnnouncementService.js';
 
 import {
-    getExactMilestone,
     LEVELING_MAX_LEVEL,
 } from '../../config/leveling/levelingSystem.js';
 
-/**
- * =========================================================
- * TEST LEVEL
- * =========================================================
- */
+import {
+    InteractionHelper,
+} from '../../utils/interactionHelper.js';
 
 export default {
     data:
         new SlashCommandBuilder()
-            .setName(
-                'leveltest',
-            )
-            .setDescription(
-                'Test giao diện thông báo level',
+            .setName('levelset')
+            .setDescription('Đặt level cố định cho thành viên')
+
+            .addUserOption(option =>
+                option
+                    .setName('user')
+                    .setDescription('Thành viên muốn đặt level')
+                    .setRequired(true),
             )
 
-            .addStringOption(
-                option =>
-                    option
-                        .setName(
-                            'type',
-                        )
-                        .setDescription(
-                            'Loại thông báo cần test',
-                        )
-                        .setRequired(
-                            true,
-                        )
-                        .addChoices(
-                            {
-                                name:
-                                    'Phá Cảnh',
-                                value:
-                                    'pha_canh',
-                            },
-                            {
-                                name:
-                                    'Phá Cảnh · Phi Thăng',
-                                value:
-                                    'phi_thang',
-                            },
-                            {
-                                name:
-                                    'Voice',
-                                value:
-                                    'voice',
-                            },
-                        ),
-            )
-
-            .addIntegerOption(
-                option =>
-                    option
-                        .setName(
-                            'level',
-                        )
-                        .setDescription(
-                            'Level muốn hiển thị',
-                        )
-                        .setRequired(
-                            true,
-                        )
-                        .setMinValue(
-                            1,
-                        )
-                        .setMaxValue(
-                            LEVELING_MAX_LEVEL,
-                        ),
-            )
-
-            .addUserOption(
-                option =>
-                    option
-                        .setName(
-                            'user',
-                        )
-                        .setDescription(
-                            'Thành viên hiển thị trong test',
-                        )
-                        .setRequired(
-                            false,
-                        ),
+            .addIntegerOption(option =>
+                option
+                    .setName('level')
+                    .setDescription('Level muốn đặt')
+                    .setRequired(true)
+                    .setMinValue(0)
+                    .setMaxValue(LEVELING_MAX_LEVEL),
             )
 
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.ManageGuild,
             )
 
-            .setDMPermission(
-                false,
-            ),
+            .setDMPermission(false),
 
     category:
         'Leveling',
 
     async execute(
         interaction,
+        config,
+        client,
     ) {
-        const type =
-            interaction.options
-                .getString(
-                    'type',
-                    true,
-                );
+        await InteractionHelper.safeDefer(
+            interaction,
+        );
 
-        const level =
-            interaction.options
-                .getInteger(
-                    'level',
-                    true,
-                );
-
-        const targetUser =
-            interaction.options
-                .getUser(
-                    'user',
-                ) ||
-            interaction.user;
-
-        const member =
-            await interaction.guild
-                .members
-                .fetch(
-                    targetUser.id,
-                )
-                .catch(
-                    () => null,
-                );
-
-        if (!member) {
-            await interaction.reply({
-                content:
-                    'Không tìm thấy thành viên.',
-
-                flags:
-                    MessageFlags.Ephemeral,
-            });
-
-            return;
-        }
-
-        /**
-         * =================================================
-         * PHI THANG VALIDATION
-         * =================================================
-         */
+        const levelingConfig =
+            await getLevelingConfig(
+                client,
+                interaction.guildId,
+            );
 
         if (
-            type ===
-                'phi_thang' &&
-            !getExactMilestone(
-                level,
-            )
+            !levelingConfig?.enabled
         ) {
-            await interaction.reply({
-                content:
-                    'Phi Thăng chỉ có ở các mốc: **Lv.1, 10, 20, 40, 70, 100, 200, 300, 500, 999**.',
-
-                flags:
-                    MessageFlags.Ephemeral,
-            });
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        'Hệ thống level hiện đang tắt.',
+                },
+            );
 
             return;
         }
 
-        const sent =
+        const targetUser =
+            interaction.options.getUser(
+                'user',
+                true,
+            );
+
+        const newLevel =
+            interaction.options.getInteger(
+                'level',
+                true,
+            );
+
+        const member =
+            await interaction.guild.members
+                .fetch(targetUser.id)
+                .catch(() => null);
+
+        if (!member) {
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        'Không tìm thấy thành viên này trong server.',
+                },
+            );
+
+            return;
+        }
+
+        const oldData =
+            await getUserLevelData(
+                client,
+                interaction.guildId,
+                targetUser.id,
+            );
+
+        const userData =
+            await setUserLevel(
+                client,
+                interaction.guildId,
+                targetUser.id,
+                newLevel,
+            );
+
+        await syncHighestLevelRole(
+            member,
+            newLevel,
+        );
+
+        /**
+         * Chỉ thông báo khi level tăng.
+         *
+         * Set xuống thấp hơn chỉ sync role.
+         */
+        if (
+            newLevel >
+            oldData.level
+        ) {
             await sendLevelAnnouncement({
                 guild:
                     interaction.guild,
 
                 member,
 
-                level,
+                level:
+                    newLevel,
 
                 source:
-                    type === 'voice'
-                        ? 'voice'
-                        : 'chat',
-
-                forceType:
-                    type ===
-                    'phi_thang'
-                        ? 'phi_thang'
-                        : type ===
-                            'pha_canh'
-                          ? 'pha_canh'
-                          : null,
+                    'admin',
             });
+        }
 
-        await interaction.reply({
-            content:
-                sent
-                    ? 'Đã gửi thông báo test. **Không thay đổi level và không cấp role.**'
-                    : 'Không thể gửi thông báo vào kênh level.',
+        await InteractionHelper.safeEditReply(
+            interaction,
+            {
+                content:
+                    `Đã đặt level của ${member}.\n**Lv.${oldData.level} → Lv.${userData.level}**`,
+            },
+        );
 
-            flags:
-                MessageFlags.Ephemeral,
-        });
+        logger.info(
+            `[LEVEL] ${interaction.user.tag} set ${targetUser.tag} from Lv.${oldData.level} to Lv.${userData.level}`,
+        );
     },
 };
