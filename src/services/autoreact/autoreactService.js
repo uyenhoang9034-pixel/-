@@ -1,10 +1,8 @@
+import { PermissionFlagsBits } from 'discord.js';
+
 import {
     getAutoReactsKey,
 } from '../../utils/database/keys.js';
-
-import {
-    PermissionFlagsBits,
-} from 'discord.js';
 
 import {
     logger,
@@ -25,29 +23,17 @@ const DEFAULT_CONFIG = {
 
 /**
  * =========================================================
- * NORMALIZE KEYWORD
+ * NORMALIZE
  * =========================================================
  */
 
-function normalizeKeyword(
-    value,
-) {
-    return String(
-        value ?? '',
-    )
+function normalizeKeyword(value) {
+    return String(value ?? '')
         .trim()
         .toLowerCase();
 }
 
-/**
- * =========================================================
- * NORMALIZE EMOJI
- * =========================================================
- */
-
-function normalizeEmoji(
-    emoji,
-) {
+function normalizeEmoji(emoji) {
     if (
         !emoji ||
         typeof emoji !== 'object'
@@ -83,11 +69,32 @@ function normalizeEmoji(
  * =========================================================
  * NORMALIZE CONFIG
  * =========================================================
+ *
+ * Format hiện tại:
+ *
+ * {
+ *   enabled: true,
+ *   reactions: [
+ *     {
+ *       id: "...",
+ *       keyword: "+1",
+ *       displayKeyword: "+1",
+ *       emojis: [
+ *         {
+ *           id: "...",
+ *           name: "...",
+ *           animated: false
+ *         }
+ *       ],
+ *       enabled: true
+ *     }
+ *   ]
+ * }
+ *
+ * Có migration từ format emojiId cũ.
  */
 
-function normalizeConfig(
-    data,
-) {
+function normalizeConfig(data) {
     if (
         !data ||
         typeof data !== 'object'
@@ -98,187 +105,176 @@ function normalizeConfig(
         };
     }
 
+    const reactions =
+        Array.isArray(data.reactions)
+            ? data.reactions
+            : [];
+
+    const normalizedReactions =
+        reactions
+            .filter(
+                item =>
+                    item &&
+                    typeof item === 'object' &&
+                    typeof item.id === 'string' &&
+                    typeof item.keyword === 'string',
+            )
+            .map(item => {
+                let emojis = [];
+
+                /**
+                 * =========================================
+                 * FORMAT MỚI
+                 * =========================================
+                 */
+
+                if (
+                    Array.isArray(
+                        item.emojis,
+                    )
+                ) {
+                    emojis =
+                        item.emojis
+                            .map(
+                                normalizeEmoji,
+                            )
+                            .filter(
+                                Boolean,
+                            );
+                }
+
+                /**
+                 * =========================================
+                 * MIGRATION FORMAT CŨ
+                 * =========================================
+                 *
+                 * {
+                 *   emojiId,
+                 *   emojiName,
+                 *   animated
+                 * }
+                 *
+                 * ->
+                 *
+                 * {
+                 *   emojis: [...]
+                 * }
+                 */
+
+                if (
+                    emojis.length === 0 &&
+                    item.emojiId
+                ) {
+                    const legacyEmoji =
+                        normalizeEmoji({
+                            id:
+                                item.emojiId,
+
+                            name:
+                                item.emojiName,
+
+                            animated:
+                                item.animated,
+                        });
+
+                    if (legacyEmoji) {
+                        emojis.push(
+                            legacyEmoji,
+                        );
+                    }
+                }
+
+                /**
+                 * =========================================
+                 * REMOVE DUPLICATE EMOJIS
+                 * =========================================
+                 */
+
+                const uniqueEmojis = [];
+
+                const seenEmojiIds =
+                    new Set();
+
+                for (
+                    const emoji of emojis
+                ) {
+                    if (
+                        seenEmojiIds.has(
+                            emoji.id,
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    seenEmojiIds.add(
+                        emoji.id,
+                    );
+
+                    uniqueEmojis.push(
+                        emoji,
+                    );
+
+                    /**
+                     * Tối đa 5 emoji / keyword.
+                     */
+
+                    if (
+                        uniqueEmojis.length >=
+                        AUTO_REACT_MAX_EMOJIS_PER_KEYWORD
+                    ) {
+                        break;
+                    }
+                }
+
+                return {
+                    id:
+                        item.id,
+
+                    keyword:
+                        normalizeKeyword(
+                            item.keyword,
+                        ),
+
+                    displayKeyword:
+                        item.displayKeyword ||
+                        item.keyword,
+
+                    emojis:
+                        uniqueEmojis,
+
+                    enabled:
+                        item.enabled !== false,
+
+                    createdAt:
+                        item.createdAt ||
+                        new Date()
+                            .toISOString(),
+
+                    updatedAt:
+                        item.updatedAt ||
+                        item.createdAt ||
+                        new Date()
+                            .toISOString(),
+                };
+            })
+            .filter(
+                item =>
+                    item.keyword &&
+                    item.emojis.length > 0,
+            );
+
     return {
         enabled:
             data.enabled !== false,
 
         reactions:
-            Array.isArray(
-                data.reactions,
-            )
-                ? data.reactions
-                    .filter(
-                        item =>
-                            item &&
-                            typeof item ===
-                                'object' &&
-                            typeof item.id ===
-                                'string' &&
-                            typeof item.keyword ===
-                                'string',
-                    )
-                    .map(
-                        item => {
-                            let emojis = [];
-
-                            /**
-                             * =============================================
-                             * FORMAT MỚI
-                             * =============================================
-                             *
-                             * emojis: [
-                             *   {
-                             *     id,
-                             *     name,
-                             *     animated
-                             *   }
-                             * ]
-                             */
-
-                            if (
-                                Array.isArray(
-                                    item.emojis,
-                                )
-                            ) {
-                                emojis =
-                                    item.emojis
-                                        .map(
-                                            normalizeEmoji,
-                                        )
-                                        .filter(
-                                            Boolean,
-                                        );
-                            }
-
-                            /**
-                             * =============================================
-                             * MIGRATION FORMAT CŨ
-                             * =============================================
-                             *
-                             * emojiId
-                             * emojiName
-                             * animated
-                             *
-                             * ->
-                             *
-                             * emojis[]
-                             */
-
-                            if (
-                                emojis.length === 0 &&
-                                item.emojiId
-                            ) {
-                                const legacyEmoji =
-                                    normalizeEmoji({
-                                        id:
-                                            item.emojiId,
-
-                                        name:
-                                            item.emojiName,
-
-                                        animated:
-                                            item.animated,
-                                    });
-
-                                if (
-                                    legacyEmoji
-                                ) {
-                                    emojis.push(
-                                        legacyEmoji,
-                                    );
-                                }
-                            }
-
-                            /**
-                             * =============================================
-                             * REMOVE DUPLICATE EMOJIS
-                             * =============================================
-                             */
-
-                            const uniqueEmojis = [];
-
-                            const seenEmojiIds =
-                                new Set();
-
-                            for (
-                                const emoji of
-                                emojis
-                            ) {
-                                if (
-                                    seenEmojiIds.has(
-                                        emoji.id,
-                                    )
-                                ) {
-                                    continue;
-                                }
-
-                                seenEmojiIds.add(
-                                    emoji.id,
-                                );
-
-                                uniqueEmojis.push(
-                                    emoji,
-                                );
-
-                                /**
-                                 * Tối đa 5 emoji
-                                 * cho mỗi keyword.
-                                 */
-
-                                if (
-                                    uniqueEmojis.length >=
-                                    AUTO_REACT_MAX_EMOJIS_PER_KEYWORD
-                                ) {
-                                    break;
-                                }
-                            }
-
-                            return {
-                                id:
-                                    item.id,
-
-                                keyword:
-                                    normalizeKeyword(
-                                        item.keyword,
-                                    ),
-
-                                displayKeyword:
-                                    item.displayKeyword ||
-                                    item.keyword,
-
-                                emojis:
-                                    uniqueEmojis,
-
-                                enabled:
-                                    item.enabled !==
-                                    false,
-
-                                createdAt:
-                                    item.createdAt ||
-                                    new Date()
-                                        .toISOString(),
-
-                                updatedAt:
-                                    item.updatedAt ||
-                                    item.createdAt ||
-                                    new Date()
-                                        .toISOString(),
-                            };
-                        },
-                    )
-                    .filter(
-                        item =>
-                            item.keyword &&
-                            item.emojis.length >
-                                0,
-                    )
-                : [],
+            normalizedReactions,
     };
 }
 
 /**
  * =========================================================
- * GET CONFIG
+ * DATABASE
  * =========================================================
  */
 
@@ -308,24 +304,21 @@ export async function getAutoReactConfig(
     }
 }
 
-/**
- * =========================================================
- * SAVE CONFIG
- * =========================================================
- */
-
 export async function saveAutoReactConfig(
     client,
     guildId,
     config,
 ) {
+    const normalized =
+        normalizeConfig(
+            config,
+        );
+
     await client.db.set(
         getAutoReactsKey(
             guildId,
         ),
-        normalizeConfig(
-            config,
-        ),
+        normalized,
     );
 
     return true;
@@ -333,7 +326,7 @@ export async function saveAutoReactConfig(
 
 /**
  * =========================================================
- * PERMISSIONS
+ * PERMISSION
  * =========================================================
  */
 
@@ -345,7 +338,7 @@ export function canManageAutoReact(
     }
 
     /**
-     * Server Owner
+     * Server Owner.
      */
 
     if (
@@ -356,7 +349,7 @@ export function canManageAutoReact(
     }
 
     /**
-     * Administrator
+     * Administrator.
      */
 
     if (
@@ -368,7 +361,7 @@ export function canManageAutoReact(
     }
 
     /**
-     * Manage Server
+     * Manage Server.
      */
 
     if (
@@ -384,131 +377,72 @@ export function canManageAutoReact(
 
 /**
  * =========================================================
- * AUTO REACT
+ * ADD AUTO REACT
  * =========================================================
+ *
+ * Keyword chưa tồn tại:
+ *
+ * +1
+ * └── emoji A
+ *
+ * Sau khi /autoreact add lại:
+ *
+ * +1
+ * ├── emoji A
+ * └── emoji B
+ *
+ * Tối đa 5 emoji / keyword.
  */
 
-async function handleAutoReact(
-  message,
-  client,
+export async function addAutoReact(
+    client,
+    guildId,
+    {
+        keyword,
+        emoji,
+    },
 ) {
-  try {
+    const normalizedKeyword =
+        normalizeKeyword(
+            keyword,
+        );
+
+    /**
+     * Keyword không hợp lệ.
+     */
+
+    if (!normalizedKeyword) {
+        return {
+            success: false,
+            reason:
+                'invalid_keyword',
+        };
+    }
+
+    /**
+     * Emoji không hợp lệ.
+     */
+
     if (
-      !message.guild ||
-      !message.content?.trim()
+        !emoji ||
+        !emoji.id
     ) {
-      return;
+        return {
+            success: false,
+            reason:
+                'invalid_emoji',
+        };
     }
 
     const config =
-      await getAutoReactConfig(
-        client,
-        message.guild.id,
-      );
-
-    if (
-      !config.enabled ||
-      !config.reactions?.length
-    ) {
-      return;
-    }
-
-    const matches =
-      findMatchingAutoReacts(
-        message.content,
-        config.reactions,
-      );
-
-    if (
-      matches.length === 0
-    ) {
-      return;
-    }
-
-    /**
-     * Tránh react trùng cùng một emoji
-     * nếu message match nhiều keyword.
-     */
-    const reactedEmojiIds =
-      new Set();
-
-    for (
-      const reaction of matches
-    ) {
-      const emojis =
-        Array.isArray(
-          reaction.emojis,
-        )
-          ? reaction.emojis
-          : [];
-
-      for (
-        const emojiData of emojis
-      ) {
-        if (
-          !emojiData?.id ||
-          reactedEmojiIds.has(
-            emojiData.id,
-          )
-        ) {
-          continue;
-        }
-
-        /**
-         * Lấy custom emoji đang tồn tại
-         * trong server.
-         */
-        const emoji =
-          message.guild.emojis.cache.get(
-            emojiData.id,
-          );
-
-        if (!emoji) {
-          logger.warn(
-            'Auto React emoji not found in guild',
-            {
-              guildId:
-                message.guild.id,
-
-              keyword:
-                reaction.displayKeyword ||
-                reaction.keyword,
-
-              emojiId:
-                emojiData.id,
-            },
-          );
-
-          continue;
-        }
-
-        try {
-          await message.react(
-            emoji,
-          );
-
-          reactedEmojiIds.add(
-            emojiData.id,
-          );
-        } catch (error) {
-          logger.warn(
-            `Failed to auto-react with ${emoji.name || emojiData.id}:`,
-            error,
-          );
-        }
-      }
-    }
-  } catch (error) {
-    logger.error(
-      'Error handling auto-react:',
-      error,
-    );
-  }
-}
+        await getAutoReactConfig(
+            client,
+            guildId,
+        );
 
     /**
      * =====================================================
-     * CHECK KEYWORD ĐÃ TỒN TẠI
+     * TÌM KEYWORD ĐÃ TỒN TẠI
      * =====================================================
      */
 
@@ -526,21 +460,21 @@ async function handleAutoReact(
      * KEYWORD ĐÃ TỒN TẠI
      * =====================================================
      *
-     * Không tạo keyword duplicate.
-     *
-     * Thêm emoji vào keyword cũ.
+     * Không tạo rule duplicate.
+     * Thêm emoji vào rule hiện tại.
      */
 
     if (existing) {
-        existing.emojis =
-            Array.isArray(
+        if (
+            !Array.isArray(
                 existing.emojis,
             )
-                ? existing.emojis
-                : [];
+        ) {
+            existing.emojis = [];
+        }
 
         /**
-         * Check emoji duplicate.
+         * Emoji này đã tồn tại.
          */
 
         const emojiAlreadyExists =
@@ -565,12 +499,11 @@ async function handleAutoReact(
         }
 
         /**
-         * Check limit.
+         * Đã đủ 5 emoji.
          */
 
         if (
-            existing.emojis
-                .length >=
+            existing.emojis.length >=
             AUTO_REACT_MAX_EMOJIS_PER_KEYWORD
         ) {
             return {
@@ -585,7 +518,7 @@ async function handleAutoReact(
         }
 
         /**
-         * Add emoji.
+         * Thêm emoji mới.
          */
 
         existing.emojis.push({
@@ -597,8 +530,7 @@ async function handleAutoReact(
                 null,
 
             animated:
-                emoji.animated ===
-                    true,
+                emoji.animated === true,
         });
 
         existing.updatedAt =
@@ -624,7 +556,7 @@ async function handleAutoReact(
 
     /**
      * =====================================================
-     * CREATE NEW KEYWORD
+     * KEYWORD MỚI
      * =====================================================
      */
 
@@ -656,8 +588,7 @@ async function handleAutoReact(
                     null,
 
                 animated:
-                    emoji.animated ===
-                        true,
+                    emoji.animated === true,
             },
         ],
 
@@ -709,19 +640,17 @@ export async function removeAutoReact(
         );
 
     const index =
-        config.reactions
-            .findIndex(
-                item =>
-                    item.id ===
-                    reactionId,
-            );
+        config.reactions.findIndex(
+            item =>
+                item.id ===
+                reactionId,
+        );
 
     if (
         index === -1
     ) {
         return {
             success: false,
-
             reason:
                 'not_found',
         };
@@ -749,8 +678,11 @@ export async function removeAutoReact(
 
 /**
  * =========================================================
- * REMOVE ONE EMOJI
+ * REMOVE ONE EMOJI FROM KEYWORD
  * =========================================================
+ *
+ * Nếu xóa emoji cuối cùng của keyword,
+ * keyword cũng sẽ bị xóa.
  */
 
 export async function removeAutoReactEmoji(
@@ -775,7 +707,6 @@ export async function removeAutoReactEmoji(
     if (!reaction) {
         return {
             success: false,
-
             reason:
                 'not_found',
         };
@@ -793,7 +724,6 @@ export async function removeAutoReactEmoji(
     ) {
         return {
             success: false,
-
             reason:
                 'emoji_not_found',
         };
@@ -807,14 +737,14 @@ export async function removeAutoReactEmoji(
             1,
         );
 
-    /**
-     * Nếu keyword không còn emoji nào
-     * thì xóa luôn keyword.
-     */
-
     const keywordDeleted =
         reaction.emojis.length ===
         0;
+
+    /**
+     * Không còn emoji nào
+     * -> xóa luôn keyword.
+     */
 
     if (
         keywordDeleted
@@ -876,7 +806,6 @@ export async function toggleAutoReact(
     if (!reaction) {
         return {
             success: false,
-
             reason:
                 'not_found',
         };
@@ -935,49 +864,26 @@ export async function setAutoReactEnabled(
  * FIND MATCHING AUTO REACTS
  * =========================================================
  *
- * QUAN TRỌNG:
- *
  * Đây là CONTAINS MATCH.
- *
- * Không yêu cầu message === keyword.
- *
- * Chỉ cần message CÓ CHỨA keyword.
  *
  * Ví dụ keyword:
  *
  * +1
  *
- * Những message sau ĐỀU MATCH:
+ * Tất cả đều match:
  *
  * +1
  * cho bạn +1
- * ok +1 nha
+ * +1 nhận quà
+ * hello +1 nha
  * abc+1xyz
  * +100
  *
- * -----------------------------------------
+ * Vì:
  *
- * Keyword:
+ * "+1 nhận quà".includes("+1") === true
  *
- * usagi
- *
- * Match:
- *
- * usagi
- * hello usagi
- * usagi cute
- * hôm nay usagi cute quá
- *
- * -----------------------------------------
- *
- * Không phân biệt hoa / thường.
- *
- * Usagi
- * USAGI
- * usagi
- *
- * đều match keyword "usagi".
- * =========================================================
+ * Không phân biệt hoa/thường.
  */
 
 export function findMatchingAutoReacts(
@@ -993,10 +899,6 @@ export function findMatchingAutoReacts(
         return [];
     }
 
-    /**
-     * Normalize toàn bộ message.
-     */
-
     const normalizedContent =
         String(
             content,
@@ -1004,38 +906,29 @@ export function findMatchingAutoReacts(
             .toLowerCase();
 
     return reactions
-
         /**
-         * Chỉ lấy rule đang bật
-         * và có emoji.
+         * Rule phải:
+         *
+         * - đang bật
+         * - có keyword
+         * - có ít nhất 1 emoji
          */
-
         .filter(
             item =>
-                item.enabled !==
-                    false &&
+                item.enabled !== false &&
                 item.keyword &&
                 Array.isArray(
                     item.emojis,
                 ) &&
-                item.emojis.length >
-                    0,
+                item.emojis.length > 0,
         )
 
         /**
-         * =================================================
          * CONTAINS MATCH
-         * =================================================
          *
-         * Đây chính là phần giúp:
-         *
-         * keyword = "+1"
-         *
-         * "hello +1 nha"
-         *
-         * vẫn được nhận diện.
+         * Keyword có thể nằm ở bất kỳ
+         * vị trí nào trong message.
          */
-
         .filter(
             item => {
                 const keyword =
@@ -1047,27 +940,16 @@ export function findMatchingAutoReacts(
                     return false;
                 }
 
-                return (
-                    normalizedContent
-                        .includes(
-                            keyword,
-                        )
-                );
+                return normalizedContent
+                    .includes(
+                        keyword,
+                    );
             },
         )
 
         /**
-         * Keyword dài hơn ưu tiên trước.
-         *
-         * Ví dụ:
-         *
-         * +1
-         * +100
-         *
-         * Nếu message chứa +100
-         * thì +100 được xử lý trước.
+         * Keyword dài hơn xử lý trước.
          */
-
         .sort(
             (
                 a,
