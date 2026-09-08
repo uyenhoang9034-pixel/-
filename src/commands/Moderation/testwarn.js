@@ -2,17 +2,8 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
+    MessageFlags,
 } from 'discord.js';
-
-import {
-    InteractionHelper,
-} from '../../utils/interactionHelper.js';
-
-/**
- * =========================================================
- * CONFIG
- * =========================================================
- */
 
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
@@ -28,44 +19,34 @@ const EMOJIS = {
 export default {
     data:
         new SlashCommandBuilder()
-            .setName(
-                'testwarn',
-            )
+            .setName('testwarn')
             .setDescription(
-                'Test giao diện thông báo cảnh cáo',
+                'Xem thử giao diện thông báo cảnh cáo',
             )
             .addUserOption(
-                (option) =>
+                option =>
                     option
-                        .setName(
-                            'target',
-                        )
+                        .setName('target')
                         .setDescription(
-                            'Thành viên hiển thị trong bản test',
+                            'Thành viên dùng để hiển thị thử',
                         )
-                        .setRequired(
-                            true,
-                        ),
+                        .setRequired(true),
             )
             .addStringOption(
-                (option) =>
+                option =>
                     option
-                        .setName(
-                            'reason',
-                        )
+                        .setName('reason')
                         .setDescription(
-                            'Lý do cảnh cáo hiển thị trong bản test',
+                            'Nội dung cảnh cáo hiển thị thử',
                         )
-                        .setRequired(
-                            true,
-                        ),
+                        .setRequired(true),
             )
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.ModerateMembers,
             ),
 
     category:
-        'moderation',
+        'Moderation',
 
     async execute(
         interaction,
@@ -73,52 +54,55 @@ export default {
         client,
     ) {
         const target =
-            interaction.options
-                .getUser(
-                    'target',
-                    true,
-                );
+            interaction.options.getUser(
+                'target',
+                true,
+            );
 
         const reason =
-            interaction.options
-                .getString(
-                    'reason',
-                    true,
-                );
+            interaction.options.getString(
+                'reason',
+                true,
+            );
 
         const channel =
-            await interaction.guild
-                .channels
+            await interaction.guild.channels
                 .fetch(
                     MODERATION_CHANNEL_ID,
                 )
-                .catch(
-                    () => null,
-                );
+                .catch(() => null);
 
         if (
             !channel ||
             !channel.isTextBased()
         ) {
-            await InteractionHelper
-                .universalReply(
-                    interaction,
-                    {
-                        content:
-                            'Không tìm thấy kênh moderation.',
-                        ephemeral:
-                            true,
-                    },
-                );
+            await interaction.reply({
+                content:
+                    `Không tìm thấy kênh <#${MODERATION_CHANNEL_ID}>.`,
+                flags:
+                    MessageFlags.Ephemeral,
+            });
 
             return;
         }
 
+        /**
+         * TEST ONLY.
+         *
+         * KHÔNG WarningService.addWarning().
+         * KHÔNG logModerationAction().
+         * KHÔNG ghi database.
+         */
+
+        const fakeTotalWarnings =
+            3;
+
+        const fakeWarningCase =
+            'TEST-001';
+
         const embed =
             new EmbedBuilder()
-                .setColor(
-                    0xf7c6d9,
-                )
+                .setColor(0xf7c6d9)
                 .setTitle(
                     `${EMOJIS.decoration} 𝓤𝓼𝓪𝓰𝓲 𝓜𝓸𝓭𝓮𝓻𝓪𝓽𝓲𝓸𝓷 ${EMOJIS.decoration}`,
                 )
@@ -140,30 +124,24 @@ export default {
 
                         '',
                         `${EMOJIS.warn} **Tổng cảnh cáo**`,
-                        '**1**',
+                        `**${fakeTotalWarnings}**`,
 
                         '',
                         `${EMOJIS.warn} **Warning Case**`,
-                        '#TEST-001',
+                        `#${fakeWarningCase}`,
                     ].join('\n'),
                 )
                 .setTimestamp();
 
         await channel.send({
-            embeds: [
-                embed,
-            ],
+            embeds: [embed],
         });
 
-        await InteractionHelper
-            .universalReply(
-                interaction,
-                {
-                    content:
-                        `Đã gửi bản test cảnh cáo vào <#${MODERATION_CHANNEL_ID}>. Warning không được lưu vào database.`,
-                    ephemeral:
-                        true,
-                },
-            );
+        await interaction.reply({
+            content:
+                `Đã gửi giao diện test cảnh cáo vào <#${MODERATION_CHANNEL_ID}>. Không có warning nào được lưu.`,
+            flags:
+                MessageFlags.Ephemeral,
+        });
     },
 };
