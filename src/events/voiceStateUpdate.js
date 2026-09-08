@@ -1,333 +1,1267 @@
-import { ChannelType, PermissionFlagsBits } from 'discord.js';
 import {
-    getJoinToCreateConfig, 
-    registerTemporaryChannel, 
+    ChannelType,
+    PermissionFlagsBits
+} from 'discord.js';
+
+import {
+    getJoinToCreateConfig,
+    registerTemporaryChannel,
     unregisterTemporaryChannel,
     getTemporaryChannelInfo,
     formatChannelName
 } from '../utils/database.js';
-import { sanitizeInput } from '../utils/validation.js';
-import { logger } from '../utils/logger.js';
-import { handleMusicVoiceState } from '../services/music/musicVoiceState.js';
 
-const channelCreationCooldown = new Map();
-const VOICE_CREATE_COOLDOWN_MS = 2000;
-const DEFAULT_VOICE_BITRATE = 64000;
-const MAX_VOICE_BITRATE = 384000;
-const MIN_VOICE_BITRATE = 8000;
-const MAX_CHANNEL_NAME_LENGTH = 100;
-const FALLBACK_CHANNEL_NAME = 'Voice Room';
-const MAX_TRACKED_COOLDOWNS = 10000;
+import {
+    sanitizeInput
+} from '../utils/validation.js';
+
+import {
+    logger
+} from '../utils/logger.js';
+
+import {
+    handleMusicVoiceState
+} from '../services/music/musicVoiceState.js';
+
+const channelCreationCooldown =
+    new Map();
+
+const VOICE_CREATE_COOLDOWN_MS =
+    2000;
+
+const DEFAULT_VOICE_BITRATE =
+    64000;
+
+const MAX_VOICE_BITRATE =
+    384000;
+
+const MIN_VOICE_BITRATE =
+    8000;
+
+const MAX_CHANNEL_NAME_LENGTH =
+    100;
+
+const FALLBACK_CHANNEL_NAME =
+    'Voice Room';
+
+const MAX_TRACKED_COOLDOWNS =
+    10000;
 
 export default {
-    name: 'voiceStateUpdate',
-    async execute(oldState, newState, client) {
-        if (newState.member.user.bot) return;
+    name:
+        'voiceStateUpdate',
 
-        const guildId = newState.guild.id;
-        const userId = newState.member.id;
-        const cooldownKey = `${guildId}-${userId}`;
+    async execute(
+        oldState,
+        newState,
+        client,
+    ) {
+        if (
+            newState.member.user.bot
+        ) {
+            return;
+        }
+
+        const guildId =
+            newState.guild.id;
+
+        const userId =
+            newState.member.id;
+
+        const cooldownKey =
+            `${guildId}-${userId}`;
+
         cleanupCooldownEntries();
 
         try {
-            const config = await getJoinToCreateConfig(client, guildId);
+            const config =
+                await getJoinToCreateConfig(
+                    client,
+                    guildId,
+                );
 
-            if (!config.enabled || config.triggerChannels.length === 0) {
+            if (
+                !config.enabled ||
+                config.triggerChannels
+                    .length === 0
+            ) {
                 return;
             }
 
-            if (!oldState.channel && newState.channel) {
-                await handleVoiceJoin(client, newState, config);
+            /**
+             * =================================================
+             * JOIN
+             * =================================================
+             */
+
+            if (
+                !oldState.channel &&
+                newState.channel
+            ) {
+                await handleVoiceJoin(
+                    client,
+                    newState,
+                    config,
+                );
             }
 
-            if (oldState.channel && !newState.channel) {
-                await handleVoiceLeave(client, oldState, config);
+            /**
+             * =================================================
+             * LEAVE
+             * =================================================
+             */
+
+            if (
+                oldState.channel &&
+                !newState.channel
+            ) {
+                await handleVoiceLeave(
+                    client,
+                    oldState,
+                    config,
+                );
             }
 
-            if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) {
-                await handleVoiceMove(client, oldState, newState, config);
+            /**
+             * =================================================
+             * MOVE
+             * =================================================
+             */
+
+            if (
+                oldState.channel &&
+                newState.channel &&
+                oldState.channel.id !==
+                    newState.channel.id
+            ) {
+                await handleVoiceMove(
+                    client,
+                    oldState,
+                    newState,
+                    config,
+                );
             }
 
-        } catch (error) {
-            logger.error(`Error in voiceStateUpdate for guild ${guildId}:`, error);
+        } catch (
+            error
+        ) {
+            logger.error(
+                `Error in voiceStateUpdate for guild ${guildId}:`,
+                error,
+            );
         }
 
-        async function handleVoiceJoin(client, state, config) {
-            const { channel, member } = state;
+        /**
+         * =====================================================
+         * HANDLE VOICE JOIN
+         * =====================================================
+         */
 
-            if (!config.triggerChannels.includes(channel.id)) {
+        async function handleVoiceJoin(
+            client,
+            state,
+            config,
+        ) {
+            const {
+                channel,
+                member,
+            } = state;
+
+            if (
+                !config.triggerChannels
+                    .includes(
+                        channel.id,
+                    )
+            ) {
                 return;
             }
 
-            const now = Date.now();
-            if (channelCreationCooldown.has(cooldownKey)) {
-                const lastCreation = channelCreationCooldown.get(cooldownKey);
-if (now - lastCreation < VOICE_CREATE_COOLDOWN_MS) {
-                    logger.warn(`User ${member.id} is on cooldown for channel creation`);
+            const now =
+                Date.now();
+
+            if (
+                channelCreationCooldown
+                    .has(
+                        cooldownKey,
+                    )
+            ) {
+                const lastCreation =
+                    channelCreationCooldown
+                        .get(
+                            cooldownKey,
+                        );
+
+                if (
+                    now -
+                    lastCreation <
+                    VOICE_CREATE_COOLDOWN_MS
+                ) {
+                    logger.warn(
+                        `User ${member.id} is on cooldown for channel creation`,
+                    );
+
                     return;
                 }
             }
 
-            const existingTempChannel = Object.keys(config.temporaryChannels || {}).find(
-                tempChannelId => {
-                    const tempInfo = config.temporaryChannels[tempChannelId];
-                    return tempInfo && tempInfo.ownerId === member.id;
-                }
-            );
+            /**
+             * =================================================
+             * EXISTING TEMP ROOM
+             * =================================================
+             */
 
-            if (existingTempChannel) {
-                const tempChannel = state.guild.channels.cache.get(existingTempChannel);
-                if (tempChannel) {
+            const existingTempChannel =
+                Object.keys(
+                    config.temporaryChannels ||
+                    {},
+                ).find(
+                    (
+                        tempChannelId,
+                    ) => {
+                        const tempInfo =
+                            config
+                                .temporaryChannels[
+                                tempChannelId
+                            ];
+
+                        return (
+                            tempInfo &&
+                            tempInfo.ownerId ===
+                                member.id
+                        );
+                    },
+                );
+
+            if (
+                existingTempChannel
+            ) {
+                const tempChannel =
+                    state.guild.channels
+                        .cache
+                        .get(
+                            existingTempChannel,
+                        );
+
+                if (
+                    tempChannel
+                ) {
                     try {
-                        await member.voice.setChannel(tempChannel);
+                        await member.voice
+                            .setChannel(
+                                tempChannel,
+                            );
+
                         return;
-                    } catch (error) {
-                        logger.warn(`Failed to move user ${member.id} to existing channel ${existingTempChannel}:`, error);
+                    } catch (
+                        error
+                    ) {
+                        logger.warn(
+                            `Failed to move user ${member.id} to existing channel ${existingTempChannel}:`,
+                            error,
+                        );
                     }
                 }
             }
 
-            if (member.voice.channel?.id !== channel.id) {
+            if (
+                member.voice
+                    .channel?.id !==
+                channel.id
+            ) {
                 return;
             }
 
-            channelCreationCooldown.set(cooldownKey, now);
+            channelCreationCooldown
+                .set(
+                    cooldownKey,
+                    now,
+                );
+
             trimCooldownMapIfNeeded();
 
-            await createTemporaryChannel(client, state, config);
+            await createTemporaryChannel(
+                client,
+                state,
+                config,
+            );
         }
 
-        async function handleVoiceLeave(client, state, config) {
-            const { channel, member } = state;
+        /**
+         * =====================================================
+         * HANDLE VOICE LEAVE
+         * =====================================================
+         */
 
-            const tempChannelInfo = await getTemporaryChannelInfo(client, state.guild.id, channel.id);
-            
-            if (!tempChannelInfo) {
+        async function handleVoiceLeave(
+            client,
+            state,
+            config,
+        ) {
+            const {
+                channel,
+                member,
+            } = state;
+
+            const tempChannelInfo =
+                await getTemporaryChannelInfo(
+                    client,
+                    state.guild.id,
+                    channel.id,
+                );
+
+            if (
+                !tempChannelInfo
+            ) {
                 return;
             }
 
-            if (channel.members.size === 0) {
-                await deleteTemporaryChannel(client, channel, state.guild.id);
-            } else if (tempChannelInfo.ownerId === member.id) {
-                const nextMember = channel.members.first();
-                if (nextMember) {
-                    await transferChannelOwnership(client, channel, state.guild.id, nextMember.id);
+            /**
+             * Phòng trống:
+             * xóa temporary room.
+             *
+             * userPreferences
+             * KHÔNG bị xóa.
+             */
+
+            if (
+                channel.members.size ===
+                0
+            ) {
+                await deleteTemporaryChannel(
+                    client,
+                    channel,
+                    state.guild.id,
+                );
+            }
+
+            /**
+             * Owner rời nhưng
+             * còn người khác.
+             */
+
+            else if (
+                tempChannelInfo.ownerId ===
+                member.id
+            ) {
+                const nextMember =
+                    channel.members
+                        .first();
+
+                if (
+                    nextMember
+                ) {
+                    await transferChannelOwnership(
+                        client,
+                        channel,
+                        state.guild.id,
+                        nextMember.id,
+                    );
                 }
             }
         }
 
-        async function handleVoiceMove(client, oldState, newState, config) {
-            if (oldState.channel) {
-                const tempChannelInfo = await getTemporaryChannelInfo(client, oldState.guild.id, oldState.channel.id);
-                
-                if (tempChannelInfo) {
-                    if (oldState.channel.members.size === 0) {
-                        await deleteTemporaryChannel(client, oldState.channel, oldState.guild.id);
-                    } else if (tempChannelInfo.ownerId === oldState.member.id) {
-                        const nextMember = oldState.channel.members.first();
-                        if (nextMember) {
-                            await transferChannelOwnership(client, oldState.channel, oldState.guild.id, nextMember.id);
+        /**
+         * =====================================================
+         * HANDLE VOICE MOVE
+         * =====================================================
+         */
+
+        async function handleVoiceMove(
+            client,
+            oldState,
+            newState,
+            config,
+        ) {
+            /**
+             * Xử lý room cũ.
+             */
+
+            if (
+                oldState.channel
+            ) {
+                const tempChannelInfo =
+                    await getTemporaryChannelInfo(
+                        client,
+                        oldState.guild.id,
+                        oldState.channel.id,
+                    );
+
+                if (
+                    tempChannelInfo
+                ) {
+                    if (
+                        oldState.channel
+                            .members
+                            .size === 0
+                    ) {
+                        await deleteTemporaryChannel(
+                            client,
+                            oldState.channel,
+                            oldState.guild.id,
+                        );
+                    } else if (
+                        tempChannelInfo.ownerId ===
+                        oldState.member.id
+                    ) {
+                        const nextMember =
+                            oldState.channel
+                                .members
+                                .first();
+
+                        if (
+                            nextMember
+                        ) {
+                            await transferChannelOwnership(
+                                client,
+                                oldState.channel,
+                                oldState.guild.id,
+                                nextMember.id,
+                            );
                         }
                     }
                 }
             }
 
-            if (config.triggerChannels.includes(newState.channel.id) && 
-                !config.triggerChannels.includes(oldState.channel?.id)) {
-                await handleVoiceJoin(client, newState, config);
+            /**
+             * User chuyển vào
+             * trigger channel.
+             */
+
+            if (
+                config.triggerChannels
+                    .includes(
+                        newState.channel.id,
+                    ) &&
+                !config.triggerChannels
+                    .includes(
+                        oldState.channel
+                            ?.id,
+                    )
+            ) {
+                await handleVoiceJoin(
+                    client,
+                    newState,
+                    config,
+                );
             }
         }
 
-        async function createTemporaryChannel(client, state, config) {
-            const { channel: triggerChannel, member, guild } = state;
+        /**
+         * =====================================================
+         * CREATE TEMPORARY CHANNEL
+         * =====================================================
+         */
+
+        async function createTemporaryChannel(
+            client,
+            state,
+            config,
+        ) {
+            const {
+                channel:
+                    triggerChannel,
+
+                member,
+                guild,
+            } = state;
 
             try {
-                const me = guild.members.me;
-                if (!me) {
-                    logger.warn(`Bot member cache unavailable while creating temporary channel in guild ${guild.id}`);
-                    channelCreationCooldown.delete(cooldownKey);
+                const me =
+                    guild.members.me;
+
+                if (
+                    !me
+                ) {
+                    logger.warn(
+                        `Bot member cache unavailable while creating temporary channel in guild ${guild.id}`,
+                    );
+
+                    channelCreationCooldown
+                        .delete(
+                            cooldownKey,
+                        );
+
                     return;
                 }
 
-                const triggerPermissions = triggerChannel.permissionsFor(me);
-                if (!triggerPermissions?.has([PermissionFlagsBits.ManageChannels, PermissionFlagsBits.MoveMembers, PermissionFlagsBits.Connect])) {
-                    logger.warn(`Missing required permissions for temporary channel creation in guild ${guild.id} (trigger channel ${triggerChannel.id})`);
-                    channelCreationCooldown.delete(cooldownKey);
+                const triggerPermissions =
+                    triggerChannel
+                        .permissionsFor(
+                            me,
+                        );
+
+                if (
+                    !triggerPermissions
+                        ?.has([
+                            PermissionFlagsBits.ManageChannels,
+                            PermissionFlagsBits.MoveMembers,
+                            PermissionFlagsBits.Connect,
+                        ])
+                ) {
+                    logger.warn(
+                        `Missing required permissions for temporary channel creation in guild ${guild.id} (trigger channel ${triggerChannel.id})`,
+                    );
+
+                    channelCreationCooldown
+                        .delete(
+                            cooldownKey,
+                        );
+
                     return;
                 }
 
-                const channelOptions = config.channelOptions?.[triggerChannel.id] || {};
-                const nameTemplate = channelOptions.nameTemplate || config.channelNameTemplate || "{username}'s Room";
-                
-                let userLimit = channelOptions.userLimit ?? config.userLimit ?? 0;
-                const bitrate = clampVoiceBitrate(channelOptions.bitrate ?? config.bitrate ?? DEFAULT_VOICE_BITRATE);
+                /**
+                 * =================================================
+                 * SERVER / TRIGGER SETTINGS
+                 * =================================================
+                 */
 
-                userLimit = Math.max(0, Math.min(99, userLimit || 0));
+                const channelOptions =
+                    config
+                        .channelOptions?.[
+                        triggerChannel.id
+                    ] || {};
 
-                logger.info(`Creating temporary channel for user ${member.id} with user limit: ${userLimit}`);
+                const nameTemplate =
+                    channelOptions
+                        .nameTemplate ||
+                    config
+                        .channelNameTemplate ||
+                    "{username}'s Room";
 
-                const existingChannels = guild.channels.cache.filter(c =>
-                    c.parentId === triggerChannel.parentId &&
-                    c.name.startsWith(triggerChannel.name)
-                ).size;
+                /**
+                 * =================================================
+                 * USER SAVED PREFERENCES
+                 * =================================================
+                 */
+
+                const userPreferences =
+                    config
+                        .userPreferences?.[
+                        member.id
+                    ] || {};
+
+                /**
+                 * Nếu user từng set limit,
+                 * ưu tiên setting cá nhân.
+                 */
+
+                let userLimit =
+                    userPreferences
+                        .userLimit ??
+                    channelOptions
+                        .userLimit ??
+                    config
+                        .userLimit ??
+                    0;
+
+                userLimit =
+                    Math.max(
+                        0,
+                        Math.min(
+                            99,
+                            Number(
+                                userLimit,
+                            ) || 0,
+                        ),
+                    );
+
+                /**
+                 * Bitrate vẫn lấy
+                 * setting server.
+                 */
+
+                const bitrate =
+                    clampVoiceBitrate(
+                        channelOptions
+                            .bitrate ??
+                        config
+                            .bitrate ??
+                        DEFAULT_VOICE_BITRATE,
+                    );
+
+                /**
+                 * Custom room name.
+                 */
+
+                const savedRoomName =
+                    typeof userPreferences
+                        .name ===
+                        'string' &&
+                    userPreferences
+                        .name
+                        .trim()
+                        ? userPreferences
+                            .name
+                            .trim()
+                        : null;
+
+                /**
+                 * Region.
+                 */
+
+                const savedRegion =
+                    typeof userPreferences
+                        .rtcRegion ===
+                        'string' &&
+                    userPreferences
+                        .rtcRegion
+                        .trim()
+                        ? userPreferences
+                            .rtcRegion
+                            .trim()
+                        : null;
+
+                /**
+                 * Privacy.
+                 */
+
+                const savedLocked =
+                    userPreferences
+                        .locked ===
+                    true;
+
+                const savedHidden =
+                    userPreferences
+                        .hidden ===
+                    true;
+
+                logger.info(
+                    `Creating temporary channel for user ${member.id} with user limit: ${userLimit}`,
+                );
+
+                /**
+                 * =================================================
+                 * GENERATE ROOM NAME
+                 * =================================================
+                 */
+
+                const existingChannels =
+                    guild.channels.cache
+                        .filter(
+                            (
+                                channel,
+                            ) =>
+                                channel.parentId ===
+                                    triggerChannel.parentId &&
+                                channel.name
+                                    .startsWith(
+                                        triggerChannel.name,
+                                    ),
+                        )
+                        .size;
 
                 let finalName;
 
+                /**
+                 * User custom name
+                 * luôn được ưu tiên.
+                 */
+
                 if (
-                    nameTemplate.includes('{username}') ||
-                    nameTemplate.includes('{displayName}')
+                    savedRoomName
                 ) {
-                    finalName = formatChannelName(nameTemplate, {
-                        username: member.user.username,
-                        userTag: member.user.tag,
-                        displayName: member.displayName,
-                        guildName: guild.name,
-                        channelName: triggerChannel.name
-                    });
+                    finalName =
+                        savedRoomName;
+                } else if (
+                    nameTemplate
+                        .includes(
+                            '{username}',
+                        ) ||
+                    nameTemplate
+                        .includes(
+                            '{displayName}',
+                        )
+                ) {
+                    finalName =
+                        formatChannelName(
+                            nameTemplate,
+                            {
+                                username:
+                                    member
+                                        .user
+                                        .username,
+
+                                userTag:
+                                    member
+                                        .user
+                                        .tag,
+
+                                displayName:
+                                    member
+                                        .displayName,
+
+                                guildName:
+                                    guild
+                                        .name,
+
+                                channelName:
+                                    triggerChannel
+                                        .name,
+                            },
+                        );
                 } else {
-                    finalName = `${triggerChannel.name} ${existingChannels + 1}`;
+                    finalName =
+                        `${triggerChannel.name} ${existingChannels + 1}`;
                 }
 
-                const channelName = sanitizeVoiceChannelName(finalName);
+                const channelName =
+                    sanitizeVoiceChannelName(
+                        finalName,
+                    );
 
-                if (!member.voice?.channel || member.voice.channel.id !== triggerChannel.id) {
-                    logger.debug(`Member ${member.id} no longer in trigger channel ${triggerChannel.id}, aborting temporary channel creation`);
-                    channelCreationCooldown.delete(cooldownKey);
+                /**
+                 * User đã rời trigger
+                 * thì hủy create.
+                 */
+
+                if (
+                    !member.voice
+                        ?.channel ||
+                    member.voice
+                        .channel
+                        .id !==
+                        triggerChannel.id
+                ) {
+                    logger.debug(
+                        `Member ${member.id} no longer in trigger channel ${triggerChannel.id}, aborting temporary channel creation`,
+                    );
+
+                    channelCreationCooldown
+                        .delete(
+                            cooldownKey,
+                        );
+
                     return;
                 }
 
-                const tempChannel = await guild.channels.create({
-                    name: channelName,
-type: ChannelType.GuildVoice,
-                    parent: triggerChannel.parentId,
-userLimit: userLimit === 0 ? undefined : userLimit,
-                    bitrate: bitrate,
-                    permissionOverwrites: [
-                        {
-                            id: member.id,
-                            allow: ['Connect', 'Speak', 'PrioritySpeaker', 'MoveMembers']
-                        },
-                        {
-                            id: guild.id,
-                            allow: ['Connect', 'Speak']
-                        }
-                    ]
-                });
+                /**
+                 * =================================================
+                 * PERMISSION OVERWRITE
+                 * =================================================
+                 */
 
-                await registerTemporaryChannel(client, guild.id, tempChannel.id, member.id, triggerChannel.id);
+                const everyoneOverwrite = {
+                    id:
+                        guild.id,
 
-                if (member.voice?.channel?.id === triggerChannel.id) {
-                    await member.voice.setChannel(tempChannel);
+                    allow: [
+                        PermissionFlagsBits.Speak,
+                    ],
+
+                    deny:
+                        [],
+                };
+
+                /**
+                 * LOCKED?
+                 */
+
+                if (
+                    savedLocked
+                ) {
+                    everyoneOverwrite
+                        .deny
+                        .push(
+                            PermissionFlagsBits.Connect,
+                        );
                 } else {
-                    logger.debug(`Skipped moving ${member.id} to temporary channel ${tempChannel.id} because voice state changed`);
+                    everyoneOverwrite
+                        .allow
+                        .push(
+                            PermissionFlagsBits.Connect,
+                        );
                 }
 
-                logger.info(`Created temporary voice channel ${tempChannel.name} (${tempChannel.id}) for user ${member.user.tag} in guild ${guild.name} with user limit ${userLimit}`);
+                /**
+                 * HIDDEN?
+                 */
 
-            } catch (error) {
-                logger.error(`Failed to create temporary channel for user ${member.user.tag} in guild ${guild.name}:`, error);
-                
-                channelCreationCooldown.delete(cooldownKey);
-                
+                if (
+                    savedHidden
+                ) {
+                    everyoneOverwrite
+                        .deny
+                        .push(
+                            PermissionFlagsBits.ViewChannel,
+                        );
+                } else {
+                    everyoneOverwrite
+                        .allow
+                        .push(
+                            PermissionFlagsBits.ViewChannel,
+                        );
+                }
+
+                /**
+                 * =================================================
+                 * CREATE
+                 * =================================================
+                 */
+
+                const tempChannel =
+                    await guild.channels
+                        .create({
+                            name:
+                                channelName,
+
+                            type:
+                                ChannelType.GuildVoice,
+
+                            parent:
+                                triggerChannel.parentId,
+
+                            userLimit:
+                                userLimit ===
+                                0
+                                    ? undefined
+                                    : userLimit,
+
+                            bitrate,
+
+                            /**
+                             * null =
+                             * Discord Automatic.
+                             */
+
+                            rtcRegion:
+                                savedRegion,
+
+                            permissionOverwrites: [
+                                /**
+                                 * OWNER
+                                 */
+
+                                {
+                                    id:
+                                        member.id,
+
+                                    allow: [
+                                        PermissionFlagsBits.ViewChannel,
+                                        PermissionFlagsBits.Connect,
+                                        PermissionFlagsBits.Speak,
+                                        PermissionFlagsBits.PrioritySpeaker,
+                                        PermissionFlagsBits.MoveMembers,
+                                    ],
+                                },
+
+                                /**
+                                 * EVERYONE
+                                 */
+
+                                everyoneOverwrite,
+                            ],
+                        });
+
+                /**
+                 * =================================================
+                 * REGISTER TEMP ROOM
+                 * =================================================
+                 */
+
+                await registerTemporaryChannel(
+                    client,
+                    guild.id,
+                    tempChannel.id,
+                    member.id,
+                    triggerChannel.id,
+                );
+
+                /**
+                 * =================================================
+                 * MOVE USER INTO ROOM
+                 * =================================================
+                 */
+
+                if (
+                    member.voice
+                        ?.channel
+                        ?.id ===
+                    triggerChannel.id
+                ) {
+                    await member.voice
+                        .setChannel(
+                            tempChannel,
+                        );
+                } else {
+                    logger.debug(
+                        `Skipped moving ${member.id} to temporary channel ${tempChannel.id} because voice state changed`,
+                    );
+                }
+
+                logger.info(
+                    `Created temporary voice channel ${tempChannel.name} (${tempChannel.id}) for user ${member.user.tag} in guild ${guild.name} with user limit ${userLimit}`,
+                );
+
+            } catch (
+                error
+            ) {
+                logger.error(
+                    `Failed to create temporary channel for user ${member.user.tag} in guild ${guild.name}:`,
+                    error,
+                );
+
+                channelCreationCooldown
+                    .delete(
+                        cooldownKey,
+                    );
+
                 try {
                     await member.send({
-                        content: `❌ Failed to create your temporary voice channel. Please contact a server administrator.`
+                        content:
+                            '❌ Failed to create your temporary voice channel. Please contact a server administrator.',
                     });
-                } catch (dmError) {
-                    logger.debug(`Unable to send temporary channel failure DM to user ${member.id}:`, dmError);
+                } catch (
+                    dmError
+                ) {
+                    logger.debug(
+                        `Unable to send temporary channel failure DM to user ${member.id}:`,
+                        dmError,
+                    );
                 }
             }
         }
 
-        async function deleteTemporaryChannel(client, channel, guildId) {
+        /**
+         * =====================================================
+         * DELETE TEMPORARY CHANNEL
+         * =====================================================
+         */
+
+        async function deleteTemporaryChannel(
+            client,
+            channel,
+            guildId,
+        ) {
             try {
-                await unregisterTemporaryChannel(client, guildId, channel.id);
+                /**
+                 * Chỉ unregister room.
+                 *
+                 * userPreferences được
+                 * lưu riêng trong config
+                 * và không bị xóa.
+                 */
 
-                await channel.delete('Temporary voice channel - empty');
+                await unregisterTemporaryChannel(
+                    client,
+                    guildId,
+                    channel.id,
+                );
 
-                logger.info(`Deleted temporary voice channel ${channel.name} (${channel.id}) in guild ${channel.guild.name}`);
+                await channel.delete(
+                    'Temporary voice channel - empty',
+                );
 
-            } catch (error) {
-                logger.error(`Failed to delete temporary channel ${channel.id}:`, error);
+                logger.info(
+                    `Deleted temporary voice channel ${channel.name} (${channel.id}) in guild ${channel.guild.name}`,
+                );
+
+            } catch (
+                error
+            ) {
+                logger.error(
+                    `Failed to delete temporary channel ${channel.id}:`,
+                    error,
+                );
             }
         }
 
-        async function transferChannelOwnership(client, channel, guildId, newOwnerId) {
+        /**
+         * =====================================================
+         * TRANSFER OWNERSHIP
+         * =====================================================
+         */
+
+        async function transferChannelOwnership(
+            client,
+            channel,
+            guildId,
+            newOwnerId,
+        ) {
             try {
-                const config = await getJoinToCreateConfig(client, guildId);
-                const tempChannelInfo = config.temporaryChannels[channel.id];
-                
-                if (!tempChannelInfo) return;
+                const config =
+                    await getJoinToCreateConfig(
+                        client,
+                        guildId,
+                    );
 
-                config.temporaryChannels[channel.id].ownerId = newOwnerId;
-                await client.db.set(`guild:${guildId}:jointocreate`, config);
+                const tempChannelInfo =
+                    config
+                        .temporaryChannels[
+                        channel.id
+                    ];
 
-                const newOwner = await channel.guild.members.fetch(newOwnerId);
-                if (newOwner) {
-                    const channelOptions = config.channelOptions?.[tempChannelInfo.triggerChannelId] || {};
-                    const nameTemplate = channelOptions.nameTemplate || config.channelNameTemplate;
-                    
-                    const newChannelName = sanitizeVoiceChannelName(formatChannelName(nameTemplate, {
-                        username: newOwner.user.username,
-                        userTag: newOwner.user.tag,
-                        displayName: newOwner.displayName,
-                        guildName: channel.guild.name,
-                        channelName: channel.guild.channels.cache.get(tempChannelInfo.triggerChannelId)?.name || 'Voice Channel'
-                    }));
-
-                    await channel.setName(newChannelName);
+                if (
+                    !tempChannelInfo
+                ) {
+                    return;
                 }
 
-                logger.info(`Transferred ownership of temporary channel ${channel.id} to user ${newOwnerId}`);
+                tempChannelInfo.ownerId =
+                    newOwnerId;
 
-            } catch (error) {
-                logger.error(`Failed to transfer ownership of channel ${channel.id}:`, error);
+                await client.db.set(
+                    `guild:${guildId}:jointocreate`,
+                    config,
+                );
+
+                const newOwner =
+                    await channel.guild
+                        .members
+                        .fetch(
+                            newOwnerId,
+                        );
+
+                if (
+                    newOwner
+                ) {
+                    const channelOptions =
+                        config
+                            .channelOptions?.[
+                            tempChannelInfo
+                                .triggerChannelId
+                        ] || {};
+
+                    const nameTemplate =
+                        channelOptions
+                            .nameTemplate ||
+                        config
+                            .channelNameTemplate ||
+                        "{username}'s Room";
+
+                    /**
+                     * Ownership chuyển tự động
+                     * chỉ áp dụng cho room hiện tại.
+                     *
+                     * Không ghi đè preferences
+                     * của chủ cũ/chủ mới.
+                     */
+
+                    const newChannelName =
+                        sanitizeVoiceChannelName(
+                            formatChannelName(
+                                nameTemplate,
+                                {
+                                    username:
+                                        newOwner
+                                            .user
+                                            .username,
+
+                                    userTag:
+                                        newOwner
+                                            .user
+                                            .tag,
+
+                                    displayName:
+                                        newOwner
+                                            .displayName,
+
+                                    guildName:
+                                        channel.guild
+                                            .name,
+
+                                    channelName:
+                                        channel.guild
+                                            .channels
+                                            .cache
+                                            .get(
+                                                tempChannelInfo
+                                                    .triggerChannelId,
+                                            )
+                                            ?.name ||
+                                        'Voice Channel',
+                                },
+                            ),
+                        );
+
+                    await channel.setName(
+                        newChannelName,
+                    );
+                }
+
+                logger.info(
+                    `Transferred ownership of temporary channel ${channel.id} to user ${newOwnerId}`,
+                );
+
+            } catch (
+                error
+            ) {
+                logger.error(
+                    `Failed to transfer ownership of channel ${channel.id}:`,
+                    error,
+                );
             }
         }
 
-        if (client.config?.features?.music) {
-            handleMusicVoiceState(client, oldState, newState).catch((error) => {
-                logger.error('Music voice state handler error:', error);
-            });
+        /**
+         * =====================================================
+         * MUSIC VOICE STATE
+         * =====================================================
+         */
+
+        if (
+            client.config
+                ?.features
+                ?.music
+        ) {
+            handleMusicVoiceState(
+                client,
+                oldState,
+                newState,
+            ).catch(
+                (
+                    error,
+                ) => {
+                    logger.error(
+                        'Music voice state handler error:',
+                        error,
+                    );
+                },
+            );
         }
-    }
+    },
 };
 
-function sanitizeVoiceChannelName(inputName) {
-    const safeName = sanitizeInput(String(inputName || ''), MAX_CHANNEL_NAME_LENGTH)
-        .replace(/[\r\n\t]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+/**
+ * =========================================================
+ * SANITIZE VOICE CHANNEL NAME
+ * =========================================================
+ */
 
-    return safeName || FALLBACK_CHANNEL_NAME;
+function sanitizeVoiceChannelName(
+    inputName,
+) {
+    const safeName =
+        sanitizeInput(
+            String(
+                inputName ||
+                '',
+            ),
+            MAX_CHANNEL_NAME_LENGTH,
+        )
+            .replace(
+                /[\r\n\t]/g,
+                ' ',
+            )
+            .replace(
+                /\s+/g,
+                ' ',
+            )
+            .trim();
+
+    return (
+        safeName ||
+        FALLBACK_CHANNEL_NAME
+    );
 }
 
-function clampVoiceBitrate(value) {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
+/**
+ * =========================================================
+ * CLAMP BITRATE
+ * =========================================================
+ */
+
+function clampVoiceBitrate(
+    value,
+) {
+    const parsed =
+        Number(
+            value,
+        );
+
+    if (
+        !Number.isFinite(
+            parsed,
+        )
+    ) {
         return DEFAULT_VOICE_BITRATE;
     }
 
-    return Math.max(MIN_VOICE_BITRATE, Math.min(MAX_VOICE_BITRATE, Math.floor(parsed)));
+    return Math.max(
+        MIN_VOICE_BITRATE,
+        Math.min(
+            MAX_VOICE_BITRATE,
+            Math.floor(
+                parsed,
+            ),
+        ),
+    );
 }
 
+/**
+ * =========================================================
+ * CLEANUP COOLDOWN
+ * =========================================================
+ */
+
 function cleanupCooldownEntries() {
-    const now = Date.now();
-    for (const [key, timestamp] of channelCreationCooldown.entries()) {
-        if (now - timestamp >= VOICE_CREATE_COOLDOWN_MS) {
-            channelCreationCooldown.delete(key);
+    const now =
+        Date.now();
+
+    for (
+        const [
+            key,
+            timestamp,
+        ] of channelCreationCooldown
+            .entries()
+    ) {
+        if (
+            now -
+            timestamp >=
+            VOICE_CREATE_COOLDOWN_MS
+        ) {
+            channelCreationCooldown
+                .delete(
+                    key,
+                );
         }
     }
 }
 
+/**
+ * =========================================================
+ * TRIM COOLDOWN MAP
+ * =========================================================
+ */
+
 function trimCooldownMapIfNeeded() {
-    if (channelCreationCooldown.size <= MAX_TRACKED_COOLDOWNS) {
+    if (
+        channelCreationCooldown
+            .size <=
+        MAX_TRACKED_COOLDOWNS
+    ) {
         return;
     }
 
-    const entries = [...channelCreationCooldown.entries()].sort((a, b) => a[1] - b[1]);
-    const removeCount = channelCreationCooldown.size - MAX_TRACKED_COOLDOWNS;
-    for (let index = 0; index < removeCount; index += 1) {
-        channelCreationCooldown.delete(entries[index][0]);
+    const entries =
+        [
+            ...channelCreationCooldown
+                .entries(),
+        ].sort(
+            (
+                a,
+                b,
+            ) =>
+                a[1] -
+                b[1],
+        );
+
+    const removeCount =
+        channelCreationCooldown
+            .size -
+        MAX_TRACKED_COOLDOWNS;
+
+    for (
+        let index = 0;
+        index <
+        removeCount;
+        index += 1
+    ) {
+        channelCreationCooldown
+            .delete(
+                entries[
+                    index
+                ][0],
+            );
     }
 }
