@@ -1,7 +1,6 @@
 import {
     SlashCommandBuilder,
     PermissionFlagsBits,
-    MessageFlags,
 } from 'discord.js';
 
 import {
@@ -10,6 +9,7 @@ import {
 
 import {
     addLevels,
+    getUserLevelData,
     getLevelingConfig,
 } from '../../services/leveling/leveling.js';
 
@@ -18,7 +18,7 @@ import {
 } from '../../services/leveling/levelRoleService.js';
 
 import {
-    sendLevelAnnouncement,
+    sendLevelChangeAnnouncements,
 } from '../../services/leveling/levelAnnouncementService.js';
 
 import {
@@ -32,32 +32,57 @@ import {
 export default {
     data:
         new SlashCommandBuilder()
-            .setName('leveladd')
-            .setDescription('Tăng level cho thành viên')
-
-            .addUserOption(option =>
-                option
-                    .setName('user')
-                    .setDescription('Thành viên muốn tăng level')
-                    .setRequired(true),
+            .setName(
+                'leveladd',
+            )
+            .setDescription(
+                'Tăng level cho thành viên',
             )
 
-            .addIntegerOption(option =>
-                option
-                    .setName('levels')
-                    .setDescription('Số level muốn tăng')
-                    .setRequired(true)
-                    .setMinValue(1)
-                    .setMaxValue(LEVELING_MAX_LEVEL),
+            .addUserOption(
+                option =>
+                    option
+                        .setName(
+                            'user',
+                        )
+                        .setDescription(
+                            'Thành viên muốn tăng level',
+                        )
+                        .setRequired(
+                            true,
+                        ),
+            )
+
+            .addIntegerOption(
+                option =>
+                    option
+                        .setName(
+                            'levels',
+                        )
+                        .setDescription(
+                            'Số level muốn tăng',
+                        )
+                        .setRequired(
+                            true,
+                        )
+                        .setMinValue(
+                            1,
+                        )
+                        .setMaxValue(
+                            LEVELING_MAX_LEVEL,
+                        ),
             )
 
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.ManageGuild,
             )
 
-            .setDMPermission(false),
+            .setDMPermission(
+                false,
+            ),
 
-    category: 'Leveling',
+    category:
+        'Leveling',
 
     async execute(
         interaction,
@@ -75,7 +100,8 @@ export default {
             );
 
         if (
-            !levelingConfig?.enabled
+            !levelingConfig
+                ?.enabled
         ) {
             await InteractionHelper.safeEditReply(
                 interaction,
@@ -102,10 +128,16 @@ export default {
 
         const member =
             await interaction.guild.members
-                .fetch(targetUser.id)
-                .catch(() => null);
+                .fetch(
+                    targetUser.id,
+                )
+                .catch(
+                    () => null,
+                );
 
-        if (!member) {
+        if (
+            !member
+        ) {
             await InteractionHelper.safeEditReply(
                 interaction,
                 {
@@ -117,6 +149,30 @@ export default {
             return;
         }
 
+        /**
+         * =====================================================
+         * OLD LEVEL
+         * =====================================================
+         */
+
+        const oldData =
+            await getUserLevelData(
+                client,
+                interaction.guildId,
+                targetUser.id,
+            );
+
+        const oldLevel =
+            Number(
+                oldData.level,
+            ) || 0;
+
+        /**
+         * =====================================================
+         * ADD LEVEL
+         * =====================================================
+         */
+
         const userData =
             await addLevels(
                 client,
@@ -125,34 +181,77 @@ export default {
                 levelsToAdd,
             );
 
+        const newLevel =
+            Number(
+                userData.level,
+            ) || 0;
+
+        /**
+         * =====================================================
+         * ROLE
+         * =====================================================
+         *
+         * Chỉ giữ role cảnh giới cao nhất.
+         */
+
         await syncHighestLevelRole(
             member,
-            userData.level,
+            newLevel,
         );
 
-        await sendLevelAnnouncement({
+        /**
+         * =====================================================
+         * ANNOUNCEMENT
+         * =====================================================
+         *
+         * Ví dụ:
+         *
+         * Lv.9 -> Lv.21
+         *
+         * sẽ phát:
+         *
+         * Lv.10 Trúc Cơ
+         * Lv.20 Kim Đan
+         */
+
+        await sendLevelChangeAnnouncements({
             guild:
                 interaction.guild,
 
             member,
 
-            level:
-                userData.level,
+            oldLevel,
+
+            newLevel,
 
             source:
                 'admin',
         });
 
+        /**
+         * =====================================================
+         * RESPONSE
+         * =====================================================
+         */
+
         await InteractionHelper.safeEditReply(
             interaction,
             {
                 content:
-                    `Đã tăng **${levelsToAdd} level** cho ${member}.\nLevel hiện tại: **Lv.${userData.level}**`,
+                    [
+                        `Đã tăng level cho ${member}.`,
+
+                        `**Lv.${oldLevel} → Lv.${newLevel}**`,
+
+                        `Tăng thực tế: **+${newLevel - oldLevel} level**`,
+                    ].join(
+                        '\n',
+                    ),
             },
         );
 
         logger.info(
-            `[LEVEL] ${interaction.user.tag} added ${levelsToAdd} levels to ${targetUser.tag}. New level: ${userData.level}`,
+            `[LEVEL] ${interaction.user.tag} added levels to ${targetUser.tag}: Lv.${oldLevel} -> Lv.${newLevel}`,
         );
     },
 };
