@@ -21,34 +21,22 @@ import {
     ErrorTypes,
 } from '../../utils/errorHandler.js';
 
-/**
- * =========================================================
- * USAGI MODERATION
- * =========================================================
- */
-
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
+
+const MODERATION_IMAGE_URL =
+    'https://cdn.phototourl.com/free/2026-09-08-9fd00794-554a-4eca-91fd-8f5cd6c3dae9.jpg';
 
 const EMOJIS = {
     decoration:
         '<a:bang3:1546891744237461635>',
 
-    banTitle:
-        '<a:bang1:1546891405371117668>',
-
     ban:
-        '<:ban1:1546891613261922377>',
+        '<:ban1:1546897486889750669>',
 
     reasonEnd:
-        '<a:bang4:1546891928769929298>',
+        '<a:bang1:1546891405371117668>',
 };
-
-/**
- * =========================================================
- * SEND USAGI BAN LOG
- * =========================================================
- */
 
 async function sendUsagiBanLog({
     guild,
@@ -76,14 +64,14 @@ async function sendUsagiBanLog({
     const embed =
         new EmbedBuilder()
             .setColor(
-                0xf29ab2,
+                0xffffff,
             )
             .setTitle(
                 `${EMOJIS.decoration} 𝓤𝓼𝓪𝓰𝓲 𝓜𝓸𝓭𝓮𝓻𝓪𝓽𝓲𝓸𝓷 ${EMOJIS.decoration}`,
             )
             .setDescription(
                 [
-                    `${EMOJIS.banTitle} **Thành viên đã bị BAN**`,
+                    `${EMOJIS.ban} **ĐÃ BAN!**`,
 
                     '',
                     `${EMOJIS.ban} **Thành viên**`,
@@ -102,6 +90,9 @@ async function sendUsagiBanLog({
                     `#${caseId}`,
                 ].join('\n'),
             )
+            .setImage(
+                MODERATION_IMAGE_URL,
+            )
             .setTimestamp();
 
     await channel
@@ -115,12 +106,6 @@ async function sendUsagiBanLog({
         );
 }
 
-/**
- * =========================================================
- * COMMAND
- * =========================================================
- */
-
 export default {
     data:
         new SlashCommandBuilder()
@@ -131,7 +116,7 @@ export default {
                 'Ban a user from the server',
             )
             .addUserOption(
-                (option) =>
+                option =>
                     option
                         .setName(
                             'target',
@@ -144,7 +129,7 @@ export default {
                         ),
             )
             .addStringOption(
-                (option) =>
+                option =>
                     option
                         .setName(
                             'reason',
@@ -183,10 +168,6 @@ export default {
                 'Missing target user',
                 ErrorTypes.USER_INPUT,
                 'You must specify a user to ban.',
-                {
-                    subtype:
-                        'invalid_user',
-                },
             );
         }
 
@@ -212,19 +193,6 @@ export default {
             );
         }
 
-        /**
-         * =================================================
-         * BAN THẬT
-         * =================================================
-         *
-         * Giữ nguyên ModerationService hiện tại.
-         *
-         * Service này vẫn:
-         * - ban
-         * - tạo case
-         * - log moderation cũ
-         */
-
         const result =
             await ModerationService
                 .banUser({
@@ -238,12 +206,6 @@ export default {
 
                     reason,
                 });
-
-        /**
-         * =================================================
-         * USAGI LOG
-         * =================================================
-         */
 
         await sendUsagiBanLog({
             guild:
@@ -260,12 +222,6 @@ export default {
             caseId:
                 result.caseId,
         });
-
-        /**
-         * =================================================
-         * COMMAND RESPONSE
-         * =================================================
-         */
 
         await InteractionHelper
             .universalReply(
