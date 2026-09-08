@@ -42,26 +42,32 @@ export const LEVEL_EMOJIS = {
  * =========================================================
  * IMAGES
  * =========================================================
+ *
+ * Lv.1 / 10 / 20 / 40 / 70
+ * -> early
+ *
+ * Lv.100 / 200 / 300
+ * -> level100
+ *
+ * Lv.500
+ * -> level500
+ *
+ * Lv.999
+ * -> level999
  */
 
 export const LEVEL_IMAGES = {
     early:
-        'https://cdn.phototourl.com/free/2026-09-08-4d25d245-eb6d-480f-a9da-e83694c083ef.png',
+        'https://cdn.discordapp.com/attachments/1541787923358289981/1546924659767910400/500c1a45-cd84-4644-8012-93108d674068.png?ex=6aa18d5b&is=6aa03bdb&hm=6633a518aa8a71a2a7bb44135d8ed97eca5a060ead565a5465fa66080d863516&',
 
-    /**
-     * Hai link dưới đây của bạn là trang ibb.co,
-     * KHÔNG phải direct image URL.
-     *
-     * Điền direct .png/.jpg vào sau.
-     */
     level100:
-        null,
+        'https://cdn.discordapp.com/attachments/1541787923358289981/1546924686624030781/574073d4-0433-4b24-9959-5406d7ca3d67.png?ex=6aa18d61&is=6aa03be1&hm=6ec85d785367f8b0f5e741ca851e44f4261ef37101b59642de315a178c52d162&',
 
     level500:
-        null,
+        'https://cdn.discordapp.com/attachments/1541787923358289981/1546927938060951722/7b9d3984-5d3b-4da7-a0f0-04643c35b4a6.png?ex=6aa19068&is=6aa03ee8&hm=5ee06d7a2592fed8bf24dbb15cb025124c9e3e0add527355ae046b28e03cef3b&',
 
     level999:
-        null,
+        'https://cdn.discordapp.com/attachments/1541787923358289981/1546928002242314240/c1f921f3-722c-4457-8b3b-9c5c60a86be1.png?ex=6aa19078&is=6aa03ef8&hm=3b5e9e285d217f4f13af92da772165e65fe899bb5e26f0186a796469fc645686&',
 };
 
 /**
@@ -304,6 +310,12 @@ export const LEVEL_MILESTONES = {
     },
 };
 
+/**
+ * =========================================================
+ * ALL LEVEL REWARD ROLE IDS
+ * =========================================================
+ */
+
 export const LEVEL_REWARD_ROLE_IDS =
     Object.values(
         LEVEL_MILESTONES,
@@ -312,42 +324,66 @@ export const LEVEL_REWARD_ROLE_IDS =
             milestone =>
                 milestone.roleId,
         )
-        .filter(Boolean);
+        .filter(
+            Boolean,
+        );
+
+/**
+ * =========================================================
+ * EXACT MILESTONE
+ * =========================================================
+ */
 
 export function getExactMilestone(
     level,
 ) {
     return (
         LEVEL_MILESTONES[
-            Number(level)
+            Number(
+                level,
+            )
         ] ||
         null
     );
 }
 
+/**
+ * =========================================================
+ * HIGHEST MILESTONE
+ * =========================================================
+ */
+
 export function getHighestMilestone(
     level,
 ) {
     const numericLevel =
-        Number(level) || 0;
+        Number(
+            level,
+        ) || 0;
 
     const levels =
         Object.keys(
             LEVEL_MILESTONES,
         )
-            .map(Number)
+            .map(
+                Number,
+            )
             .filter(
                 requiredLevel =>
                     requiredLevel <=
                     numericLevel,
             )
             .sort(
-                (a, b) =>
+                (
+                    a,
+                    b,
+                ) =>
                     b - a,
             );
 
     if (
-        levels.length === 0
+        levels.length ===
+        0
     ) {
         return null;
     }
