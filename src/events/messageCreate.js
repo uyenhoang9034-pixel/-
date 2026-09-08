@@ -1537,10 +1537,30 @@ async function handleAutoReact(
 
     if (
       !config.enabled ||
-      !config.reactions?.length
+      !Array.isArray(
+        config.reactions,
+      ) ||
+      config.reactions.length === 0
     ) {
       return;
     }
+
+    /**
+     * =====================================================
+     * FIND KEYWORDS
+     * =====================================================
+     *
+     * Ví dụ:
+     *
+     * keyword = "+1"
+     *
+     * Các message sau đều match:
+     *
+     * +1
+     * +1 nhận quà
+     * hello +1 nha
+     * abc+1xyz
+     */
 
     const matches =
       findMatchingAutoReacts(
@@ -1549,56 +1569,183 @@ async function handleAutoReact(
       );
 
     if (
+      !Array.isArray(matches) ||
       matches.length === 0
     ) {
       return;
     }
 
     /**
-     * Mỗi keyword có thể có một emoji.
+     * Một message có thể match nhiều keyword.
      *
-     * Nếu một message match nhiều keyword,
-     * bot sẽ react lần lượt với các emoji tương ứng.
+     * Đồng thời một keyword có thể chứa
+     * tối đa 5 emoji.
+     *
+     * Set này ngăn cùng một emoji bị react
+     * hai lần nếu nhiều keyword cùng chứa nó.
      */
+
     const reactedEmojiIds =
       new Set();
 
     for (
       const reaction of matches
     ) {
-      if (
-        reactedEmojiIds.has(
-          reaction.emojiId,
+      /**
+       * FORMAT MỚI:
+       *
+       * reaction.emojis = [
+       *   {
+       *     id,
+       *     name,
+       *     animated
+       *   }
+       * ]
+       */
+
+      const emojis =
+        Array.isArray(
+          reaction.emojis,
         )
+          ? reaction.emojis
+          : [];
+
+      if (
+        emojis.length === 0
       ) {
         continue;
       }
 
-      /**
-       * Chỉ cho phép emoji còn tồn tại
-       * trong server hiện tại.
-       */
-      const emoji =
-        message.guild.emojis.cache.get(
-          reaction.emojiId,
-        );
+      for (
+        const emojiData of emojis
+      ) {
+        if (
+          !emojiData ||
+          !emojiData.id
+        ) {
+          continue;
+        }
 
-      if (!emoji) {
-        continue;
-      }
+        /**
+         * Không react trùng emoji.
+         */
 
-      await message
-        .react(emoji)
-        .catch(error => {
-          logger.warn(
-            `Failed to auto-react with ${emoji.name || reaction.emojiId}:`,
-            error,
+        if (
+          reactedEmojiIds.has(
+            emojiData.id,
+          )
+        ) {
+          continue;
+        }
+
+        /**
+         * Custom emoji phải còn tồn tại
+         * trong server hiện tại.
+         */
+
+        const emoji =
+          message.guild.emojis.cache.get(
+            emojiData.id,
           );
-        });
 
-      reactedEmojiIds.add(
-        reaction.emojiId,
-      );
+        if (!emoji) {
+          logger.warn(
+            'Auto React emoji not found in guild',
+            {
+              guildId:
+                message.guild.id,
+
+              channelId:
+                message.channel.id,
+
+              keyword:
+                reaction.displayKeyword ||
+                reaction.keyword,
+
+              emojiId:
+                emojiData.id,
+
+              emojiName:
+                emojiData.name ||
+                null,
+            },
+          );
+
+          continue;
+        }
+
+        /**
+         * =================================================
+         * REACT
+         * =================================================
+         */
+
+        try {
+          await message.react(
+            emoji,
+          );
+
+          reactedEmojiIds.add(
+            emojiData.id,
+          );
+
+          logger.debug(
+            'Auto React added',
+            {
+              guildId:
+                message.guild.id,
+
+              channelId:
+                message.channel.id,
+
+              messageId:
+                message.id,
+
+              keyword:
+                reaction.displayKeyword ||
+                reaction.keyword,
+
+              emojiId:
+                emojiData.id,
+
+              emojiName:
+                emoji.name ||
+                emojiData.name ||
+                null,
+            },
+          );
+        } catch (error) {
+          logger.warn(
+            'Failed to add Auto React',
+            {
+              guildId:
+                message.guild.id,
+
+              channelId:
+                message.channel.id,
+
+              messageId:
+                message.id,
+
+              keyword:
+                reaction.displayKeyword ||
+                reaction.keyword,
+
+              emojiId:
+                emojiData.id,
+
+              emojiName:
+                emoji.name ||
+                emojiData.name ||
+                null,
+
+              error:
+                error?.message ||
+                String(error),
+            },
+          );
+        }
+      }
     }
   } catch (error) {
     logger.error(
