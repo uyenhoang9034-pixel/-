@@ -859,7 +859,13 @@ async function handleWordChain(
      * =====================================================
      */
 
-   const afterUserSuccess =
+ /**
+ * =====================================================
+ * USER CORRECT
+ * =====================================================
+ */
+
+const afterUserSuccess =
   await recordUserSuccess(
     client,
     message.guild.id,
@@ -868,8 +874,16 @@ async function handleWordChain(
     mode,
   );
 
+/**
+ * Chỉ chấm ✅ khi lượt thực sự
+ * được record thành công trong state.
+ *
+ * Nếu bị race với người chơi khác
+ * thì recordUserSuccess() sẽ trả
+ * __wordChainAccepted: false.
+ */
 if (
-  afterUserSuccess?.__wordChainAccepted !== true
+  !afterUserSuccess?.__wordChainAccepted
 ) {
   return true;
 }
@@ -877,7 +891,6 @@ if (
 await message.react(
   WORD_CHAIN_EMOJIS.correct,
 ).catch(() => {});
-
     /**
      * =====================================================
      * PVP
