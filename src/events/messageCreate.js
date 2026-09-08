@@ -148,6 +148,10 @@ export default {
       ) {
         return;
       }
+      await handleAutoReact(
+  message,
+  client,
+);
 
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
