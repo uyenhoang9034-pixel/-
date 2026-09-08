@@ -21,7 +21,7 @@ import {
  */
 
 export const USAGI_PANEL_IMAGE_URL =
-  'https://i.pinimg.com/736x/52/b6/04/52b604fb4972b0894d68284d9fcd30d0.jpg';
+  'https://cdn.discordapp.com/attachments/1541300740947968020/1546806015901696090/93a4c06a-09d0-4365-a4d5-cd62dfe787b9.png?ex=6aa11edc&is=6a9fcd5c&hm=04934cfe8e263cebfacd8701cd349366a865219508feaba0cf5e6861f9235006&';
 
 /**
  * =========================================================
