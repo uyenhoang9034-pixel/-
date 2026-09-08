@@ -88,6 +88,10 @@ import {
   recordBotSuccess,
   recordBreak,
 } from '../services/wordChainService.js';
+import {
+  getAutoReactConfig,
+  findMatchingAutoReacts,
+} from '../services/autoreact/autoreactService.js';
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -1501,5 +1505,101 @@ async function handleAutoresponder(
     );
 
     return false;
+  }
+}
+/**
+ * =========================================================
+ * AUTO REACT
+ * =========================================================
+ */
+
+async function handleAutoReact(
+  message,
+  client,
+) {
+  try {
+    if (
+      !message.guild ||
+      !message.content?.trim()
+    ) {
+      return;
+    }
+
+    const config =
+      await getAutoReactConfig(
+        client,
+        message.guild.id,
+      );
+
+    if (
+      !config.enabled ||
+      !config.reactions?.length
+    ) {
+      return;
+    }
+
+    const matches =
+      findMatchingAutoReacts(
+        message.content,
+        config.reactions,
+      );
+
+    if (
+      matches.length === 0
+    ) {
+      return;
+    }
+
+    /**
+     * Mỗi keyword có thể có một emoji.
+     *
+     * Nếu một message match nhiều keyword,
+     * bot sẽ react lần lượt với các emoji tương ứng.
+     */
+    const reactedEmojiIds =
+      new Set();
+
+    for (
+      const reaction of matches
+    ) {
+      if (
+        reactedEmojiIds.has(
+          reaction.emojiId,
+        )
+      ) {
+        continue;
+      }
+
+      /**
+       * Chỉ cho phép emoji còn tồn tại
+       * trong server hiện tại.
+       */
+      const emoji =
+        message.guild.emojis.cache.get(
+          reaction.emojiId,
+        );
+
+      if (!emoji) {
+        continue;
+      }
+
+      await message
+        .react(emoji)
+        .catch(error => {
+          logger.warn(
+            `Failed to auto-react with ${emoji.name || reaction.emojiId}:`,
+            error,
+          );
+        });
+
+      reactedEmojiIds.add(
+        reaction.emojiId,
+      );
+    }
+  } catch (error) {
+    logger.error(
+      'Error handling auto-react:',
+      error,
+    );
   }
 }
