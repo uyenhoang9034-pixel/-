@@ -7,6 +7,23 @@ import {
 
 const PAGE_SIZE = 20;
 
+/**
+ * =========================================================
+ * CHANNEL GUIDE IMAGE
+ * =========================================================
+ *
+ * Ảnh mặc định của Channel Guide.
+ *
+ * Nếu dashboard đã có panelImage riêng:
+ * -> dùng panelImage.
+ *
+ * Nếu panelImage bị trống/null:
+ * -> dùng ảnh mặc định này.
+ */
+
+const CHANNEL_GUIDE_IMAGE_URL =
+    'https://cdn.phototourl.com/free/2026-09-08-4183443d-bd15-44b4-b5c0-9dfe98f5b31d.png';
+
 const BUTTON_STYLES = [
     ButtonStyle.Primary,
     ButtonStyle.Success,
@@ -103,17 +120,39 @@ export function buildChannelGuidePanel(
                 'Hướng dẫn sử dụng các kênh discord server Serendipity 🖤🤍',
             );
 
-    // Thumbnail góc trên bên phải
-    if (guildIcon) {
-        embed.setThumbnail(guildIcon);
-    }
+    /**
+     * =====================================================
+     * THUMBNAIL
+     * =====================================================
+     */
 
-    // Ảnh lớn phía dưới
-    if (config.panelImage) {
-        embed.setImage(
-            config.panelImage,
+    if (guildIcon) {
+        embed.setThumbnail(
+            guildIcon,
         );
     }
+
+    /**
+     * =====================================================
+     * CHANNEL GUIDE IMAGE
+     * =====================================================
+     *
+     * Ưu tiên ảnh được cấu hình trong dashboard.
+     *
+     * Nếu database không có panelImage
+     * thì dùng ảnh Channel Guide mặc định.
+     */
+
+    embed.setImage(
+        config.panelImage ||
+            CHANNEL_GUIDE_IMAGE_URL,
+    );
+
+    /**
+     * =====================================================
+     * COMPONENTS
+     * =====================================================
+     */
 
     const components = [];
 
@@ -166,6 +205,12 @@ export function buildChannelGuidePanel(
 
         components.push(row);
     }
+
+    /**
+     * =====================================================
+     * PAGINATION
+     * =====================================================
+     */
 
     if (totalPages > 1) {
         components.push(
