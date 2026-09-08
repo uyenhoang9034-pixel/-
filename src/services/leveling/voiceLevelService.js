@@ -14,7 +14,7 @@ import {
 } from './levelRoleService.js';
 
 import {
-    sendLevelAnnouncement,
+    sendLevelChangeAnnouncements,
 } from './levelAnnouncementService.js';
 
 import {
@@ -677,21 +677,22 @@ async function awardVoiceLevels(
      * -> TU VI TINH TIẾN
      */
 
-    try {
-        await sendLevelAnnouncement({
-            guild,
+   try {
+    await sendLevelChangeAnnouncements({
+        guild,
 
-            member,
+        member,
 
-            level:
-                newLevel,
+        oldLevel,
 
-            source:
-                'voice',
-        });
-    } catch (
-        announcementError
-    ) {
+        newLevel,
+
+        source:
+            'voice',
+    });
+} catch (
+    announcementError
+) {
         logger.warn(
             `[VOICE LEVEL] Failed sending announcement for ${member.user.tag}:`,
             announcementError,
