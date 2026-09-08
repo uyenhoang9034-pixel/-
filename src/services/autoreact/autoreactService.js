@@ -25,7 +25,7 @@ const DEFAULT_CONFIG = {
 
 /**
  * =========================================================
- * NORMALIZE
+ * NORMALIZE KEYWORD
  * =========================================================
  */
 
@@ -38,6 +38,12 @@ function normalizeKeyword(
         .trim()
         .toLowerCase();
 }
+
+/**
+ * =========================================================
+ * NORMALIZE EMOJI
+ * =========================================================
+ */
 
 function normalizeEmoji(
     emoji,
@@ -73,6 +79,12 @@ function normalizeEmoji(
     };
 }
 
+/**
+ * =========================================================
+ * NORMALIZE CONFIG
+ * =========================================================
+ */
+
 function normalizeConfig(
     data,
 ) {
@@ -107,25 +119,21 @@ function normalizeConfig(
                     )
                     .map(
                         item => {
+                            let emojis = [];
+
                             /**
                              * =============================================
-                             * MIGRATION
+                             * FORMAT MỚI
                              * =============================================
                              *
-                             * Format cũ:
-                             *
-                             * emojiId
-                             * emojiName
-                             * animated
-                             *
-                             * Format mới:
-                             *
-                             * emojis: []
-                             *
-                             * Nhờ đoạn này data cũ vẫn dùng được.
+                             * emojis: [
+                             *   {
+                             *     id,
+                             *     name,
+                             *     animated
+                             *   }
+                             * ]
                              */
-
-                            let emojis = [];
 
                             if (
                                 Array.isArray(
@@ -141,6 +149,20 @@ function normalizeConfig(
                                             Boolean,
                                         );
                             }
+
+                            /**
+                             * =============================================
+                             * MIGRATION FORMAT CŨ
+                             * =============================================
+                             *
+                             * emojiId
+                             * emojiName
+                             * animated
+                             *
+                             * ->
+                             *
+                             * emojis[]
+                             */
 
                             if (
                                 emojis.length === 0 &&
@@ -168,13 +190,14 @@ function normalizeConfig(
                             }
 
                             /**
-                             * Không cho duplicate emoji
-                             * trong cùng một keyword.
+                             * =============================================
+                             * REMOVE DUPLICATE EMOJIS
+                             * =============================================
                              */
 
                             const uniqueEmojis = [];
 
-                            const seen =
+                            const seenEmojiIds =
                                 new Set();
 
                             for (
@@ -182,20 +205,25 @@ function normalizeConfig(
                                 emojis
                             ) {
                                 if (
-                                    seen.has(
+                                    seenEmojiIds.has(
                                         emoji.id,
                                     )
                                 ) {
                                     continue;
                                 }
 
-                                seen.add(
+                                seenEmojiIds.add(
                                     emoji.id,
                                 );
 
                                 uniqueEmojis.push(
                                     emoji,
                                 );
+
+                                /**
+                                 * Tối đa 5 emoji
+                                 * cho mỗi keyword.
+                                 */
 
                                 if (
                                     uniqueEmojis.length >=
@@ -250,7 +278,7 @@ function normalizeConfig(
 
 /**
  * =========================================================
- * DATABASE
+ * GET CONFIG
  * =========================================================
  */
 
@@ -280,6 +308,12 @@ export async function getAutoReactConfig(
     }
 }
 
+/**
+ * =========================================================
+ * SAVE CONFIG
+ * =========================================================
+ */
+
 export async function saveAutoReactConfig(
     client,
     guildId,
@@ -299,7 +333,7 @@ export async function saveAutoReactConfig(
 
 /**
  * =========================================================
- * PERMISSION
+ * PERMISSIONS
  * =========================================================
  */
 
@@ -310,12 +344,20 @@ export function canManageAutoReact(
         return false;
     }
 
+    /**
+     * Server Owner
+     */
+
     if (
         member.guild?.ownerId ===
         member.id
     ) {
         return true;
     }
+
+    /**
+     * Administrator
+     */
 
     if (
         member.permissions.has(
@@ -324,6 +366,10 @@ export function canManageAutoReact(
     ) {
         return true;
     }
+
+    /**
+     * Manage Server
+     */
 
     if (
         member.permissions.has(
@@ -338,16 +384,25 @@ export function canManageAutoReact(
 
 /**
  * =========================================================
- * ADD
+ * ADD AUTO REACT
  * =========================================================
  *
- * Nếu keyword chưa tồn tại:
+ * Ví dụ:
  *
- * usagi -> [emoji1]
+ * keyword: +1
  *
- * Nếu keyword đã tồn tại:
+ * Lần 1:
  *
- * usagi -> [emoji1, emoji2, ...]
+ * +1
+ * └ emoji1
+ *
+ * Lần 2:
+ *
+ * +1
+ * ├ emoji1
+ * └ emoji2
+ *
+ * ...
  *
  * Tối đa 5 emoji / keyword.
  */
@@ -365,6 +420,10 @@ export async function addAutoReact(
             keyword,
         );
 
+    /**
+     * Keyword rỗng.
+     */
+
     if (!normalizedKeyword) {
         return {
             success: false,
@@ -372,6 +431,10 @@ export async function addAutoReact(
                 'invalid_keyword',
         };
     }
+
+    /**
+     * Emoji không hợp lệ.
+     */
 
     if (
         !emoji ||
@@ -392,7 +455,7 @@ export async function addAutoReact(
 
     /**
      * =====================================================
-     * KEYWORD ĐÃ TỒN TẠI
+     * CHECK KEYWORD ĐÃ TỒN TẠI
      * =====================================================
      */
 
@@ -405,6 +468,16 @@ export async function addAutoReact(
                 normalizedKeyword,
         );
 
+    /**
+     * =====================================================
+     * KEYWORD ĐÃ TỒN TẠI
+     * =====================================================
+     *
+     * Không tạo keyword duplicate.
+     *
+     * Thêm emoji vào keyword cũ.
+     */
+
     if (existing) {
         existing.emojis =
             Array.isArray(
@@ -414,7 +487,7 @@ export async function addAutoReact(
                 : [];
 
         /**
-         * Emoji đã có trong keyword.
+         * Check emoji duplicate.
          */
 
         const emojiAlreadyExists =
@@ -429,15 +502,17 @@ export async function addAutoReact(
         ) {
             return {
                 success: false,
+
                 reason:
                     'duplicate_emoji',
+
                 reaction:
                     existing,
             };
         }
 
         /**
-         * Tối đa 5 emoji.
+         * Check limit.
          */
 
         if (
@@ -447,15 +522,17 @@ export async function addAutoReact(
         ) {
             return {
                 success: false,
+
                 reason:
                     'emoji_limit',
+
                 reaction:
                     existing,
             };
         }
 
         /**
-         * Thêm emoji mới.
+         * Add emoji.
          */
 
         existing.emojis.push({
@@ -468,7 +545,7 @@ export async function addAutoReact(
 
             animated:
                 emoji.animated ===
-                true,
+                    true,
         });
 
         existing.updatedAt =
@@ -494,7 +571,7 @@ export async function addAutoReact(
 
     /**
      * =====================================================
-     * KEYWORD MỚI
+     * CREATE NEW KEYWORD
      * =====================================================
      */
 
@@ -563,7 +640,7 @@ export async function addAutoReact(
 
 /**
  * =========================================================
- * REMOVE KEYWORD
+ * REMOVE ENTIRE KEYWORD
  * =========================================================
  */
 
@@ -591,6 +668,7 @@ export async function removeAutoReact(
     ) {
         return {
             success: false,
+
             reason:
                 'not_found',
         };
@@ -618,7 +696,7 @@ export async function removeAutoReact(
 
 /**
  * =========================================================
- * REMOVE EMOJI FROM KEYWORD
+ * REMOVE ONE EMOJI
  * =========================================================
  */
 
@@ -644,6 +722,7 @@ export async function removeAutoReactEmoji(
     if (!reaction) {
         return {
             success: false,
+
             reason:
                 'not_found',
         };
@@ -661,6 +740,7 @@ export async function removeAutoReactEmoji(
     ) {
         return {
             success: false,
+
             reason:
                 'emoji_not_found',
         };
@@ -675,13 +755,16 @@ export async function removeAutoReactEmoji(
         );
 
     /**
-     * Nếu xóa emoji cuối cùng,
-     * xóa luôn keyword.
+     * Nếu keyword không còn emoji nào
+     * thì xóa luôn keyword.
      */
 
-    if (
+    const keywordDeleted =
         reaction.emojis.length ===
-        0
+        0;
+
+    if (
+        keywordDeleted
     ) {
         config.reactions =
             config.reactions.filter(
@@ -708,9 +791,7 @@ export async function removeAutoReactEmoji(
 
         removedEmoji,
 
-        keywordDeleted:
-            reaction.emojis.length ===
-            0,
+        keywordDeleted,
     };
 }
 
@@ -742,6 +823,7 @@ export async function toggleAutoReact(
     if (!reaction) {
         return {
             success: false,
+
             reason:
                 'not_found',
         };
@@ -768,7 +850,7 @@ export async function toggleAutoReact(
 
 /**
  * =========================================================
- * ENABLE / DISABLE SYSTEM
+ * ENABLE / DISABLE ENTIRE SYSTEM
  * =========================================================
  */
 
@@ -797,7 +879,51 @@ export async function setAutoReactEnabled(
 
 /**
  * =========================================================
- * MATCH MESSAGE
+ * FIND MATCHING AUTO REACTS
+ * =========================================================
+ *
+ * QUAN TRỌNG:
+ *
+ * Đây là CONTAINS MATCH.
+ *
+ * Không yêu cầu message === keyword.
+ *
+ * Chỉ cần message CÓ CHỨA keyword.
+ *
+ * Ví dụ keyword:
+ *
+ * +1
+ *
+ * Những message sau ĐỀU MATCH:
+ *
+ * +1
+ * cho bạn +1
+ * ok +1 nha
+ * abc+1xyz
+ * +100
+ *
+ * -----------------------------------------
+ *
+ * Keyword:
+ *
+ * usagi
+ *
+ * Match:
+ *
+ * usagi
+ * hello usagi
+ * usagi cute
+ * hôm nay usagi cute quá
+ *
+ * -----------------------------------------
+ *
+ * Không phân biệt hoa / thường.
+ *
+ * Usagi
+ * USAGI
+ * usagi
+ *
+ * đều match keyword "usagi".
  * =========================================================
  */
 
@@ -814,6 +940,10 @@ export function findMatchingAutoReacts(
         return [];
     }
 
+    /**
+     * Normalize toàn bộ message.
+     */
+
     const normalizedContent =
         String(
             content,
@@ -821,6 +951,12 @@ export function findMatchingAutoReacts(
             .toLowerCase();
 
     return reactions
+
+        /**
+         * Chỉ lấy rule đang bật
+         * và có emoji.
+         */
+
         .filter(
             item =>
                 item.enabled !==
@@ -832,15 +968,53 @@ export function findMatchingAutoReacts(
                 item.emojis.length >
                     0,
         )
+
+        /**
+         * =================================================
+         * CONTAINS MATCH
+         * =================================================
+         *
+         * Đây chính là phần giúp:
+         *
+         * keyword = "+1"
+         *
+         * "hello +1 nha"
+         *
+         * vẫn được nhận diện.
+         */
+
         .filter(
-            item =>
-                normalizedContent
-                    .includes(
-                        normalizeKeyword(
-                            item.keyword,
-                        ),
-                    ),
+            item => {
+                const keyword =
+                    normalizeKeyword(
+                        item.keyword,
+                    );
+
+                if (!keyword) {
+                    return false;
+                }
+
+                return (
+                    normalizedContent
+                        .includes(
+                            keyword,
+                        )
+                );
+            },
         )
+
+        /**
+         * Keyword dài hơn ưu tiên trước.
+         *
+         * Ví dụ:
+         *
+         * +1
+         * +100
+         *
+         * Nếu message chứa +100
+         * thì +100 được xử lý trước.
+         */
+
         .sort(
             (
                 a,
