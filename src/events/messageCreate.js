@@ -859,18 +859,24 @@ async function handleWordChain(
      * =====================================================
      */
 
-    await message.react(
-      WORD_CHAIN_EMOJIS.correct,
-    ).catch(() => {});
+   const afterUserSuccess =
+  await recordUserSuccess(
+    client,
+    message.guild.id,
+    message.author.id,
+    normalized,
+    mode,
+  );
 
-    const afterUserSuccess =
-      await recordUserSuccess(
-        client,
-        message.guild.id,
-        message.author.id,
-        normalized,
-        mode,
-      );
+if (
+  afterUserSuccess?.__wordChainAccepted !== true
+) {
+  return true;
+}
+
+await message.react(
+  WORD_CHAIN_EMOJIS.correct,
+).catch(() => {});
 
     /**
      * =====================================================
