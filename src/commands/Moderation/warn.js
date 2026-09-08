@@ -33,6 +33,12 @@ import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
 
+/**
+ * =========================================================
+ * CONFIG
+ * =========================================================
+ */
+
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
@@ -46,6 +52,12 @@ const EMOJIS = {
     warn:
         '<a:bang2:1546891483250954290>',
 };
+
+/**
+ * =========================================================
+ * SEND USAGI WARN LOG
+ * =========================================================
+ */
 
 async function sendUsagiWarnLog({
     guild,
@@ -68,6 +80,10 @@ async function sendUsagiWarnLog({
         !channel ||
         !channel.isTextBased()
     ) {
+        logger.warn(
+            `Warn log channel ${MODERATION_CHANNEL_ID} not found.`,
+        );
+
         return;
     }
 
@@ -109,16 +125,18 @@ async function sendUsagiWarnLog({
             )
             .setTimestamp();
 
-    await channel
-        .send({
-            embeds: [
-                embed,
-            ],
-        })
-        .catch(
-            () => {},
-        );
+    await channel.send({
+        embeds: [
+            embed,
+        ],
+    });
 }
+
+/**
+ * =========================================================
+ * COMMAND
+ * =========================================================
+ */
 
 export default {
     data:
@@ -167,37 +185,55 @@ export default {
         config,
         client,
     ) {
+        /**
+         * =================================================
+         * DEFER
+         * =================================================
+         */
+
         const deferSuccess =
-            await InteractionHelper
-                .safeDefer(
-                    interaction,
-                );
+            await InteractionHelper.safeDefer(
+                interaction,
+            );
 
         if (!deferSuccess) {
             logger.warn(
                 'Warn interaction defer failed',
+                {
+                    userId:
+                        interaction.user.id,
+
+                    guildId:
+                        interaction.guildId,
+
+                    commandName:
+                        'warn',
+                },
             );
 
             return;
         }
 
+        /**
+         * =================================================
+         * OPTIONS
+         * =================================================
+         */
+
         const target =
-            interaction.options
-                .getUser(
-                    'target',
-                );
+            interaction.options.getUser(
+                'target',
+            );
 
         const member =
-            interaction.options
-                .getMember(
-                    'target',
-                );
+            interaction.options.getMember(
+                'target',
+            );
 
         const reason =
-            interaction.options
-                .getString(
-                    'reason',
-                );
+            interaction.options.getString(
+                'reason',
+            );
 
         const moderator =
             interaction.user;
@@ -205,11 +241,21 @@ export default {
         const guildId =
             interaction.guildId;
 
+        /**
+         * =================================================
+         * VALIDATION
+         * =================================================
+         */
+
         if (!target) {
             throw new TitanBotError(
                 'Missing target user',
                 ErrorTypes.USER_INPUT,
                 'You must specify a user to warn.',
+                {
+                    subtype:
+                        'invalid_user',
+                },
             );
         }
 
@@ -218,6 +264,10 @@ export default {
                 'Missing warning reason',
                 ErrorTypes.VALIDATION,
                 'You must provide a reason for the warning.',
+                {
+                    subtype:
+                        'missing_required',
+                },
             );
         }
 
@@ -229,70 +279,114 @@ export default {
             );
         }
 
-        ModerationService
-            .assertModerationHierarchy(
-                interaction.member,
-                member,
-                'warn',
+        if (
+            target.id ===
+            interaction.user.id
+        ) {
+            throw new TitanBotError(
+                'Cannot warn self',
+                ErrorTypes.VALIDATION,
+                'You cannot warn yourself.',
             );
+        }
+
+        if (
+            target.id ===
+            client.user.id
+        ) {
+            throw new TitanBotError(
+                'Cannot warn bot',
+                ErrorTypes.VALIDATION,
+                'You cannot warn the bot.',
+            );
+        }
+
+        /**
+         * =================================================
+         * HIERARCHY CHECK
+         * =================================================
+         */
+
+        ModerationService.assertModerationHierarchy(
+            interaction.member,
+            member,
+            'warn',
+        );
+
+        /**
+         * =================================================
+         * SAVE WARNING
+         * =================================================
+         */
 
         const {
-            id,
+            id: warningId,
             totalCount,
         } =
-            await WarningService
-                .addWarning({
-                    guildId,
+            await WarningService.addWarning({
+                guildId,
 
+                userId:
+                    target.id,
+
+                moderatorId:
+                    moderator.id,
+
+                reason,
+
+                timestamp:
+                    Date.now(),
+            });
+
+        /**
+         * =================================================
+         * EXISTING MODERATION LOG
+         * =================================================
+         *
+         * Giữ nguyên hệ thống log/case hiện tại.
+         */
+
+        await logModerationAction({
+            client,
+
+            guild:
+                interaction.guild,
+
+            event: {
+                action:
+                    'User Warned',
+
+                target:
+                    `${target.tag} (${target.id})`,
+
+                executor:
+                    `${moderator.tag} (${moderator.id})`,
+
+                reason,
+
+                metadata: {
                     userId:
                         target.id,
 
                     moderatorId:
                         moderator.id,
 
-                    reason,
+                    totalWarns:
+                        totalCount,
 
-                    timestamp:
-                        Date.now(),
-                });
+                    warningNumber:
+                        totalCount,
 
-        const caseId =
-            await logModerationAction({
-                client,
-
-                guild:
-                    interaction.guild,
-
-                event: {
-                    action:
-                        'User Warned',
-
-                    target:
-                        `${target.tag} (${target.id})`,
-
-                    executor:
-                        `${moderator.tag} (${moderator.id})`,
-
-                    reason,
-
-                    metadata: {
-                        userId:
-                            target.id,
-
-                        moderatorId:
-                            moderator.id,
-
-                        totalWarns:
-                            totalCount,
-
-                        warningNumber:
-                            totalCount,
-
-                        warningId:
-                            id,
-                    },
+                    warningId,
                 },
-            });
+            },
+        });
+
+        /**
+         * =================================================
+         * USAGI WARN LOG
+         * =================================================
+         */
 
         await sendUsagiWarnLog({
             guild:
@@ -307,20 +401,29 @@ export default {
             totalCount,
 
             warningCase:
-                caseId,
+                warningId,
         });
 
-        await InteractionHelper
-            .safeEditReply(
-                interaction,
-                {
-                    embeds: [
-                        successEmbed(
-                            `⚠️ **Warned** ${target.tag}`,
-                            `**Reason:** ${reason}\n**Total Warns:** ${totalCount}`,
-                        ),
-                    ],
-                },
-            );
+        /**
+         * =================================================
+         * COMMAND RESPONSE
+         * =================================================
+         */
+
+        await InteractionHelper.safeEditReply(
+            interaction,
+            {
+                embeds: [
+                    successEmbed(
+                        `⚠️ **Warned** ${target.tag}`,
+                        [
+                            `**Reason:** ${reason}`,
+                            `**Total Warns:** ${totalCount}`,
+                            `**Warning Case:** #${warningId}`,
+                        ].join('\n'),
+                    ),
+                ],
+            },
+        );
     },
 };
