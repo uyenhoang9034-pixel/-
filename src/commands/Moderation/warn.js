@@ -33,14 +33,11 @@ import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
 
-/**
- * =========================================================
- * USAGI MODERATION
- * =========================================================
- */
-
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
+
+const MODERATION_IMAGE_URL =
+    'https://cdn.phototourl.com/free/2026-09-08-9fd00794-554a-4eca-91fd-8f5cd6c3dae9.jpg';
 
 const EMOJIS = {
     decoration:
@@ -49,12 +46,6 @@ const EMOJIS = {
     warn:
         '<a:bang2:1546891483250954290>',
 };
-
-/**
- * =========================================================
- * SEND USAGI WARN LOG
- * =========================================================
- */
 
 async function sendUsagiWarnLog({
     guild,
@@ -83,14 +74,14 @@ async function sendUsagiWarnLog({
     const embed =
         new EmbedBuilder()
             .setColor(
-                0xf7c6d9,
+                0xffffff,
             )
             .setTitle(
                 `${EMOJIS.decoration} 𝓤𝓼𝓪𝓰𝓲 𝓜𝓸𝓭𝓮𝓻𝓪𝓽𝓲𝓸𝓷 ${EMOJIS.decoration}`,
             )
             .setDescription(
                 [
-                    `${EMOJIS.warn} **CẢNH CÁO**`,
+                    `${EMOJIS.warn} **CẢNH CÁO!**`,
 
                     '',
                     `${EMOJIS.warn} **Thành viên**`,
@@ -113,6 +104,9 @@ async function sendUsagiWarnLog({
                     `#${warningCase}`,
                 ].join('\n'),
             )
+            .setImage(
+                MODERATION_IMAGE_URL,
+            )
             .setTimestamp();
 
     await channel
@@ -126,12 +120,6 @@ async function sendUsagiWarnLog({
         );
 }
 
-/**
- * =========================================================
- * COMMAND
- * =========================================================
- */
-
 export default {
     data:
         new SlashCommandBuilder()
@@ -142,7 +130,7 @@ export default {
                 'Cảnh cáo một thành viên',
             )
             .addUserOption(
-                (option) =>
+                option =>
                     option
                         .setName(
                             'target',
@@ -155,7 +143,7 @@ export default {
                         ),
             )
             .addStringOption(
-                (option) =>
+                option =>
                     option
                         .setName(
                             'reason',
@@ -188,16 +176,6 @@ export default {
         if (!deferSuccess) {
             logger.warn(
                 'Warn interaction defer failed',
-                {
-                    userId:
-                        interaction.user.id,
-
-                    guildId:
-                        interaction.guildId,
-
-                    commandName:
-                        'warn',
-                },
             );
 
             return;
@@ -232,10 +210,6 @@ export default {
                 'Missing target user',
                 ErrorTypes.USER_INPUT,
                 'You must specify a user to warn.',
-                {
-                    subtype:
-                        'invalid_user',
-                },
             );
         }
 
@@ -244,10 +218,6 @@ export default {
                 'Missing warning reason',
                 ErrorTypes.VALIDATION,
                 'You must provide a reason for the warning.',
-                {
-                    subtype:
-                        'missing_required',
-                },
             );
         }
 
@@ -259,24 +229,12 @@ export default {
             );
         }
 
-        /**
-         * =================================================
-         * PERMISSION / HIERARCHY
-         * =================================================
-         */
-
         ModerationService
             .assertModerationHierarchy(
                 interaction.member,
                 member,
                 'warn',
             );
-
-        /**
-         * =================================================
-         * SAVE WARNING
-         * =================================================
-         */
 
         const {
             id,
@@ -298,54 +256,43 @@ export default {
                         Date.now(),
                 });
 
-        /**
-         * =================================================
-         * GIỮ LOGGING CŨ
-         * =================================================
-         */
+        const caseId =
+            await logModerationAction({
+                client,
 
-        await logModerationAction({
-            client,
+                guild:
+                    interaction.guild,
 
-            guild:
-                interaction.guild,
+                event: {
+                    action:
+                        'User Warned',
 
-            event: {
-                action:
-                    'User Warned',
+                    target:
+                        `${target.tag} (${target.id})`,
 
-                target:
-                    `${target.tag} (${target.id})`,
+                    executor:
+                        `${moderator.tag} (${moderator.id})`,
 
-                executor:
-                    `${moderator.tag} (${moderator.id})`,
+                    reason,
 
-                reason,
+                    metadata: {
+                        userId:
+                            target.id,
 
-                metadata: {
-                    userId:
-                        target.id,
+                        moderatorId:
+                            moderator.id,
 
-                    moderatorId:
-                        moderator.id,
+                        totalWarns:
+                            totalCount,
 
-                    totalWarns:
-                        totalCount,
+                        warningNumber:
+                            totalCount,
 
-                    warningNumber:
-                        totalCount,
-
-                    warningId:
-                        id,
+                        warningId:
+                            id,
+                    },
                 },
-            },
-        });
-
-        /**
-         * =================================================
-         * USAGI LOG
-         * =================================================
-         */
+            });
 
         await sendUsagiWarnLog({
             guild:
@@ -360,14 +307,8 @@ export default {
             totalCount,
 
             warningCase:
-                id,
+                caseId,
         });
-
-        /**
-         * =================================================
-         * COMMAND RESPONSE
-         * =================================================
-         */
 
         await InteractionHelper
             .safeEditReply(
