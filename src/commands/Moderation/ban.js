@@ -29,10 +29,10 @@ const MODERATION_IMAGE_URL =
 
 const EMOJIS = {
     decoration:
-        '<a:bang3:1546891744237461635>',
+        '<a:bang6:1546906224388350035>',
 
     ban:
-        '<:ban1:1546897486889750669>',
+        '<a:bang5:1546905838986330124>',
 
     reasonEnd:
         '<a:bang1:1546891405371117668>',
@@ -95,15 +95,11 @@ async function sendUsagiBanLog({
             )
             .setTimestamp();
 
-    await channel
-        .send({
-            embeds: [
-                embed,
-            ],
-        })
-        .catch(
-            () => {},
-        );
+    await channel.send({
+        embeds: [
+            embed,
+        ],
+    });
 }
 
 export default {
