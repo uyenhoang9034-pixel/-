@@ -20,6 +20,9 @@ import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 import giveawayDashboard from '../commands/Giveaway/modules/giveaway_dashboard.js';
+import {
+  handleJoinToCreateControl,
+} from '../handlers/joinToCreateControl.js';
 
 const COMMAND_ERROR_SUBTYPES = {
   warn: 'warn_failed',
@@ -58,6 +61,28 @@ export default {
       try {
         InteractionHelper.patchInteractionResponses(interaction);
         ResponseCoordinator.attach(interaction);
+
+/**
+ * =========================================================
+ * JOIN TO CREATE — PERSISTENT ROOM CONTROL
+ * =========================================================
+ */
+
+if (
+  interaction.isButton() ||
+  interaction.isStringSelectMenu() ||
+  interaction.isModalSubmit()
+) {
+  const handled =
+    await handleJoinToCreateControl(
+      interaction,
+      client,
+    );
+
+  if (handled) {
+    return;
+  }
+}
 
 // Giveaway dashboard components
 if (
