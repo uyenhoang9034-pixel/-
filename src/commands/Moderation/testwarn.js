@@ -8,6 +8,9 @@ import {
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
+const MODERATION_IMAGE_URL =
+    'https://cdn.phototourl.com/free/2026-09-08-9fd00794-554a-4eca-91fd-8f5cd6c3dae9.jpg';
+
 const EMOJIS = {
     decoration:
         '<a:bang3:1546891744237461635>',
@@ -19,58 +22,70 @@ const EMOJIS = {
 export default {
     data:
         new SlashCommandBuilder()
-            .setName('testwarn')
+            .setName(
+                'testwarn',
+            )
             .setDescription(
                 'Xem thử giao diện thông báo cảnh cáo',
             )
             .addUserOption(
                 option =>
                     option
-                        .setName('target')
+                        .setName(
+                            'target',
+                        )
                         .setDescription(
                             'Thành viên dùng để hiển thị thử',
                         )
-                        .setRequired(true),
+                        .setRequired(
+                            true,
+                        ),
             )
             .addStringOption(
                 option =>
                     option
-                        .setName('reason')
+                        .setName(
+                            'reason',
+                        )
                         .setDescription(
                             'Nội dung cảnh cáo hiển thị thử',
                         )
-                        .setRequired(true),
+                        .setRequired(
+                            true,
+                        ),
             )
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.ModerateMembers,
             ),
 
     category:
-        'Moderation',
+        'moderation',
 
     async execute(
         interaction,
-        config,
-        client,
     ) {
         const target =
-            interaction.options.getUser(
-                'target',
-                true,
-            );
+            interaction.options
+                .getUser(
+                    'target',
+                    true,
+                );
 
         const reason =
-            interaction.options.getString(
-                'reason',
-                true,
-            );
+            interaction.options
+                .getString(
+                    'reason',
+                    true,
+                );
 
         const channel =
             await interaction.guild.channels
                 .fetch(
                     MODERATION_CHANNEL_ID,
                 )
-                .catch(() => null);
+                .catch(
+                    () => null,
+                );
 
         if (
             !channel ||
@@ -78,7 +93,8 @@ export default {
         ) {
             await interaction.reply({
                 content:
-                    `Không tìm thấy kênh <#${MODERATION_CHANNEL_ID}>.`,
+                    'Không tìm thấy kênh moderation.',
+
                 flags:
                     MessageFlags.Ephemeral,
             });
@@ -86,29 +102,23 @@ export default {
             return;
         }
 
-        /**
-         * TEST ONLY.
-         *
-         * KHÔNG WarningService.addWarning().
-         * KHÔNG logModerationAction().
-         * KHÔNG ghi database.
-         */
-
         const fakeTotalWarnings =
-            3;
+            0;
 
         const fakeWarningCase =
             'TEST-001';
 
         const embed =
             new EmbedBuilder()
-                .setColor(0xf7c6d9)
+                .setColor(
+                    0xffffff,
+                )
                 .setTitle(
                     `${EMOJIS.decoration} 𝓤𝓼𝓪𝓰𝓲 𝓜𝓸𝓭𝓮𝓻𝓪𝓽𝓲𝓸𝓷 ${EMOJIS.decoration}`,
                 )
                 .setDescription(
                     [
-                        `${EMOJIS.warn} **CẢNH CÁO**`,
+                        `${EMOJIS.warn} **CẢNH CÁO!**`,
 
                         '',
                         `${EMOJIS.warn} **Thành viên**`,
@@ -131,15 +141,21 @@ export default {
                         `#${fakeWarningCase}`,
                     ].join('\n'),
                 )
+                .setImage(
+                    MODERATION_IMAGE_URL,
+                )
                 .setTimestamp();
 
         await channel.send({
-            embeds: [embed],
+            embeds: [
+                embed,
+            ],
         });
 
         await interaction.reply({
             content:
-                `Đã gửi giao diện test cảnh cáo vào <#${MODERATION_CHANNEL_ID}>. Không có warning nào được lưu.`,
+                'Đã gửi giao diện test cảnh cáo. Không có warning nào được lưu.',
+
             flags:
                 MessageFlags.Ephemeral,
         });
