@@ -7,9 +7,17 @@ import {
   getUserLevelData,
 } from '../services/leveling/leveling.js';
 
-import { addXp } from '../services/leveling/xpSystem.js';
+import {
+  addXp,
+} from '../services/leveling/xpSystem.js';
 
-import { checkRateLimit } from '../utils/rateLimiter.js';
+import {
+  PRISON_ROLE_ID,
+} from '../config/leveling/levelingSystem.js';
+
+import {
+  checkRateLimit,
+} from '../utils/rateLimiter.js';
 
 import {
   parsePrefixCommand,
@@ -88,13 +96,17 @@ import {
   recordBotSuccess,
   recordBreak,
 } from '../services/wordChainService.js';
+
 import {
   getAutoReactConfig,
   findMatchingAutoReacts,
 } from '../services/autoreact/autoreactService.js';
 
-const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
-const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
+const MESSAGE_XP_RATE_LIMIT_ATTEMPTS =
+  12;
+
+const MESSAGE_XP_RATE_LIMIT_WINDOW_MS =
+  10000;
 
 /**
  * =========================================================
@@ -135,7 +147,8 @@ const WORD_CHAIN_EMOJIS = {
  */
 
 export default {
-  name: Events.MessageCreate,
+  name:
+    Events.MessageCreate,
 
   async execute(
     message,
@@ -148,10 +161,11 @@ export default {
       ) {
         return;
       }
+
       await handleAutoReact(
-  message,
-  client,
-);
+        message,
+        client,
+      );
 
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
@@ -263,7 +277,8 @@ async function handlePrefixCommand(
         musicPrefixShortcut,
       )
     ) {
-      commandName = 'music';
+      commandName =
+        'music';
 
       args = [
         musicPrefixShortcut,
@@ -316,7 +331,9 @@ async function handlePrefixCommand(
             }),
           ],
         })
-        .catch(() => {});
+        .catch(
+          () => {},
+        );
 
       return;
     }
@@ -343,7 +360,9 @@ async function handlePrefixCommand(
             }),
           ],
         })
-        .catch(() => {});
+        .catch(
+          () => {},
+        );
 
       return;
     }
@@ -380,7 +399,9 @@ async function handlePrefixCommand(
               }),
             ],
           })
-          .catch(() => {});
+          .catch(
+            () => {},
+          );
       }
 
       return;
@@ -412,7 +433,9 @@ async function handlePrefixCommand(
             }),
           ],
         })
-        .catch(() => {});
+        .catch(
+          () => {},
+        );
 
       return;
     }
@@ -456,7 +479,9 @@ async function handlePrefixCommand(
             }),
           ],
         })
-        .catch(() => {});
+        .catch(
+          () => {},
+        );
 
       return;
     }
@@ -521,16 +546,24 @@ async function handleCountingGame(
       invalidAttempt
     ) {
       await message.delete()
-        .catch(() => {});
+        .catch(
+          () => {},
+        );
 
       await saveCountingGameConfig(
         client,
         message.guild.id,
         {
           ...config,
-          nextNumber: 1,
-          lastUserId: null,
-          currentStreak: 0,
+
+          nextNumber:
+            1,
+
+          lastUserId:
+            null,
+
+          currentStreak:
+            0,
         },
       );
 
@@ -543,7 +576,9 @@ async function handleCountingGame(
         () => {
           failureMessage
             .delete()
-            .catch(() => {});
+            .catch(
+              () => {},
+            );
         },
         10000,
       );
@@ -572,16 +607,6 @@ async function handleCountingGame(
  * =========================================================
  * WORD CHAIN
  * =========================================================
- *
- * QUAN TRỌNG:
- *
- * PvP và PvE chạy độc lập.
- *
- * PvP:
- * 1545291672504508416
- *
- * PvE:
- * 1546428675367505920
  */
 
 async function handleWordChain(
@@ -589,12 +614,6 @@ async function handleWordChain(
   client,
 ) {
   try {
-    /**
-     * =====================================================
-     * RESOLVE MODE THEO CHANNEL
-     * =====================================================
-     */
-
     const mode =
       getWordChainModeForChannel(
         message.channel.id,
@@ -630,12 +649,6 @@ async function handleWordChain(
       return false;
     }
 
-    /**
-     * =====================================================
-     * IGNORE COMMAND
-     * =====================================================
-     */
-
     if (
       content.startsWith('/') ||
       content.startsWith('!') ||
@@ -643,12 +656,6 @@ async function handleWordChain(
     ) {
       return false;
     }
-
-    /**
-     * =====================================================
-     * NORMALIZE
-     * =====================================================
-     */
 
     const normalized =
       normalizeWord(
@@ -659,12 +666,6 @@ async function handleWordChain(
       return false;
     }
 
-    /**
-     * =====================================================
-     * EXACTLY 2 SYLLABLES
-     * =====================================================
-     */
-
     const parts =
       normalized
         .split(/\s+/)
@@ -673,21 +674,12 @@ async function handleWordChain(
     if (
       parts.length !== 2 ||
       !parts.every(
-        (part) =>
+        part =>
           /^\p{L}+$/u.test(
             part,
           ),
       )
     ) {
-      /**
-       * Không đúng 2 tiếng:
-       *
-       * - không X
-       * - không V
-       * - không streak
-       * - không leaderboard
-       * - không thông báo
-       */
       return false;
     }
 
@@ -716,19 +708,25 @@ async function handleWordChain(
 
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
-      ).catch(() => {});
+      ).catch(
+        () => {},
+      );
 
       const warnMsg =
         await message.reply(
           `Bạn đã sử dụng một từ không khớp với lượt chơi. Hãy để người chơi khác nối tiếp từ **${needed}**! ${WORD_CHAIN_EMOJIS.wrongChain}`,
-        ).catch(() => null);
+        ).catch(
+          () => null,
+        );
 
       if (warnMsg) {
         setTimeout(
           () =>
             warnMsg
               .delete()
-              .catch(() => {}),
+              .catch(
+                () => {},
+              ),
           6000,
         );
       }
@@ -758,19 +756,25 @@ async function handleWordChain(
 
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
-      ).catch(() => {});
+      ).catch(
+        () => {},
+      );
 
       const warnMsg =
         await message.reply(
           `Bạn đã sử dụng một từ không khớp với từ trước đó. Bạn cần bắt đầu bằng **${needed}**! ${WORD_CHAIN_EMOJIS.wrongChain}`,
-        ).catch(() => null);
+        ).catch(
+          () => null,
+        );
 
       if (warnMsg) {
         setTimeout(
           () =>
             warnMsg
               .delete()
-              .catch(() => {}),
+              .catch(
+                () => {},
+              ),
           6000,
         );
       }
@@ -785,7 +789,8 @@ async function handleWordChain(
      */
 
     const usedWords =
-      game.usedWords || [];
+      game.usedWords ||
+      [];
 
     if (
       usedWords.includes(
@@ -801,19 +806,25 @@ async function handleWordChain(
 
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
-      ).catch(() => {});
+      ).catch(
+        () => {},
+      );
 
       const warnMsg =
         await message.reply(
           `Bạn đã sử dụng từ này rồi. Hãy bắt đầu một từ mới với **${needed}**! ${WORD_CHAIN_EMOJIS.wrongWord}`,
-        ).catch(() => null);
+        ).catch(
+          () => null,
+        );
 
       if (warnMsg) {
         setTimeout(
           () =>
             warnMsg
               .delete()
-              .catch(() => {}),
+              .catch(
+                () => {},
+              ),
           6000,
         );
       }
@@ -841,19 +852,25 @@ async function handleWordChain(
 
       await message.react(
         WORD_CHAIN_EMOJIS.wrong,
-      ).catch(() => {});
+      ).catch(
+        () => {},
+      );
 
       const warnMsg =
         await message.reply(
           `Từ này không hợp lệ. Hãy bắt đầu một từ mới với **${needed}**! ${WORD_CHAIN_EMOJIS.wrongWord}`,
-        ).catch(() => null);
+        ).catch(
+          () => null,
+        );
 
       if (warnMsg) {
         setTimeout(
           () =>
             warnMsg
               .delete()
-              .catch(() => {}),
+              .catch(
+                () => {},
+              ),
           6000,
         );
       }
@@ -867,38 +884,28 @@ async function handleWordChain(
      * =====================================================
      */
 
- /**
- * =====================================================
- * USER CORRECT
- * =====================================================
- */
+    const afterUserSuccess =
+      await recordUserSuccess(
+        client,
+        message.guild.id,
+        message.author.id,
+        normalized,
+        mode,
+      );
 
-const afterUserSuccess =
-  await recordUserSuccess(
-    client,
-    message.guild.id,
-    message.author.id,
-    normalized,
-    mode,
-  );
+    if (
+      !afterUserSuccess
+        ?.__wordChainAccepted
+    ) {
+      return true;
+    }
 
-/**
- * Chỉ chấm ✅ khi lượt thực sự
- * được record thành công trong state.
- *
- * Nếu bị race với người chơi khác
- * thì recordUserSuccess() sẽ trả
- * __wordChainAccepted: false.
- */
-if (
-  !afterUserSuccess?.__wordChainAccepted
-) {
-  return true;
-}
+    await message.react(
+      WORD_CHAIN_EMOJIS.correct,
+    ).catch(
+      () => {},
+    );
 
-await message.react(
-  WORD_CHAIN_EMOJIS.correct,
-).catch(() => {});
     /**
      * =====================================================
      * PVP
@@ -906,7 +913,8 @@ await message.react(
      */
 
     if (
-      mode === 'pvp'
+      mode ===
+      'pvp'
     ) {
       const nextWord =
         findBotNextWord(
@@ -916,13 +924,6 @@ await message.react(
             normalized,
           ],
         );
-
-      /**
-       * Không còn bất kỳ từ nào
-       * để người tiếp theo nối.
-       *
-       * -> kết thúc round ngay.
-       */
 
       if (!nextWord) {
         const endedStreak =
@@ -951,10 +952,13 @@ await message.react(
           .send(
             [
               `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
+
               `${WORD_CHAIN_EMOJIS.newRound} Lượt PvP mới đã bắt đầu với từ **${nextStart}**!`,
             ].join('\n'),
           )
-          .catch(() => {});
+          .catch(
+            () => {},
+          );
       }
 
       return true;
@@ -962,26 +966,21 @@ await message.react(
 
     /**
      * =====================================================
-     * PVE / BOT
+     * PVE
      * =====================================================
      */
 
-    const updatedUsedWords = [
-      ...usedWords,
-      normalized,
-    ];
+    const updatedUsedWords =
+      [
+        ...usedWords,
+        normalized,
+      ];
 
     const botWord =
       findBotNextWord(
         normalized,
         updatedUsedWords,
       );
-
-    /**
-     * =====================================================
-     * BOT KHÔNG CÒN TỪ
-     * =====================================================
-     */
 
     if (!botWord) {
       const endedStreak =
@@ -992,7 +991,8 @@ await message.react(
             ?.personalStreaks
             ?.[
               message.author.id
-            ] || 0,
+            ] ||
+            0,
         );
 
       const finalWord =
@@ -1012,19 +1012,16 @@ await message.react(
         .send(
           [
             `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
+
             `${WORD_CHAIN_EMOJIS.newRound} Lượt PvE mới đã bắt đầu với từ **${nextStart}**!`,
           ].join('\n'),
         )
-        .catch(() => {});
+        .catch(
+          () => {},
+        );
 
       return true;
     }
-
-    /**
-     * =====================================================
-     * BOT RESPONSE
-     * =====================================================
-     */
 
     setTimeout(
       async () => {
@@ -1040,18 +1037,6 @@ await message.react(
               latestConfig,
               'bot',
             );
-
-          /**
-           * Game đã thay đổi:
-           *
-           * - disable
-           * - reset
-           * - restart
-           * - mode/setup
-           * - currentWord thay đổi
-           *
-           * -> bỏ lượt bot cũ.
-           */
 
           if (
             !latestConfig.enabled ||
@@ -1107,39 +1092,23 @@ await message.react(
                 .personalStreaks
                 ?.[
                   message.author.id
-                ] || 0,
+                ] ||
+                0,
             );
-
-          /**
-           * =================================================
-           * BOT SEND WORD
-           * =================================================
-           */
 
           await message.channel
             .send(
               [
                 `${WORD_CHAIN_EMOJIS.botSuccess} **${botWord}**`,
+
                 `${WORD_CHAIN_EMOJIS.streak} <@${message.author.id}> — Chuỗi hiện tại: **${personalStreak}**!`,
+
                 `${WORD_CHAIN_EMOJIS.newRound} Tiếng tiếp theo: **${getLastSyllable(botWord)}**`,
               ].join('\n'),
             )
-            .catch(() => {});
-
-          /**
-           * =================================================
-           * BOT WORD IS DEAD END
-           * =================================================
-           *
-           * Sau khi bot vừa nối xong, kiểm tra xem
-           * còn từ nào cho người chơi tiếp theo không.
-           *
-           * Nếu không:
-           *
-           * -> kết thúc round
-           * -> reset
-           * -> round mới.
-           */
+            .catch(
+              () => {},
+            );
 
           const afterBotConfig =
             await getWordChainConfig(
@@ -1177,10 +1146,13 @@ await message.react(
               .send(
                 [
                   `${WORD_CHAIN_EMOJIS.end} Không còn từ phù hợp để nối tiếp **${botWord}**.`,
+
                   `${WORD_CHAIN_EMOJIS.newRound} Lượt PvE mới đã bắt đầu với từ **${nextStart}**!`,
                 ].join('\n'),
               )
-              .catch(() => {});
+              .catch(
+                () => {},
+              );
           }
         } catch (botErr) {
           logger.error(
@@ -1235,7 +1207,30 @@ async function handleLeveling(
       );
 
     if (
-      !levelingConfig?.enabled
+      !levelingConfig
+        ?.enabled
+    ) {
+      return;
+    }
+
+    /**
+     * =====================================================
+     * PRISON ROLE
+     * =====================================================
+     *
+     * Role tù nhân:
+     * KHÔNG nhận XP khi CHAT.
+     *
+     * Không ảnh hưởng Voice Level.
+     */
+
+    if (
+      message.member
+        ?.roles
+        ?.cache
+        ?.has(
+          PRISON_ROLE_ID,
+        )
     ) {
       return;
     }
@@ -1253,7 +1248,8 @@ async function handleLeveling(
     if (
       levelingConfig
         .ignoredRoles
-        ?.length > 0
+        ?.length >
+      0
     ) {
       const member =
         await message.guild.members
@@ -1267,7 +1263,7 @@ async function handleLeveling(
       if (
         member &&
         member.roles.cache.some(
-          (role) =>
+          role =>
             levelingConfig
               .ignoredRoles
               .includes(
@@ -1291,8 +1287,10 @@ async function handleLeveling(
 
     if (
       !message.content ||
-      message.content.trim()
-        .length === 0
+      message.content
+        .trim()
+        .length ===
+        0
     ) {
       return;
     }
@@ -1305,7 +1303,8 @@ async function handleLeveling(
       );
 
     const cooldownTime =
-      levelingConfig.xpCooldown ||
+      levelingConfig
+        .xpCooldown ||
       60;
 
     const now =
@@ -1320,7 +1319,8 @@ async function handleLeveling(
 
     if (
       timeSinceLastMessage <
-      cooldownTime * 1000
+      cooldownTime *
+        1000
     ) {
       return;
     }
@@ -1373,7 +1373,8 @@ async function handleLeveling(
       levelingConfig
         .xpMultiplier &&
       levelingConfig
-        .xpMultiplier > 1
+        .xpMultiplier >
+        1
     ) {
       finalXP =
         Math.floor(
@@ -1383,16 +1384,27 @@ async function handleLeveling(
         );
     }
 
+    /**
+     * =====================================================
+     * ADD CHAT XP
+     * =====================================================
+     */
+
     const result =
       await addXp(
         client,
         message.guild,
         message.member,
         finalXP,
+        {
+          source:
+            'chat',
+        },
       );
 
     if (
-      result?.leveledUp
+      result
+        ?.leveledUp
     ) {
       logger.info(
         `${message.author.tag} leveled up to level ${result.level} in ${message.guild.name}`,
@@ -1419,7 +1431,8 @@ async function handleAutoresponder(
   try {
     if (
       !message.guild ||
-      !message.content?.trim()
+      !message.content
+        ?.trim()
     ) {
       return false;
     }
@@ -1457,7 +1470,8 @@ async function handleAutoresponder(
 
     if (
       responder.response
-        ?.reply?.enabled
+        ?.reply
+        ?.enabled
     ) {
       payload.reply = {
         messageReference:
@@ -1511,6 +1525,7 @@ async function handleAutoresponder(
     return false;
   }
 }
+
 /**
  * =========================================================
  * AUTO REACT
@@ -1524,7 +1539,8 @@ async function handleAutoReact(
   try {
     if (
       !message.guild ||
-      !message.content?.trim()
+      !message.content
+        ?.trim()
     ) {
       return;
     }
@@ -1540,27 +1556,12 @@ async function handleAutoReact(
       !Array.isArray(
         config.reactions,
       ) ||
-      config.reactions.length === 0
+      config.reactions
+        .length ===
+        0
     ) {
       return;
     }
-
-    /**
-     * =====================================================
-     * FIND KEYWORDS
-     * =====================================================
-     *
-     * Ví dụ:
-     *
-     * keyword = "+1"
-     *
-     * Các message sau đều match:
-     *
-     * +1
-     * +1 nhận quà
-     * hello +1 nha
-     * abc+1xyz
-     */
 
     const matches =
       findMatchingAutoReacts(
@@ -1569,40 +1570,22 @@ async function handleAutoReact(
       );
 
     if (
-      !Array.isArray(matches) ||
-      matches.length === 0
+      !Array.isArray(
+        matches,
+      ) ||
+      matches.length ===
+        0
     ) {
       return;
     }
-
-    /**
-     * Một message có thể match nhiều keyword.
-     *
-     * Đồng thời một keyword có thể chứa
-     * tối đa 5 emoji.
-     *
-     * Set này ngăn cùng một emoji bị react
-     * hai lần nếu nhiều keyword cùng chứa nó.
-     */
 
     const reactedEmojiIds =
       new Set();
 
     for (
-      const reaction of matches
+      const reaction
+      of matches
     ) {
-      /**
-       * FORMAT MỚI:
-       *
-       * reaction.emojis = [
-       *   {
-       *     id,
-       *     name,
-       *     animated
-       *   }
-       * ]
-       */
-
       const emojis =
         Array.isArray(
           reaction.emojis,
@@ -1611,13 +1594,15 @@ async function handleAutoReact(
           : [];
 
       if (
-        emojis.length === 0
+        emojis.length ===
+        0
       ) {
         continue;
       }
 
       for (
-        const emojiData of emojis
+        const emojiData
+        of emojis
       ) {
         if (
           !emojiData ||
@@ -1625,10 +1610,6 @@ async function handleAutoReact(
         ) {
           continue;
         }
-
-        /**
-         * Không react trùng emoji.
-         */
 
         if (
           reactedEmojiIds.has(
@@ -1638,15 +1619,13 @@ async function handleAutoReact(
           continue;
         }
 
-        /**
-         * Custom emoji phải còn tồn tại
-         * trong server hiện tại.
-         */
-
         const emoji =
-          message.guild.emojis.cache.get(
-            emojiData.id,
-          );
+          message.guild
+            .emojis
+            .cache
+            .get(
+              emojiData.id,
+            );
 
         if (!emoji) {
           logger.warn(
@@ -1673,12 +1652,6 @@ async function handleAutoReact(
 
           continue;
         }
-
-        /**
-         * =================================================
-         * REACT
-         * =================================================
-         */
 
         try {
           await message.react(
@@ -1740,8 +1713,11 @@ async function handleAutoReact(
                 null,
 
               error:
-                error?.message ||
-                String(error),
+                error
+                  ?.message ||
+                String(
+                  error,
+                ),
             },
           );
         }
