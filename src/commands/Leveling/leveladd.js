@@ -1,81 +1,158 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
-import { logger } from '../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
-import { checkUserPermissions } from '../../utils/permissionGuard.js';
-import { addLevels, getLevelingConfig } from '../../services/leveling/leveling.js';
-import { createEmbed } from '../../utils/embeds.js';
+import {
+    SlashCommandBuilder,
+    PermissionFlagsBits,
+    MessageFlags,
+} from 'discord.js';
 
-import { InteractionHelper } from '../../utils/interactionHelper.js';
+import {
+    logger,
+} from '../../utils/logger.js';
+
+import {
+    addLevels,
+    getLevelingConfig,
+} from '../../services/leveling/leveling.js';
+
+import {
+    syncHighestLevelRole,
+} from '../../services/leveling/levelRoleService.js';
+
+import {
+    sendLevelAnnouncement,
+} from '../../services/leveling/levelAnnouncementService.js';
+
+import {
+    LEVELING_MAX_LEVEL,
+} from '../../config/leveling/levelingSystem.js';
+
+import {
+    InteractionHelper,
+} from '../../utils/interactionHelper.js';
+
 export default {
-  data: new SlashCommandBuilder()
-    .setName('leveladd')
-    .setDescription('Add levels to a user')
-    .addUserOption((option) =>
-      option
-        .setName('user')
-        .setDescription('The user to add levels to')
-        .setRequired(true)
-    )
-    .addIntegerOption((option) =>
-      option
-        .setName('levels')
-        .setDescription('Number of levels to add')
-        .setRequired(true)
-        .setMinValue(1)
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-    .setDMPermission(false),
-  category: 'Leveling',
+    data:
+        new SlashCommandBuilder()
+            .setName('leveladd')
+            .setDescription('Tăng level cho thành viên')
 
-  async execute(interaction, config, client) {
-    await InteractionHelper.safeDefer(interaction);
+            .addUserOption(option =>
+                option
+                    .setName('user')
+                    .setDescription('Thành viên muốn tăng level')
+                    .setRequired(true),
+            )
 
-    const hasPermission = await checkUserPermissions(
-      interaction,
-      PermissionFlagsBits.ManageGuild,
-      'You need ManageGuild permission to use this command.'
-    );
-    if (!hasPermission) return;
+            .addIntegerOption(option =>
+                option
+                    .setName('levels')
+                    .setDescription('Số level muốn tăng')
+                    .setRequired(true)
+                    .setMinValue(1)
+                    .setMaxValue(LEVELING_MAX_LEVEL),
+            )
 
-    const levelingConfig = await getLevelingConfig(client, interaction.guildId);
-    if (!levelingConfig?.enabled) {
-      await InteractionHelper.safeEditReply(interaction, {
-        embeds: [
-          new EmbedBuilder()
-            .setColor('#f1c40f')
-            .setDescription('The leveling system is currently disabled on this server.')
-        ],
-        flags: MessageFlags.Ephemeral
-      });
-      return;
-    }
+            .setDefaultMemberPermissions(
+                PermissionFlagsBits.ManageGuild,
+            )
 
-    const targetUser = interaction.options.getUser('user');
-    const levelsToAdd = interaction.options.getInteger('levels');
+            .setDMPermission(false),
 
-    const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
-    if (!member) {
-      throw new TitanBotError(
-        `User ${targetUser.id} not found in this guild`,
-        ErrorTypes.USER_INPUT,
-        'The specified user is not in this server.'
-      );
-    }
+    category: 'Leveling',
 
-    const userData = await addLevels(client, interaction.guildId, targetUser.id, levelsToAdd);
+    async execute(
+        interaction,
+        config,
+        client,
+    ) {
+        await InteractionHelper.safeDefer(
+            interaction,
+        );
 
-    await InteractionHelper.safeEditReply(interaction, {
-      embeds: [
-        createEmbed({
-          title: 'Levels Added',
-          description: `Successfully added ${levelsToAdd} levels to ${targetUser.tag}.\n**New Level:** ${userData.level}`,
-          color: 'success'
-        })
-      ]
-    });
+        const levelingConfig =
+            await getLevelingConfig(
+                client,
+                interaction.guildId,
+            );
 
-    logger.info(
-      `[ADMIN] User ${interaction.user.tag} added ${levelsToAdd} levels to ${targetUser.tag} in guild ${interaction.guildId}`
-    );
-  }
+        if (
+            !levelingConfig?.enabled
+        ) {
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        'Hệ thống level hiện đang tắt.',
+                },
+            );
+
+            return;
+        }
+
+        const targetUser =
+            interaction.options.getUser(
+                'user',
+                true,
+            );
+
+        const levelsToAdd =
+            interaction.options.getInteger(
+                'levels',
+                true,
+            );
+
+        const member =
+            await interaction.guild.members
+                .fetch(targetUser.id)
+                .catch(() => null);
+
+        if (!member) {
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        'Không tìm thấy thành viên này trong server.',
+                },
+            );
+
+            return;
+        }
+
+        const userData =
+            await addLevels(
+                client,
+                interaction.guildId,
+                targetUser.id,
+                levelsToAdd,
+            );
+
+        await syncHighestLevelRole(
+            member,
+            userData.level,
+        );
+
+        await sendLevelAnnouncement({
+            guild:
+                interaction.guild,
+
+            member,
+
+            level:
+                userData.level,
+
+            source:
+                'admin',
+        });
+
+        await InteractionHelper.safeEditReply(
+            interaction,
+            {
+                content:
+                    `Đã tăng **${levelsToAdd} level** cho ${member}.\nLevel hiện tại: **Lv.${userData.level}**`,
+            },
+        );
+
+        logger.info(
+            `[LEVEL] ${interaction.user.tag} added ${levelsToAdd} levels to ${targetUser.tag}. New level: ${userData.level}`,
+        );
+    },
 };
