@@ -12,14 +12,9 @@ import {
 import {
   getBreakthroughChance,
   getCultivationRequired,
+  getInventoryEntries,
   getRealmDisplay,
 } from './cultivationService.js';
-
-/**
- * =========================================================
- * CONSTANTS
- * =========================================================
- */
 
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
@@ -30,12 +25,6 @@ const GAME_BUTTON_EMOJI = {
       .ui
       .buttonEmojiId,
 };
-
-/**
- * =========================================================
- * BASE STYLE
- * =========================================================
- */
 
 function applyStyle(
   embed,
@@ -67,12 +56,6 @@ function applyStyle(
 
   return embed;
 }
-
-/**
- * =========================================================
- * FORMAT
- * =========================================================
- */
 
 function number(
   value,
@@ -196,6 +179,92 @@ function duration(
 
 /**
  * =========================================================
+ * ITEM EMOJI
+ * =========================================================
+ */
+
+function getItemEmoji(
+  item,
+) {
+  if (
+    !item
+  ) {
+    return (
+      CULTIVATION_CONFIG
+        .ui
+        .itemEmojis
+        .treasure
+    );
+  }
+
+  if (
+    item.type ===
+    'herb'
+  ) {
+    return (
+      CULTIVATION_CONFIG
+        .ui
+        .itemEmojis
+        .herb
+    );
+  }
+
+  if (
+    item.type ===
+    'pill'
+  ) {
+    return (
+      CULTIVATION_CONFIG
+        .ui
+        .itemEmojis
+        .pill
+    );
+  }
+
+  if (
+    item.type ===
+    'ore'
+  ) {
+    return (
+      CULTIVATION_CONFIG
+        .ui
+        .itemEmojis
+        .ore
+    );
+  }
+
+  return (
+    CULTIVATION_CONFIG
+      .ui
+      .itemEmojis
+      .treasure
+  );
+}
+
+function buildDropText(
+  droppedItem,
+) {
+  if (
+    !droppedItem
+  ) {
+    return null;
+  }
+
+  const itemEmoji =
+    getItemEmoji(
+      droppedItem.item,
+    );
+
+  return [
+    '',
+    `${CULTIVATION_CONFIG.ui.itemEmojis.received} **VẬT PHẨM NHẬN ĐƯỢC**`,
+    `${itemEmoji} **${droppedItem.item.name}** × ${droppedItem.quantity}`,
+    `*${droppedItem.item.rarity}*`,
+  ].join('\n');
+}
+
+/**
+ * =========================================================
  * DASHBOARD
  * =========================================================
  */
@@ -221,21 +290,13 @@ export function buildDashboardEmbed(
     isNew
       ? [
           '<a:trangtrig2:1546040703375904801> **THIÊN ĐẠO KHAI MỞ** <a:trangtrig3:1546040818261954610>',
-
           '',
-
           `<@${user.id}> đã chính thức bước vào Tiên Lộ.`,
-
           '',
-
           `Linh căn thức tỉnh: **${profile.spiritRoot.name}**`,
-
           `Phẩm chất: **${profile.spiritRoot.rarity}**`,
-
           '',
-
           SEPARATOR,
-
           '',
         ].join('\n')
       : '';
@@ -293,12 +354,6 @@ export function buildDashboardEmbed(
   );
 }
 
-/**
- * =========================================================
- * BUTTONS
- * =========================================================
- */
-
 export function buildDashboardRows(
   ownerId,
 ) {
@@ -349,6 +404,20 @@ export function buildDashboardRows(
 
         new ButtonBuilder()
           .setCustomId(
+            `tutien_action:${ownerId}:inventory`,
+          )
+          .setLabel(
+            'Túi Đồ',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
             `tutien_action:${ownerId}:profile`,
           )
           .setLabel(
@@ -360,7 +429,10 @@ export function buildDashboardRows(
           .setStyle(
             ButtonStyle.Secondary,
           ),
+      ),
 
+    new ActionRowBuilder()
+      .addComponents(
         new ButtonBuilder()
           .setCustomId(
             `tutien_action:${ownerId}:leaderboard`,
@@ -375,34 +447,8 @@ export function buildDashboardRows(
             ButtonStyle.Secondary,
           ),
       ),
-
-    new ActionRowBuilder()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_locked:${ownerId}:inventory`,
-          )
-          .setLabel(
-            'Túi Đồ · V2',
-          )
-          .setEmoji(
-            GAME_BUTTON_EMOJI,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          )
-          .setDisabled(
-            true,
-          ),
-      ),
   ];
 }
-
-/**
- * =========================================================
- * BACK
- * =========================================================
- */
 
 export function buildBackRow(
   ownerId,
@@ -425,12 +471,6 @@ export function buildBackRow(
     );
 }
 
-/**
- * =========================================================
- * TU LUYỆN
- * =========================================================
- */
-
 export function buildCultivateEmbed(
   result,
 ) {
@@ -448,13 +488,9 @@ export function buildCultivateEmbed(
         .setDescription(
           [
             '<a:bang2:1546891483250954290> Linh khí trong kinh mạch vẫn chưa hoàn toàn ổn định.',
-
             '',
-
             SEPARATOR,
-
             '',
-
             `<a:chiikawag13:1541429102668554250> Đạo hữu cần chờ **${duration(
               result.cooldownRemaining,
             )}** trước lần tu luyện tiếp theo.`,
@@ -477,13 +513,9 @@ export function buildCultivateEmbed(
         .setDescription(
           [
             '<a:bang2:1546891483250954290> Đạo hữu đã tiêu hao quá nhiều tinh lực.',
-
             '',
-
             SEPARATOR,
-
             '',
-
             '<a:chiikawag13:1541429102668554250> Hiện tại chưa đủ Thể Lực để tiếp tục tu luyện.',
           ].join('\n'),
         ),
@@ -499,33 +531,23 @@ export function buildCultivateEmbed(
       .setDescription(
         [
           result.event.text,
-
           '',
-
           SEPARATOR,
-
           '',
-
           `**Tu Vi**: ${signedNumber(
             result.cultivationDelta,
           )}`,
-
           `**Linh Thạch**: ${signedNumber(
             result.stoneDelta,
           )}`,
-
           `**Thể Lực**: -${result.staminaCost}`,
-
           '',
-
           `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
             result.profile,
           )}**`,
-
           `${progressBar(
             result.profile
               .cultivation,
-
             result.required,
           )} ${number(
             result.profile
@@ -538,19 +560,9 @@ export function buildCultivateEmbed(
   );
 }
 
-/**
- * =========================================================
- * THÁM HIỂM
- * =========================================================
- */
-
 export function buildAdventureEmbed(
   result,
 ) {
-  /**
-   * COOLDOWN
-   */
-
   if (
     !result.ok &&
     result.reason ===
@@ -565,13 +577,9 @@ export function buildAdventureEmbed(
         .setDescription(
           [
             '<a:bang2:1546891483250954290> Đạo hữu vừa trải qua một chuyến thám hiểm, cần thời gian chỉnh đốn.',
-
             '',
-
             SEPARATOR,
-
             '',
-
             `<a:chiikawag13:1541429102668554250> Đạo hữu cần chờ **${duration(
               result.cooldownRemaining,
             )}** trước lần Thám Hiểm tiếp theo.`,
@@ -579,10 +587,6 @@ export function buildAdventureEmbed(
         ),
     );
   }
-
-  /**
-   * YÊU THÚ
-   */
 
   if (
     result.event.type ===
@@ -597,29 +601,20 @@ export function buildAdventureEmbed(
         .setDescription(
           [
             `<a:catg10:1546031290803945594> ${result.event.text}`,
-
             '',
-
             SEPARATOR,
-
             '',
-
             `**Tu Vi**: ${signedNumber(
               result.cultivationDelta,
             )}`,
-
             '**Linh Thạch**: +0',
-
             '',
-
             `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
               result.profile,
             )}**`,
-
             `${progressBar(
               result.profile
                 .cultivation,
-
               result.required,
             )} ${number(
               result.profile
@@ -627,18 +622,17 @@ export function buildAdventureEmbed(
             )} / ${number(
               result.required,
             )}`,
-
             '',
-
             '*Tiên lộ vốn không phải nơi bình yên.*',
           ].join('\n'),
         ),
     );
   }
 
-  /**
-   * ĐẠI CƠ DUYÊN
-   */
+  const dropText =
+    buildDropText(
+      result.droppedItem,
+    );
 
   if (
     result.event.type ===
@@ -653,31 +647,23 @@ export function buildAdventureEmbed(
         .setDescription(
           [
             result.event.text,
-
             '',
-
             SEPARATOR,
-
             '',
-
             `**Tu Vi**: ${signedNumber(
               result.cultivationDelta,
             )}`,
-
             `**Linh Thạch**: ${signedNumber(
               result.stoneDelta,
             )}`,
-
+            dropText,
             '',
-
             `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
               result.profile,
             )}**`,
-
             `${progressBar(
               result.profile
                 .cultivation,
-
               result.required,
             )} ${number(
               result.profile
@@ -685,14 +671,16 @@ export function buildAdventureEmbed(
             )} / ${number(
               result.required,
             )}`,
-          ].join('\n'),
+          ]
+            .filter(
+              (line) =>
+                line !==
+                null,
+            )
+            .join('\n'),
         ),
     );
   }
-
-  /**
-   * THÁM HIỂM BÌNH THƯỜNG
-   */
 
   return applyStyle(
     new EmbedBuilder()
@@ -703,31 +691,23 @@ export function buildAdventureEmbed(
       .setDescription(
         [
           result.event.text,
-
           '',
-
           SEPARATOR,
-
           '',
-
           `**Tu Vi**: ${signedNumber(
             result.cultivationDelta,
           )}`,
-
           `**Linh Thạch**: ${signedNumber(
             result.stoneDelta,
           )}`,
-
+          dropText,
           '',
-
           `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
             result.profile,
           )}**`,
-
           `${progressBar(
             result.profile
               .cultivation,
-
             result.required,
           )} ${number(
             result.profile
@@ -735,16 +715,67 @@ export function buildAdventureEmbed(
           )} / ${number(
             result.required,
           )}`,
-        ].join('\n'),
+        ]
+          .filter(
+            (line) =>
+              line !==
+              null,
+          )
+          .join('\n'),
       ),
   );
 }
 
-/**
- * =========================================================
- * ĐỘT PHÁ
- * =========================================================
- */
+export function buildInventoryEmbed(
+  user,
+  profile,
+) {
+  const entries =
+    getInventoryEntries(
+      profile,
+    );
+
+  const itemLines =
+    entries.map(
+      (item) => {
+        const itemEmoji =
+          getItemEmoji(
+            item,
+          );
+
+        return [
+          `${itemEmoji} **${item.name}** × **${item.quantity}**`,
+          `*${item.rarity} · ${item.description}*`,
+        ].join('\n');
+      },
+    );
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        '<a:trangtrig2:1546040703375904801> **TÚI ĐỒ TIÊN NHÂN** <a:trangtrig3:1546040818261954610>',
+      )
+
+      .setDescription(
+        [
+          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+          '',
+          SEPARATOR,
+          '',
+          itemLines.length >
+          0
+            ? itemLines.join(
+                '\n\n',
+              )
+            : '*Túi Đồ hiện đang trống.*',
+          '',
+          SEPARATOR,
+          '',
+          `<a:trangtrig45:1547239010190237819> Vật Phẩm Đã Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
+        ].join('\n'),
+      ),
+  );
+}
 
 export function buildBreakthroughEmbed(
   result,
@@ -791,18 +822,14 @@ export function buildBreakthroughEmbed(
             `<a:trangtrig6:1546043036390260756> Cảnh giới hiện tại: **${getRealmDisplay(
               result.profile,
             )}**`,
-
             `<a:trangtrig6:1546043036390260756> Tu Vi: **${number(
               result.profile
                 .cultivation,
             )}**`,
-
             `<a:trangtrig6:1546043036390260756> Thiếu: **${number(
               missing,
             )}**`,
-
             '',
-
             '<:chiikawa4:1541429063392956516> *Tiếp tục tu luyện để chạm tới bình cảnh.*',
           ].join('\n'),
         ),
@@ -827,21 +854,13 @@ export function buildBreakthroughEmbed(
         .setDescription(
           [
             'Thiên địa linh khí chấn động, đạo cơ viên mãn.',
-
             '',
-
             SEPARATOR,
-
             '',
-
             `**${result.oldRealm}**`,
-
             '↓',
-
             `**${result.newRealm}**`,
-
             '',
-
             `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
           ].join('\n'),
         ),
@@ -857,34 +876,20 @@ export function buildBreakthroughEmbed(
       .setDescription(
         [
           'Thiên uy giáng xuống, linh lực nhất thời tan loạn.',
-
           '',
-
           SEPARATOR,
-
           '',
-
           `<a:trangtrig43:1547238351869059082> Cảnh Giới: **${result.oldRealm}**`,
-
           `<:trangtri1:1546093044535660644> Tu Vi Hao Tổn: **-${number(
             result.loss,
           )}**`,
-
           `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
-
           '',
-
           '*Chỉnh tức đạo tâm rồi hãy thử lại.*',
         ].join('\n'),
       ),
   );
 }
-
-/**
- * =========================================================
- * HỒ SƠ
- * =========================================================
- */
 
 export function buildProfileEmbed(
   user,
@@ -911,58 +916,36 @@ export function buildProfileEmbed(
       .setDescription(
         [
           `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
-
           `<a:trangtrig43:1547238351869059082> Cảnh Giới: **${getRealmDisplay(
             profile,
           )}**`,
-
           `<a:trangtrig44:1547238495494348891> Linh Căn: **${profile.spiritRoot.name}**`,
-
           `<a:trangtrig31:1546905996893626440> Phẩm Chất: **${profile.spiritRoot.rarity}**`,
-
           '',
-
           `<:trangtri1:1546093044535660644> Tu Vi: **${number(
             profile.cultivation,
           )} / ${number(
             required,
           )}**`,
-
           `<a:trangtrig46:1547240249761996812> Linh Thạch: **${number(
             profile.spiritStones,
           )}**`,
-
           `<a:heartg4:1546068063500369940> Thể Lực: **${profile.stamina} / ${profile.maxStamina}**`,
-
           `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
-
           '',
-
           SEPARATOR,
-
           '',
-
           `<a:trangtrig45:1547239010190237819> Tu Luyện: **${profile.stats.cultivateCount} lần**`,
-
           `<a:trangtrig45:1547239010190237819> Kỳ Ngộ: **${profile.stats.fortunes} lần**`,
-
           `<a:trangtrig45:1547239010190237819> Thám Hiểm: **${profile.stats.adventureCount} lần**`,
-
           `<a:trangtrig45:1547239010190237819> Đại Cơ Duyên: **${profile.stats.greatFortunes} lần**`,
-
+          `<a:trangtrig45:1547239010190237819> Vật Phẩm Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
           `<a:trangtrig45:1547239010190237819> Đột Phá Thành Công: **${profile.stats.breakthroughSuccess}**`,
-
           `<a:trangtrig45:1547239010190237819> Đột Phá Thất Bại: **${profile.stats.breakthroughFail}**`,
         ].join('\n'),
       ),
   );
 }
-
-/**
- * =========================================================
- * TIÊN BẢNG
- * =========================================================
- */
 
 export function buildLeaderboardEmbed(
   entries,
@@ -988,7 +971,6 @@ export function buildLeaderboardEmbed(
 
         return [
           `<a:trangtrig32:1546906170994856026>${index + 1} · **${name}**`,
-
           `<a:animeg3:1546040346717331477> **${getRealmDisplay(
             entry.profile,
           )}** <a:trangtrig29:1546385117478527016> **${number(
