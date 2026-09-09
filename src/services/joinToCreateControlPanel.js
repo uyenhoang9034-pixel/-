@@ -1,9 +1,13 @@
 import {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
 } from 'discord.js';
+
+import path from 'node:path';
+import fs from 'node:fs/promises';
 
 import {
   getJoinToCreateConfig,
@@ -14,14 +18,54 @@ import {
   logger,
 } from '../utils/logger.js';
 
+
 /**
  * =========================================================
- * USAGI PANEL IMAGE
+ * LOCAL PANEL IMAGE
  * =========================================================
  */
 
-export const USAGI_PANEL_IMAGE_URL =
-  'https://cdn.discordapp.com/attachments/1541300740947968020/1546806015901696090/93a4c06a-09d0-4365-a4d5-cd62dfe787b9.png?ex=6aa11edc&is=6a9fcd5c&hm=04934cfe8e263cebfacd8701cd349366a865219508feaba0cf5e6861f9235006&';
+export const JTC_PANEL_IMAGE_NAME =
+  'jointocreate.png';
+
+export const JTC_PANEL_IMAGE_PATH =
+  path.resolve(
+    process.cwd(),
+    'assets',
+    'jointocreate',
+    JTC_PANEL_IMAGE_NAME,
+  );
+
+
+/**
+ * =========================================================
+ * CREATE PANEL IMAGE ATTACHMENT
+ * =========================================================
+ */
+
+async function createJoinToCreateImageAttachment() {
+  try {
+    await fs.access(
+      JTC_PANEL_IMAGE_PATH,
+    );
+  } catch {
+    logger.warn(
+      `[JTC] Panel image not found: ${JTC_PANEL_IMAGE_PATH}`,
+    );
+
+    return null;
+  }
+
+
+  return new AttachmentBuilder(
+    JTC_PANEL_IMAGE_PATH,
+    {
+      name:
+        JTC_PANEL_IMAGE_NAME,
+    },
+  );
+}
+
 
 /**
  * =========================================================
@@ -35,10 +79,16 @@ const JTC_EMOJIS = {
    * Giới hạn
    */
   edit: {
-    id: '1546047240265797682',
-    name: 'trangtrig10',
-    animated: true,
+    id:
+      '1546047240265797682',
+
+    name:
+      'trangtrig10',
+
+    animated:
+      true,
   },
+
 
   /**
    * Khóa
@@ -46,58 +96,94 @@ const JTC_EMOJIS = {
    * Ẩn phòng
    */
   privacy: {
-    id: '1546058092016312381',
-    name: 'knifeg1',
-    animated: true,
+    id:
+      '1546058092016312381',
+
+    name:
+      'knifeg1',
+
+    animated:
+      true,
   },
+
 
   /**
    * Hiện phòng
    * Cho phép
    */
   allow: {
-    id: '1546041656648929380',
-    name: 'ilyg1',
-    animated: true,
+    id:
+      '1546041656648929380',
+
+    name:
+      'ilyg1',
+
+    animated:
+      true,
   },
+
 
   /**
    * Chặn
    * Kick
    */
   block: {
-    id: '1546041273813827645',
-    name: 'trangtrig4',
-    animated: true,
+    id:
+      '1546041273813827645',
+
+    name:
+      'trangtrig4',
+
+    animated:
+      true,
   },
+
 
   /**
    * Chuyển chủ
    */
   transfer: {
-    id: '1546047912969113622',
-    name: 'trangtrig14',
-    animated: true,
+    id:
+      '1546047912969113622',
+
+    name:
+      'trangtrig14',
+
+    animated:
+      true,
   },
+
 
   /**
    * Region
    */
   region: {
-    id: '1546093044535660644',
-    name: 'trangtri1',
-    animated: false,
+    id:
+      '1546093044535660644',
+
+    name:
+      'trangtri1',
+
+    animated:
+      false,
   },
+
 
   /**
    * Xóa phòng
    */
   delete: {
-    id: '1546013742679064658',
-    name: 'anime2',
-    animated: false,
+    id:
+      '1546013742679064658',
+
+    name:
+      'anime2',
+
+    animated:
+      false,
   },
 };
+
 
 /**
  * =========================================================
@@ -123,19 +209,31 @@ export function buildJoinToCreateControlPanel() {
       .setDescription(
         [
           'Cảm ơn và chào mừng bạn đã đến với bảng điều khiển voice room cá nhân! <a:heartg3:1546047728314884226>',
+
           '',
+
           '<a:trangtrig6:1546043036390260756> Bạn có thể quản lý **voice room** do chính mình tạo bằng các nút bên dưới. Chỉ có thể sử dụng bảng điều khiển sau khi tạo phòng!',
+
           '',
+
           '<a:trangtrig6:1546043036390260756> Chỉ **chủ phòng** mới có thể thay đổi cài đặt của phòng.',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       )
+
+      /**
+       * Ảnh local từ repo.
+       */
       .setImage(
-        USAGI_PANEL_IMAGE_URL,
+        `attachment://${JTC_PANEL_IMAGE_NAME}`,
       )
+
       .setFooter({
         text:
           'Usagi TempVoice • Phòng sẽ tự xóa khi không còn người',
       });
+
 
   /**
    * =======================================================
@@ -152,6 +250,7 @@ export function buildJoinToCreateControlPanel() {
   const row1 =
     new ActionRowBuilder()
       .addComponents(
+
         /**
          * ĐỔI TÊN
          */
@@ -169,6 +268,7 @@ export function buildJoinToCreateControlPanel() {
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
 
         /**
          * GIỚI HẠN
@@ -188,6 +288,7 @@ export function buildJoinToCreateControlPanel() {
             ButtonStyle.Secondary,
           ),
 
+
         /**
          * KHÓA
          */
@@ -206,6 +307,7 @@ export function buildJoinToCreateControlPanel() {
             ButtonStyle.Secondary,
           ),
 
+
         /**
          * MỞ KHÓA
          */
@@ -223,6 +325,7 @@ export function buildJoinToCreateControlPanel() {
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
 
         /**
          * ẨN PHÒNG
@@ -243,6 +346,7 @@ export function buildJoinToCreateControlPanel() {
           ),
       );
 
+
   /**
    * =======================================================
    * ROW 2
@@ -258,6 +362,7 @@ export function buildJoinToCreateControlPanel() {
   const row2 =
     new ActionRowBuilder()
       .addComponents(
+
         /**
          * HIỆN PHÒNG
          */
@@ -275,6 +380,7 @@ export function buildJoinToCreateControlPanel() {
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
 
         /**
          * CHO PHÉP
@@ -294,6 +400,7 @@ export function buildJoinToCreateControlPanel() {
             ButtonStyle.Secondary,
           ),
 
+
         /**
          * CHẶN
          */
@@ -312,6 +419,7 @@ export function buildJoinToCreateControlPanel() {
             ButtonStyle.Secondary,
           ),
 
+
         /**
          * KICK
          */
@@ -329,6 +437,7 @@ export function buildJoinToCreateControlPanel() {
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
 
         /**
          * CHUYỂN CHỦ
@@ -349,6 +458,7 @@ export function buildJoinToCreateControlPanel() {
           ),
       );
 
+
   /**
    * =======================================================
    * ROW 3
@@ -361,6 +471,7 @@ export function buildJoinToCreateControlPanel() {
   const row3 =
     new ActionRowBuilder()
       .addComponents(
+
         /**
          * REGION
          */
@@ -378,6 +489,7 @@ export function buildJoinToCreateControlPanel() {
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
 
         /**
          * XÓA PHÒNG
@@ -398,6 +510,7 @@ export function buildJoinToCreateControlPanel() {
           ),
       );
 
+
   return {
     embeds: [
       embed,
@@ -410,6 +523,7 @@ export function buildJoinToCreateControlPanel() {
     ],
   };
 }
+
 
 /**
  * =========================================================
@@ -428,16 +542,11 @@ export async function createJoinToCreateControlPanel(
       guild.id,
     );
 
+
   /**
    * =======================================================
    * DELETE OLD PANEL
    * =======================================================
-   *
-   * Nếu panel cũ vẫn còn tồn tại,
-   * xóa message cũ trước khi tạo message mới.
-   *
-   * Điều này tránh việc một server có nhiều
-   * bảng điều khiển Join to Create giống nhau.
    */
 
   if (
@@ -453,6 +562,7 @@ export async function createJoinToCreateControlPanel(
           () => null,
         );
 
+
     if (
       oldChannel?.isTextBased()
     ) {
@@ -464,6 +574,7 @@ export async function createJoinToCreateControlPanel(
           .catch(
             () => null,
           );
+
 
       if (
         oldMessage
@@ -477,6 +588,7 @@ export async function createJoinToCreateControlPanel(
     }
   }
 
+
   /**
    * =======================================================
    * BUILD PANEL
@@ -486,6 +598,26 @@ export async function createJoinToCreateControlPanel(
   const payload =
     buildJoinToCreateControlPanel();
 
+
+  /**
+   * =======================================================
+   * LOAD LOCAL IMAGE
+   * =======================================================
+   */
+
+  const imageAttachment =
+    await createJoinToCreateImageAttachment();
+
+
+  if (
+    !imageAttachment
+  ) {
+    throw new Error(
+      `[JTC] Missing panel image: ${JTC_PANEL_IMAGE_PATH}`,
+    );
+  }
+
+
   /**
    * =======================================================
    * SEND PANEL
@@ -493,9 +625,14 @@ export async function createJoinToCreateControlPanel(
    */
 
   const panelMessage =
-    await channel.send(
-      payload,
-    );
+    await channel.send({
+      ...payload,
+
+      files: [
+        imageAttachment,
+      ],
+    });
+
 
   /**
    * =======================================================
@@ -509,18 +646,22 @@ export async function createJoinToCreateControlPanel(
   config.controlMessageId =
     panelMessage.id;
 
+
   await saveJoinToCreateConfig(
     client,
     guild.id,
     config,
   );
 
+
   logger.info(
     `Created Join to Create control panel ${panelMessage.id} in guild ${guild.id}`,
   );
 
+
   return panelMessage;
 }
+
 
 /**
  * =========================================================
@@ -530,5 +671,6 @@ export async function createJoinToCreateControlPanel(
 
 export default {
   buildJoinToCreateControlPanel,
+
   createJoinToCreateControlPanel,
 };
