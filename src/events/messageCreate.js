@@ -86,10 +86,12 @@ import {
   getWordChainGame,
   getWordChainConfig,
   isValidWord,
+  isValidWordWithFallback,
   canChain,
   normalizeWord,
   getLastSyllable,
   findBotNextWord,
+  findBotNextWordWithFallback,
   getRandomStartWord,
   recordUserSuccess,
   recordUserFailure,
@@ -102,17 +104,17 @@ import {
   findMatchingAutoReacts,
 } from '../services/autoreact/autoreactService.js';
 
+/**
+ * =========================================================
+ * CONSTANTS
+ * =========================================================
+ */
+
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS =
   12;
 
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS =
   10000;
-
-/**
- * =========================================================
- * WORD CHAIN EMOJIS
- * =========================================================
- */
 
 const WORD_CHAIN_EMOJIS = {
   streak:
@@ -142,7 +144,7 @@ const WORD_CHAIN_EMOJIS = {
 
 /**
  * =========================================================
- * EVENT
+ * MESSAGE CREATE
  * =========================================================
  */
 
@@ -162,6 +164,9 @@ export default {
         return;
       }
 
+      /**
+       * Auto React chạy độc lập.
+       */
       await handleAutoReact(
         message,
         client,
@@ -171,12 +176,18 @@ export default {
         `Message received from ${message.author.tag}: ${message.content}`,
       );
 
+      /**
+       * Counting.
+       */
       const countingProcessed =
         await handleCountingGame(
           message,
           client,
         );
 
+      /**
+       * Word Chain.
+       */
       let wordChainProcessed =
         false;
 
@@ -190,6 +201,9 @@ export default {
           );
       }
 
+      /**
+       * Các tính năng chat bình thường.
+       */
       if (
         !countingProcessed &&
         !wordChainProcessed
@@ -649,6 +663,9 @@ async function handleWordChain(
       return false;
     }
 
+    /**
+     * Không xử lý slash / prefix.
+     */
     if (
       content.startsWith('/') ||
       content.startsWith('!') ||
@@ -671,6 +688,9 @@ async function handleWordChain(
         .split(/\s+/)
         .filter(Boolean);
 
+    /**
+     * Chỉ nhận đúng 2 tiếng.
+     */
     if (
       parts.length !== 2 ||
       !parts.every(
@@ -690,7 +710,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * PVP — SAME USER CANNOT PLAY TWICE
+     * PVP — KHÔNG ĐƯỢC NỐI 2 LƯỢT LIÊN TIẾP
      * =====================================================
      */
 
@@ -736,7 +756,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * WRONG CHAIN
+     * CHECK CHAIN
      * =====================================================
      */
 
@@ -784,7 +804,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * USED WORD
+     * CHECK USED WORD
      * =====================================================
      */
 
@@ -834,14 +854,22 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * DICTIONARY
+     * VALIDATE WORD
      * =====================================================
+     *
+     * LOCAL JSON
+     *      ↓
+     * ONLINE FALLBACK
      */
 
-    if (
-      !isValidWord(
+    const validUserWord =
+      await isValidWordWithFallback(
+        client,
         normalized,
-      )
+      );
+
+    if (
+      !validUserWord
     ) {
       await recordUserFailure(
         client,
@@ -880,7 +908,7 @@ async function handleWordChain(
 
     /**
      * =====================================================
-     * USER CORRECT
+     * USER SUCCESS
      * =====================================================
      */
 
@@ -916,8 +944,16 @@ async function handleWordChain(
       mode ===
       'pvp'
     ) {
+      /**
+       * Kiểm tra xem còn từ nối tiếp không.
+       *
+       * JSON trước.
+       * Online sau.
+       */
+
       const nextWord =
-        findBotNextWord(
+        await findBotNextWordWithFallback(
+          client,
           normalized,
           [
             ...usedWords,
@@ -925,6 +961,9 @@ async function handleWordChain(
           ],
         );
 
+      /**
+       * Không còn từ ở cả local lẫn online.
+       */
       if (!nextWord) {
         const endedStreak =
           Number(
@@ -976,12 +1015,24 @@ async function handleWordChain(
         normalized,
       ];
 
+    /**
+     * Bot tìm từ:
+     *
+     * JSON
+     *  ↓
+     * ONLINE
+     */
+
     const botWord =
-      findBotNextWord(
+      await findBotNextWordWithFallback(
+        client,
         normalized,
         updatedUsedWords,
       );
 
+    /**
+     * Không còn từ ở local lẫn online.
+     */
     if (!botWord) {
       const endedStreak =
         Number(
@@ -1023,6 +1074,12 @@ async function handleWordChain(
       return true;
     }
 
+    /**
+     * =====================================================
+     * BOT RESPONSE DELAY
+     * =====================================================
+     */
+
     setTimeout(
       async () => {
         try {
@@ -1038,6 +1095,9 @@ async function handleWordChain(
               'bot',
             );
 
+          /**
+           * Game đã thay đổi trong lúc bot chờ.
+           */
           if (
             !latestConfig.enabled ||
             !latestGame.enabled ||
@@ -1047,10 +1107,23 @@ async function handleWordChain(
             return;
           }
 
-          if (
-            !isValidWord(
+          /**
+           * =================================================
+           * VALIDATE BOT WORD
+           * =================================================
+           *
+           * Nếu botWord lấy từ online thì
+           * cũng phải được chấp nhận.
+           */
+
+          const validBotWord =
+            await isValidWordWithFallback(
+              client,
               botWord,
-            )
+            );
+
+          if (
+            !validBotWord
           ) {
             return;
           }
@@ -1067,12 +1140,20 @@ async function handleWordChain(
             return;
           }
 
+          /**
+           * Save bot word.
+           */
+
           await recordBotSuccess(
             client,
             message.guild.id,
             botWord,
             'bot',
           );
+
+          /**
+           * Get final state.
+           */
 
           const finalConfig =
             await getWordChainConfig(
@@ -1096,6 +1177,10 @@ async function handleWordChain(
                 0,
             );
 
+          /**
+           * Send bot response.
+           */
+
           await message.channel
             .send(
               [
@@ -1110,6 +1195,15 @@ async function handleWordChain(
               () => {},
             );
 
+          /**
+           * =================================================
+           * DEAD-END CHECK
+           * =================================================
+           *
+           * JSON trước.
+           * Online sau.
+           */
+
           const afterBotConfig =
             await getWordChainConfig(
               client,
@@ -1123,11 +1217,17 @@ async function handleWordChain(
             );
 
           const nextPossibleWord =
-            findBotNextWord(
+            await findBotNextWordWithFallback(
+              client,
               afterBotGame.currentWord,
               afterBotGame.usedWords ||
                 [],
             );
+
+          /**
+           * Chỉ reset nếu cả local
+           * lẫn online đều không còn từ.
+           */
 
           if (
             !nextPossibleWord
@@ -1212,17 +1312,6 @@ async function handleLeveling(
     ) {
       return;
     }
-
-    /**
-     * =====================================================
-     * PRISON ROLE
-     * =====================================================
-     *
-     * Role tù nhân:
-     * KHÔNG nhận XP khi CHAT.
-     *
-     * Không ảnh hưởng Voice Level.
-     */
 
     if (
       message.member
@@ -1383,12 +1472,6 @@ async function handleLeveling(
               .xpMultiplier,
         );
     }
-
-    /**
-     * =====================================================
-     * ADD CHAT XP
-     * =====================================================
-     */
 
     const result =
       await addXp(
