@@ -34,15 +34,18 @@ async function handleBoostEmbedModal(
             'title',
         );
 
+
     const description =
         interaction.fields.getTextInputValue(
             'description',
         );
 
+
     const color =
         interaction.fields.getTextInputValue(
             'color',
         );
+
 
     const footer =
         interaction.fields.getTextInputValue(
@@ -83,40 +86,6 @@ async function handleBoostEmbedModal(
 
 
 // ============================================================
-// IMAGE MODAL
-// ============================================================
-
-async function handleBoostImageModal(
-    interaction,
-) {
-    const image =
-        interaction.fields.getTextInputValue(
-            'image',
-        ).trim();
-
-
-    await setBoostConfig(
-        interaction.guild.id,
-        {
-            image:
-                image || null,
-        },
-    );
-
-
-    await interaction.reply({
-        content:
-            image
-                ? '✅ Đã thay Boost Image.'
-                : '✅ Đã xoá Boost Image.',
-
-        flags:
-            MessageFlags.Ephemeral,
-    });
-}
-
-
-// ============================================================
 // SETTINGS MODAL
 // ============================================================
 
@@ -128,6 +97,7 @@ async function handleBoostSettingsModal(
             'channelId',
         ).trim();
 
+
     const tyPhuRoleId =
         interaction.fields.getTextInputValue(
             'tyPhuRoleId',
@@ -138,10 +108,12 @@ async function handleBoostSettingsModal(
         interaction.guild.id,
         {
             channelId:
-                channelId || null,
+                channelId ||
+                null,
 
             tyPhuRoleId:
-                tyPhuRoleId || null,
+                tyPhuRoleId ||
+                null,
         },
     );
 
@@ -162,7 +134,8 @@ async function handleBoostSettingsModal(
 
 export default [
     {
-        name: 'boost_modal',
+        name:
+            'boost_modal',
 
         execute: async (
             interaction,
@@ -171,11 +144,14 @@ export default [
         ) => {
             const action =
                 args[0] ||
-                interaction.customId.split(':')[1];
+                interaction.customId.split(
+                    ':',
+                )[1];
 
 
             if (
-                action === 'embed'
+                action ===
+                'embed'
             ) {
                 return handleBoostEmbedModal(
                     interaction,
@@ -184,16 +160,8 @@ export default [
 
 
             if (
-                action === 'image'
-            ) {
-                return handleBoostImageModal(
-                    interaction,
-                );
-            }
-
-
-            if (
-                action === 'settings'
+                action ===
+                'settings'
             ) {
                 return handleBoostSettingsModal(
                     interaction,
