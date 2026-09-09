@@ -32,6 +32,10 @@ import {
 } from '../../services/cultivationTreasure.js';
 
 import {
+  captureCultivationPet,
+} from '../../services/cultivationPet.js';
+
+import {
   buildAdventureEmbed,
   buildBackRow,
   buildBreakthroughEmbed,
@@ -75,6 +79,15 @@ import {
   buildTreasureEmbed,
   buildTreasureRows,
 } from '../../services/cultivationTreasureUI.js';
+
+import {
+  buildPetCaptureResultEmbed,
+  buildPetEmbed,
+  buildPetEncounterEmbed,
+  buildPetEncounterRows,
+  buildPetResultRows,
+  buildPetRows,
+} from '../../services/cultivationPetUI.js';
 
 /**
  * =========================================================
@@ -256,6 +269,7 @@ export default {
         components: [
           buildBackRow(
             ownerId,
+            'cultivate',
           ),
         ],
       });
@@ -288,6 +302,7 @@ export default {
         components: [
           buildBackRow(
             ownerId,
+            'breakthrough',
           ),
         ],
       });
@@ -310,6 +325,35 @@ export default {
           userId,
         );
 
+      /**
+       * ===================================================
+       * V2.8 — LINH THÚ HIỆN THẾ
+       * ===================================================
+       */
+
+      if (
+        result.ok &&
+        result.petEncounter
+      ) {
+        return interaction.update({
+          embeds: [
+            buildPetEncounterEmbed(
+              result.petEncounter,
+            ),
+          ],
+
+          components:
+            buildPetEncounterRows(
+              ownerId,
+              result.petEncounter,
+            ),
+        });
+      }
+
+      /**
+       * Event Thám Hiểm bình thường.
+       */
+
       return interaction.update({
         embeds: [
           buildAdventureEmbed(
@@ -320,6 +364,7 @@ export default {
         components: [
           buildBackRow(
             ownerId,
+            'adventure',
           ),
         ],
       });
@@ -477,7 +522,7 @@ export default {
 
     /**
      * =====================================================
-     * LUYỆN KHÍ PHƯỜNG
+     * LUYỆN KHÍ
      * =====================================================
      */
 
@@ -692,7 +737,7 @@ export default {
 
     /**
      * =====================================================
-     * KÍCH HOẠT PHÙ HIỆU · V2.7
+     * KÍCH HOẠT PHÙ HIỆU
      * =====================================================
      */
 
@@ -734,6 +779,81 @@ export default {
 
     /**
      * =====================================================
+     * LINH THÚ · V2.8
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'pet'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildPetEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildPetRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * THU PHỤC LINH THÚ · V2.8
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'pet_capture'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Linh Thú cần thu phục.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await captureCultivationPet(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildPetCaptureResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildPetResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
      * HỒ SƠ
      * =====================================================
      */
@@ -760,6 +880,7 @@ export default {
         components: [
           buildBackRow(
             ownerId,
+            'profile',
           ),
         ],
       });
@@ -793,6 +914,7 @@ export default {
         components: [
           buildBackRow(
             ownerId,
+            'leaderboard',
           ),
         ],
       });
