@@ -6,7 +6,25 @@ import {
   saveCultivationProfile,
 } from './cultivationService.js';
 
+/**
+ * =========================================================
+ * BÍ BẢO · 秘宝
+ * =========================================================
+ *
+ * Item thật trong cultivationGame.js:
+ *
+ * co_phu = Thượng Cổ Phù
+ *
+ * KHÔNG dùng thuong_co_phu.
+ */
+
 export const CULTIVATION_TALISMANS = {
+  /**
+   * =====================================================
+   * HỘ ĐẠO PHÙ
+   * =====================================================
+   */
+
   ho_dao_phu: {
     id:
       'ho_dao_phu',
@@ -15,12 +33,13 @@ export const CULTIVATION_TALISMANS = {
       'Hộ Đạo Phù',
 
     materialId:
-      'thuong_co_phu',
+      'co_phu',
 
     materialName:
       'Thượng Cổ Phù',
 
-    materialAmount: 1,
+    materialAmount:
+      1,
 
     description:
       'Phù văn hộ thể, thiên kiếp cũng khó tổn đạo cơ.',
@@ -30,7 +49,16 @@ export const CULTIVATION_TALISMANS = {
 
     effectType:
       'breakthrough_protection',
+
+    effectValue:
+      1,
   },
+
+  /**
+   * =====================================================
+   * TẦM BẢO PHÙ
+   * =====================================================
+   */
 
   tam_bao_phu: {
     id:
@@ -40,12 +68,13 @@ export const CULTIVATION_TALISMANS = {
       'Tầm Bảo Phù',
 
     materialId:
-      'thuong_co_phu',
+      'co_phu',
 
     materialName:
       'Thượng Cổ Phù',
 
-    materialAmount: 1,
+    materialAmount:
+      1,
 
     description:
       'Phù quang dẫn lối, cơ duyên ẩn sâu cũng khó thoát khỏi linh thức.',
@@ -56,9 +85,22 @@ export const CULTIVATION_TALISMANS = {
     effectType:
       'adventure_drop_bonus',
 
+    /**
+     * +35 điểm phần trăm.
+     *
+     * 20% → 55%
+     * 40% → 75%
+     */
+
     effectValue:
       0.35,
   },
+
+  /**
+   * =====================================================
+   * TỤ TÀI PHÙ
+   * =====================================================
+   */
 
   tu_tai_phu: {
     id:
@@ -68,12 +110,13 @@ export const CULTIVATION_TALISMANS = {
       'Tụ Tài Phù',
 
     materialId:
-      'thuong_co_phu',
+      'co_phu',
 
     materialName:
       'Thượng Cổ Phù',
 
-    materialAmount: 1,
+    materialAmount:
+      1,
 
     description:
       'Tài khí hội tụ, linh thạch theo phù lực mà đến.',
@@ -89,6 +132,12 @@ export const CULTIVATION_TALISMANS = {
   },
 };
 
+/**
+ * =========================================================
+ * GET TALISMAN
+ * =========================================================
+ */
+
 export function getCultivationTalisman(
   talismanId,
 ) {
@@ -99,11 +148,23 @@ export function getCultivationTalisman(
   );
 }
 
+/**
+ * =========================================================
+ * GET TALISMAN LIST
+ * =========================================================
+ */
+
 export function getCultivationTalismanList() {
   return Object.values(
     CULTIVATION_TALISMANS,
   );
 }
+
+/**
+ * =========================================================
+ * NORMALIZE TREASURE DATA
+ * =========================================================
+ */
 
 export function ensureTreasureData(
   profile,
@@ -135,6 +196,12 @@ export function ensureTreasureData(
   return profile;
 }
 
+/**
+ * =========================================================
+ * GET ACTIVE TALISMAN
+ * =========================================================
+ */
+
 export function getActiveTalisman(
   profile,
 ) {
@@ -142,18 +209,31 @@ export function getActiveTalisman(
     profile,
   );
 
-  if (
-    !profile.treasure
-      .activeTalisman
-  ) {
+  const talismanId =
+    profile.treasure
+      .activeTalisman;
+
+  if (!talismanId) {
     return null;
   }
 
-  return getCultivationTalisman(
-    profile.treasure
-      .activeTalisman,
+  /**
+   * Nếu id cũ / lỗi không còn tồn tại
+   * thì không coi là active.
+   */
+
+  return (
+    getCultivationTalisman(
+      talismanId,
+    ) || null
   );
 }
+
+/**
+ * =========================================================
+ * CHECK EFFECT
+ * =========================================================
+ */
 
 export function hasActiveTalisman(
   profile,
@@ -169,6 +249,12 @@ export function hasActiveTalisman(
     effectType
   );
 }
+
+/**
+ * =========================================================
+ * GET EFFECT VALUE
+ * =========================================================
+ */
 
 export function getTalismanEffectValue(
   profile,
@@ -195,17 +281,38 @@ export function getTalismanEffectValue(
   );
 }
 
+/**
+ * =========================================================
+ * THƯỢNG CỔ PHÙ QUANTITY
+ * =========================================================
+ *
+ * QUAN TRỌNG:
+ *
+ * cultivationGame.js đang lưu:
+ *
+ * co_phu: {
+ *   name: 'Thượng Cổ Phù'
+ * }
+ */
+
 export function getAncientTalismanQuantity(
   profile,
 ) {
   return Math.max(
     0,
     Number(
-      profile.inventory
-        ?.thuong_co_phu,
+      profile.inventory?.[
+        'co_phu'
+      ],
     ) || 0,
   );
 }
+
+/**
+ * =========================================================
+ * KÍCH HOẠT THƯỢNG CỔ PHÙ
+ * =========================================================
+ */
 
 export async function activateCultivationTalisman(
   client,
@@ -220,6 +327,12 @@ export async function activateCultivationTalisman(
     lockKey,
 
     async () => {
+      /**
+       * =====================================================
+       * VALIDATE TALISMAN
+       * =====================================================
+       */
+
       const talisman =
         getCultivationTalisman(
           talismanId,
@@ -228,10 +341,17 @@ export async function activateCultivationTalisman(
       if (!talisman) {
         return {
           ok: false,
+
           reason:
             'invalid_talisman',
         };
       }
+
+      /**
+       * =====================================================
+       * LOAD PROFILE
+       * =====================================================
+       */
 
       const profile =
         await getCultivationProfile(
@@ -244,6 +364,12 @@ export async function activateCultivationTalisman(
         profile,
       );
 
+      /**
+       * =====================================================
+       * CHỈ ACTIVE 1 PHÙ
+       * =====================================================
+       */
+
       const current =
         getActiveTalisman(
           profile,
@@ -252,14 +378,24 @@ export async function activateCultivationTalisman(
       if (current) {
         return {
           ok: false,
+
           reason:
             'talisman_active',
+
           activeTalisman:
             current,
+
           talisman,
+
           profile,
         };
       }
+
+      /**
+       * =====================================================
+       * CHECK THƯỢNG CỔ PHÙ
+       * =====================================================
+       */
 
       const available =
         getAncientTalismanQuantity(
@@ -272,15 +408,26 @@ export async function activateCultivationTalisman(
       ) {
         return {
           ok: false,
+
           reason:
             'not_enough_material',
+
           available,
+
           required:
             talisman.materialAmount,
+
           talisman,
+
           profile,
         };
       }
+
+      /**
+       * =====================================================
+       * CONSUME THƯỢNG CỔ PHÙ
+       * =====================================================
+       */
 
       const removed =
         removeInventoryItem(
@@ -292,16 +439,41 @@ export async function activateCultivationTalisman(
       if (!removed) {
         return {
           ok: false,
+
           reason:
             'consume_failed',
+
           talisman,
+
+          available,
+
           profile,
         };
       }
 
+      /**
+       * =====================================================
+       * ACTIVE EFFECT
+       * =====================================================
+       */
+
       profile.treasure
         .activeTalisman =
         talisman.id;
+
+      /**
+       * =====================================================
+       * STATS
+       * =====================================================
+       */
+
+      if (
+        !profile.stats ||
+        typeof profile.stats !==
+          'object'
+      ) {
+        profile.stats = {};
+      }
 
       profile.stats
         .talismansActivated =
@@ -313,6 +485,12 @@ export async function activateCultivationTalisman(
           ) || 0,
         ) + 1;
 
+      /**
+       * =====================================================
+       * SAVE
+       * =====================================================
+       */
+
       const saved =
         await saveCultivationProfile(
           client,
@@ -321,13 +499,16 @@ export async function activateCultivationTalisman(
 
       return {
         ok: true,
+
         talisman,
-        consumed: 1,
+
+        consumed:
+          talisman.materialAmount,
 
         remaining:
-          saved.inventory
-            ?.thuong_co_phu ||
-          0,
+          saved.inventory?.[
+            'co_phu'
+          ] || 0,
 
         profile:
           saved,
