@@ -17,11 +17,51 @@ import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
 import { ensureTypedServiceError, wrapServiceBoundary } from '../utils/serviceErrorBoundary.js';
 import { PRIORITY_MAP } from '../utils/helpers.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 const TICKET_DELETE_DELAY_MS = 3000;
 const TICKET_DELETE_DELAY_SECONDS = Math.floor(TICKET_DELETE_DELAY_MS / 1000);
 const TICKET_SERVICE = 'ticketService';
-const TICKET_IMAGE_URL =
-  'https://i.pinimg.com/736x/b9/46/fc/b946fc31a0960b6834288d323d5b7752.jpg';
+/**
+ * =========================================================
+ * LOCAL TICKET IMAGE
+ * =========================================================
+ */
+
+const TICKET_IMAGE_NAME =
+  'ticket.png';
+
+const TICKET_IMAGE_PATH =
+  path.resolve(
+    process.cwd(),
+    'assets',
+    'ticket',
+    TICKET_IMAGE_NAME,
+  );
+
+
+async function createTicketImageAttachment() {
+  try {
+    await fs.access(
+      TICKET_IMAGE_PATH,
+    );
+  } catch {
+    logger.warn(
+      `[TICKET] Image not found: ${TICKET_IMAGE_PATH}`,
+    );
+
+    return null;
+  }
+
+
+  return new AttachmentBuilder(
+    TICKET_IMAGE_PATH,
+    {
+      name:
+        TICKET_IMAGE_NAME,
+    },
+  );
+}
 
 function ticketUserError(message, userMessage, type = ErrorTypes.VALIDATION, context = {}) {
   throw createError(message, type, userMessage, { service: TICKET_SERVICE, ...context });
@@ -216,13 +256,20 @@ claimedAt: assignedStaff
     const priorityInfo = PRIORITY_MAP[priority] || PRIORITY_MAP.none;
     
     const embed = createEmbed({
-      title: `🎫 Ticket #${ticketNumber}`,
-      description: `${member.toString()}, cảm ơn bạn đã tạo ticket! 💗\n\n` +
+  title: `🎫 Ticket #${ticketNumber}`,
+
+  description:
+    `${member.toString()}, cảm ơn bạn đã tạo ticket! 💗\n\n` +
     `📝 **Lý do:** ${reason}\n` +
     `🌷 **Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
-      color: priorityInfo.color,
-      image: TICKET_IMAGE_URL,
-      fields: [
+
+  color:
+    priorityInfo.color,
+
+  image:
+    `attachment://${TICKET_IMAGE_NAME}`,
+
+  fields: [
         { name: '<a:cinnamorollg3:1541437319188578434> Trạng thái', value: '🟢 Đang mở', inline: true },
        {
   name: '<a:cinnamorollg3:1541437319188578434> Người nhận',
@@ -260,11 +307,28 @@ const staffMention = assignedStaff
 
 const messageContent = `${member.toString()}${staffMention}`;
 
-const ticketMessage = await channel.send({
-  content: messageContent,
-  embeds: [embed],
-  components: [row],
-});
+const ticketImage =
+  await createTicketImageAttachment();
+
+
+const ticketMessage =
+  await channel.send({
+    content:
+      messageContent,
+
+    embeds: [
+      embed,
+    ],
+
+    components: [
+      row,
+    ],
+
+    files:
+      ticketImage
+        ? [ticketImage]
+        : [],
+  });
     await ticketMessage.pin().catch(() => {});
     
     await logTicketEvent({
