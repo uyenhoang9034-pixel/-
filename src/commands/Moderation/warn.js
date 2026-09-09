@@ -71,7 +71,7 @@ const EMOJIS = {
      * Emoji mới cho toàn bộ tiêu đề field.
      */
     field:
-        '<a:bang4:1546905765439217666>',
+        '<a:bang2:1546891483250954290>',
 };
 
 
