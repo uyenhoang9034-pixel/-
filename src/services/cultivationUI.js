@@ -39,9 +39,6 @@ const GAME_BUTTON_EMOJI = {
 
 function applyStyle(
   embed,
-  {
-    image = true,
-  } = {},
 ) {
   embed.setColor(
     CULTIVATION_CONFIG
@@ -57,7 +54,6 @@ function applyStyle(
   });
 
   if (
-    image &&
     CULTIVATION_CONFIG
       .ui
       .image
@@ -74,7 +70,7 @@ function applyStyle(
 
 /**
  * =========================================================
- * FORMAT HELPERS
+ * FORMAT
  * =========================================================
  */
 
@@ -86,11 +82,41 @@ function number(
   ).format(
     Math.max(
       0,
+
       Math.round(
         value || 0,
       ),
     ),
   );
+}
+
+function signedNumber(
+  value,
+) {
+  const normalized =
+    Math.round(
+      value || 0,
+    );
+
+  if (
+    normalized > 0
+  ) {
+    return `+${number(
+      normalized,
+    )}`;
+  }
+
+  if (
+    normalized < 0
+  ) {
+    return `-${number(
+      Math.abs(
+        normalized,
+      ),
+    )}`;
+  }
+
+  return '+0';
 }
 
 function progressBar(
@@ -110,8 +136,10 @@ function progressBar(
   const ratio =
     Math.max(
       0,
+
       Math.min(
         1,
+
         current / max,
       ),
     );
@@ -137,6 +165,7 @@ function duration(
   const seconds =
     Math.max(
       0,
+
       Math.ceil(
         ms / 1000,
       ),
@@ -192,13 +221,21 @@ export function buildDashboardEmbed(
     isNew
       ? [
           '<a:trangtrig2:1546040703375904801> **THIÊN ĐẠO KHAI MỞ** <a:trangtrig3:1546040818261954610>',
+
           '',
+
           `<@${user.id}> đã chính thức bước vào Tiên Lộ.`,
+
           '',
+
           `Linh căn thức tỉnh: **${profile.spiritRoot.name}**`,
+
           `Phẩm chất: **${profile.spiritRoot.rarity}**`,
+
           '',
+
           SEPARATOR,
+
           '',
         ].join('\n')
       : '';
@@ -258,7 +295,7 @@ export function buildDashboardEmbed(
 
 /**
  * =========================================================
- * DASHBOARD BUTTONS
+ * BUTTONS
  * =========================================================
  */
 
@@ -288,6 +325,20 @@ export function buildDashboardRows(
           )
           .setLabel(
             'Đột Phá',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure`,
+          )
+          .setLabel(
+            'Thám Hiểm',
           )
           .setEmoji(
             GAME_BUTTON_EMOJI,
@@ -329,23 +380,6 @@ export function buildDashboardRows(
       .addComponents(
         new ButtonBuilder()
           .setCustomId(
-            `tutien_locked:${ownerId}:adventure`,
-          )
-          .setLabel(
-            'Thám Hiểm · V2',
-          )
-          .setEmoji(
-            GAME_BUTTON_EMOJI,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          )
-          .setDisabled(
-            true,
-          ),
-
-        new ButtonBuilder()
-          .setCustomId(
             `tutien_locked:${ownerId}:inventory`,
           )
           .setLabel(
@@ -366,7 +400,7 @@ export function buildDashboardRows(
 
 /**
  * =========================================================
- * BACK BUTTON
+ * BACK
  * =========================================================
  */
 
@@ -400,10 +434,6 @@ export function buildBackRow(
 export function buildCultivateEmbed(
   result,
 ) {
-  /**
-   * COOLDOWN
-   */
-
   if (
     !result.ok &&
     result.reason ===
@@ -433,10 +463,6 @@ export function buildCultivateEmbed(
     );
   }
 
-  /**
-   * KHÔNG ĐỦ THỂ LỰC
-   */
-
   if (
     !result.ok &&
     result.reason ===
@@ -464,22 +490,6 @@ export function buildCultivateEmbed(
     );
   }
 
-  /**
-   * TU VI +/- DYNAMIC
-   */
-
-  const cultivationText =
-    result.cultivationDelta >=
-    0
-      ? `+${number(
-          result.cultivationDelta,
-        )}`
-      : `-${number(
-          Math.abs(
-            result.cultivationDelta,
-          ),
-        )}`;
-
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
@@ -496,9 +506,11 @@ export function buildCultivateEmbed(
 
           '',
 
-          `**Tu Vi**: ${cultivationText}`,
+          `**Tu Vi**: ${signedNumber(
+            result.cultivationDelta,
+          )}`,
 
-          `**Linh Thạch**: +${number(
+          `**Linh Thạch**: ${signedNumber(
             result.stoneDelta,
           )}`,
 
@@ -513,6 +525,209 @@ export function buildCultivateEmbed(
           `${progressBar(
             result.profile
               .cultivation,
+
+            result.required,
+          )} ${number(
+            result.profile
+              .cultivation,
+          )} / ${number(
+            result.required,
+          )}`,
+        ].join('\n'),
+      ),
+  );
+}
+
+/**
+ * =========================================================
+ * THÁM HIỂM
+ * =========================================================
+ */
+
+export function buildAdventureEmbed(
+  result,
+) {
+  /**
+   * COOLDOWN
+   */
+
+  if (
+    !result.ok &&
+    result.reason ===
+      'cooldown'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> HÀNH TRÌNH CHƯA THỂ TIẾP TỤC',
+        )
+
+        .setDescription(
+          [
+            '<a:bang2:1546891483250954290> Đạo hữu vừa trải qua một chuyến thám hiểm, cần thời gian chỉnh đốn.',
+
+            '',
+
+            SEPARATOR,
+
+            '',
+
+            `<a:chiikawag13:1541429102668554250> Đạo hữu cần chờ **${duration(
+              result.cooldownRemaining,
+            )}** trước lần Thám Hiểm tiếp theo.`,
+          ].join('\n'),
+        ),
+    );
+  }
+
+  /**
+   * YÊU THÚ
+   */
+
+  if (
+    result.event.type ===
+    'monster'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> YÊU THÚ TẬP KÍCH',
+        )
+
+        .setDescription(
+          [
+            `<a:catg10:1546031290803945594> ${result.event.text}`,
+
+            '',
+
+            SEPARATOR,
+
+            '',
+
+            `**Tu Vi**: ${signedNumber(
+              result.cultivationDelta,
+            )}`,
+
+            '**Linh Thạch**: +0',
+
+            '',
+
+            `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+              result.profile,
+            )}**`,
+
+            `${progressBar(
+              result.profile
+                .cultivation,
+
+              result.required,
+            )} ${number(
+              result.profile
+                .cultivation,
+            )} / ${number(
+              result.required,
+            )}`,
+
+            '',
+
+            '*Tiên lộ vốn không phải nơi bình yên.*',
+          ].join('\n'),
+        ),
+    );
+  }
+
+  /**
+   * ĐẠI CƠ DUYÊN
+   */
+
+  if (
+    result.event.type ===
+    'great_fortune'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          result.event.title,
+        )
+
+        .setDescription(
+          [
+            result.event.text,
+
+            '',
+
+            SEPARATOR,
+
+            '',
+
+            `**Tu Vi**: ${signedNumber(
+              result.cultivationDelta,
+            )}`,
+
+            `**Linh Thạch**: ${signedNumber(
+              result.stoneDelta,
+            )}`,
+
+            '',
+
+            `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+              result.profile,
+            )}**`,
+
+            `${progressBar(
+              result.profile
+                .cultivation,
+
+              result.required,
+            )} ${number(
+              result.profile
+                .cultivation,
+            )} / ${number(
+              result.required,
+            )}`,
+          ].join('\n'),
+        ),
+    );
+  }
+
+  /**
+   * THÁM HIỂM BÌNH THƯỜNG
+   */
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        `<a:trangtrig2:1546040703375904801> ${result.location.name} <a:trangtrig3:1546040818261954610>`,
+      )
+
+      .setDescription(
+        [
+          result.event.text,
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          `**Tu Vi**: ${signedNumber(
+            result.cultivationDelta,
+          )}`,
+
+          `**Linh Thạch**: ${signedNumber(
+            result.stoneDelta,
+          )}`,
+
+          '',
+
+          `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+            result.profile,
+          )}**`,
+
+          `${progressBar(
+            result.profile
+              .cultivation,
+
             result.required,
           )} ${number(
             result.profile
@@ -534,10 +749,6 @@ export function buildCultivateEmbed(
 export function buildBreakthroughEmbed(
   result,
 ) {
-  /**
-   * MAX REALM
-   */
-
   if (
     !result.ok &&
     result.reason ===
@@ -555,10 +766,6 @@ export function buildBreakthroughEmbed(
     );
   }
 
-  /**
-   * BÌNH CẢNH CHƯA MỞ
-   */
-
   if (
     !result.ok &&
     result.reason ===
@@ -567,6 +774,7 @@ export function buildBreakthroughEmbed(
     const missing =
       Math.max(
         0,
+
         result.required -
           result.profile
             .cultivation,
@@ -607,10 +815,6 @@ export function buildBreakthroughEmbed(
         100,
     );
 
-  /**
-   * ĐỘT PHÁ THÀNH CÔNG
-   */
-
   if (
     result.success
   ) {
@@ -643,10 +847,6 @@ export function buildBreakthroughEmbed(
         ),
     );
   }
-
-  /**
-   * ĐỘT PHÁ THẤT BẠI
-   */
 
   return applyStyle(
     new EmbedBuilder()
@@ -745,6 +945,10 @@ export function buildProfileEmbed(
           `<a:trangtrig45:1547239010190237819> Tu Luyện: **${profile.stats.cultivateCount} lần**`,
 
           `<a:trangtrig45:1547239010190237819> Kỳ Ngộ: **${profile.stats.fortunes} lần**`,
+
+          `<a:trangtrig45:1547239010190237819> Thám Hiểm: **${profile.stats.adventureCount} lần**`,
+
+          `<a:trangtrig45:1547239010190237819> Đại Cơ Duyên: **${profile.stats.greatFortunes} lần**`,
 
           `<a:trangtrig45:1547239010190237819> Đột Phá Thành Công: **${profile.stats.breakthroughSuccess}**`,
 
