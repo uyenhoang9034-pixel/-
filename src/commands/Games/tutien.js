@@ -26,11 +26,15 @@ export default {
         'Mở Tiên Lộ và bắt đầu hành trình tu tiên cùng Usagi.',
       ),
 
+  category: 'Games',
+
   async execute(
     interaction,
   ) {
     /**
-     * Server only.
+     * =====================================================
+     * SERVER ONLY
+     * =====================================================
      */
 
     if (
@@ -46,7 +50,9 @@ export default {
     }
 
     /**
-     * Game disabled.
+     * =====================================================
+     * GAME ENABLED
+     * =====================================================
      */
 
     if (
@@ -55,7 +61,7 @@ export default {
     ) {
       return interaction.reply({
         content:
-          '🌸 Tiên Lộ hiện đang tạm đóng.',
+          'Tiên Lộ hiện đang tạm đóng.',
 
         flags:
           MessageFlags.Ephemeral,
@@ -63,7 +69,9 @@ export default {
     }
 
     /**
-     * Channel restriction.
+     * =====================================================
+     * CHANNEL LOCK
+     * =====================================================
      */
 
     if (
@@ -75,7 +83,7 @@ export default {
     ) {
       return interaction.reply({
         content:
-          `🌸 Tiên Lộ chỉ mở tại <#${CULTIVATION_CONFIG.channelId}>.`,
+          `Tiên Lộ chỉ mở tại <#${CULTIVATION_CONFIG.channelId}>.`,
 
         flags:
           MessageFlags.Ephemeral,
@@ -83,7 +91,9 @@ export default {
     }
 
     /**
-     * Kiểm tra xem user đã có profile chưa.
+     * =====================================================
+     * CHECK EXISTING PROFILE
+     * =====================================================
      */
 
     const existing =
@@ -100,7 +110,9 @@ export default {
       );
 
     /**
-     * Nếu chưa có -> tạo mới.
+     * =====================================================
+     * CREATE PROFILE IF NEEDED
+     * =====================================================
      */
 
     const profile =
@@ -116,6 +128,12 @@ export default {
           create: true,
         },
       ));
+
+    /**
+     * =====================================================
+     * DASHBOARD
+     * =====================================================
+     */
 
     return interaction.reply({
       embeds: [
