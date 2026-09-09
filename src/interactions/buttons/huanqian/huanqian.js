@@ -89,10 +89,6 @@ export default [
      * ======================================================
      * PUBLIC HUAN QIAN BUTTON
      * ======================================================
-     *
-     * huanqian:info
-     * huanqian:source
-     * huanqian:note
      */
 
     {
@@ -144,10 +140,7 @@ export default [
 
 
             /**
-             * Giữ nguyên giao diện Info / Nguồn / Note.
-             *
-             * Không tự thêm ảnh vào các popup này vì
-             * hệ thống cũ cũng không dùng panel image ở đây.
+             * Info / Nguồn / Note giữ nguyên logic cũ.
              */
 
             const embed =
@@ -184,7 +177,7 @@ export default [
 
     /**
      * ======================================================
-     * DASHBOARD BUTTON
+     * DASHBOARD
      * ======================================================
      */
 
@@ -308,7 +301,7 @@ export default [
 
             /**
              * ------------------------------------------------
-             * EDIT BUTTON
+             * EDIT INFO / NGUỒN / NOTE BUTTON
              * ------------------------------------------------
              */
 
@@ -458,11 +451,10 @@ export default [
 
 
                 /**
-                 * Nếu panel đã tồn tại:
+                 * Panel đã tồn tại:
                  *
-                 * - giữ nguyên message
-                 * - thay attachment cũ
-                 * - attach lại huanqian.png local
+                 * xóa attachment cũ rồi gắn lại
+                 * assets/huanqian/huanqian.png
                  */
 
                 if (
@@ -475,6 +467,11 @@ export default [
                             [],
                     });
                 } else {
+                    /**
+                     * Chưa có panel:
+                     * gửi message mới.
+                     */
+
                     message =
                         await channel.send(
                             payload,
@@ -483,9 +480,10 @@ export default [
 
                     const {
                         updateHuanqianPanel,
-                    } = await import(
-                        '../../../services/huanqian/huanqianService.js'
-                    );
+                    } =
+                        await import(
+                            '../../../services/huanqian/huanqianService.js'
+                        );
 
 
                     await updateHuanqianPanel(
