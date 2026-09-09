@@ -13,7 +13,7 @@
 export const GAME_ROLE_NOTIFICATION_CHANNEL_ID =
     '1547128793737728111';
 
-export const GAME_ROLE_EMBED_COLOR = 0xf4a6c1;
+export const GAME_ROLE_EMBED_COLOR = 0xFF9EAF;
 
 /**
  * =========================================================
