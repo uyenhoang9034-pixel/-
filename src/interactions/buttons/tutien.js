@@ -16,6 +16,10 @@ import {
 } from '../../services/cultivationService.js';
 
 import {
+  brewCultivationPill,
+} from '../../services/cultivationAlchemy.js';
+
+import {
   buildAdventureEmbed,
   buildBackRow,
   buildBreakthroughEmbed,
@@ -29,6 +33,19 @@ import {
   buildUseItemResultEmbed,
   buildUseItemResultRows,
 } from '../../services/cultivationUI.js';
+
+import {
+  buildAlchemyEmbed,
+  buildAlchemyRows,
+  buildAlchemyResultEmbed,
+  buildAlchemyResultRows,
+} from '../../services/cultivationAlchemyUI.js';
+
+/**
+ * =========================================================
+ * PLAYER LOCK
+ * =========================================================
+ */
 
 async function rejectWrongPlayer(
   interaction,
@@ -51,6 +68,12 @@ async function rejectWrongPlayer(
 
   return true;
 }
+
+/**
+ * =========================================================
+ * CHANNEL CHECK
+ * =========================================================
+ */
 
 async function enforceChannel(
   interaction,
@@ -76,6 +99,12 @@ async function enforceChannel(
   return true;
 }
 
+/**
+ * =========================================================
+ * BUTTON HANDLER
+ * =========================================================
+ */
+
 export default {
   name:
     'tutien_action',
@@ -98,6 +127,12 @@ export default {
       return;
     }
 
+    /**
+     * =====================================================
+     * OWNER CHECK
+     * =====================================================
+     */
+
     if (
       await rejectWrongPlayer(
         interaction,
@@ -106,6 +141,12 @@ export default {
     ) {
       return;
     }
+
+    /**
+     * =====================================================
+     * CHANNEL CHECK
+     * =====================================================
+     */
 
     if (
       !(await enforceChannel(
@@ -122,7 +163,9 @@ export default {
       interaction.user.id;
 
     /**
+     * =====================================================
      * DASHBOARD
+     * =====================================================
      */
 
     if (
@@ -152,7 +195,9 @@ export default {
     }
 
     /**
+     * =====================================================
      * TU LUYỆN
+     * =====================================================
      */
 
     if (
@@ -182,7 +227,9 @@ export default {
     }
 
     /**
+     * =====================================================
      * ĐỘT PHÁ
+     * =====================================================
      */
 
     if (
@@ -212,7 +259,9 @@ export default {
     }
 
     /**
+     * =====================================================
      * THÁM HIỂM
+     * =====================================================
      */
 
     if (
@@ -242,7 +291,9 @@ export default {
     }
 
     /**
+     * =====================================================
      * TÚI ĐỒ
+     * =====================================================
      */
 
     if (
@@ -273,7 +324,9 @@ export default {
     }
 
     /**
-     * SỬ DỤNG ITEM
+     * =====================================================
+     * SỬ DỤNG VẬT PHẨM
+     * =====================================================
      */
 
     if (
@@ -313,7 +366,91 @@ export default {
     }
 
     /**
+     * =====================================================
+     * LUYỆN ĐAN — MỞ ĐAN LÔ
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'alchemy'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildAlchemyEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildAlchemyRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * LUYỆN ĐAN — KHAI LÒ
+     * =====================================================
+     *
+     * customId:
+     *
+     * tutien_action:
+     * ownerId:
+     * alchemy_make:
+     * recipeId
+     */
+
+    if (
+      action ===
+      'alchemy_make'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Đan Phương cần luyện.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await brewCultivationPill(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildAlchemyResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAlchemyResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
      * HỒ SƠ
+     * =====================================================
      */
 
     if (
@@ -344,7 +481,9 @@ export default {
     }
 
     /**
+     * =====================================================
      * TIÊN BẢNG
+     * =====================================================
      */
 
     if (
@@ -373,6 +512,12 @@ export default {
         ],
       });
     }
+
+    /**
+     * =====================================================
+     * UNKNOWN ACTION
+     * =====================================================
+     */
 
     return interaction.reply({
       content:
