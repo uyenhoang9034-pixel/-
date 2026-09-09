@@ -28,6 +28,10 @@ import {
 } from '../../services/cultivationTechnique.js';
 
 import {
+  activateCultivationTalisman,
+} from '../../services/cultivationTreasure.js';
+
+import {
   buildAdventureEmbed,
   buildBackRow,
   buildBreakthroughEmbed,
@@ -64,6 +68,13 @@ import {
   buildTechniqueResultRows,
   buildTechniqueRows,
 } from '../../services/cultivationTechniqueUI.js';
+
+import {
+  buildTalismanResultEmbed,
+  buildTalismanResultRows,
+  buildTreasureEmbed,
+  buildTreasureRows,
+} from '../../services/cultivationTreasureUI.js';
 
 /**
  * =========================================================
@@ -641,6 +652,81 @@ export default {
 
         components:
           buildTechniqueResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * BÍ BẢO · V2.7
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'treasure'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTreasureEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildTreasureRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * KÍCH HOẠT PHÙ HIỆU · V2.7
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'talisman_activate'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Phù Hiệu cần kích hoạt.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await activateCultivationTalisman(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTalismanResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildTalismanResultRows(
             ownerId,
           ),
       });
