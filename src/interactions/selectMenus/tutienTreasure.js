@@ -7,47 +7,100 @@ import {
 } from '../../config/cultivationGame.js';
 
 import {
+  adventure,
+  breakthrough,
+  cultivate,
+  getCultivationLeaderboard,
   getCultivationProfile,
+  useCultivationItem,
 } from '../../services/cultivationService.js';
 
 import {
-  getCultivationTalisman,
+  brewCultivationPill,
+} from '../../services/cultivationAlchemy.js';
+
+import {
+  forgeEquipment,
+} from '../../services/cultivationEquipment.js';
+
+import {
+  learnCultivationTechnique,
+} from '../../services/cultivationTechnique.js';
+
+import {
+  activateCultivationTalisman,
 } from '../../services/cultivationTreasure.js';
 
 import {
-  buildTalismanConfirmEmbed,
-  buildTalismanConfirmRows,
+  buildAdventureEmbed,
+  buildBackRow,
+  buildBreakthroughEmbed,
+  buildCultivateEmbed,
+  buildDashboardEmbed,
+  buildDashboardRows,
+  buildInventoryEmbed,
+  buildInventoryRows,
+  buildLeaderboardEmbed,
+  buildProfileEmbed,
+  buildUseItemResultEmbed,
+  buildUseItemResultRows,
+} from '../../services/cultivationUI.js';
+
+import {
+  buildAlchemyEmbed,
+  buildAlchemyRows,
+  buildAlchemyResultEmbed,
+  buildAlchemyResultRows,
+} from '../../services/cultivationAlchemyUI.js';
+
+import {
+  buildEquipmentEmbed,
+  buildEquipmentRows,
+  buildForgeEmbed,
+  buildForgeResultEmbed,
+  buildForgeResultRows,
+  buildForgeRows,
+} from '../../services/cultivationEquipmentUI.js';
+
+import {
+  buildTechniqueEmbed,
+  buildTechniqueLearnResultEmbed,
+  buildTechniqueResultRows,
+  buildTechniqueRows,
+} from '../../services/cultivationTechniqueUI.js';
+
+import {
+  buildTalismanResultEmbed,
+  buildTalismanResultRows,
+  buildTreasureEmbed,
+  buildTreasureRows,
 } from '../../services/cultivationTreasureUI.js';
 
-/**
- * =========================================================
- * COMMON VALIDATION
- * =========================================================
- */
-
-async function validateInteraction(
+async function rejectWrongPlayer(
   interaction,
   ownerId,
 ) {
-  if (!ownerId) {
-    return false;
-  }
-
   if (
-    interaction.user.id !==
+    interaction.user.id ===
     ownerId
   ) {
-    await interaction.reply({
-      content:
-        'Đây là Bí Bảo của một đạo hữu khác.',
-
-      flags:
-        MessageFlags.Ephemeral,
-    });
-
     return false;
   }
 
+  await interaction.reply({
+    content:
+      'Đây là Tiên Lộ của một đạo hữu khác. Dùng `/tutien` để mở hành trình của riêng bạn.',
+
+    flags:
+      MessageFlags.Ephemeral,
+  });
+
+  return true;
+}
+
+async function enforceChannel(
+  interaction,
+) {
   if (
     CULTIVATION_CONFIG
       .channelId &&
@@ -69,15 +122,9 @@ async function validateInteraction(
   return true;
 }
 
-/**
- * =========================================================
- * CHỌN PHÙ HIỆU
- * =========================================================
- */
-
-export const talismanSelectHandler = {
+export default {
   name:
-    'tutien_talisman_select',
+    'tutien_action',
 
   async execute(
     interaction,
@@ -86,90 +133,550 @@ export const talismanSelectHandler = {
   ) {
     const [
       ownerId,
+      action,
+      extra,
     ] = args;
 
     if (
-      !(await validateInteraction(
+      !ownerId ||
+      !action
+    ) {
+      return;
+    }
+
+    if (
+      await rejectWrongPlayer(
         interaction,
         ownerId,
+      )
+    ) {
+      return;
+    }
+
+    if (
+      !(await enforceChannel(
+        interaction,
       ))
     ) {
       return;
     }
 
-    const talismanId =
-      interaction.values?.[
-        0
-      ];
+    const guildId =
+      interaction.guildId;
 
-    if (!talismanId) {
-      return interaction.reply({
-        content:
-          'Không xác định được Phù Hiệu.',
-
-        flags:
-          MessageFlags.Ephemeral,
-      });
-    }
-
-    const talisman =
-      getCultivationTalisman(
-        talismanId,
-      );
-
-    if (!talisman) {
-      return interaction.reply({
-        content:
-          'Không tìm thấy Phù Hiệu này.',
-
-        flags:
-          MessageFlags.Ephemeral,
-      });
-    }
-
-    const profile =
-      await getCultivationProfile(
-        client,
-        interaction.guildId,
-        interaction.user.id,
-      );
-
-    /**
-     * Nếu đang có phù khác active,
-     * không mở confirm nữa.
-     */
+    const userId =
+      interaction.user.id;
 
     if (
-      profile.treasure
-        ?.activeTalisman
+      action ===
+      'dashboard'
     ) {
-      return interaction.reply({
-        content:
-          'Đạo hữu hiện đã có một Phù Hiệu đang kích hoạt.',
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
 
-        flags:
-          MessageFlags.Ephemeral,
+      return interaction.update({
+        embeds: [
+          buildDashboardEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildDashboardRows(
+            ownerId,
+          ),
       });
     }
 
-    return interaction.update({
-      embeds: [
-        buildTalismanConfirmEmbed(
-          interaction.user,
-          profile,
-          talismanId,
-        ),
-      ],
+    if (
+      action ===
+      'cultivate'
+    ) {
+      const result =
+        await cultivate(
+          client,
+          guildId,
+          userId,
+        );
 
-      components:
-        buildTalismanConfirmRows(
-          ownerId,
-          talismanId,
-        ),
+      return interaction.update({
+        embeds: [
+          buildCultivateEmbed(
+            result,
+          ),
+        ],
+
+        components: [
+          buildBackRow(
+            ownerId,
+            'cultivate',
+          ),
+        ],
+      });
+    }
+
+    if (
+      action ===
+      'breakthrough'
+    ) {
+      const result =
+        await breakthrough(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildBreakthroughEmbed(
+            result,
+          ),
+        ],
+
+        components: [
+          buildBackRow(
+            ownerId,
+            'breakthrough',
+          ),
+        ],
+      });
+    }
+
+    if (
+      action ===
+      'adventure'
+    ) {
+      const result =
+        await adventure(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildAdventureEmbed(
+            result,
+          ),
+        ],
+
+        components: [
+          buildBackRow(
+            ownerId,
+            'adventure',
+          ),
+        ],
+      });
+    }
+
+    if (
+      action ===
+      'inventory'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildInventoryEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildInventoryRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'use_item'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được vật phẩm cần sử dụng.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await useCultivationItem(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildUseItemResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildUseItemResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'alchemy'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildAlchemyEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildAlchemyRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'alchemy_make'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Đan Phương cần luyện.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await brewCultivationPill(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildAlchemyResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAlchemyResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'forge'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildForgeEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildForgeRows(
+            ownerId,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'forge_make'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Pháp Khí cần luyện.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await forgeEquipment(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildForgeResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildForgeResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'equipment'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildEquipmentEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildEquipmentRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'technique'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTechniqueEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildTechniqueRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'technique_learn'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Công Pháp cần lĩnh ngộ.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await learnCultivationTechnique(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTechniqueLearnResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildTechniqueResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'treasure'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTreasureEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildTreasureRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'talisman_activate'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Phù Hiệu cần kích hoạt.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await activateCultivationTalisman(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTalismanResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildTalismanResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    if (
+      action ===
+      'profile'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildProfileEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components: [
+          buildBackRow(
+            ownerId,
+            'profile',
+          ),
+        ],
+      });
+    }
+
+    if (
+      action ===
+      'leaderboard'
+    ) {
+      const entries =
+        await getCultivationLeaderboard(
+          client,
+          guildId,
+          10,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildLeaderboardEmbed(
+            entries,
+            interaction.guild,
+          ),
+        ],
+
+        components: [
+          buildBackRow(
+            ownerId,
+            'leaderboard',
+          ),
+        ],
+      });
+    }
+
+    return interaction.reply({
+      content:
+        'Không tìm thấy hành động Tiên Lộ tương ứng.',
+
+      flags:
+        MessageFlags.Ephemeral,
     });
   },
 };
-
-export default [
-  talismanSelectHandler,
-];
