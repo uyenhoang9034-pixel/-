@@ -1,10 +1,7 @@
 import {
     Events,
+    PermissionFlagsBits,
 } from 'discord.js';
-
-import {
-    removeGameRoleFromReaction,
-} from '../services/gameRoleService.js';
 
 import {
     getGameRoleByEmoji,
@@ -17,17 +14,14 @@ import {
 
 export default {
 
-    name:
-        Events.MessageReactionRemove,
+    name: Events.MessageReactionRemove,
 
-    once:
-        false,
+    once: false,
 
 
     async execute(
         reaction,
         user,
-        client,
     ) {
         try {
 
@@ -44,12 +38,7 @@ export default {
             ) {
                 try {
                     await reaction.fetch();
-                } catch (error) {
-                    logger.warn(
-                        'GameRole: failed to fetch partial removed reaction:',
-                        error,
-                    );
-
+                } catch {
                     return;
                 }
             }
@@ -58,16 +47,22 @@ export default {
             let message =
                 reaction.message;
 
-
             try {
-                message =
-                    await reaction.message.fetch();
-            } catch (error) {
-                logger.warn(
-                    'GameRole: failed to fetch removed reaction message:',
-                    error,
-                );
+                if (
+                    message.partial
+                ) {
+                    message =
+                        await message.fetch();
+                }
+            } catch {
+                return;
+            }
 
+
+            const guild =
+                message.guild;
+
+            if (!guild) {
                 return;
             }
 
@@ -77,34 +72,29 @@ export default {
                     reaction.emoji,
                 );
 
-
             if (!config) {
                 return;
             }
 
 
-            if (
-                !message.guild
-            ) {
-                return;
-            }
-
+            const botId =
+                guild.members.me?.id;
 
             if (
+                !botId ||
                 message.author?.id !==
-                client.user?.id
+                    botId
             ) {
                 return;
             }
 
 
-            const title =
+            const panelTitle =
                 message.embeds?.[0]?.title ??
                 '';
 
-
             if (
-                !title.includes(
+                !panelTitle.includes(
                     '𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮',
                 )
             ) {
@@ -112,29 +102,89 @@ export default {
             }
 
 
-            logger.info(
-                `[GAME ROLE] Reaction removed | ${user.tag ?? user.id} -> ${config.label}`,
-            );
+            const member =
+                await guild.members
+                    .fetch(
+                        user.id,
+                    )
+                    .catch(
+                        () =>
+                            null,
+                    );
+
+            if (!member) {
+                return;
+            }
 
 
-            const success =
-                await removeGameRoleFromReaction(
-                    reaction,
-                    user,
-                );
+            const role =
+                await guild.roles
+                    .fetch(
+                        config.roleId,
+                    )
+                    .catch(
+                        () =>
+                            null,
+                    );
+
+            if (!role) {
+                return;
+            }
+
+
+            const botMember =
+                guild.members.me ??
+                await guild.members
+                    .fetchMe()
+                    .catch(
+                        () =>
+                            null,
+                    );
+
+            if (!botMember) {
+                return;
+            }
 
 
             if (
-                success
+                !botMember.permissions.has(
+                    PermissionFlagsBits.ManageRoles,
+                )
             ) {
-                logger.info(
-                    `[GAME ROLE] Role removed | ${user.tag ?? user.id} -> ${config.label}`,
-                );
+                return;
             }
+
+
+            if (
+                role.position >=
+                botMember.roles.highest.position
+            ) {
+                return;
+            }
+
+
+            if (
+                !member.roles.cache.has(
+                    role.id,
+                )
+            ) {
+                return;
+            }
+
+
+            await member.roles.remove(
+                role.id,
+                `Game Role reaction removed: ${config.label}`,
+            );
+
+
+            logger.info(
+                `[GAME ROLE] Đã gỡ ${role.name} khỏi ${member.user.tag}.`,
+            );
 
         } catch (error) {
             logger.error(
-                '[GAME ROLE] Unexpected error in messageReactionRemove:',
+                '[GAME ROLE] Lỗi gỡ role từ reaction:',
                 error,
             );
         }
