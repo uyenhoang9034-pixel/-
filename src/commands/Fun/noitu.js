@@ -2,7 +2,11 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
+  AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
   createEmbed,
@@ -33,64 +37,92 @@ import {
   WORD_CHAIN_MODES,
 } from '../../services/wordChainService.js';
 
-import { logger } from '../../utils/logger.js';
+import {
+  logger,
+} from '../../utils/logger.js';
 
 import {
   replyUserError,
   ErrorTypes,
 } from '../../utils/errorHandler.js';
 
+
 /**
  * =========================================================
- * FIXED IMAGES
+ * LOCAL IMAGES
  * =========================================================
  */
 
-/**
- * ẢNH DÙNG CHO:
- *
- * /noitu setup
- *
- * Đây là ảnh lớn cố định của phần setup.
- */
-const WORD_CHAIN_SETUP_IMAGE =
-  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424616745177188/142bbf46-3624-4f6b-bf7d-a11bd6bc46ac.png';
+const WORD_CHAIN_SETUP_IMAGE_NAME =
+  'noitu.webp';
+
+const WORD_CHAIN_LEADERBOARD_IMAGE_NAME =
+  'noituleaderboard.webp';
+
+
+const WORD_CHAIN_SETUP_IMAGE_PATH =
+  path.resolve(
+    process.cwd(),
+    'assets',
+    'noitu',
+    WORD_CHAIN_SETUP_IMAGE_NAME,
+  );
+
+
+const WORD_CHAIN_LEADERBOARD_IMAGE_PATH =
+  path.resolve(
+    process.cwd(),
+    'assets',
+    'noitu',
+    WORD_CHAIN_LEADERBOARD_IMAGE_NAME,
+  );
+
 
 /**
- * ẢNH DÙNG CHO:
- *
- * /noitu leaderboard
- *
- * Đây là ảnh lớn riêng của Leaderboard.
+ * =========================================================
+ * CREATE IMAGE ATTACHMENT
+ * =========================================================
  */
-const WORD_CHAIN_LEADERBOARD_IMAGE =
-  'https://cdn.discordapp.com/attachments/1541300740947968020/1546424571668729856/9c61060d-0389-4e7c-ae0c-ebe274c45c02.png';
+
+async function createWordChainImageAttachment(
+  imagePath,
+  imageName,
+) {
+  try {
+    await fs.access(
+      imagePath,
+    );
+  } catch {
+    logger.warn(
+      `[NOITU] Image not found: ${imagePath}`,
+    );
+
+    return null;
+  }
+
+
+  return new AttachmentBuilder(
+    imagePath,
+    {
+      name:
+        imageName,
+    },
+  );
+}
+
 
 /**
  * =========================================================
  * COLORS
  * =========================================================
- *
- * LEADERBOARD:
- * - Giữ màu hồng.
- *
- * SETUP:
- * - Dùng màu xanh dương.
  */
 
-/**
- * Màu hồng cho Leaderboard.
- */
 const WORD_CHAIN_COLOR =
   '#F4A6C8';
 
-/**
- * Màu xanh dương cho /noitu setup.
- *
- * Chỉ áp dụng cho embed setup PvP + PvE.
- */
 const WORD_CHAIN_SETUP_COLOR =
   '#6EA8FE';
+
 
 /**
  * =========================================================
@@ -142,19 +174,23 @@ const WORD_CHAIN_EMOJIS = {
     '<a:trangtrig29:1546385117478527016>',
 };
 
+
 /**
  * =========================================================
  * FORMAT NUMBER
  * =========================================================
  */
 
-function formatNumber(number) {
+function formatNumber(
+  number,
+) {
   return Number(
     number || 0,
   ).toLocaleString(
     'en-US',
   );
 }
+
 
 /**
  * =========================================================
@@ -163,202 +199,219 @@ function formatNumber(number) {
  */
 
 export default {
-  data: new SlashCommandBuilder()
-    .setName('noitu')
-    .setDescription(
-      'Quản lý minigame Nối từ Tiếng Việt',
-    )
-    .setDMPermission(false)
+  data:
+    new SlashCommandBuilder()
+      .setName(
+        'noitu',
+      )
+      .setDescription(
+        'Quản lý minigame Nối từ Tiếng Việt',
+      )
+      .setDMPermission(
+        false,
+      )
 
-    /**
-     * =====================================================
-     * SETUP
-     * =====================================================
-     *
-     * PvP:
-     * 1545291672504508416
-     *
-     * PvE:
-     * 1546428675367505920
-     */
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('setup')
-          .setDescription(
-            'Thiết lập Nối Từ cho cả hai kênh cố định',
-          )
-          .addStringOption(
-            (option) =>
-              option
-                .setName('start_word')
-                .setDescription(
-                  'Từ ghép 2 tiếng khởi đầu cho cả hai chế độ',
-                ),
-          ),
-    )
+      // =====================================================
+      // SETUP
+      // =====================================================
 
-    /**
-     * =====================================================
-     * MODE
-     * =====================================================
-     */
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'setup',
+            )
+            .setDescription(
+              'Thiết lập Nối Từ cho cả hai kênh cố định',
+            )
+            .addStringOption(
+              option =>
+                option
+                  .setName(
+                    'start_word',
+                  )
+                  .setDescription(
+                    'Từ ghép 2 tiếng khởi đầu cho cả hai chế độ',
+                  ),
+            ),
+      )
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('mode')
-          .setDescription(
-            'Khởi động lại một chế độ tại kênh cố định',
-          )
-          .addStringOption(
-            (option) =>
-              option
-                .setName('mode')
-                .setDescription(
-                  'Chọn chế độ',
-                )
-                .setRequired(true)
-                .addChoices(
-                  {
-                    name:
-                      'Đấu với Bot (PvE)',
-                    value:
-                      'bot',
-                  },
-                  {
-                    name:
-                      'Đấu với người chơi (PvP)',
-                    value:
-                      'pvp',
-                  },
-                ),
-          ),
-    )
 
-    /**
-     * =====================================================
-     * DISABLE
-     * =====================================================
-     */
+      // =====================================================
+      // MODE
+      // =====================================================
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('disable')
-          .setDescription(
-            'Tắt cả hai chế độ Nối Từ',
-          ),
-    )
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'mode',
+            )
+            .setDescription(
+              'Khởi động lại một chế độ tại kênh cố định',
+            )
+            .addStringOption(
+              option =>
+                option
+                  .setName(
+                    'mode',
+                  )
+                  .setDescription(
+                    'Chọn chế độ',
+                  )
+                  .setRequired(
+                    true,
+                  )
+                  .addChoices(
+                    {
+                      name:
+                        'Đấu với Bot (PvE)',
 
-    /**
-     * =====================================================
-     * STATUS
-     * =====================================================
-     */
+                      value:
+                        'bot',
+                    },
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('status')
-          .setDescription(
-            'Xem trạng thái Nối Từ',
-          ),
-    )
+                    {
+                      name:
+                        'Đấu với người chơi (PvP)',
 
-    /**
-     * =====================================================
-     * RESET
-     * =====================================================
-     *
-     * EVERYONE ĐƯỢC DÙNG.
-     *
-     * Chỉ reset game ở channel hiện tại.
-     */
+                      value:
+                        'pvp',
+                    },
+                  ),
+            ),
+      )
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('reset')
-          .setDescription(
-            'Làm mới ván Nối Từ hiện tại',
-          )
-          .addStringOption(
-            (option) =>
-              option
-                .setName('start_word')
-                .setDescription(
-                  'Từ ghép 2 tiếng khởi đầu',
-                ),
-          ),
-    )
 
-    /**
-     * =====================================================
-     * RESTART
-     * =====================================================
-     */
+      // =====================================================
+      // DISABLE
+      // =====================================================
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('restart')
-          .setDescription(
-            'Kết thúc chuỗi hiện tại và bắt đầu lượt mới',
-          ),
-    )
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'disable',
+            )
+            .setDescription(
+              'Tắt cả hai chế độ Nối Từ',
+            ),
+      )
 
-    /**
-     * =====================================================
-     * LEADERBOARD
-     * =====================================================
-     */
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('leaderboard')
-          .setDescription(
-            'Xem bảng xếp hạng Nối Từ',
-          ),
-    )
+      // =====================================================
+      // STATUS
+      // =====================================================
 
-    /**
-     * =====================================================
-     * GOIY
-     * =====================================================
-     *
-     * Everyone được dùng.
-     *
-     * WORD_CHAIN_HINT_LIMIT = 3
-     */
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'status',
+            )
+            .setDescription(
+              'Xem trạng thái Nối Từ',
+            ),
+      )
 
-    .addSubcommand(
-      (subcommand) =>
-        subcommand
-          .setName('goiy')
-          .setDescription(
-            'Nhận một từ gợi ý để nối tiếp',
-          ),
-    ),
 
-  category: 'Fun',
+      // =====================================================
+      // RESET
+      // =====================================================
 
-  async execute(interaction) {
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'reset',
+            )
+            .setDescription(
+              'Làm mới ván Nối Từ hiện tại',
+            )
+            .addStringOption(
+              option =>
+                option
+                  .setName(
+                    'start_word',
+                  )
+                  .setDescription(
+                    'Từ ghép 2 tiếng khởi đầu',
+                  ),
+            ),
+      )
+
+
+      // =====================================================
+      // RESTART
+      // =====================================================
+
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'restart',
+            )
+            .setDescription(
+              'Kết thúc chuỗi hiện tại và bắt đầu lượt mới',
+            ),
+      )
+
+
+      // =====================================================
+      // LEADERBOARD
+      // =====================================================
+
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'leaderboard',
+            )
+            .setDescription(
+              'Xem bảng xếp hạng Nối Từ',
+            ),
+      )
+
+
+      // =====================================================
+      // GOIY
+      // =====================================================
+
+      .addSubcommand(
+        subcommand =>
+          subcommand
+            .setName(
+              'goiy',
+            )
+            .setDescription(
+              'Nhận một từ gợi ý để nối tiếp',
+            ),
+      ),
+
+
+  category:
+    'Fun',
+
+
+  async execute(
+    interaction,
+  ) {
     try {
       const subcommand =
         interaction.options.getSubcommand();
 
-      /**
-       * Những lệnh này trả lời công khai.
-       */
 
       const isPublicView =
-        subcommand === 'status' ||
-        subcommand === 'leaderboard' ||
-        subcommand === 'restart' ||
-        subcommand === 'reset';
+        subcommand ===
+          'status' ||
+        subcommand ===
+          'leaderboard' ||
+        subcommand ===
+          'restart' ||
+        subcommand ===
+          'reset';
+
 
       const deferSuccess =
         await InteractionHelper.safeDefer(
@@ -371,7 +424,10 @@ export default {
           },
         );
 
-      if (!deferSuccess) {
+
+      if (
+        !deferSuccess
+      ) {
         logger.warn(
           'Noitu command defer failed',
           {
@@ -386,25 +442,10 @@ export default {
         return;
       }
 
-      /**
-       * =====================================================
-       * ADMIN ONLY
-       * =====================================================
-       *
-       * setup
-       * mode
-       * disable
-       *
-       * Các lệnh còn lại:
-       *
-       * reset
-       * restart
-       * status
-       * leaderboard
-       * goiy
-       *
-       * => everyone.
-       */
+
+      // =====================================================
+      // ADMIN ONLY
+      // =====================================================
 
       const adminSubcommands =
         new Set([
@@ -412,6 +453,7 @@ export default {
           'mode',
           'disable',
         ]);
+
 
       if (
         adminSubcommands.has(
@@ -435,8 +477,10 @@ export default {
         );
       }
 
+
       const guildId =
         interaction.guildId;
+
 
       const config =
         await getWordChainConfig(
@@ -444,19 +488,20 @@ export default {
           guildId,
         );
 
-      /**
-       * =====================================================
-       * SETUP
-       * =====================================================
-       */
+
+      // =====================================================
+      // SETUP
+      // =====================================================
 
       if (
-        subcommand === 'setup'
+        subcommand ===
+        'setup'
       ) {
         const startWordInput =
           interaction.options.getString(
             'start_word',
           );
+
 
         if (
           startWordInput &&
@@ -476,11 +521,10 @@ export default {
           );
         }
 
-        /**
-         * ---------------------------------------------------
-         * FETCH FIXED CHANNELS
-         * ---------------------------------------------------
-         */
+
+        // ---------------------------------------------------
+        // FETCH FIXED CHANNELS
+        // ---------------------------------------------------
 
         const pvpChannel =
           await interaction.guild.channels
@@ -491,6 +535,7 @@ export default {
               () => null,
             );
 
+
         const botChannel =
           await interaction.guild.channels
             .fetch(
@@ -500,7 +545,10 @@ export default {
               () => null,
             );
 
-        if (!pvpChannel) {
+
+        if (
+          !pvpChannel
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -513,7 +561,10 @@ export default {
           );
         }
 
-        if (!botChannel) {
+
+        if (
+          !botChannel
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -526,15 +577,42 @@ export default {
           );
         }
 
-        /**
-         * ---------------------------------------------------
-         * ACTIVATE PVP
-         * ---------------------------------------------------
-         *
-         * Nếu không nhập start_word:
-         * service sẽ tự chọn từ ngẫu nhiên
-         * trong dictionary.
-         */
+
+        // ---------------------------------------------------
+        // LOAD LOCAL SETUP IMAGE
+        // ---------------------------------------------------
+
+        const setupImageExists =
+          await fs.access(
+            WORD_CHAIN_SETUP_IMAGE_PATH,
+          )
+            .then(
+              () => true,
+            )
+            .catch(
+              () => false,
+            );
+
+
+        if (
+          !setupImageExists
+        ) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.UNKNOWN,
+
+              message:
+                'Không tìm thấy file `assets/noitu/noitu.webp`.',
+            },
+          );
+        }
+
+
+        // ---------------------------------------------------
+        // ACTIVATE PVP
+        // ---------------------------------------------------
 
         await activateWordChain(
           interaction.client,
@@ -544,14 +622,10 @@ export default {
           startWordInput,
         );
 
-        /**
-         * ---------------------------------------------------
-         * ACTIVATE PVE
-         * ---------------------------------------------------
-         *
-         * Nếu không nhập start_word:
-         * service tiếp tục chọn một từ ngẫu nhiên.
-         */
+
+        // ---------------------------------------------------
+        // ACTIVATE PVE
+        // ---------------------------------------------------
 
         const updatedConfig =
           await activateWordChain(
@@ -562,11 +636,10 @@ export default {
             startWordInput,
           );
 
-        /**
-         * ---------------------------------------------------
-         * GET GAMES
-         * ---------------------------------------------------
-         */
+
+        // ---------------------------------------------------
+        // GET GAMES
+        // ---------------------------------------------------
 
         const pvpGame =
           getWordChainGame(
@@ -574,33 +647,29 @@ export default {
             'pvp',
           );
 
+
         const botGame =
           getWordChainGame(
             updatedConfig,
             'bot',
           );
 
+
         const pvpNext =
           getLastSyllable(
             pvpGame.currentWord,
           );
+
 
         const botNext =
           getLastSyllable(
             botGame.currentWord,
           );
 
-        /**
-         * ===================================================
-         * PVP SETUP PANEL
-         * ===================================================
-         *
-         * CHANGED:
-         *
-         * color = WORD_CHAIN_SETUP_COLOR
-         *
-         * => xanh dương.
-         */
+
+        // ===================================================
+        // PVP SETUP PANEL
+        // ===================================================
 
         const pvpEmbed =
           createEmbed({
@@ -617,34 +686,46 @@ export default {
               WORD_CHAIN_SETUP_COLOR,
           });
 
-        /**
-         * ẢNH SETUP CỐ ĐỊNH.
-         */
 
         pvpEmbed.setImage(
-          WORD_CHAIN_SETUP_IMAGE,
+          `attachment://${WORD_CHAIN_SETUP_IMAGE_NAME}`,
         );
 
-        await pvpChannel
-          .send({
-            embeds: [
-              pvpEmbed,
-            ],
-          })
-          .catch(
-            (error) => {
-              logger.warn(
-                'Failed to send PvP setup embed:',
-                error,
-              );
-            },
+
+        const pvpImage =
+          await createWordChainImageAttachment(
+            WORD_CHAIN_SETUP_IMAGE_PATH,
+            WORD_CHAIN_SETUP_IMAGE_NAME,
           );
 
-        /**
-         * ===================================================
-         * PVE SETUP PANEL
-         * ===================================================
-         */
+
+        if (
+          pvpImage
+        ) {
+          await pvpChannel
+            .send({
+              embeds: [
+                pvpEmbed,
+              ],
+
+              files: [
+                pvpImage,
+              ],
+            })
+            .catch(
+              error => {
+                logger.warn(
+                  'Failed to send PvP setup embed:',
+                  error,
+                );
+              },
+            );
+        }
+
+
+        // ===================================================
+        // PVE SETUP PANEL
+        // ===================================================
 
         const botEmbed =
           createEmbed({
@@ -661,28 +742,48 @@ export default {
               WORD_CHAIN_SETUP_COLOR,
           });
 
-        /**
-         * ẢNH SETUP CỐ ĐỊNH.
-         */
 
         botEmbed.setImage(
-          WORD_CHAIN_SETUP_IMAGE,
+          `attachment://${WORD_CHAIN_SETUP_IMAGE_NAME}`,
         );
 
-        await botChannel
-          .send({
-            embeds: [
-              botEmbed,
-            ],
-          })
-          .catch(
-            (error) => {
-              logger.warn(
-                'Failed to send PvE setup embed:',
-                error,
-              );
-            },
+
+        /**
+         * Phải tạo AttachmentBuilder mới.
+         *
+         * Không tái sử dụng attachment PvP
+         * cho message PvE.
+         */
+        const botImage =
+          await createWordChainImageAttachment(
+            WORD_CHAIN_SETUP_IMAGE_PATH,
+            WORD_CHAIN_SETUP_IMAGE_NAME,
           );
+
+
+        if (
+          botImage
+        ) {
+          await botChannel
+            .send({
+              embeds: [
+                botEmbed,
+              ],
+
+              files: [
+                botImage,
+              ],
+            })
+            .catch(
+              error => {
+                logger.warn(
+                  'Failed to send PvE setup embed:',
+                  error,
+                );
+              },
+            );
+        }
+
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -693,33 +794,37 @@ export default {
                 `Đã thiết lập Nối Từ cho cả hai kênh cố định.\n\n` +
                   `⚔️ PvP: <#${WORD_CHAIN_CHANNELS.pvp}>\n` +
                   `🤖 PvE: <#${WORD_CHAIN_CHANNELS.bot}>\n\n` +
-                  `Mỗi chế độ hiện có một ván chơi riêng.`,
+                  'Mỗi chế độ hiện có một ván chơi riêng.',
               ),
             ],
           },
         );
       }
 
-      /**
-       * =====================================================
-       * MODE
-       * =====================================================
-       */
+
+      // =====================================================
+      // MODE
+      // =====================================================
 
       if (
-        subcommand === 'mode'
+        subcommand ===
+        'mode'
       ) {
         const newMode =
           interaction.options.getString(
             'mode',
           );
 
+
         const channelId =
           WORD_CHAIN_CHANNELS[
             newMode
           ];
 
-        if (!channelId) {
+
+        if (
+          !channelId
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -732,6 +837,7 @@ export default {
           );
         }
 
+
         const channel =
           await interaction.guild.channels
             .fetch(
@@ -741,7 +847,10 @@ export default {
               () => null,
             );
 
-        if (!channel) {
+
+        if (
+          !channel
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -754,12 +863,6 @@ export default {
           );
         }
 
-        /**
-         * Không truyền startWord.
-         *
-         * activateWordChain()
-         * sẽ lấy từ ngẫu nhiên từ dictionary.
-         */
 
         const updated =
           await activateWordChain(
@@ -770,31 +873,42 @@ export default {
             null,
           );
 
+
         const game =
           getWordChainGame(
             updated,
             newMode,
           );
 
+
         const modeInfo =
           WORD_CHAIN_MODES[
             newMode
           ];
+
 
         const nextSyllable =
           getLastSyllable(
             game.currentWord,
           );
 
+
         await channel
           .send(
             [
               `${WORD_CHAIN_EMOJIS.newRound} **${modeInfo.label}** đã được quản lý khởi động lại.`,
+
               `${WORD_CHAIN_EMOJIS.info} Từ mới: **${game.currentWord}**`,
+
               `${WORD_CHAIN_EMOJIS.info} Tiếng cần nối: **${nextSyllable}**`,
-            ].join('\n'),
+            ].join(
+              '\n',
+            ),
           )
-          .catch(() => {});
+          .catch(
+            () => {},
+          );
+
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -810,14 +924,14 @@ export default {
         );
       }
 
-      /**
-       * =====================================================
-       * DISABLE
-       * =====================================================
-       */
+
+      // =====================================================
+      // DISABLE
+      // =====================================================
 
       if (
-        subcommand === 'disable'
+        subcommand ===
+        'disable'
       ) {
         if (
           !config.enabled
@@ -835,10 +949,12 @@ export default {
           );
         }
 
+
         await disableWordChain(
           interaction.client,
           guildId,
         );
+
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -853,14 +969,14 @@ export default {
         );
       }
 
-      /**
-       * =====================================================
-       * STATUS
-       * =====================================================
-       */
+
+      // =====================================================
+      // STATUS
+      // =====================================================
 
       if (
-        subcommand === 'status'
+        subcommand ===
+        'status'
       ) {
         const pvpGame =
           getWordChainGame(
@@ -868,11 +984,13 @@ export default {
             'pvp',
           );
 
+
         const botGame =
           getWordChainGame(
             config,
             'bot',
           );
+
 
         const embed =
           createEmbed({
@@ -888,12 +1006,17 @@ export default {
                   pvpGame.enabled
                     ? [
                         `Kênh: <#${WORD_CHAIN_CHANNELS.pvp}>`,
+
                         `Từ hiện tại: **${pvpGame.currentWord || 'Chưa có'}**`,
+
                         `Chuỗi: **${pvpGame.currentStreak || 0}**`,
-                      ].join('\n')
+                      ].join(
+                        '\n',
+                      )
                     : 'Đang tắt',
 
-                inline: false,
+                inline:
+                  false,
               },
 
               {
@@ -904,24 +1027,24 @@ export default {
                   botGame.enabled
                     ? [
                         `Kênh: <#${WORD_CHAIN_CHANNELS.bot}>`,
+
                         `Từ hiện tại: **${botGame.currentWord || 'Chưa có'}**`,
-                        `Chuỗi cá nhân: **được lưu riêng theo người chơi**`,
-                      ].join('\n')
+
+                        'Chuỗi cá nhân: **được lưu riêng theo người chơi**',
+                      ].join(
+                        '\n',
+                      )
                     : 'Đang tắt',
 
-                inline: false,
+                inline:
+                  false,
               },
             ],
-
-            /**
-             * STATUS giữ nguyên màu hiện tại.
-             *
-             * Chỉ SETUP đổi sang xanh.
-             */
 
             color:
               WORD_CHAIN_COLOR,
           });
+
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -933,25 +1056,24 @@ export default {
         );
       }
 
-      /**
-       * =====================================================
-       * RESET
-       * =====================================================
-       *
-       * EVERYONE.
-       *
-       * Chỉ reset mode của channel hiện tại.
-       */
+
+      // =====================================================
+      // RESET
+      // =====================================================
 
       if (
-        subcommand === 'reset'
+        subcommand ===
+        'reset'
       ) {
         const mode =
           getWordChainModeForChannel(
             interaction.channelId,
           );
 
-        if (!mode) {
+
+        if (
+          !mode
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -964,13 +1086,17 @@ export default {
           );
         }
 
+
         const game =
           getWordChainGame(
             config,
             mode,
           );
 
-        if (!game.enabled) {
+
+        if (
+          !game.enabled
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -983,10 +1109,12 @@ export default {
           );
         }
 
+
         const startWordInput =
           interaction.options.getString(
             'start_word',
           );
+
 
         if (
           startWordInput &&
@@ -1006,24 +1134,20 @@ export default {
           );
         }
 
-        /**
-         * Nếu người dùng tự nhập từ:
-         * dùng từ đó.
-         *
-         * Nếu không:
-         * lấy từ random từ dictionary
-         * và loại currentWord để tránh
-         * lặp lại ngay round trước.
-         */
 
         const nextStart =
           startWordInput
             ? normalizeWord(
                 startWordInput,
               )
-            : getRandomStartWord([
-                game.currentWord,
-              ].filter(Boolean));
+            : getRandomStartWord(
+                [
+                  game.currentWord,
+                ].filter(
+                  Boolean,
+                ),
+              );
+
 
         await resetWordChainGame(
           interaction.client,
@@ -1032,15 +1156,23 @@ export default {
           mode,
         );
 
+
         await interaction.channel
           .send(
             [
               `${WORD_CHAIN_EMOJIS.newRound} Lượt **${mode === 'pvp' ? 'PvP' : 'PvE'}** đã được làm mới!`,
+
               `${WORD_CHAIN_EMOJIS.info} Từ bắt đầu: **${nextStart}**`,
+
               `${WORD_CHAIN_EMOJIS.info} Tiếng cần nối: **${getLastSyllable(nextStart)}**`,
-            ].join('\n'),
+            ].join(
+              '\n',
+            ),
           )
-          .catch(() => {});
+          .catch(
+            () => {},
+          );
+
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -1055,21 +1187,24 @@ export default {
         );
       }
 
-      /**
-       * =====================================================
-       * RESTART
-       * =====================================================
-       */
+
+      // =====================================================
+      // RESTART
+      // =====================================================
 
       if (
-        subcommand === 'restart'
+        subcommand ===
+        'restart'
       ) {
         const mode =
           getWordChainModeForChannel(
             interaction.channelId,
           );
 
-        if (!mode) {
+
+        if (
+          !mode
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -1082,13 +1217,17 @@ export default {
           );
         }
 
+
         const game =
           getWordChainGame(
             config,
             mode,
           );
 
-        if (!game.enabled) {
+
+        if (
+          !game.enabled
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -1101,25 +1240,28 @@ export default {
           );
         }
 
+
         const endedStreak =
           Number(
-            game.currentStreak || 0,
+            game.currentStreak ||
+            0,
           );
+
 
         const finalWord =
           game.currentWord ||
           'Chưa có';
 
-        /**
-         * Random từ dictionary.
-         *
-         * Không lấy lại currentWord.
-         */
 
         const nextStart =
-          getRandomStartWord([
-            game.currentWord,
-          ].filter(Boolean));
+          getRandomStartWord(
+            [
+              game.currentWord,
+            ].filter(
+              Boolean,
+            ),
+          );
+
 
         await recordBreak(
           interaction.client,
@@ -1128,14 +1270,21 @@ export default {
           mode,
         );
 
+
         await interaction.channel
           .send(
             [
               `${WORD_CHAIN_EMOJIS.end} Chuỗi hiện tại kết thúc sau **${endedStreak}** với **${finalWord}**.`,
+
               `${WORD_CHAIN_EMOJIS.newRound} Lượt mới bắt đầu với **${nextStart}**!`,
-            ].join('\n'),
+            ].join(
+              '\n',
+            ),
           )
-          .catch(() => {});
+          .catch(
+            () => {},
+          );
+
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -1150,21 +1299,10 @@ export default {
         );
       }
 
-      /**
-       * =====================================================
-       * LEADERBOARD
-       * =====================================================
-       *
-       * PvP:
-       * - Xếp theo tổng số từ đúng.
-       *
-       * PvE:
-       * - Xếp theo bestStreak cao nhất.
-       *
-       * ẢNH:
-       * - Dùng setImage()
-       * - Không dùng setThumbnail()
-       */
+
+      // =====================================================
+      // LEADERBOARD
+      // =====================================================
 
       if (
         subcommand ===
@@ -1176,29 +1314,13 @@ export default {
             'bot',
           );
 
+
         const pvpPlayers =
           buildWordChainLeaderboard(
             config,
             'pvp',
           );
 
-        /**
-         * ===================================================
-         * FORMAT LEADERBOARD
-         * ===================================================
-         *
-         * PvE và PvP hiển thị khác nhau:
-         *
-         * PvE:
-         *    Chuỗi cao nhất
-         *
-         * PvP:
-         *    Tổng số từ đúng
-         *
-         * Vẫn hiển thị:
-         *    ❌ số sai
-         *    ✅ số đúng
-         */
 
         function formatLeaderboard(
           players,
@@ -1206,13 +1328,17 @@ export default {
         ) {
           if (
             !players ||
-            players.length === 0
+            players.length ===
+              0
           ) {
             return '*Chưa có người chơi nào.*';
           }
 
+
           const isPvE =
-            mode === 'bot';
+            mode ===
+            'bot';
+
 
           return players
             .map(
@@ -1221,23 +1347,17 @@ export default {
                 index,
               ) => {
                 const medal =
-                  index === 0
+                  index ===
+                    0
                     ? '🥇'
-                    : index === 1
+                    : index ===
+                        1
                       ? '🥈'
-                      : index === 2
+                      : index ===
+                          2
                         ? '🥉'
                         : `**#${index + 1}**`;
 
-                /**
-                 * PvE:
-                 *
-                 * score = bestStreak
-                 *
-                 * PvP:
-                 *
-                 * score = correct
-                 */
 
                 const mainScore =
                   isPvE
@@ -1251,19 +1371,27 @@ export default {
                           0,
                       );
 
+
                 const mainLabel =
                   isPvE
                     ? 'chuỗi'
                     : 'từ';
 
+
                 return [
                   `${medal} <@${entry.userId}>: **${formatNumber(mainScore)} ${mainLabel}** ${WORD_CHAIN_EMOJIS.words}`,
+
                   `　${WORD_CHAIN_EMOJIS.wrong} **${formatNumber(entry.wrong)}**  ·  ${WORD_CHAIN_EMOJIS.correct} **${formatNumber(entry.correct)}**`,
-                ].join('\n');
+                ].join(
+                  '\n',
+                );
               },
             )
-            .join('\n');
+            .join(
+              '\n',
+            );
         }
+
 
         const embed =
           createEmbed({
@@ -1273,6 +1401,7 @@ export default {
             description:
               [
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với Bot (PvE)**`,
+
                 formatLeaderboard(
                   botPlayers,
                   'bot',
@@ -1281,33 +1410,47 @@ export default {
                 '',
 
                 `${WORD_CHAIN_EMOJIS.mode} **Đấu với người chơi (PvP)**`,
+
                 formatLeaderboard(
                   pvpPlayers,
                   'pvp',
                 ),
-              ].join('\n'),
-
-            /**
-             * LEADERBOARD GIỮ NGUYÊN MÀU HỒNG.
-             */
+              ].join(
+                '\n',
+              ),
 
             color:
               WORD_CHAIN_COLOR,
           });
 
-        /**
-         * ===================================================
-         * LEADERBOARD IMAGE
-         * ===================================================
-         *
-         * Ảnh BỰ.
-         *
-         * KHÔNG dùng thumbnail.
-         */
 
         embed.setImage(
-          WORD_CHAIN_LEADERBOARD_IMAGE,
+          `attachment://${WORD_CHAIN_LEADERBOARD_IMAGE_NAME}`,
         );
+
+
+        const leaderboardImage =
+          await createWordChainImageAttachment(
+            WORD_CHAIN_LEADERBOARD_IMAGE_PATH,
+            WORD_CHAIN_LEADERBOARD_IMAGE_NAME,
+          );
+
+
+        if (
+          !leaderboardImage
+        ) {
+          return await replyUserError(
+            interaction,
+            {
+              type:
+                ErrorTypes.UNKNOWN,
+
+              message:
+                'Không tìm thấy file `assets/noitu/noituleaderboard.webp`.',
+            },
+          );
+        }
+
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -1315,29 +1458,32 @@ export default {
             embeds: [
               embed,
             ],
+
+            files: [
+              leaderboardImage,
+            ],
           },
         );
       }
 
-      /**
-       * =====================================================
-       * GOIY
-       * =====================================================
-       *
-       * EVERYONE.
-       *
-       * 3 lần / chuỗi.
-       */
+
+      // =====================================================
+      // GOIY
+      // =====================================================
 
       if (
-        subcommand === 'goiy'
+        subcommand ===
+        'goiy'
       ) {
         const mode =
           getWordChainModeForChannel(
             interaction.channelId,
           );
 
-        if (!mode) {
+
+        if (
+          !mode
+        ) {
           return await replyUserError(
             interaction,
             {
@@ -1350,11 +1496,13 @@ export default {
           );
         }
 
+
         const game =
           getWordChainGame(
             config,
             mode,
           );
+
 
         if (
           !game.enabled
@@ -1371,6 +1519,7 @@ export default {
           );
         }
 
+
         const hintResult =
           await useWordChainHint(
             interaction.client,
@@ -1379,11 +1528,10 @@ export default {
             mode,
           );
 
-        /**
-         * ===================================================
-         * HẾT 3 LƯỢT
-         * ===================================================
-         */
+
+        // ===================================================
+        // HẾT LƯỢT
+        // ===================================================
 
         if (
           hintResult.reason ===
@@ -1395,27 +1543,19 @@ export default {
               content:
                 `Bạn đã sử dụng hết **${WORD_CHAIN_HINT_LIMIT} lượt gợi ý** trong chuỗi này. ${WORD_CHAIN_EMOJIS.hintLimit}`,
 
-              embeds: [],
+              embeds:
+                [],
 
-              components: [],
+              components:
+                [],
             },
           );
         }
 
-        /**
-         * ===================================================
-         * KHÔNG CÒN TỪ
-         * ===================================================
-         *
-         * Nếu không còn từ để gợi ý:
-         *
-         * 1. Không trừ lượt hint.
-         * 2. Kết thúc chuỗi.
-         * 3. Reset streak.
-         * 4. Reset usedWords.
-         * 5. Reset hint.
-         * 6. Tạo round mới.
-         */
+
+        // ===================================================
+        // KHÔNG CÒN TỪ
+        // ===================================================
 
         if (
           hintResult.reason ===
@@ -1427,45 +1567,43 @@ export default {
               guildId,
             );
 
+
           const latestGame =
             getWordChainGame(
               latestConfig,
               mode,
             );
 
-          /**
-           * PvE:
-           * lấy streak của user hiện tại.
-           *
-           * PvP:
-           * lấy streak chung.
-           */
 
           const endedStreak =
             Number(
-              mode === 'bot'
+              mode ===
+                'bot'
                 ? latestGame
                     .personalStreaks?.[
                       interaction.user.id
-                    ] || 0
+                    ] ||
+                    0
                 : latestGame
-                    .currentStreak || 0,
+                    .currentStreak ||
+                    0,
             );
+
 
           const finalWord =
             latestGame.currentWord ||
             'từ hiện tại';
 
-          /**
-           * Random round mới.
-           *
-           * Không lấy lại từ hiện tại.
-           */
 
           const nextStart =
-            getRandomStartWord([
-              latestGame.currentWord,
-            ].filter(Boolean));
+            getRandomStartWord(
+              [
+                latestGame.currentWord,
+              ].filter(
+                Boolean,
+              ),
+            );
+
 
           await recordBreak(
             interaction.client,
@@ -1474,27 +1612,32 @@ export default {
             mode,
           );
 
+
           return await InteractionHelper.safeEditReply(
             interaction,
             {
               content:
                 [
                   `${WORD_CHAIN_EMOJIS.end} Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
+
                   `${WORD_CHAIN_EMOJIS.newRound} Lượt nối từ mới đã bắt đầu với từ **${nextStart}**!`,
-                ].join('\n'),
+                ].join(
+                  '\n',
+                ),
 
-              embeds: [],
+              embeds:
+                [],
 
-              components: [],
+              components:
+                [],
             },
           );
         }
 
-        /**
-         * ===================================================
-         * HINT SUCCESS
-         * ===================================================
-         */
+
+        // ===================================================
+        // HINT SUCCESS
+        // ===================================================
 
         if (
           hintResult.ok &&
@@ -1506,18 +1649,19 @@ export default {
               content:
                 `${WORD_CHAIN_EMOJIS.hint} Gợi ý của bé Usagi là **${hintResult.word}**! Bạn còn **${hintResult.remaining} lượt gợi ý** trong chuỗi này. ${WORD_CHAIN_EMOJIS.hintEnd}`,
 
-              embeds: [],
+              embeds:
+                [],
 
-              components: [],
+              components:
+                [],
             },
           );
         }
 
-        /**
-         * ===================================================
-         * FALLBACK
-         * ===================================================
-         */
+
+        // ===================================================
+        // FALLBACK
+        // ===================================================
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -1525,17 +1669,22 @@ export default {
             content:
               '🌸 Usagi hiện chưa thể đưa ra gợi ý. Bạn thử lại nhé!',
 
-            embeds: [],
+            embeds:
+              [],
 
-            components: [],
+            components:
+              [],
           },
         );
       }
-    } catch (error) {
+    } catch (
+      error
+    ) {
       logger.error(
         'Error executing noitu command:',
         error,
       );
+
 
       return await replyUserError(
         interaction,
