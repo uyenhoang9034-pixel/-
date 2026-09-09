@@ -13,145 +13,173 @@ import {
 
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName('boost')
-        .setDescription(
-            'Quản lý hệ thống Server Boost',
-        )
+    data:
+        new SlashCommandBuilder()
+            .setName(
+                'boost',
+            )
+            .setDescription(
+                'Quản lý hệ thống Server Boost',
+            )
+            .setDefaultMemberPermissions(
+                PermissionFlagsBits.ManageGuild,
+            )
 
-        .setDefaultMemberPermissions(
-            PermissionFlagsBits.ManageGuild,
-        )
+            // =================================================
+            // SETUP
+            // =================================================
 
-        // =====================================================
-        // SETUP
-        // =====================================================
+            .addSubcommand(
+                subcommand =>
+                    subcommand
+                        .setName(
+                            'setup',
+                        )
+                        .setDescription(
+                            'Mở Boost Dashboard',
+                        ),
+            )
 
-        .addSubcommand(
-            subcommand =>
-                subcommand
-                    .setName('setup')
-                    .setDescription(
-                        'Mở Boost Dashboard',
-                    ),
-        )
+            // =================================================
+            // TESTBOOST
+            // =================================================
 
-        // =====================================================
-        // TESTBOOST
-        // =====================================================
+            .addSubcommand(
+                subcommand =>
+                    subcommand
+                        .setName(
+                            'testboost',
+                        )
+                        .setDescription(
+                            'Gửi thông báo Boost thủ công để test hoặc gửi bù',
+                        )
 
-        .addSubcommand(
-            subcommand =>
-                subcommand
-                    .setName('testboost')
-                    .setDescription(
-                        'Gửi thông báo Boost thủ công để test hoặc gửi bù',
-                    )
-                    .addUserOption(
-                        option =>
-                            option
-                                .setName('member')
-                                .setDescription(
-                                    'Người được hiển thị trong thông báo Boost',
-                                )
-                                .setRequired(
-                                    true,
-                                ),
-                    )
-                    .addIntegerOption(
-                        option =>
-                            option
-                                .setName('member_boosts')
-                                .setDescription(
-                                    'Số boost của riêng người này',
-                                )
-                                .setMinValue(
-                                    1,
-                                )
-                                .setRequired(
-                                    true,
-                                ),
-                    )
-                    .addIntegerOption(
-                        option =>
-                            option
-                                .setName('total_boosts')
-                                .setDescription(
-                                    'Tổng số Boost hiện tại muốn hiển thị',
-                                )
-                                .setMinValue(
-                                    0,
-                                )
-                                .setRequired(
-                                    true,
-                                ),
-                    )
-                    .addIntegerOption(
-                        option =>
-                            option
-                                .setName('level')
-                                .setDescription(
-                                    'Boost Level muốn hiển thị (0 - 3)',
-                                )
-                                .setMinValue(
-                                    0,
-                                )
-                                .setMaxValue(
-                                    3,
-                                )
-                                .setRequired(
-                                    true,
-                                ),
-                    ),
-        )
+                        .addUserOption(
+                            option =>
+                                option
+                                    .setName(
+                                        'member',
+                                    )
+                                    .setDescription(
+                                        'Người được hiển thị trong thông báo Boost',
+                                    )
+                                    .setRequired(
+                                        true,
+                                    ),
+                        )
 
-        // =====================================================
-        // SET CHANNEL
-        // =====================================================
+                        .addIntegerOption(
+                            option =>
+                                option
+                                    .setName(
+                                        'member_boosts',
+                                    )
+                                    .setDescription(
+                                        'Số boost của riêng người này',
+                                    )
+                                    .setMinValue(
+                                        1,
+                                    )
+                                    .setRequired(
+                                        true,
+                                    ),
+                        )
 
-        .addSubcommand(
-            subcommand =>
-                subcommand
-                    .setName('channel')
-                    .setDescription(
-                        'Đặt kênh thông báo Boost',
-                    )
-                    .addChannelOption(
-                        option =>
-                            option
-                                .setName('channel')
-                                .setDescription(
-                                    'Kênh nhận thông báo Boost',
-                                )
-                                .setRequired(
-                                    true,
-                                ),
-                    ),
-        )
+                        .addIntegerOption(
+                            option =>
+                                option
+                                    .setName(
+                                        'total_boosts',
+                                    )
+                                    .setDescription(
+                                        'Tổng số Boost hiện tại muốn hiển thị',
+                                    )
+                                    .setMinValue(
+                                        0,
+                                    )
+                                    .setRequired(
+                                        true,
+                                    ),
+                        )
 
-        // =====================================================
-        // SET ROLE
-        // =====================================================
+                        .addIntegerOption(
+                            option =>
+                                option
+                                    .setName(
+                                        'level',
+                                    )
+                                    .setDescription(
+                                        'Boost Level muốn hiển thị (0 - 3)',
+                                    )
+                                    .setMinValue(
+                                        0,
+                                    )
+                                    .setMaxValue(
+                                        3,
+                                    )
+                                    .setRequired(
+                                        true,
+                                    ),
+                        ),
+            )
 
-        .addSubcommand(
-            subcommand =>
-                subcommand
-                    .setName('role')
-                    .setDescription(
-                        'Đặt role TỶ PHÚ',
-                    )
-                    .addRoleOption(
-                        option =>
-                            option
-                                .setName('role')
-                                .setDescription(
-                                    'Role TỶ PHÚ',
-                                )
-                                .setRequired(
-                                    true,
-                                ),
-                    ),
-        ),
+            // =================================================
+            // CHANNEL
+            // =================================================
+
+            .addSubcommand(
+                subcommand =>
+                    subcommand
+                        .setName(
+                            'channel',
+                        )
+                        .setDescription(
+                            'Đặt kênh thông báo Boost',
+                        )
+
+                        .addChannelOption(
+                            option =>
+                                option
+                                    .setName(
+                                        'channel',
+                                    )
+                                    .setDescription(
+                                        'Kênh nhận thông báo Boost',
+                                    )
+                                    .setRequired(
+                                        true,
+                                    ),
+                        ),
+            )
+
+            // =================================================
+            // ROLE
+            // =================================================
+
+            .addSubcommand(
+                subcommand =>
+                    subcommand
+                        .setName(
+                            'role',
+                        )
+                        .setDescription(
+                            'Đặt role TỶ PHÚ',
+                        )
+
+                        .addRoleOption(
+                            option =>
+                                option
+                                    .setName(
+                                        'role',
+                                    )
+                                    .setDescription(
+                                        'Role TỶ PHÚ',
+                                    )
+                                    .setRequired(
+                                        true,
+                                    ),
+                        ),
+            ),
 
 
     async execute(
@@ -166,7 +194,8 @@ export default {
         // =====================================================
 
         if (
-            subcommand === 'setup'
+            subcommand ===
+            'setup'
         ) {
             const config =
                 await getBoostConfig(
@@ -178,18 +207,20 @@ export default {
                 new EmbedBuilder()
                     .setColor(
                         parseInt(
-                            config.color.replace(
+                            String(
+                                config.color ||
+                                '#F5A9C6',
+                            ).replace(
                                 '#',
                                 '',
                             ),
                             16,
-                        ) || 0xF5A9C6,
+                        ) ||
+                        0xF5A9C6,
                     )
-
                     .setTitle(
                         '🌸 BOOST DASHBOARD',
                     )
-
                     .setDescription(
                         [
                             'Quản lý hệ thống **Server Boost** tại đây.',
@@ -213,9 +244,14 @@ export default {
                                     ? `<@&${config.tyPhuRoleId}>`
                                     : '`Chưa cài`'
                             }`,
-                        ].join('\n'),
-                    )
 
+                            '',
+
+                            '**Boost Image:** `assets/boost/boost.webp`',
+                        ].join(
+                            '\n',
+                        ),
+                    )
                     .setFooter({
                         text:
                             interaction.guild.name,
@@ -226,9 +262,10 @@ export default {
                 ActionRowBuilder,
                 ButtonBuilder,
                 ButtonStyle,
-            } = await import(
-                'discord.js'
-            );
+            } =
+                await import(
+                    'discord.js'
+                );
 
 
             const row =
@@ -243,17 +280,6 @@ export default {
                             )
                             .setStyle(
                                 ButtonStyle.Primary,
-                            ),
-
-                        new ButtonBuilder()
-                            .setCustomId(
-                                'boost_dashboard:image',
-                            )
-                            .setLabel(
-                                'Image',
-                            )
-                            .setStyle(
-                                ButtonStyle.Secondary,
                             ),
 
                         new ButtonBuilder()
@@ -293,6 +319,7 @@ export default {
                     MessageFlags.Ephemeral,
             });
 
+
             return;
         }
 
@@ -302,7 +329,8 @@ export default {
         // =====================================================
 
         if (
-            subcommand === 'testboost'
+            subcommand ===
+            'testboost'
         ) {
             const user =
                 interaction.options.getUser(
@@ -310,17 +338,20 @@ export default {
                     true,
                 );
 
+
             const memberBoosts =
                 interaction.options.getInteger(
                     'member_boosts',
                     true,
                 );
 
+
             const totalBoosts =
                 interaction.options.getInteger(
                     'total_boosts',
                     true,
                 );
+
 
             const level =
                 interaction.options.getInteger(
@@ -349,6 +380,7 @@ export default {
                         MessageFlags.Ephemeral,
                 });
 
+
                 return;
             }
 
@@ -359,8 +391,10 @@ export default {
                     null,
                     {
                         memberBoosts,
+
                         boostCount:
                             totalBoosts,
+
                         currentLevel:
                             level,
                     },
@@ -370,13 +404,37 @@ export default {
             if (
                 !result.success
             ) {
+                const errorText = {
+                    CHANNEL_NOT_CONFIGURED:
+                        'Boost Channel chưa được cài.',
+
+                    CHANNEL_NOT_FOUND:
+                        'Không tìm thấy Boost Channel.',
+
+                    CHANNEL_NOT_TEXT:
+                        'Boost Channel không phải kênh có thể gửi tin nhắn.',
+
+                    BOOST_IMAGE_NOT_FOUND:
+                        'Không tìm thấy file `assets/boost/boost.webp`.',
+
+                    SEND_FAILED:
+                        'Discord từ chối gửi thông báo Boost.',
+                }[
+                    result.reason
+                ] ||
+                result.reason ||
+                'UNKNOWN';
+
+
                 await interaction.reply({
                     content:
-                        '❌ Không thể gửi Test Boost. Hãy kiểm tra Boost Channel trong `/boost setup`.',
+                        `❌ Không thể gửi Test Boost.\n` +
+                        `Lỗi: **${errorText}**`,
 
                     flags:
                         MessageFlags.Ephemeral,
                 });
+
 
                 return;
             }
@@ -393,6 +451,7 @@ export default {
                     MessageFlags.Ephemeral,
             });
 
+
             return;
         }
 
@@ -402,11 +461,13 @@ export default {
         // =====================================================
 
         if (
-            subcommand === 'channel'
+            subcommand ===
+            'channel'
         ) {
             const channel =
                 interaction.options.getChannel(
                     'channel',
+                    true,
                 );
 
 
@@ -427,6 +488,7 @@ export default {
                     MessageFlags.Ephemeral,
             });
 
+
             return;
         }
 
@@ -436,11 +498,13 @@ export default {
         // =====================================================
 
         if (
-            subcommand === 'role'
+            subcommand ===
+            'role'
         ) {
             const role =
                 interaction.options.getRole(
                     'role',
+                    true,
                 );
 
 
@@ -460,6 +524,9 @@ export default {
                 flags:
                     MessageFlags.Ephemeral,
             });
+
+
+            return;
         }
     },
 };
