@@ -1,4 +1,8 @@
 import {
+  Mutex,
+} from '../utils/mutex.js';
+
+import {
   getCultivationProfile,
   removeInventoryItem,
   saveCultivationProfile,
@@ -12,9 +16,11 @@ import {
 
 export const CULTIVATION_TECHNIQUES = {
   thanh_van_kiem_quyet: {
-    id: 'thanh_van_kiem_quyet',
+    id:
+      'thanh_van_kiem_quyet',
 
-    name: 'Thanh Vân Kiếm Quyết',
+    name:
+      'Thanh Vân Kiếm Quyết',
 
     emoji:
       '<a:trangtrig18:1546068102817775626>',
@@ -41,7 +47,8 @@ export const CULTIVATION_TECHNIQUES = {
   },
 
   huyen_nguyen_tam_phap: {
-    id: 'huyen_nguyen_tam_phap',
+    id:
+      'huyen_nguyen_tam_phap',
 
     name:
       'Huyền Nguyên Tâm Pháp',
@@ -71,7 +78,8 @@ export const CULTIVATION_TECHNIQUES = {
   },
 
   tu_linh_chan_kinh: {
-    id: 'tu_linh_chan_kinh',
+    id:
+      'tu_linh_chan_kinh',
 
     name:
       'Tụ Linh Chân Kinh',
@@ -123,13 +131,22 @@ export function getTechniqueList() {
   );
 }
 
+/**
+ * =========================================================
+ * NORMALIZE TECHNIQUE DATA
+ * =========================================================
+ */
+
 export function ensureTechniqueData(
   profile,
 ) {
   if (
     !profile.techniques ||
     typeof profile.techniques !==
-      'object'
+      'object' ||
+    Array.isArray(
+      profile.techniques,
+    )
   ) {
     profile.techniques = {
       learned: {},
@@ -139,14 +156,21 @@ export function ensureTechniqueData(
 
   if (
     !profile.techniques.learned ||
-    typeof profile.techniques.learned !==
-      'object'
+    typeof profile.techniques
+      .learned !==
+      'object' ||
+    Array.isArray(
+      profile.techniques
+        .learned,
+    )
   ) {
-    profile.techniques.learned = {};
+    profile.techniques.learned =
+      {};
   }
 
   if (
-    typeof profile.techniques.active !==
+    typeof profile.techniques
+      .active !==
       'string'
   ) {
     profile.techniques.active =
@@ -155,6 +179,12 @@ export function ensureTechniqueData(
 
   return profile;
 }
+
+/**
+ * =========================================================
+ * GET LEARNED TECHNIQUES
+ * =========================================================
+ */
 
 export function getLearnedTechniques(
   profile,
@@ -173,6 +203,12 @@ export function getLearnedTechniques(
     );
 }
 
+/**
+ * =========================================================
+ * GET ACTIVE TECHNIQUE
+ * =========================================================
+ */
+
 export function getActiveTechnique(
   profile,
 ) {
@@ -180,16 +216,31 @@ export function getActiveTechnique(
     profile,
   );
 
-  if (
-    !profile.techniques.active
-  ) {
+  const activeId =
+    profile.techniques.active;
+
+  if (!activeId) {
     return null;
   }
 
-  return getTechnique(
-    profile.techniques.active,
+  /**
+   * Nếu dữ liệu cũ lưu một id
+   * không còn tồn tại thì xem như
+   * chưa kích hoạt.
+   */
+
+  return (
+    getTechnique(
+      activeId,
+    ) || null
   );
 }
+
+/**
+ * =========================================================
+ * GET BONUS
+ * =========================================================
+ */
 
 export function getTechniqueBonus(
   profile,
@@ -208,12 +259,19 @@ export function getTechniqueBonus(
     return 0;
   }
 
-  return (
+  return Math.max(
+    0,
     Number(
       technique.effectValue,
-    ) || 0
+    ) || 0,
   );
 }
+
+/**
+ * =========================================================
+ * MATERIAL
+ * =========================================================
+ */
 
 export function getTechniqueMaterialQuantity(
   profile,
@@ -229,56 +287,15 @@ export function getTechniqueMaterialQuantity(
 
 /**
  * =========================================================
- * PLAYER LOCK
- * =========================================================
- */
-
-const techniqueLocks =
-  new Map();
-
-async function withTechniqueLock(
-  key,
-  callback,
-) {
-  while (
-    techniqueLocks.has(
-      key,
-    )
-  ) {
-    await techniqueLocks.get(
-      key,
-    );
-  }
-
-  let release;
-
-  const lock =
-    new Promise(
-      (resolve) => {
-        release = resolve;
-      },
-    );
-
-  techniqueLocks.set(
-    key,
-    lock,
-  );
-
-  try {
-    return await callback();
-  } finally {
-    techniqueLocks.delete(
-      key,
-    );
-
-    release();
-  }
-}
-
-/**
- * =========================================================
  * LĨNH NGỘ CÔNG PHÁP
  * =========================================================
+ *
+ * Dùng cùng player lock:
+ *
+ * cultivation:guildId:userId
+ *
+ * với cultivate / breakthrough /
+ * use item và các hệ thống Tu Tiên khác.
  */
 
 export async function learnCultivationTechnique(
@@ -290,7 +307,7 @@ export async function learnCultivationTechnique(
   const lockKey =
     `cultivation:${guildId}:${userId}`;
 
-  return withTechniqueLock(
+  return Mutex.runExclusive(
     lockKey,
 
     async () => {
@@ -299,9 +316,14 @@ export async function learnCultivationTechnique(
           techniqueId,
         );
 
+      /**
+       * Công Pháp không tồn tại.
+       */
+
       if (!technique) {
         return {
           ok: false,
+
           reason:
             'invalid_technique',
         };
@@ -318,6 +340,10 @@ export async function learnCultivationTechnique(
         profile,
       );
 
+      /**
+       * Đã học rồi.
+       */
+
       if (
         profile.techniques
           .learned[
@@ -326,12 +352,19 @@ export async function learnCultivationTechnique(
       ) {
         return {
           ok: false,
+
           reason:
             'already_learned',
+
           technique,
+
           profile,
         };
       }
+
+      /**
+       * Kiểm tra Vô Danh Kiếm Phổ.
+       */
 
       const available =
         getTechniqueMaterialQuantity(
@@ -344,13 +377,25 @@ export async function learnCultivationTechnique(
       ) {
         return {
           ok: false,
+
           reason:
             'not_enough_material',
+
           technique,
+
           available,
+
+          required:
+            technique
+              .materialAmount,
+
           profile,
         };
       }
+
+      /**
+       * Trừ bí tịch.
+       */
 
       const removed =
         removeInventoryItem(
@@ -362,13 +407,23 @@ export async function learnCultivationTechnique(
       if (!removed) {
         return {
           ok: false,
+
           reason:
             'consume_failed',
+
           technique,
+
           available,
+
           profile,
         };
       }
+
+      /**
+       * =====================================================
+       * LEARN
+       * =====================================================
+       */
 
       profile.techniques
         .learned[
@@ -376,16 +431,49 @@ export async function learnCultivationTechnique(
         ] = true;
 
       /**
-       * Công Pháp đầu tiên học được
-       * sẽ tự động kích hoạt.
+       * Công Pháp đầu tiên lĩnh ngộ
+       * sẽ tự động trở thành Công Pháp
+       * đang tu.
        */
+
+      let autoActivated =
+        false;
 
       if (
         !profile.techniques.active
       ) {
         profile.techniques.active =
           technique.id;
+
+        autoActivated =
+          true;
       }
+
+      /**
+       * Stats V2.6.
+       */
+
+      if (
+        !profile.stats ||
+        typeof profile.stats !==
+          'object'
+      ) {
+        profile.stats = {};
+      }
+
+      profile.stats
+        .techniquesLearned =
+        Math.max(
+          0,
+          Number(
+            profile.stats
+              .techniquesLearned,
+          ) || 0,
+        ) + 1;
+
+      /**
+       * Save.
+       */
 
       const saved =
         await saveCultivationProfile(
@@ -406,10 +494,7 @@ export async function learnCultivationTechnique(
             ?.vo_danh_kiem_pho ||
           0,
 
-        autoActivated:
-          saved.techniques
-            .active ===
-          technique.id,
+        autoActivated,
 
         profile:
           saved,
@@ -422,6 +507,9 @@ export async function learnCultivationTechnique(
  * =========================================================
  * KÍCH HOẠT CÔNG PHÁP
  * =========================================================
+ *
+ * Người chơi chỉ được active
+ * 1 Công Pháp tại một thời điểm.
  */
 
 export async function activateCultivationTechnique(
@@ -430,58 +518,105 @@ export async function activateCultivationTechnique(
   userId,
   techniqueId,
 ) {
-  const technique =
-    getTechnique(
-      techniqueId,
-    );
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
 
-  if (!technique) {
-    return {
-      ok: false,
-      reason:
-        'invalid_technique',
-    };
-  }
+  return Mutex.runExclusive(
+    lockKey,
 
-  const profile =
-    await getCultivationProfile(
-      client,
-      guildId,
-      userId,
-    );
+    async () => {
+      const technique =
+        getTechnique(
+          techniqueId,
+        );
 
-  ensureTechniqueData(
-    profile,
-  );
+      if (!technique) {
+        return {
+          ok: false,
 
-  if (
-    profile.techniques
-      .learned[
+          reason:
+            'invalid_technique',
+        };
+      }
+
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      ensureTechniqueData(
+        profile,
+      );
+
+      /**
+       * Chưa lĩnh ngộ.
+       */
+
+      if (
+        profile.techniques
+          .learned[
+            technique.id
+          ] !== true
+      ) {
+        return {
+          ok: false,
+
+          reason:
+            'not_learned',
+
+          technique,
+
+          profile,
+        };
+      }
+
+      /**
+       * Đang active rồi.
+       */
+
+      if (
+        profile.techniques
+          .active ===
         technique.id
-      ] !== true
-  ) {
-    return {
-      ok: false,
-      reason:
-        'not_learned',
-      technique,
-      profile,
-    };
-  }
+      ) {
+        return {
+          ok: true,
 
-  profile.techniques.active =
-    technique.id;
+          alreadyActive:
+            true,
 
-  const saved =
-    await saveCultivationProfile(
-      client,
-      profile,
-    );
+          technique,
 
-  return {
-    ok: true,
-    technique,
-    profile:
-      saved,
-  };
+          profile,
+        };
+      }
+
+      /**
+       * Chuyển Công Pháp.
+       */
+
+      profile.techniques.active =
+        technique.id;
+
+      const saved =
+        await saveCultivationProfile(
+          client,
+          profile,
+        );
+
+      return {
+        ok: true,
+
+        alreadyActive:
+          false,
+
+        technique,
+
+        profile:
+          saved,
+      };
+    },
+  );
 }
