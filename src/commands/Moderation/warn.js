@@ -2,7 +2,11 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
+    AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
     successEmbed,
@@ -33,6 +37,7 @@ import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
 
+
 /**
  * =========================================================
  * CONFIG
@@ -42,16 +47,63 @@ import {
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
-const MODERATION_IMAGE_URL =
-    'https://cdn.phototourl.com/free/2026-09-08-9fd00794-554a-4eca-91fd-8f5cd6c3dae9.jpg';
+
+const MODERATION_IMAGE_NAME =
+    'ban.webp';
+
+const MODERATION_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'moderation',
+        MODERATION_IMAGE_NAME,
+    );
+
 
 const EMOJIS = {
+    /**
+     * Giữ nguyên emoji dòng Usagi Moderation.
+     */
     decoration:
         '<a:bang3:1546891744237461635>',
 
-    warn:
-        '<a:bang2:1546891483250954290>',
+    /**
+     * Emoji mới cho toàn bộ tiêu đề field.
+     */
+    field:
+        '<a:bang4:1546905765439217666>',
 };
+
+
+/**
+ * =========================================================
+ * CREATE LOCAL IMAGE
+ * =========================================================
+ */
+
+async function createModerationImageAttachment() {
+    try {
+        await fs.access(
+            MODERATION_IMAGE_PATH,
+        );
+    } catch {
+        logger.warn(
+            `[WARN] Moderation image not found: ${MODERATION_IMAGE_PATH}`,
+        );
+
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        MODERATION_IMAGE_PATH,
+        {
+            name:
+                MODERATION_IMAGE_NAME,
+        },
+    );
+}
+
 
 /**
  * =========================================================
@@ -76,6 +128,7 @@ async function sendUsagiWarnLog({
                 () => null,
             );
 
+
     if (
         !channel ||
         !channel.isTextBased()
@@ -87,6 +140,11 @@ async function sendUsagiWarnLog({
         return;
     }
 
+
+    const image =
+        await createModerationImageAttachment();
+
+
     const embed =
         new EmbedBuilder()
             .setColor(
@@ -97,40 +155,60 @@ async function sendUsagiWarnLog({
             )
             .setDescription(
                 [
-                    `${EMOJIS.warn} **CẢNH CÁO!**`,
+                    `${EMOJIS.field} **CẢNH CÁO!**`,
 
                     '',
-                    `${EMOJIS.warn} **Thành viên**`,
+
+                    `${EMOJIS.field} **Thành viên**`,
                     `<@${target.id}>`,
 
                     '',
-                    `${EMOJIS.warn} **Người cảnh cáo**`,
+
+                    `${EMOJIS.field} **Người cảnh cáo**`,
                     `<@${moderator.id}>`,
 
                     '',
-                    `${EMOJIS.warn} **Lý do**`,
+
+                    `${EMOJIS.field} **Lý do**`,
                     reason,
 
                     '',
-                    `${EMOJIS.warn} **Tổng cảnh cáo**`,
+
+                    `${EMOJIS.field} **Tổng cảnh cáo**`,
                     `**${totalCount}**`,
 
                     '',
-                    `${EMOJIS.warn} **Warning Case**`,
+
+                    `${EMOJIS.field} **Warning Case**`,
                     `#${warningCase}`,
-                ].join('\n'),
-            )
-            .setImage(
-                MODERATION_IMAGE_URL,
+                ].join(
+                    '\n',
+                ),
             )
             .setTimestamp();
+
+
+    if (
+        image
+    ) {
+        embed.setImage(
+            `attachment://${MODERATION_IMAGE_NAME}`,
+        );
+    }
+
 
     await channel.send({
         embeds: [
             embed,
         ],
+
+        files:
+            image
+                ? [image]
+                : [],
     });
 }
+
 
 /**
  * =========================================================
@@ -180,21 +258,17 @@ export default {
     category:
         'moderation',
 
+
     async execute(
         interaction,
         config,
         client,
     ) {
-        /**
-         * =================================================
-         * DEFER
-         * =================================================
-         */
-
         const deferSuccess =
             await InteractionHelper.safeDefer(
                 interaction,
             );
+
 
         if (!deferSuccess) {
             logger.warn(
@@ -214,38 +288,32 @@ export default {
             return;
         }
 
-        /**
-         * =================================================
-         * OPTIONS
-         * =================================================
-         */
 
         const target =
             interaction.options.getUser(
                 'target',
             );
 
+
         const member =
             interaction.options.getMember(
                 'target',
             );
+
 
         const reason =
             interaction.options.getString(
                 'reason',
             );
 
+
         const moderator =
             interaction.user;
+
 
         const guildId =
             interaction.guildId;
 
-        /**
-         * =================================================
-         * VALIDATION
-         * =================================================
-         */
 
         if (!target) {
             throw new TitanBotError(
@@ -259,6 +327,7 @@ export default {
             );
         }
 
+
         if (!reason) {
             throw new TitanBotError(
                 'Missing warning reason',
@@ -271,6 +340,7 @@ export default {
             );
         }
 
+
         if (!member) {
             throw new TitanBotError(
                 'Target not found',
@@ -278,6 +348,7 @@ export default {
                 'The target user is not currently in this server.',
             );
         }
+
 
         if (
             target.id ===
@@ -290,6 +361,7 @@ export default {
             );
         }
 
+
         if (
             target.id ===
             client.user.id
@@ -301,11 +373,6 @@ export default {
             );
         }
 
-        /**
-         * =================================================
-         * HIERARCHY CHECK
-         * =================================================
-         */
 
         ModerationService.assertModerationHierarchy(
             interaction.member,
@@ -313,11 +380,6 @@ export default {
             'warn',
         );
 
-        /**
-         * =================================================
-         * SAVE WARNING
-         * =================================================
-         */
 
         const {
             id: warningId,
@@ -338,13 +400,6 @@ export default {
                     Date.now(),
             });
 
-        /**
-         * =================================================
-         * EXISTING MODERATION LOG
-         * =================================================
-         *
-         * Giữ nguyên hệ thống log/case hiện tại.
-         */
 
         await logModerationAction({
             client,
@@ -382,11 +437,6 @@ export default {
             },
         });
 
-        /**
-         * =================================================
-         * USAGI WARN LOG
-         * =================================================
-         */
 
         await sendUsagiWarnLog({
             guild:
@@ -404,11 +454,6 @@ export default {
                 warningId,
         });
 
-        /**
-         * =================================================
-         * COMMAND RESPONSE
-         * =================================================
-         */
 
         await InteractionHelper.safeEditReply(
             interaction,
@@ -420,7 +465,9 @@ export default {
                             `**Reason:** ${reason}`,
                             `**Total Warns:** ${totalCount}`,
                             `**Warning Case:** #${warningId}`,
-                        ].join('\n'),
+                        ].join(
+                            '\n',
+                        ),
                     ),
                 ],
             },
