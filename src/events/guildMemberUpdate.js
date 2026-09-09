@@ -47,9 +47,11 @@ export default {
             }
 
 
-            // ==================================================
-            // NICKNAME CHANGE
-            // ==================================================
+            /**
+             * =================================================
+             * NICKNAME CHANGE
+             * =================================================
+             */
 
             if (
                 oldMember.nickname !==
@@ -98,9 +100,11 @@ export default {
             }
 
 
-            // ==================================================
-            // BOOST DETECTION
-            // ==================================================
+            /**
+             * =================================================
+             * BOOST DETECTION
+             * =================================================
+             */
 
             const wasBoosting =
                 Boolean(
@@ -113,9 +117,11 @@ export default {
                 );
 
 
-            // ==================================================
-            // BOOST STARTED
-            // ==================================================
+            /**
+             * =================================================
+             * BOOST STARTED
+             * =================================================
+             */
 
             if (
                 !wasBoosting &&
@@ -127,9 +133,11 @@ export default {
             }
 
 
-            // ==================================================
-            // BOOST ENDED
-            // ==================================================
+            /**
+             * =================================================
+             * BOOST ENDED
+             * =================================================
+             */
 
             if (
                 wasBoosting &&
@@ -141,26 +149,26 @@ export default {
             }
 
 
-            // ==================================================
-            // GAME ROLE ADDED
-            // ==================================================
-            //
-            // Không quan tâm role được cấp từ đâu.
-            //
-            // Có thể là:
-            //
-            // - Reaction Get Role
-            // - Admin cấp trực tiếp
-            // - Mod cấp trực tiếp
-            // - Command khác cấp role
-            //
-            // Miễn là một game role xuất hiện trong newMember
-            // nhưng chưa có trong oldMember -> gửi notification.
-            //
+            /**
+             * =================================================
+             * GAME ROLE ADDED
+             * =================================================
+             *
+             * Bắt cả:
+             *
+             * - Admin cấp role
+             * - Mod cấp role
+             * - Command cấp role
+             * - Reaction cấp role
+             *
+             * Reaction đã gửi notification trực tiếp,
+             * dedupe bên service sẽ ngăn gửi lần 2.
+             */
 
             if (
                 !newMember.user?.bot
             ) {
+
                 const addedGameRoleIds =
                     GAME_ROLE_IDS.filter(
                         (
@@ -175,12 +183,15 @@ export default {
                     );
 
 
-                /**
-                 * Nếu cùng lúc được cấp nhiều role:
-                 *
-                 * mỗi role gửi một notification riêng,
-                 * đúng ảnh riêng của role đó.
-                 */
+                if (
+                    addedGameRoleIds.length >
+                    0
+                ) {
+                    logger.info(
+                        `Detected ${addedGameRoleIds.length} new Game Role(s) for ${newMember.user.tag}: ${addedGameRoleIds.join(', ')}`,
+                    );
+                }
+
 
                 for (
                     const roleId
@@ -194,7 +205,7 @@ export default {
 
                     } catch (error) {
                         logger.error(
-                            `Failed to process game role notification for ${newMember.user.tag}, role ${roleId}:`,
+                            `Failed Game Role notification from GuildMemberUpdate: user=${newMember.user.tag}, role=${roleId}`,
                             error,
                         );
                     }
