@@ -11,8 +11,15 @@ import {
     getHuanqianSession,
     deleteHuanqianSession,
     showHuanqianDashboard,
+    buildHuanqianPanel,
 } from '../../../commands/Community/modules/huanqian_dashboard.js';
 
+
+/**
+ * =========================================================
+ * PERMISSION
+ * =========================================================
+ */
 
 function hasAdminPermission(
     interaction,
@@ -28,6 +35,12 @@ function hasAdminPermission(
 }
 
 
+/**
+ * =========================================================
+ * SESSION
+ * =========================================================
+ */
+
 function getSession(
     interaction,
     sessionId,
@@ -37,9 +50,13 @@ function getSession(
             sessionId,
         );
 
-    if (!session) {
+
+    if (
+        !session
+    ) {
         return null;
     }
+
 
     if (
         session.userId !==
@@ -48,6 +65,7 @@ function getSession(
         return null;
     }
 
+
     if (
         session.guildId !==
         interaction.guild?.id
@@ -55,15 +73,22 @@ function getSession(
         return null;
     }
 
+
     return session;
 }
 
 
+/**
+ * =========================================================
+ * HANDLERS
+ * =========================================================
+ */
+
 export default [
-    /*
-     * ==========================================================
-     * PUBLIC HUANQIAN BUTTON
-     * ==========================================================
+    /**
+     * ======================================================
+     * PUBLIC HUAN QIAN BUTTON
+     * ======================================================
      *
      * huanqian:info
      * huanqian:source
@@ -85,14 +110,17 @@ export default [
                 return;
             }
 
+
             const buttonId =
                 args[0];
+
 
             const config =
                 await getHuanqianConfig(
                     client,
                     interaction.guild.id,
                 );
+
 
             const button =
                 config.buttons.find(
@@ -101,7 +129,10 @@ export default [
                         buttonId,
                 );
 
-            if (!button) {
+
+            if (
+                !button
+            ) {
                 return interaction.reply({
                     content:
                         '❌ Không tìm thấy thông tin này.',
@@ -110,6 +141,14 @@ export default [
                         MessageFlags.Ephemeral,
                 });
             }
+
+
+            /**
+             * Giữ nguyên giao diện Info / Nguồn / Note.
+             *
+             * Không tự thêm ảnh vào các popup này vì
+             * hệ thống cũ cũng không dùng panel image ở đây.
+             */
 
             const embed =
                 new EmbedBuilder()
@@ -130,6 +169,7 @@ export default [
                             '🌸 Huan Qian',
                     });
 
+
             return interaction.reply({
                 embeds: [
                     embed,
@@ -142,10 +182,10 @@ export default [
     },
 
 
-    /*
-     * ==========================================================
+    /**
+     * ======================================================
      * DASHBOARD BUTTON
-     * ==========================================================
+     * ======================================================
      */
 
     {
@@ -163,6 +203,7 @@ export default [
                 return;
             }
 
+
             if (
                 !hasAdminPermission(
                     interaction,
@@ -177,6 +218,7 @@ export default [
                 });
             }
 
+
             const sessionId =
                 args[0];
 
@@ -186,13 +228,17 @@ export default [
             const extra =
                 args[2];
 
+
             const session =
                 getSession(
                     interaction,
                     sessionId,
                 );
 
-            if (!session) {
+
+            if (
+                !session
+            ) {
                 return interaction.reply({
                     content:
                         '❌ Dashboard đã hết hạn hoặc không thuộc về bạn.',
@@ -202,41 +248,48 @@ export default [
                 });
             }
 
+
             const guildId =
                 interaction.guild.id;
 
-            /*
-             * --------------------------------------------------
+
+            /**
+             * ------------------------------------------------
              * CLOSE
-             * --------------------------------------------------
+             * ------------------------------------------------
              */
 
             if (
-                action === 'close'
+                action ===
+                'close'
             ) {
                 deleteHuanqianSession(
                     sessionId,
                 );
 
+
                 return interaction.update({
                     content:
                         '🌸 Huan Qian Dashboard đã đóng.',
 
-                    embeds: [],
+                    embeds:
+                        [],
 
-                    components: [],
+                    components:
+                        [],
                 });
             }
 
 
-            /*
-             * --------------------------------------------------
+            /**
+             * ------------------------------------------------
              * PANEL SETTINGS
-             * --------------------------------------------------
+             * ------------------------------------------------
              */
 
             if (
-                action === 'panel'
+                action ===
+                'panel'
             ) {
                 return interaction.showModal(
                     await import(
@@ -253,40 +306,19 @@ export default [
             }
 
 
-            /*
-             * --------------------------------------------------
-             * IMAGE
-             * --------------------------------------------------
-             */
-
-            if (
-                action === 'image'
-            ) {
-                return interaction.showModal(
-                    await import(
-                        '../../modals/huanqian/huanqian.js'
-                    ).then(
-                        module =>
-                            module.buildImageModal(
-                                client,
-                                guildId,
-                                sessionId,
-                            ),
-                    ),
-                );
-            }
-
-
-            /*
-             * --------------------------------------------------
+            /**
+             * ------------------------------------------------
              * EDIT BUTTON
-             * --------------------------------------------------
+             * ------------------------------------------------
              */
 
             if (
-                action === 'button'
+                action ===
+                'button'
             ) {
-                if (!extra) {
+                if (
+                    !extra
+                ) {
                     return interaction.reply({
                         content:
                             '❌ Không xác định được button.',
@@ -295,6 +327,7 @@ export default [
                             MessageFlags.Ephemeral,
                     });
                 }
+
 
                 return interaction.showModal(
                     await import(
@@ -312,14 +345,15 @@ export default [
             }
 
 
-            /*
-             * --------------------------------------------------
+            /**
+             * ------------------------------------------------
              * PREVIEW
-             * --------------------------------------------------
+             * ------------------------------------------------
              */
 
             if (
-                action === 'preview'
+                action ===
+                'preview'
             ) {
                 const config =
                     await getHuanqianConfig(
@@ -327,17 +361,13 @@ export default [
                         guildId,
                     );
 
-                const {
-                    buildHuanqianPanel,
-                } = await import(
-                    '../../../commands/Community/modules/huanqian_dashboard.js'
-                );
 
                 const payload =
                     buildHuanqianPanel(
                         config,
                         interaction.guild,
                     );
+
 
                 return interaction.reply({
                     ...payload,
@@ -348,20 +378,22 @@ export default [
             }
 
 
-            /*
-             * --------------------------------------------------
-             * PUBLISH
-             * --------------------------------------------------
+            /**
+             * ------------------------------------------------
+             * PUBLISH / UPDATE
+             * ------------------------------------------------
              */
 
             if (
-                action === 'publish'
+                action ===
+                'publish'
             ) {
                 const config =
                     await getHuanqianConfig(
                         client,
                         guildId,
                     );
+
 
                 if (
                     !config.panelChannelId
@@ -375,6 +407,7 @@ export default [
                     });
                 }
 
+
                 const channel =
                     await interaction.guild.channels
                         .fetch(
@@ -383,6 +416,7 @@ export default [
                         .catch(
                             () => null,
                         );
+
 
                 if (
                     !channel ||
@@ -397,11 +431,6 @@ export default [
                     });
                 }
 
-                const {
-                    buildHuanqianPanel,
-                } = await import(
-                    '../../../commands/Community/modules/huanqian_dashboard.js'
-                );
 
                 const payload =
                     buildHuanqianPanel(
@@ -409,8 +438,10 @@ export default [
                         interaction.guild,
                     );
 
+
                 let message =
                     null;
+
 
                 if (
                     config.panelMessageId
@@ -425,21 +456,37 @@ export default [
                             );
                 }
 
-                if (message) {
-                    await message.edit(
-                        payload,
-                    );
+
+                /**
+                 * Nếu panel đã tồn tại:
+                 *
+                 * - giữ nguyên message
+                 * - thay attachment cũ
+                 * - attach lại huanqian.png local
+                 */
+
+                if (
+                    message
+                ) {
+                    await message.edit({
+                        ...payload,
+
+                        attachments:
+                            [],
+                    });
                 } else {
                     message =
                         await channel.send(
                             payload,
                         );
 
+
                     const {
                         updateHuanqianPanel,
                     } = await import(
                         '../../../services/huanqian/huanqianService.js'
                     );
+
 
                     await updateHuanqianPanel(
                         client,
@@ -451,6 +498,7 @@ export default [
                     );
                 }
 
+
                 return interaction.reply({
                     content:
                         '✅ Huan Qian Panel đã được Publish / Update.',
@@ -459,6 +507,7 @@ export default [
                         MessageFlags.Ephemeral,
                 });
             }
+
 
             return interaction.reply({
                 content:
