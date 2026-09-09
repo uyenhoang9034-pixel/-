@@ -10,7 +10,7 @@ import {
 } from './leveling.js';
 
 import {
-    sendLevelAnnouncement,
+    sendLevelChangeAnnouncements,
 } from './levelAnnouncementService.js';
 
 import {
@@ -19,6 +19,7 @@ import {
 
 import {
     LEVELING_MAX_LEVEL,
+    formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
@@ -48,18 +49,54 @@ export const addXp =
                 source = 'chat',
             } = options;
 
+            /**
+             * =================================================
+             * BASIC VALIDATION
+             * =================================================
+             */
+
+            if (
+                !guild ||
+                !member ||
+                member.user?.bot
+            ) {
+                return null;
+            }
+
+            const safeXpToAdd =
+                Math.max(
+                    0,
+                    Number(
+                        xpToAdd,
+                    ) || 0,
+                );
+
+            if (
+                safeXpToAdd <= 0
+            ) {
+                return null;
+            }
+
+            /**
+             * =================================================
+             * USER LOCK
+             * =================================================
+             *
+             * Tránh 2 message đến cùng lúc
+             * cùng đọc state cũ rồi ghi đè nhau.
+             */
+
             const lockKey =
                 `leveling:${guild.id}:${member.user.id}`;
 
             return Mutex.runExclusive(
                 lockKey,
                 async () => {
-                    if (
-                        !xpToAdd ||
-                        xpToAdd <= 0
-                    ) {
-                        return null;
-                    }
+                    /**
+                     * =========================================
+                     * CONFIG
+                     * =========================================
+                     */
 
                     const config =
                         await getLevelingConfig(
@@ -73,6 +110,12 @@ export const addXp =
                         return null;
                     }
 
+                    /**
+                     * =========================================
+                     * CURRENT USER DATA
+                     * =========================================
+                     */
+
                     const levelData =
                         await getUserLevelData(
                             client,
@@ -81,42 +124,136 @@ export const addXp =
                         );
 
                     const initialLevel =
-                        levelData.level;
+                        Math.max(
+                            0,
+                            Number(
+                                levelData.level,
+                            ) || 0,
+                        );
 
-                    levelData.xp +=
-                        xpToAdd;
-
-                    levelData.totalXp +=
-                        xpToAdd;
+                    /**
+                     * Đã max level.
+                     *
+                     * Vẫn cập nhật lastMessage nếu đây là chat
+                     * để cooldown không bị lệch.
+                     */
 
                     if (
-                        source === 'chat'
+                        initialLevel >=
+                        LEVELING_MAX_LEVEL
+                    ) {
+                        if (
+                            source ===
+                            'chat'
+                        ) {
+                            levelData.lastMessage =
+                                Date.now();
+
+                            await saveUserLevelData(
+                                client,
+                                guild.id,
+                                member.user.id,
+                                levelData,
+                            );
+                        }
+
+                        return {
+                            level:
+                                LEVELING_MAX_LEVEL,
+
+                            xp:
+                                0,
+
+                            totalXp:
+                                levelData.totalXp,
+
+                            xpNeeded:
+                                0,
+
+                            leveledUp:
+                                false,
+
+                            levelsGained:
+                                0,
+                        };
+                    }
+
+                    /**
+                     * =========================================
+                     * ADD XP
+                     * =========================================
+                     */
+
+                    levelData.xp =
+                        Math.max(
+                            0,
+                            Number(
+                                levelData.xp,
+                            ) || 0,
+                        ) +
+                        safeXpToAdd;
+
+                    levelData.totalXp =
+                        Math.max(
+                            0,
+                            Number(
+                                levelData.totalXp,
+                            ) || 0,
+                        ) +
+                        safeXpToAdd;
+
+                    /**
+                     * Chat mới update cooldown.
+                     *
+                     * Voice không dùng addXp nữa,
+                     * nhưng giữ source để tương thích.
+                     */
+
+                    if (
+                        source ===
+                        'chat'
                     ) {
                         levelData.lastMessage =
                             Date.now();
                     }
 
+                    /**
+                     * =========================================
+                     * LEVEL LOOP
+                     * =========================================
+                     *
+                     * Có thể nhảy nhiều level nếu XP lớn.
+                     */
+
                     while (
                         levelData.level <
-                            LEVELING_MAX_LEVEL &&
-                        levelData.xp >=
-                            getXpForLevel(
-                                levelData.level,
-                            )
+                            LEVELING_MAX_LEVEL
                     ) {
-                        levelData.xp -=
+                        const xpNeeded =
                             getXpForLevel(
                                 levelData.level,
                             );
+
+                        if (
+                            levelData.xp <
+                            xpNeeded
+                        ) {
+                            break;
+                        }
+
+                        levelData.xp -=
+                            xpNeeded;
 
                         levelData.level +=
                             1;
                     }
 
                     /**
-                     * Lv.999 là cap.
-                     * Không giữ XP dư.
+                     * =========================================
+                     * MAX LEVEL
+                     * =========================================
                      */
+
                     if (
                         levelData.level >=
                         LEVELING_MAX_LEVEL
@@ -124,69 +261,159 @@ export const addXp =
                         levelData.level =
                             LEVELING_MAX_LEVEL;
 
+                        /**
+                         * Lv.9.999 là tuyệt đối cap.
+                         *
+                         * Không giữ XP dư.
+                         */
                         levelData.xp =
                             0;
                     }
 
-                    await saveUserLevelData(
-                        client,
-                        guild.id,
-                        member.user.id,
-                        levelData,
-                    );
+                    /**
+                     * =========================================
+                     * SAVE
+                     * =========================================
+                     */
+
+                    const savedData =
+                        await saveUserLevelData(
+                            client,
+                            guild.id,
+                            member.user.id,
+                            levelData,
+                        );
+
+                    const finalLevel =
+                        Number(
+                            savedData
+                                ?.level ??
+                            levelData.level,
+                        ) || 0;
+
+                    const finalXp =
+                        Number(
+                            savedData
+                                ?.xp ??
+                            levelData.xp,
+                        ) || 0;
+
+                    const finalTotalXp =
+                        Number(
+                            savedData
+                                ?.totalXp ??
+                            levelData.totalXp,
+                        ) || 0;
 
                     const didLevelUp =
-                        levelData.level >
+                        finalLevel >
                         initialLevel;
+
+                    /**
+                     * =========================================
+                     * LEVEL UP
+                     * =========================================
+                     */
 
                     if (
                         didLevelUp
                     ) {
-                        await syncHighestLevelRole(
-                            member,
-                            levelData.level,
-                        );
+                        /**
+                         * -------------------------------------
+                         * ROLE
+                         * -------------------------------------
+                         *
+                         * Chỉ giữ role cảnh giới cao nhất.
+                         */
+
+                        try {
+                            await syncHighestLevelRole(
+                                member,
+                                finalLevel,
+                            );
+                        } catch (
+                            roleError
+                        ) {
+                            logger.warn(
+                                `[LEVEL] Failed syncing role for ${member.user.tag}:`,
+                                roleError,
+                            );
+                        }
 
                         /**
-                         * Chỉ gửi thông báo cho
-                         * level cuối cùng đạt được.
+                         * -------------------------------------
+                         * ANNOUNCEMENT
+                         * -------------------------------------
+                         *
+                         * Ví dụ:
+                         *
+                         * Lv.998 -> Lv.2001
+                         *
+                         * sẽ phát:
+                         *
+                         * Lv.999
+                         * Lv.1.999
+                         *
+                         * Không bỏ sót Tiên Lộ.
                          */
-                        await sendLevelAnnouncement({
-                            guild,
-                            member,
-                            level:
-                                levelData.level,
-                            source,
-                        });
+
+                        try {
+                            await sendLevelChangeAnnouncements({
+                                guild,
+
+                                member,
+
+                                oldLevel:
+                                    initialLevel,
+
+                                newLevel:
+                                    finalLevel,
+
+                                source,
+                            });
+                        } catch (
+                            announcementError
+                        ) {
+                            logger.warn(
+                                `[LEVEL] Failed sending level announcement for ${member.user.tag}:`,
+                                announcementError,
+                            );
+                        }
 
                         logger.info(
-                            `${member.user.tag} leveled from ${initialLevel} to ${levelData.level} via ${source}`,
+                            `[LEVEL] ${member.user.tag}: Lv.${formatLevelNumber(initialLevel)} -> Lv.${formatLevelNumber(finalLevel)} via ${source}`,
                         );
                     }
 
+                    /**
+                     * =========================================
+                     * RESULT
+                     * =========================================
+                     */
+
                     return {
                         level:
-                            levelData.level,
+                            finalLevel,
 
                         xp:
-                            levelData.xp,
+                            finalXp,
 
                         totalXp:
-                            levelData.totalXp,
+                            finalTotalXp,
 
                         xpNeeded:
-                            levelData.level >=
+                            finalLevel >=
                             LEVELING_MAX_LEVEL
                                 ? 0
                                 : getXpForLevel(
-                                      levelData.level,
+                                      finalLevel,
                                   ),
 
                         leveledUp:
                             didLevelUp,
 
                         levelsGained:
-                            levelData.level -
+                            finalLevel -
                             initialLevel,
                     };
                 },
