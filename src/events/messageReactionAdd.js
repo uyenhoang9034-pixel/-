@@ -29,7 +29,9 @@ export default {
         try {
 
             /**
-             * Không xử lý reaction của bot.
+             * =================================================
+             * IGNORE BOTS
+             * =================================================
              */
 
             if (
@@ -42,7 +44,7 @@ export default {
 
             /**
              * =================================================
-             * PARTIAL REACTION
+             * FETCH PARTIAL REACTION
              * =================================================
              */
 
@@ -54,7 +56,7 @@ export default {
 
                 } catch (error) {
                     logger.warn(
-                        'Could not fetch partial reaction:',
+                        'Could not fetch partial MessageReactionAdd reaction:',
                         error,
                     );
 
@@ -65,7 +67,7 @@ export default {
 
             /**
              * =================================================
-             * PARTIAL MESSAGE
+             * FETCH PARTIAL MESSAGE
              * =================================================
              */
 
@@ -77,7 +79,7 @@ export default {
 
                 } catch (error) {
                     logger.warn(
-                        'Could not fetch partial reaction message:',
+                        'Could not fetch partial MessageReactionAdd message:',
                         error,
                     );
 
@@ -87,8 +89,20 @@ export default {
 
 
             /**
-             * Chỉ xử lý reaction trên panel
-             * Game Role do bot quản lý.
+             * =================================================
+             * DEBUG
+             * =================================================
+             */
+
+            logger.info(
+                `Reaction received: user=${user.tag ?? user.id}, message=${reaction.message?.id}, emoji=${reaction.emoji?.name}, emojiId=${reaction.emoji?.id ?? 'unicode'}`,
+            );
+
+
+            /**
+             * =================================================
+             * CHECK PANEL
+             * =================================================
              */
 
             const isPanel =
@@ -97,11 +111,21 @@ export default {
                     client,
                 );
 
+
             if (
                 !isPanel
             ) {
+                logger.debug(
+                    `Reaction ignored because message ${reaction.message?.id} is not the active Game Role panel.`,
+                );
+
                 return;
             }
+
+
+            logger.info(
+                `Game Role panel reaction detected: ${user.tag ?? user.id} -> ${reaction.emoji?.name}`,
+            );
 
 
             /**
@@ -110,14 +134,30 @@ export default {
              * =================================================
              */
 
-            await addGameRoleFromReaction(
-                reaction,
-                user,
-            );
+            const success =
+                await addGameRoleFromReaction(
+                    reaction,
+                    user,
+                );
+
+
+            if (
+                success
+            ) {
+                logger.info(
+                    `Game Role reaction successfully processed for ${user.tag ?? user.id}.`,
+                );
+            }
+
+            else {
+                logger.warn(
+                    `Game Role reaction detected but role assignment failed for ${user.tag ?? user.id}.`,
+                );
+            }
 
         } catch (error) {
             logger.error(
-                'Error in messageReactionAdd game role event:',
+                'Error in MessageReactionAdd Game Role event:',
                 error,
             );
         }
