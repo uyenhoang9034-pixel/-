@@ -8,6 +8,21 @@ import {
 
 
 // ============================================================
+// DEFAULT EMBED CONTENT
+// ============================================================
+
+const DEFAULT_TITLE =
+    '𝓝𝓰𝓾̛𝓸̛̀𝓲 𝓰𝓲𝓪̀𝓾 𝓽𝓸̛́𝓲 𝓬𝓱𝓸̛𝓲 ≽^- ˕ -^≼';
+
+const DEFAULT_DESCRIPTION =
+    '<a:trangtrig27:1546093546178748426> Xĩe xĩe đại gia {member} đã boost cho server!\n' +
+    '<a:trangtrig14:1546047912969113622> {member} trực tiếp thăng cấp lên role <@&1541305195512856627> của server và nhận được những đãi ngộ độc quyền!\n\n\n' +
+    '⋆.ೃ࿔🌸*:･\n' +
+    '<a:heartg2:1546031808364413019> **Boost hiện tại:** {boosts}\n' +
+    '<a:heartg2:1546031808364413019> **Boost Level:** {boostLevel}';
+
+
+// ============================================================
 // EMBED MODAL
 // ============================================================
 
@@ -40,15 +55,11 @@ async function handleBoostEmbedModal(
         {
             title:
                 title ||
-                '🌸 Server Boosted!',
+                DEFAULT_TITLE,
 
             description:
                 description ||
-                '<a:chiikawag9:1541427795786207313> {member} vừa **Boost Server**!\n\n' +
-                '<a:pinkheart:1545307544808071258> **Boost hiện tại:** {boosts}\n' +
-                '<a:pinkheart:1545307544808071258> **Boost Level:** {boostLevel}\n' +
-                '<a:pinkheart:1545307544808071258> **Còn:** {boostsToNextLevel} boost để lên level tiếp theo!\n\n' +
-                '👑 **TỶ PHÚ** đã được trao cho {member}.',
+                DEFAULT_DESCRIPTION,
 
             color:
                 color ||
