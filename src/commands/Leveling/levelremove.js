@@ -19,6 +19,7 @@ import {
 
 import {
     LEVELING_MAX_LEVEL,
+    formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
@@ -28,30 +29,54 @@ import {
 export default {
     data:
         new SlashCommandBuilder()
-            .setName('levelremove')
-            .setDescription('Giảm level của thành viên')
-
-            .addUserOption(option =>
-                option
-                    .setName('user')
-                    .setDescription('Thành viên muốn giảm level')
-                    .setRequired(true),
+            .setName(
+                'levelremove',
+            )
+            .setDescription(
+                'Giảm level của thành viên',
             )
 
-            .addIntegerOption(option =>
-                option
-                    .setName('levels')
-                    .setDescription('Số level muốn giảm')
-                    .setRequired(true)
-                    .setMinValue(1)
-                    .setMaxValue(LEVELING_MAX_LEVEL),
+            .addUserOption(
+                option =>
+                    option
+                        .setName(
+                            'user',
+                        )
+                        .setDescription(
+                            'Thành viên muốn giảm level',
+                        )
+                        .setRequired(
+                            true,
+                        ),
+            )
+
+            .addIntegerOption(
+                option =>
+                    option
+                        .setName(
+                            'levels',
+                        )
+                        .setDescription(
+                            'Số level muốn giảm',
+                        )
+                        .setRequired(
+                            true,
+                        )
+                        .setMinValue(
+                            1,
+                        )
+                        .setMaxValue(
+                            LEVELING_MAX_LEVEL,
+                        ),
             )
 
             .setDefaultMemberPermissions(
                 PermissionFlagsBits.ManageGuild,
             )
 
-            .setDMPermission(false),
+            .setDMPermission(
+                false,
+            ),
 
     category:
         'Leveling',
@@ -99,10 +124,16 @@ export default {
 
         const member =
             await interaction.guild.members
-                .fetch(targetUser.id)
-                .catch(() => null);
+                .fetch(
+                    targetUser.id,
+                )
+                .catch(
+                    () => null,
+                );
 
-        if (!member) {
+        if (
+            !member
+        ) {
             await InteractionHelper.safeEditReply(
                 interaction,
                 {
@@ -114,6 +145,12 @@ export default {
             return;
         }
 
+        /**
+         * =====================================================
+         * OLD LEVEL
+         * =====================================================
+         */
+
         const oldData =
             await getUserLevelData(
                 client,
@@ -121,8 +158,16 @@ export default {
                 targetUser.id,
             );
 
+        const oldLevel =
+            Math.max(
+                0,
+                Number(
+                    oldData.level,
+                ) || 0,
+            );
+
         if (
-            oldData.level <= 0
+            oldLevel <= 0
         ) {
             await InteractionHelper.safeEditReply(
                 interaction,
@@ -135,6 +180,12 @@ export default {
             return;
         }
 
+        /**
+         * =====================================================
+         * REMOVE
+         * =====================================================
+         */
+
         const updatedData =
             await removeLevels(
                 client,
@@ -143,21 +194,63 @@ export default {
                 levelsToRemove,
             );
 
+        const newLevel =
+            Math.max(
+                0,
+                Number(
+                    updatedData.level,
+                ) || 0,
+            );
+
+        /**
+         * =====================================================
+         * ROLE
+         * =====================================================
+         *
+         * Giảm level:
+         *
+         * Lv.6999 -> Lv.3000
+         *
+         * bot sẽ:
+         *
+         * gỡ Tiên Đế
+         * cấp Đại La Kim Tiên
+         *
+         * Chỉ giữ role cảnh giới cao nhất.
+         */
+
         await syncHighestLevelRole(
             member,
-            updatedData.level,
+            newLevel,
         );
+
+        /**
+         * =====================================================
+         * RESPONSE
+         * =====================================================
+         *
+         * Giảm level KHÔNG gửi thông báo
+         * vào channel level.
+         */
 
         await InteractionHelper.safeEditReply(
             interaction,
             {
                 content:
-                    `Đã giảm level của ${member}.\n**Lv.${oldData.level} → Lv.${updatedData.level}**`,
+                    [
+                        `Đã giảm level của ${member}.`,
+
+                        `**Lv.${formatLevelNumber(oldLevel)} → Lv.${formatLevelNumber(newLevel)}**`,
+
+                        `Giảm thực tế: **-${formatLevelNumber(oldLevel - newLevel)} level**`,
+                    ].join(
+                        '\n',
+                    ),
             },
         );
 
         logger.info(
-            `[LEVEL] ${interaction.user.tag} removed ${levelsToRemove} levels from ${targetUser.tag}. New level: ${updatedData.level}`,
+            `[LEVEL] ${interaction.user.tag} removed levels from ${targetUser.tag}: Lv.${formatLevelNumber(oldLevel)} -> Lv.${formatLevelNumber(newLevel)}`,
         );
     },
 };
