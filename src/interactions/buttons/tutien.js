@@ -21,6 +21,7 @@ import {
   buildCultivateEmbed,
   buildDashboardEmbed,
   buildDashboardRows,
+  buildInventoryEmbed,
   buildLeaderboardEmbed,
   buildProfileEmbed,
 } from '../../services/cultivationUI.js';
@@ -111,7 +112,9 @@ export default {
     }
 
     /**
-     * Không cho người khác điều khiển dashboard.
+     * =====================================================
+     * PLAYER CHECK
+     * =====================================================
      */
 
     if (
@@ -124,7 +127,9 @@ export default {
     }
 
     /**
-     * Đúng channel Tiên Lộ.
+     * =====================================================
+     * CHANNEL CHECK
+     * =====================================================
      */
 
     if (
@@ -207,6 +212,38 @@ export default {
 
     /**
      * =====================================================
+     * ĐỘT PHÁ
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'breakthrough'
+    ) {
+      const result =
+        await breakthrough(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildBreakthroughEmbed(
+            result,
+          ),
+        ],
+
+        components: [
+          buildBackRow(
+            ownerId,
+          ),
+        ],
+      });
+    }
+
+    /**
+     * =====================================================
      * THÁM HIỂM
      * =====================================================
      */
@@ -239,16 +276,16 @@ export default {
 
     /**
      * =====================================================
-     * ĐỘT PHÁ
+     * TÚI ĐỒ
      * =====================================================
      */
 
     if (
       action ===
-      'breakthrough'
+      'inventory'
     ) {
-      const result =
-        await breakthrough(
+      const profile =
+        await getCultivationProfile(
           client,
           guildId,
           userId,
@@ -256,8 +293,9 @@ export default {
 
       return interaction.update({
         embeds: [
-          buildBreakthroughEmbed(
-            result,
+          buildInventoryEmbed(
+            interaction.user,
+            profile,
           ),
         ],
 
@@ -334,5 +372,22 @@ export default {
         ],
       });
     }
+
+    /**
+     * =====================================================
+     * UNKNOWN ACTION
+     * =====================================================
+     *
+     * Có fallback để sau này nếu button bị lệch customId
+     * thì Discord không hiện "không phản hồi".
+     */
+
+    return interaction.reply({
+      content:
+        'Không tìm thấy hành động Tiên Lộ tương ứng.',
+
+      flags:
+        MessageFlags.Ephemeral,
+    });
   },
 };
