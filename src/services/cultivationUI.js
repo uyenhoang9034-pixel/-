@@ -20,6 +20,10 @@ import {
   getUsableInventoryEntries,
 } from './cultivationService.js';
 
+import {
+  getEquippedEquipment,
+} from './cultivationEquipment.js';
+
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
@@ -191,6 +195,12 @@ function duration(
   return `${minutes}m ${remaining}s`;
 }
 
+/**
+ * =========================================================
+ * ITEM EMOJI
+ * =========================================================
+ */
+
 function getItemEmoji(
   item,
 ) {
@@ -256,6 +266,12 @@ function buildDropText(
     `*${droppedItem.item.rarity}*`,
   ].join('\n');
 }
+
+/**
+ * =========================================================
+ * DƯỢC HIỆU
+ * =========================================================
+ */
 
 function buildEffectsText(
   profile,
@@ -510,6 +526,34 @@ export function buildDashboardRows(
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:forge`,
+          )
+          .setLabel(
+            'Luyện Khí',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:equipment`,
+          )
+          .setLabel(
+            'Pháp Khí',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
       ),
   ];
 }
@@ -744,6 +788,23 @@ export function buildCultivateEmbed(
         )} Tu Vi**`
       : null;
 
+  const equipmentCultivationLine =
+    result
+      .equipmentCultivationBonus >
+    0
+      ? `<a:trangtrig36:1547237577231302737> Thanh Phong Kiếm: **+${number(
+          result.equipmentCultivationBonus,
+        )} Tu Vi**`
+      : null;
+
+  const equipmentStoneLine =
+    result.equipmentStoneBonus >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Bội: **+${number(
+          result.equipmentStoneBonus,
+        )} Linh Thạch**`
+      : null;
+
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
@@ -762,6 +823,8 @@ export function buildCultivateEmbed(
             result.stoneDelta,
           )}`,
           `**Thể Lực**: -${result.staminaCost}`,
+          equipmentCultivationLine,
+          equipmentStoneLine,
           pillLine,
           '',
           `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
@@ -1290,6 +1353,14 @@ export function buildBreakthroughEmbed(
     );
   }
 
+  const equipmentLossLine =
+    result.equipmentLossSaved >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Huyền Thiết Hộ Phù: **Giảm ${number(
+          result.equipmentLossSaved,
+        )} Tu Vi hao tổn**`
+      : null;
+
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
@@ -1305,6 +1376,7 @@ export function buildBreakthroughEmbed(
           `<:trangtri1:1546093044535660644> Tu Vi Hao Tổn: **-${number(
             result.loss,
           )}**`,
+          equipmentLossLine,
           `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
           pillLine,
           '',
@@ -1346,6 +1418,16 @@ export function buildProfileEmbed(
       profile,
     );
 
+  const equippedEquipment =
+    getEquippedEquipment(
+      profile,
+    );
+
+  const equipmentLine =
+    equippedEquipment
+      ? `${equippedEquipment.emoji} Pháp Khí: **${equippedEquipment.name}**`
+      : '<a:trangtrig18:1546068102817775626> Pháp Khí: **Chưa Trang Bị**';
+
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
@@ -1362,6 +1444,8 @@ export function buildProfileEmbed(
           `<a:trangtrig44:1547238495494348891> Linh Căn: **${profile.spiritRoot.name}**`,
 
           `<a:trangtrig31:1546905996893626440> Phẩm Chất: **${profile.spiritRoot.rarity}**`,
+
+          equipmentLine,
 
           '',
 
