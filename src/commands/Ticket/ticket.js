@@ -1,5 +1,18 @@
 import { getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
+import {
+    SlashCommandBuilder,
+    PermissionFlagsBits,
+    PermissionsBitField,
+    ChannelType,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    MessageFlags,
+    AttachmentBuilder,
+} from 'discord.js';
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfig.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -7,7 +20,46 @@ import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 
 import ticketConfig from './modules/ticket_dashboard.js';
+/**
+ * =========================================================
+ * LOCAL TICKET IMAGE
+ * =========================================================
+ */
 
+const TICKET_IMAGE_NAME =
+    'ticket.png';
+
+const TICKET_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'ticket',
+        TICKET_IMAGE_NAME,
+    );
+
+
+async function createTicketImageAttachment() {
+    try {
+        await fs.access(
+            TICKET_IMAGE_PATH,
+        );
+    } catch {
+        logger.warn(
+            `[TICKET] Panel image not found: ${TICKET_IMAGE_PATH}`,
+        );
+
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        TICKET_IMAGE_PATH,
+        {
+            name:
+                TICKET_IMAGE_NAME,
+        },
+    );
+}
 export default {
     data: new SlashCommandBuilder()
         .setName("ticket")
@@ -167,15 +219,26 @@ const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
     color: panelColor
 });
 
-if (image) {
-    if (!image.contentType?.startsWith("image/")) {
-        return await replyUserError(interaction, {
-            type: ErrorTypes.UNKNOWN,
-            message: "The uploaded file must be an image."
-        });
-    }
+setupEmbed.setImage(
+    `attachment://${TICKET_IMAGE_NAME}`,
+);
 
-    setupEmbed.setImage(image.url);
+
+const ticketImage =
+    await createTicketImageAttachment();
+
+
+if (!ticketImage) {
+    return await replyUserError(
+        interaction,
+        {
+            type:
+                ErrorTypes.UNKNOWN,
+
+            message:
+                'Không tìm thấy file `assets/ticket/ticket.png`.',
+        },
+    );
 }
 
             const ticketButton = new ActionRowBuilder().addComponents(
@@ -187,10 +250,20 @@ if (image) {
             );
 
             try {
-                const sentPanel = await panelChannel.send({
-                    embeds: [setupEmbed],
-                    components: [ticketButton],
-                });
+               const sentPanel =
+    await panelChannel.send({
+        embeds: [
+            setupEmbed,
+        ],
+
+        components: [
+            ticketButton,
+        ],
+
+        files: [
+            ticketImage,
+        ],
+    });
 
                 if (client.db && interaction.guildId) {
                     const currentConfig = existingConfig;
@@ -202,7 +275,8 @@ if (image) {
                     currentConfig.ticketPanelMessage = panelMessage;
                     currentConfig.ticketPanelTitle = panelTitle;
                     currentConfig.ticketPanelColor = panelColor;
-                    currentConfig.ticketImage = image ? image.url : null;
+                    currentConfig.ticketImage =
+    'local:ticket.png';
                     currentConfig.ticketButtonLabel = buttonLabel;
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;
                     currentConfig.dmOnClose = dmOnClose;
