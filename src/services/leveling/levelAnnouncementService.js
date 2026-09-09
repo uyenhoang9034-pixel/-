@@ -1,7 +1,11 @@
 import {
     EmbedBuilder,
     PermissionFlagsBits,
+    AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
     LEVEL_ANNOUNCEMENT_CHANNEL_ID,
@@ -14,6 +18,7 @@ import {
     logger,
 } from '../../utils/logger.js';
 
+
 /**
  * =========================================================
  * COLOR
@@ -22,6 +27,67 @@ import {
 
 const LEVEL_EMBED_COLOR =
     0xffffff;
+
+
+/**
+ * =========================================================
+ * LOCAL IMAGE DIRECTORY
+ * =========================================================
+ */
+
+const LEVEL_IMAGE_DIR =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'level',
+    );
+
+
+/**
+ * =========================================================
+ * CREATE LOCAL IMAGE ATTACHMENT
+ * =========================================================
+ */
+
+async function createLevelImageAttachment(
+    imageName,
+) {
+    if (
+        !imageName
+    ) {
+        return null;
+    }
+
+
+    const imagePath =
+        path.join(
+            LEVEL_IMAGE_DIR,
+            imageName,
+        );
+
+
+    try {
+        await fs.access(
+            imagePath,
+        );
+    } catch {
+        logger.warn(
+            `[LEVEL] Image not found: ${imagePath}`,
+        );
+
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        imagePath,
+        {
+            name:
+                imageName,
+        },
+    );
+}
+
 
 /**
  * =========================================================
@@ -62,6 +128,7 @@ export function buildNormalLevelEmbed(
             ),
         );
 }
+
 
 /**
  * =========================================================
@@ -104,6 +171,7 @@ export function buildVoiceLevelEmbed(
         );
 }
 
+
 /**
  * =========================================================
  * PHÁ CẢNH · PHI THĂNG
@@ -119,11 +187,13 @@ export function buildMilestoneLevelEmbed(
             level,
         );
 
+
     if (
         !milestone
     ) {
         return null;
     }
+
 
     const embed =
         new EmbedBuilder()
@@ -157,61 +227,23 @@ export function buildMilestoneLevelEmbed(
                 ),
             );
 
-    /**
-     * Chỉ Phi Thăng mới có ảnh.
-     *
-     * 1 / 10 / 20 / 40 / 70
-     * 100 / 200 / 300
-     * 500
-     * 999
-     *
-     * Ảnh được lấy từ levelingSystem.js.
-     */
 
     if (
         milestone.image
     ) {
         embed.setImage(
-            milestone.image,
+            `attachment://${milestone.image}`,
         );
     }
+
 
     return embed;
 }
 
+
 /**
  * =========================================================
  * GET CROSSED MILESTONES
- * =========================================================
- *
- * Tìm tất cả cảnh giới mà user đã vượt qua
- * khi tăng nhiều level cùng một lúc.
- *
- * Ví dụ:
- *
- * Lv.9 -> Lv.21
- *
- * kết quả:
- *
- * Lv.10 Trúc Cơ
- * Lv.20 Kim Đan
- *
- * ---------------------------------------------------------
- *
- * LEVEL_MILESTONES là OBJECT:
- *
- * {
- *   1: {...},
- *   10: {...},
- *   20: {...},
- *   ...
- * }
- *
- * Vì vậy KHÔNG được dùng:
- *
- * LEVEL_MILESTONES.filter(...)
- *
- * mà phải chuyển Object -> Array trước.
  * =========================================================
  */
 
@@ -227,6 +259,7 @@ export function getCrossedMilestones(
             ) || 0,
         );
 
+
     const safeNewLevel =
         Math.max(
             0,
@@ -235,9 +268,6 @@ export function getCrossedMilestones(
             ) || 0,
         );
 
-    /**
-     * Không tăng level.
-     */
 
     if (
         safeNewLevel <=
@@ -246,26 +276,6 @@ export function getCrossedMilestones(
         return [];
     }
 
-    /**
-     * Chuyển:
-     *
-     * {
-     *   10: {
-     *      realm: 'Trúc Cơ Kỳ',
-     *      ...
-     *   }
-     * }
-     *
-     * thành:
-     *
-     * [
-     *   {
-     *      level: 10,
-     *      realm: 'Trúc Cơ Kỳ',
-     *      ...
-     *   }
-     * ]
-     */
 
     return Object.entries(
         LEVEL_MILESTONES,
@@ -300,6 +310,7 @@ export function getCrossedMilestones(
         );
 }
 
+
 /**
  * =========================================================
  * BUILD ANNOUNCEMENT BY TYPE
@@ -312,20 +323,6 @@ export function buildLevelAnnouncementEmbed({
     source = 'chat',
     forceType = null,
 }) {
-    /**
-     * =====================================================
-     * TEST PHI THĂNG
-     * =====================================================
-     *
-     * /leveltest dùng forceType này.
-     *
-     * Nếu level đúng milestone:
-     * -> Phi Thăng.
-     *
-     * Nếu không:
-     * -> fallback Phá Cảnh thường.
-     */
-
     if (
         forceType ===
         'phi_thang'
@@ -342,11 +339,6 @@ export function buildLevelAnnouncementEmbed({
         );
     }
 
-    /**
-     * =====================================================
-     * TEST PHÁ CẢNH THƯỜNG
-     * =====================================================
-     */
 
     if (
         forceType ===
@@ -358,14 +350,6 @@ export function buildLevelAnnouncementEmbed({
         );
     }
 
-    /**
-     * =====================================================
-     * THÔNG BÁO THẬT
-     * =====================================================
-     *
-     * Nếu level chính xác là milestone
-     * thì Phi Thăng luôn được ưu tiên.
-     */
 
     const milestoneEmbed =
         buildMilestoneLevelEmbed(
@@ -373,17 +357,13 @@ export function buildLevelAnnouncementEmbed({
             level,
         );
 
+
     if (
         milestoneEmbed
     ) {
         return milestoneEmbed;
     }
 
-    /**
-     * =====================================================
-     * VOICE THƯỜNG
-     * =====================================================
-     */
 
     if (
         source ===
@@ -395,17 +375,13 @@ export function buildLevelAnnouncementEmbed({
         );
     }
 
-    /**
-     * =====================================================
-     * CHAT / ADMIN THƯỜNG
-     * =====================================================
-     */
 
     return buildNormalLevelEmbed(
         member,
         level,
     );
 }
+
 
 /**
  * =========================================================
@@ -428,9 +404,6 @@ async function getAnnouncementChannel(
                 () => null,
             );
 
-    /**
-     * Channel không tồn tại.
-     */
 
     if (
         !channel ||
@@ -443,12 +416,10 @@ async function getAnnouncementChannel(
         return null;
     }
 
-    /**
-     * Bot member.
-     */
 
     const botMember =
         guild.members.me;
+
 
     if (
         !botMember
@@ -460,14 +431,12 @@ async function getAnnouncementChannel(
         return null;
     }
 
-    /**
-     * Kiểm tra permission.
-     */
 
     const permissions =
         channel.permissionsFor(
             botMember,
         );
+
 
     if (
         !permissions ||
@@ -485,22 +454,14 @@ async function getAnnouncementChannel(
         return null;
     }
 
+
     return channel;
 }
+
 
 /**
  * =========================================================
  * SEND SINGLE ANNOUNCEMENT
- * =========================================================
- *
- * Dùng khi chỉ cần gửi đúng 1 thông báo.
- *
- * Ví dụ:
- *
- * Chat lên Lv.35
- * Voice lên Lv.35
- * /levelset -> Lv.999
- * /leveltest
  * =========================================================
  */
 
@@ -517,11 +478,13 @@ export async function sendLevelAnnouncement({
                 guild,
             );
 
+
         if (
             !channel
         ) {
             return false;
         }
+
 
         const embed =
             buildLevelAnnouncementEmbed({
@@ -531,11 +494,47 @@ export async function sendLevelAnnouncement({
                 forceType,
             });
 
+
+        const milestone =
+            getExactMilestone(
+                level,
+            );
+
+
+        const files = [];
+
+
+        if (
+            milestone?.image
+        ) {
+            const attachment =
+                await createLevelImageAttachment(
+                    milestone.image,
+                );
+
+
+            if (
+                attachment
+            ) {
+                files.push(
+                    attachment,
+                );
+            } else {
+                logger.warn(
+                    `[LEVEL] Cannot send milestone image for Lv.${level}: ${milestone.image}`,
+                );
+            }
+        }
+
+
         await channel.send({
             embeds: [
                 embed,
             ],
+
+            files,
         });
+
 
         return true;
     } catch (
@@ -550,55 +549,10 @@ export async function sendLevelAnnouncement({
     }
 }
 
+
 /**
  * =========================================================
  * SEND LEVEL CHANGE ANNOUNCEMENTS
- * =========================================================
- *
- * Dùng cho trường hợp level tăng.
- *
- * ---------------------------------------------------------
- * CASE 1
- *
- * Lv.8 -> Lv.9
- *
- * Không vượt milestone.
- *
- * -> gửi thông báo thường Lv.9
- *
- * ---------------------------------------------------------
- * CASE 2
- *
- * Lv.9 -> Lv.10
- *
- * Vượt milestone Lv.10.
- *
- * -> Phi Thăng Lv.10
- *
- * ---------------------------------------------------------
- * CASE 3
- *
- * Lv.46 -> Lv.76
- *
- * Vượt milestone Lv.70.
- *
- * -> Phi Thăng Lv.70
- *
- * ---------------------------------------------------------
- * CASE 4
- *
- * Lv.9 -> Lv.76
- *
- * Vượt:
- *
- * Lv.10
- * Lv.20
- * Lv.40
- * Lv.70
- *
- * -> gửi 4 thông báo Phi Thăng.
- *
- * Không gửi thêm Lv.76 thường để tránh spam.
  * =========================================================
  */
 
@@ -618,6 +572,7 @@ export async function sendLevelChangeAnnouncements({
                 ) || 0,
             );
 
+
         const safeNewLevel =
             Math.max(
                 0,
@@ -626,9 +581,6 @@ export async function sendLevelChangeAnnouncements({
                 ) || 0,
             );
 
-        /**
-         * Không tăng level.
-         */
 
         if (
             safeNewLevel <=
@@ -643,9 +595,6 @@ export async function sendLevelChangeAnnouncements({
             };
         }
 
-        /**
-         * Tìm milestone đã vượt.
-         */
 
         const crossedMilestones =
             getCrossedMilestones(
@@ -653,19 +602,6 @@ export async function sendLevelChangeAnnouncements({
                 safeNewLevel,
             );
 
-        /**
-         * =================================================
-         * KHÔNG VƯỢT MILESTONE
-         * =================================================
-         *
-         * Gửi thông báo level cuối cùng.
-         *
-         * Chat/Admin:
-         * -> CẢNH GIỚI ĐỘT PHÁ
-         *
-         * Voice:
-         * -> TU VI TINH TIẾN
-         */
 
         if (
             crossedMilestones.length ===
@@ -674,6 +610,7 @@ export async function sendLevelChangeAnnouncements({
             const success =
                 await sendLevelAnnouncement({
                     guild,
+
                     member,
 
                     level:
@@ -681,6 +618,7 @@ export async function sendLevelChangeAnnouncements({
 
                     source,
                 });
+
 
             return {
                 sent:
@@ -693,16 +631,10 @@ export async function sendLevelChangeAnnouncements({
             };
         }
 
-        /**
-         * =================================================
-         * CÓ VƯỢT MILESTONE
-         * =================================================
-         *
-         * Gửi từng Phi Thăng theo thứ tự tăng dần.
-         */
 
         let sent =
             0;
+
 
         for (
             const milestone
@@ -711,6 +643,7 @@ export async function sendLevelChangeAnnouncements({
             const success =
                 await sendLevelAnnouncement({
                     guild,
+
                     member,
 
                     level:
@@ -719,6 +652,7 @@ export async function sendLevelChangeAnnouncements({
                     source,
                 });
 
+
             if (
                 success
             ) {
@@ -726,6 +660,7 @@ export async function sendLevelChangeAnnouncements({
                     1;
             }
         }
+
 
         return {
             sent,
@@ -740,6 +675,7 @@ export async function sendLevelChangeAnnouncements({
             '[LEVEL] Failed sending level change announcements:',
             error,
         );
+
 
         return {
             sent:
