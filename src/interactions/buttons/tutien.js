@@ -20,6 +20,10 @@ import {
 } from '../../services/cultivationAlchemy.js';
 
 import {
+  forgeEquipment,
+} from '../../services/cultivationEquipment.js';
+
+import {
   buildAdventureEmbed,
   buildBackRow,
   buildBreakthroughEmbed,
@@ -40,6 +44,15 @@ import {
   buildAlchemyResultEmbed,
   buildAlchemyResultRows,
 } from '../../services/cultivationAlchemyUI.js';
+
+import {
+  buildEquipmentEmbed,
+  buildEquipmentRows,
+  buildForgeEmbed,
+  buildForgeResultEmbed,
+  buildForgeResultRows,
+  buildForgeRows,
+} from '../../services/cultivationEquipmentUI.js';
 
 /**
  * =========================================================
@@ -367,7 +380,7 @@ export default {
 
     /**
      * =====================================================
-     * LUYỆN ĐAN — MỞ ĐAN LÔ
+     * LUYỆN ĐAN
      * =====================================================
      */
 
@@ -400,15 +413,8 @@ export default {
 
     /**
      * =====================================================
-     * LUYỆN ĐAN — KHAI LÒ
+     * KHAI LÒ LUYỆN ĐAN
      * =====================================================
-     *
-     * customId:
-     *
-     * tutien_action:
-     * ownerId:
-     * alchemy_make:
-     * recipeId
      */
 
     if (
@@ -443,6 +449,113 @@ export default {
         components:
           buildAlchemyResultRows(
             ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * LUYỆN KHÍ PHƯỜNG
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'forge'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildForgeEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildForgeRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * KHAI LÒ LUYỆN KHÍ
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'forge_make'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Pháp Khí cần luyện.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await forgeEquipment(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildForgeResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildForgeResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * PHÁP KHÍ
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'equipment'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildEquipmentEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildEquipmentRows(
+            ownerId,
+            profile,
           ),
       });
     }
