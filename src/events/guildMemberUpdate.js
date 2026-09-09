@@ -8,6 +8,14 @@ import {
 } from '../services/boost/boostService.js';
 
 import {
+    GAME_ROLE_IDS,
+} from '../config/gameRoles.js';
+
+import {
+    sendGameRoleNotification,
+} from '../services/gameRoleService.js';
+
+import {
     logEvent,
     EVENT_TYPES,
 } from '../services/loggingService.js';
@@ -18,15 +26,20 @@ import {
 
 
 export default {
-    name: Events.GuildMemberUpdate,
 
-    once: false,
+    name:
+        Events.GuildMemberUpdate,
+
+    once:
+        false,
+
 
     async execute(
         oldMember,
         newMember,
     ) {
         try {
+
             if (
                 !newMember?.guild
             ) {
@@ -74,7 +87,8 @@ export default {
 
                         thumbnail:
                             newMember.user.displayAvatarURL({
-                                dynamic: true,
+                                dynamic:
+                                    true,
                             }),
 
                         userId:
@@ -124,6 +138,67 @@ export default {
                 await handleBoostEnded(
                     newMember,
                 );
+            }
+
+
+            // ==================================================
+            // GAME ROLE ADDED
+            // ==================================================
+            //
+            // Không quan tâm role được cấp từ đâu.
+            //
+            // Có thể là:
+            //
+            // - Reaction Get Role
+            // - Admin cấp trực tiếp
+            // - Mod cấp trực tiếp
+            // - Command khác cấp role
+            //
+            // Miễn là một game role xuất hiện trong newMember
+            // nhưng chưa có trong oldMember -> gửi notification.
+            //
+
+            if (
+                !newMember.user?.bot
+            ) {
+                const addedGameRoleIds =
+                    GAME_ROLE_IDS.filter(
+                        (
+                            roleId,
+                        ) =>
+                            !oldMember.roles.cache.has(
+                                roleId,
+                            ) &&
+                            newMember.roles.cache.has(
+                                roleId,
+                            ),
+                    );
+
+
+                /**
+                 * Nếu cùng lúc được cấp nhiều role:
+                 *
+                 * mỗi role gửi một notification riêng,
+                 * đúng ảnh riêng của role đó.
+                 */
+
+                for (
+                    const roleId
+                    of addedGameRoleIds
+                ) {
+                    try {
+                        await sendGameRoleNotification(
+                            newMember,
+                            roleId,
+                        );
+
+                    } catch (error) {
+                        logger.error(
+                            `Failed to process game role notification for ${newMember.user.tag}, role ${roleId}:`,
+                            error,
+                        );
+                    }
+                }
             }
 
         } catch (error) {
