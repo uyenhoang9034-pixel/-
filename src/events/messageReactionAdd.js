@@ -4,8 +4,11 @@ import {
 
 import {
     addGameRoleFromReaction,
-    isGameRolePanelReaction,
 } from '../services/gameRoleService.js';
+
+import {
+    getGameRoleByEmoji,
+} from '../config/gameRoles.js';
 
 import {
     logger,
@@ -28,12 +31,6 @@ export default {
     ) {
         try {
 
-            /**
-             * =================================================
-             * IGNORE BOTS
-             * =================================================
-             */
-
             if (
                 !user ||
                 user.bot
@@ -43,9 +40,9 @@ export default {
 
 
             /**
-             * =================================================
-             * FETCH PARTIAL REACTION
-             * =================================================
+             * =============================================
+             * FETCH REACTION
+             * =============================================
              */
 
             if (
@@ -53,10 +50,9 @@ export default {
             ) {
                 try {
                     await reaction.fetch();
-
                 } catch (error) {
                     logger.warn(
-                        'Could not fetch partial MessageReactionAdd reaction:',
+                        'GameRole: failed to fetch partial reaction:',
                         error,
                     );
 
@@ -66,72 +62,134 @@ export default {
 
 
             /**
-             * =================================================
-             * FETCH PARTIAL MESSAGE
-             * =================================================
+             * =============================================
+             * FETCH FULL MESSAGE
+             * =============================================
              */
 
-            if (
-                reaction.message?.partial
-            ) {
-                try {
+            let message =
+                reaction.message;
+
+
+            try {
+                message =
                     await reaction.message.fetch();
-
-                } catch (error) {
-                    logger.warn(
-                        'Could not fetch partial MessageReactionAdd message:',
-                        error,
-                    );
-
-                    return;
-                }
-            }
-
-
-            /**
-             * =================================================
-             * DEBUG
-             * =================================================
-             */
-
-            logger.info(
-                `Reaction received: user=${user.tag ?? user.id}, message=${reaction.message?.id}, emoji=${reaction.emoji?.name}, emojiId=${reaction.emoji?.id ?? 'unicode'}`,
-            );
-
-
-            /**
-             * =================================================
-             * CHECK PANEL
-             * =================================================
-             */
-
-            const isPanel =
-                await isGameRolePanelReaction(
-                    reaction,
-                    client,
-                );
-
-
-            if (
-                !isPanel
-            ) {
-                logger.debug(
-                    `Reaction ignored because message ${reaction.message?.id} is not the active Game Role panel.`,
+            } catch (error) {
+                logger.warn(
+                    'GameRole: failed to fetch reaction message:',
+                    error,
                 );
 
                 return;
             }
 
 
+            /**
+             * =============================================
+             * DEBUG - EVENT ĐÃ CHẠY
+             * =============================================
+             */
+
             logger.info(
-                `Game Role panel reaction detected: ${user.tag ?? user.id} -> ${reaction.emoji?.name}`,
+                `[GAME ROLE] ReactionAdd fired | user=${user.tag ?? user.id} | message=${message.id} | emoji=${reaction.emoji.name} | emojiId=${reaction.emoji.id ?? 'unicode'}`,
             );
 
 
             /**
-             * =================================================
+             * =============================================
+             * CHECK EMOJI
+             * =============================================
+             */
+
+            const config =
+                getGameRoleByEmoji(
+                    reaction.emoji,
+                );
+
+
+            if (!config) {
+                logger.debug(
+                    `[GAME ROLE] Ignored unmapped emoji ${reaction.emoji.id ?? reaction.emoji.name}`,
+                );
+
+                return;
+            }
+
+
+            /**
+             * =============================================
+             * MESSAGE PHẢI Ở SERVER
+             * =============================================
+             */
+
+            if (
+                !message.guild
+            ) {
+                return;
+            }
+
+
+            /**
+             * =============================================
+             * MESSAGE PHẢI DO BOT NÀY GỬI
+             * =============================================
+             */
+
+            if (
+                message.author?.id !==
+                client.user?.id
+            ) {
+                logger.debug(
+                    `[GAME ROLE] Message ${message.id} was not sent by this bot.`,
+                );
+
+                return;
+            }
+
+
+            /**
+             * =============================================
+             * CHECK GET ROLE EMBED
+             * =============================================
+             */
+
+            const embed =
+                message.embeds?.[0];
+
+
+            const title =
+                embed?.title ??
+                '';
+
+
+            if (
+                !title.includes(
+                    '𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮',
+                )
+            ) {
+                logger.debug(
+                    `[GAME ROLE] Message ${message.id} is not a Get Role panel. Title="${title}"`,
+                );
+
+                return;
+            }
+
+
+            /**
+             * =============================================
+             * VALID PANEL
+             * =============================================
+             */
+
+            logger.info(
+                `[GAME ROLE] Valid panel reaction | ${user.tag ?? user.id} -> ${config.label} -> role ${config.roleId}`,
+            );
+
+
+            /**
+             * =============================================
              * ADD ROLE
-             * =================================================
+             * =============================================
              */
 
             const success =
@@ -145,19 +203,19 @@ export default {
                 success
             ) {
                 logger.info(
-                    `Game Role reaction successfully processed for ${user.tag ?? user.id}.`,
+                    `[GAME ROLE] SUCCESS | ${user.tag ?? user.id} -> ${config.label}`,
                 );
             }
 
             else {
-                logger.warn(
-                    `Game Role reaction detected but role assignment failed for ${user.tag ?? user.id}.`,
+                logger.error(
+                    `[GAME ROLE] FAILED | ${user.tag ?? user.id} -> ${config.label}`,
                 );
             }
 
         } catch (error) {
             logger.error(
-                'Error in MessageReactionAdd Game Role event:',
+                '[GAME ROLE] Unexpected error in messageReactionAdd:',
                 error,
             );
         }
