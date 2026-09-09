@@ -11,40 +11,25 @@ import {
 import {
     getExactMilestone,
     LEVELING_MAX_LEVEL,
+    LEVEL_MILESTONE_LEVELS,
+    formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
-
 
 /**
  * =========================================================
  * /leveltest
  * =========================================================
  *
- * Chỉ test giao diện.
+ * CHỈ TEST GIAO DIỆN.
  *
  * KHÔNG:
  *
- * - tăng level
- * - giảm level
- * - sửa XP
+ * - tăng level thật
+ * - giảm level thật
+ * - đổi XP
  * - gắn role
  * - xóa role
- *
- * Phi Thăng sẽ sử dụng ảnh local:
- *
- * Lv.1 / 10 / 20 / 40 / 70
- * -> assets/level/lv1-70.webp
- *
- * Lv.100 / 200 / 300
- * -> assets/level/lv100-300.webp
- *
- * Lv.500
- * -> assets/level/lv500.webp
- *
- * Lv.999
- * -> assets/level/lv999.webp
- * =========================================================
  */
-
 
 export default {
     data:
@@ -53,12 +38,8 @@ export default {
                 'leveltest',
             )
             .setDescription(
-                'Test giao diện thông báo level (không thay đổi dữ liệu)',
+                'Test giao diện thông báo level',
             )
-
-            // =================================================
-            // TYPE
-            // =================================================
 
             .addStringOption(
                 option =>
@@ -91,6 +72,14 @@ export default {
 
                             {
                                 name:
+                                    'Phá Cảnh · Tiên Lộ / Cực Cảnh',
+
+                                value:
+                                    'tien_lo',
+                            },
+
+                            {
+                                name:
                                     'Voice · Tu Vi Tinh Tiến',
 
                                 value:
@@ -98,10 +87,6 @@ export default {
                             },
                         ),
             )
-
-            // =================================================
-            // LEVEL
-            // =================================================
 
             .addIntegerOption(
                 option =>
@@ -123,10 +108,6 @@ export default {
                         ),
             )
 
-            // =================================================
-            // USER
-            // =================================================
-
             .addUserOption(
                 option =>
                     option
@@ -134,7 +115,7 @@ export default {
                             'user',
                         )
                         .setDescription(
-                            'Thành viên muốn hiển thị trong thông báo',
+                            'Thành viên muốn hiển thị trong test',
                         )
                         .setRequired(
                             false,
@@ -152,22 +133,16 @@ export default {
     category:
         'Leveling',
 
-
     async execute(
         interaction,
         config,
         client,
     ) {
-        // =====================================================
-        // OPTIONS
-        // =====================================================
-
         const type =
             interaction.options.getString(
                 'type',
                 true,
             );
-
 
         const level =
             interaction.options.getInteger(
@@ -175,13 +150,11 @@ export default {
                 true,
             );
 
-
         const targetUser =
             interaction.options.getUser(
                 'user',
             ) ||
             interaction.user;
-
 
         const member =
             await interaction.guild.members
@@ -191,7 +164,6 @@ export default {
                 .catch(
                     () => null,
                 );
-
 
         if (
             !member
@@ -207,34 +179,38 @@ export default {
             return;
         }
 
+        const milestone =
+            getExactMilestone(
+                level,
+            );
 
-        // =====================================================
-        // PHI THĂNG
-        // =====================================================
+        /**
+         * =====================================================
+         * PHI THĂNG
+         * =====================================================
+         *
+         * Chỉ mốc <= 999.
+         */
 
         if (
             type ===
             'phi_thang'
         ) {
-            const milestone =
-                getExactMilestone(
-                    level,
-                );
-
-
             if (
-                !milestone
+                !milestone ||
+                milestone.announcementType !==
+                    'phi_thang'
             ) {
                 await interaction.reply({
                     content:
                         [
-                            '❌ Level này không phải cảnh giới Phi Thăng.',
+                            '❌ Level này không phải mốc **Phá Cảnh · Phi Thăng**.',
 
                             '',
 
-                            'Các level Phi Thăng hợp lệ:',
+                            'Các mốc hợp lệ:',
 
-                            '**1, 10, 20, 40, 70, 100, 200, 300, 500, 999**',
+                            '**Lv.1, 10, 20, 40, 70, 100, 200, 300, 500, 999**',
                         ].join(
                             '\n',
                         ),
@@ -245,7 +221,6 @@ export default {
 
                 return;
             }
-
 
             const success =
                 await sendLevelAnnouncement({
@@ -263,27 +238,12 @@ export default {
                         'phi_thang',
                 });
 
-
             if (
                 !success
             ) {
                 await interaction.reply({
                     content:
-                        [
-                            '❌ Không thể gửi thông báo Phi Thăng.',
-
-                            '',
-
-                            `Hãy kiểm tra file ảnh của **Lv.${level}** trong thư mục:`,
-
-                            '`assets/level/`',
-
-                            '',
-
-                            'Và kiểm tra quyền gửi tin nhắn/embed của bot.',
-                        ].join(
-                            '\n',
-                        ),
+                        '❌ Không thể gửi thông báo Phi Thăng.',
 
                     flags:
                         MessageFlags.Ephemeral,
@@ -293,35 +253,35 @@ export default {
             }
         }
 
-
-        // =====================================================
-        // VOICE
-        // =====================================================
+        /**
+         * =====================================================
+         * TIÊN LỘ / CỰC CẢNH
+         * =====================================================
+         */
 
         else if (
             type ===
-            'voice'
+            'tien_lo'
         ) {
-            /**
-             * Voice thường không được nhập milestone,
-             * vì milestone thật phải ưu tiên Phi Thăng.
-             */
-
             if (
-                getExactMilestone(
-                    level,
+                !milestone ||
+                ![
+                    'tien_lo',
+                    'cuc_canh',
+                ].includes(
+                    milestone.announcementType,
                 )
             ) {
                 await interaction.reply({
                     content:
                         [
-                            '❌ Level này là một mốc Phi Thăng.',
+                            '❌ Level này không phải mốc **Tiên Lộ / Cực Cảnh**.',
 
                             '',
 
-                            'Để test giao diện Voice thường, hãy chọn level không phải:',
+                            'Các mốc hợp lệ:',
 
-                            '**1, 10, 20, 40, 70, 100, 200, 300, 500, 999**',
+                            '**Lv.1.999, 3.999, 6.999, 9.999**',
                         ].join(
                             '\n',
                         ),
@@ -333,6 +293,86 @@ export default {
                 return;
             }
 
+            const success =
+                await sendLevelAnnouncement({
+                    guild:
+                        interaction.guild,
+
+                    member,
+
+                    level,
+
+                    source:
+                        'admin',
+
+                    forceType:
+                        milestone.announcementType,
+                });
+
+            if (
+                !success
+            ) {
+                await interaction.reply({
+                    content:
+                        `❌ Không thể gửi thông báo Lv.${formatLevelNumber(level)}.`,
+
+                    flags:
+                        MessageFlags.Ephemeral,
+                });
+
+                return;
+            }
+        }
+
+        /**
+         * =====================================================
+         * VOICE
+         * =====================================================
+         */
+
+        else if (
+            type ===
+            'voice'
+        ) {
+            /**
+             * Không cho test Voice thường
+             * bằng đúng một milestone,
+             * vì ngoài đời milestone sẽ ưu tiên
+             * thông báo cảnh giới.
+             */
+
+            if (
+                milestone
+            ) {
+                await interaction.reply({
+                    content:
+                        [
+                            '❌ Level này là một mốc cảnh giới đặc biệt.',
+
+                            '',
+
+                            'Hãy chọn level khác nếu muốn test **TU VI TINH TIẾN**.',
+
+                            '',
+
+                            `Các milestone hiện tại: **${LEVEL_MILESTONE_LEVELS
+                                .map(
+                                    item =>
+                                        formatLevelNumber(
+                                            item,
+                                        ),
+                                )
+                                .join(', ')}**`,
+                        ].join(
+                            '\n',
+                        ),
+
+                    flags:
+                        MessageFlags.Ephemeral,
+                });
+
+                return;
+            }
 
             const success =
                 await sendLevelAnnouncement({
@@ -346,7 +386,6 @@ export default {
                     source:
                         'voice',
                 });
-
 
             if (
                 !success
@@ -363,10 +402,11 @@ export default {
             }
         }
 
-
-        // =====================================================
-        // PHÁ CẢNH THƯỜNG
-        // =====================================================
+        /**
+         * =====================================================
+         * PHÁ CẢNH THƯỜNG
+         * =====================================================
+         */
 
         else {
             const success =
@@ -385,7 +425,6 @@ export default {
                         'pha_canh',
                 });
 
-
             if (
                 !success
             ) {
@@ -401,31 +440,31 @@ export default {
             }
         }
 
-
-        // =====================================================
-        // CONFIRMATION
-        // =====================================================
+        /**
+         * =====================================================
+         * IMAGE INFO
+         * =====================================================
+         */
 
         let imageInfo =
             'Không sử dụng ảnh.';
 
-
         if (
-            type ===
-            'phi_thang'
+            milestone?.image &&
+            type !==
+                'pha_canh' &&
+            type !==
+                'voice'
         ) {
-            const milestone =
-                getExactMilestone(
-                    level,
-                );
-
-
             imageInfo =
-                milestone?.image
-                    ? `Ảnh: \`assets/level/${milestone.image}\``
-                    : 'Không có ảnh.';
+                `Ảnh: \`${milestone.image.path}\``;
         }
 
+        /**
+         * =====================================================
+         * CONFIRM
+         * =====================================================
+         */
 
         await interaction.reply({
             content:
@@ -434,7 +473,7 @@ export default {
 
                     '',
 
-                    `Level hiển thị: **Lv.${level}**`,
+                    `Level hiển thị: **Lv.${formatLevelNumber(level)}**`,
 
                     `Thành viên: ${member}`,
 
@@ -442,7 +481,7 @@ export default {
 
                     '',
 
-                    'Dữ liệu level và role thật **không bị thay đổi**.',
+                    'Level, XP và role thật **không bị thay đổi**.',
                 ].join(
                     '\n',
                 ),
