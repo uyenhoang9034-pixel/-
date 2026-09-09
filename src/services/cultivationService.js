@@ -2,6 +2,8 @@ import { Mutex } from '../utils/mutex.js';
 
 import {
   CULTIVATION_CONFIG,
+  CULTIVATION_ADVENTURE_EVENTS,
+  CULTIVATION_ADVENTURE_LOCATIONS,
   CULTIVATION_EVENTS,
   CULTIVATION_REALMS,
   CULTIVATION_STAGES,
@@ -32,7 +34,7 @@ function getGuildProfilePrefix(
 
 /**
  * =========================================================
- * RANDOM HELPERS
+ * RANDOM
  * =========================================================
  */
 
@@ -46,6 +48,17 @@ function randomInt(
         (max - min + 1),
     ) + min
   );
+}
+
+function randomItem(
+  array,
+) {
+  return array[
+    Math.floor(
+      Math.random() *
+        array.length,
+    )
+  ];
 }
 
 function weightedPick(
@@ -64,13 +77,17 @@ function weightedPick(
   let roll =
     Math.random() * total;
 
-  for (const entry of entries) {
+  for (
+    const entry of entries
+  ) {
     roll -=
       Number(
         entry.weight || 0,
       );
 
-    if (roll <= 0) {
+    if (
+      roll <= 0
+    ) {
       return entry;
     }
   }
@@ -96,12 +113,13 @@ export function createCultivationProfile(
     );
 
   return {
-    version: 1,
+    version: 2,
 
     guildId,
     userId,
 
     realmIndex: 0,
+
     stageIndex: 0,
 
     cultivation: 0,
@@ -121,7 +139,8 @@ export function createCultivationProfile(
         .maxStamina,
 
     spiritRoot: {
-      id: spiritRoot.id,
+      id:
+        spiritRoot.id,
 
       name:
         spiritRoot.name,
@@ -140,6 +159,8 @@ export function createCultivationProfile(
 
     cooldowns: {
       cultivateAt: 0,
+
+      adventureAt: 0,
     },
 
     stats: {
@@ -150,6 +171,12 @@ export function createCultivationProfile(
       breakthroughFail: 0,
 
       fortunes: 0,
+
+      adventureCount: 0,
+
+      greatFortunes: 0,
+
+      monsterEncounters: 0,
     },
 
     createdAt:
@@ -162,7 +189,7 @@ export function createCultivationProfile(
 
 /**
  * =========================================================
- * PROFILE NORMALIZE
+ * NORMALIZE
  * =========================================================
  */
 
@@ -173,7 +200,8 @@ export function normalizeCultivationProfile(
 ) {
   if (
     !raw ||
-    typeof raw !== 'object'
+    typeof raw !==
+      'object'
   ) {
     return createCultivationProfile(
       guildId,
@@ -189,19 +217,24 @@ export function normalizeCultivationProfile(
 
   return {
     ...base,
+
     ...raw,
+
+    version: 2,
 
     guildId,
     userId,
 
     cooldowns: {
       ...base.cooldowns,
+
       ...(raw.cooldowns ||
         {}),
     },
 
     stats: {
       ...base.stats,
+
       ...(raw.stats || {}),
     },
 
@@ -209,9 +242,38 @@ export function normalizeCultivationProfile(
       raw.spiritRoot ||
       base.spiritRoot,
 
+    realmIndex:
+      Math.max(
+        0,
+
+        Math.min(
+          Number(
+            raw.realmIndex,
+          ) || 0,
+
+          CULTIVATION_REALMS.length -
+            1,
+        ),
+      ),
+
+    stageIndex:
+      Math.max(
+        0,
+
+        Math.min(
+          Number(
+            raw.stageIndex,
+          ) || 0,
+
+          CULTIVATION_STAGES.length -
+            1,
+        ),
+      ),
+
     cultivation:
       Math.max(
         0,
+
         Number(
           raw.cultivation,
         ) || 0,
@@ -220,6 +282,7 @@ export function normalizeCultivationProfile(
     totalCultivation:
       Math.max(
         0,
+
         Number(
           raw.totalCultivation,
         ) || 0,
@@ -228,6 +291,7 @@ export function normalizeCultivationProfile(
     spiritStones:
       Math.max(
         0,
+
         Number(
           raw.spiritStones,
         ) || 0,
@@ -236,16 +300,29 @@ export function normalizeCultivationProfile(
     stamina:
       Math.max(
         0,
+
         Number(
           raw.stamina,
         ) || 0,
+      ),
+
+    maxStamina:
+      Math.max(
+        1,
+
+        Number(
+          raw.maxStamina,
+        ) ||
+          CULTIVATION_CONFIG
+            .gameplay
+            .maxStamina,
       ),
   };
 }
 
 /**
  * =========================================================
- * PROFILE DATABASE
+ * DATABASE
  * =========================================================
  */
 
@@ -303,6 +380,8 @@ export async function saveCultivationProfile(
   const data = {
     ...profile,
 
+    version: 2,
+
     updatedAt:
       Date.now(),
   };
@@ -312,6 +391,7 @@ export async function saveCultivationProfile(
       data.guildId,
       data.userId,
     ),
+
     data,
   );
 
@@ -428,6 +508,7 @@ export function getBreakthroughChance(
 
   return Math.max(
     min,
+
     base -
       step * 0.008,
   );
@@ -435,7 +516,7 @@ export function getBreakthroughChance(
 
 /**
  * =========================================================
- * COOLDOWN
+ * COOLDOWNS
  * =========================================================
  */
 
@@ -450,6 +531,24 @@ export function getCultivateCooldownRemaining(
 
   return Math.max(
     0,
+
+    availableAt -
+      Date.now(),
+  );
+}
+
+export function getAdventureCooldownRemaining(
+  profile,
+) {
+  const availableAt =
+    Number(
+      profile.cooldowns
+        ?.adventureAt,
+    ) || 0;
+
+  return Math.max(
+    0,
+
     availableAt -
       Date.now(),
   );
@@ -664,6 +763,203 @@ export async function cultivate(
 
 /**
  * =========================================================
+ * THÁM HIỂM
+ * =========================================================
+ */
+
+export async function adventure(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      const cooldown =
+        getAdventureCooldownRemaining(
+          profile,
+        );
+
+      if (
+        cooldown > 0
+      ) {
+        return {
+          ok: false,
+
+          reason:
+            'cooldown',
+
+          cooldownRemaining:
+            cooldown,
+
+          profile,
+        };
+      }
+
+      const location =
+        randomItem(
+          CULTIVATION_ADVENTURE_LOCATIONS,
+        );
+
+      const event =
+        weightedPick(
+          CULTIVATION_ADVENTURE_EVENTS,
+        );
+
+      let cultivationDelta =
+        0;
+
+      let stoneDelta =
+        0;
+
+      /**
+       * YÊU THÚ
+       */
+
+      if (
+        event.type ===
+        'monster'
+      ) {
+        const requestedLoss =
+          randomInt(
+            event.cultivationLossMin,
+            event.cultivationLossMax,
+          );
+
+        const actualLoss =
+          Math.min(
+            profile.cultivation,
+            requestedLoss,
+          );
+
+        cultivationDelta =
+          -actualLoss;
+
+        profile.cultivation =
+          Math.max(
+            0,
+
+            profile.cultivation -
+              actualLoss,
+          );
+
+        profile.stats
+          .monsterEncounters += 1;
+      }
+
+      /**
+       * EVENT BÌNH THƯỜNG /
+       * TREASURE /
+       * GREAT FORTUNE /
+       * EMPTY
+       */
+
+      else {
+        cultivationDelta =
+          randomInt(
+            event.cultivationMin ||
+              0,
+
+            event.cultivationMax ||
+              0,
+          );
+
+        stoneDelta =
+          randomInt(
+            event.stonesMin ||
+              0,
+
+            event.stonesMax ||
+              0,
+          );
+
+        const rootBonus =
+          Number(
+            profile
+              .spiritRoot
+              ?.cultivateBonus,
+          ) || 0;
+
+        cultivationDelta =
+          Math.round(
+            cultivationDelta *
+              (1 +
+                rootBonus),
+          );
+
+        profile.cultivation +=
+          cultivationDelta;
+
+        profile.totalCultivation +=
+          cultivationDelta;
+
+        profile.spiritStones +=
+          stoneDelta;
+
+        if (
+          event.type ===
+          'great_fortune'
+        ) {
+          profile.stats
+            .greatFortunes += 1;
+
+          profile.stats
+            .fortunes += 1;
+        }
+      }
+
+      profile.stats
+        .adventureCount += 1;
+
+      profile.cooldowns
+        .adventureAt =
+        Date.now() +
+        CULTIVATION_CONFIG
+          .gameplay
+          .adventureCooldownMs;
+
+      const saved =
+        await saveCultivationProfile(
+          client,
+          profile,
+        );
+
+      return {
+        ok: true,
+
+        location,
+
+        event,
+
+        cultivationDelta,
+
+        stoneDelta,
+
+        profile:
+          saved,
+
+        required:
+          getCultivationRequired(
+            saved,
+          ),
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
  * ĐỘT PHÁ
  * =========================================================
  */
@@ -737,7 +1033,9 @@ export async function breakthrough(
         Math.random() <
         chance;
 
-      if (success) {
+      if (
+        success
+      ) {
         profile.cultivation -=
           required;
 
