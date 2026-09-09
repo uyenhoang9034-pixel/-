@@ -15,6 +15,7 @@ import {
     MessageFlags,
     ComponentType,
     EmbedBuilder,
+    AttachmentBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { successEmbed, infoEmbed } from '../../../utils/embeds.js';
@@ -29,6 +30,48 @@ import {
     formatPanelStatusField,
 } from '../../../utils/panelStatus.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+/**
+ * =========================================================
+ * LOCAL TICKET IMAGE
+ * =========================================================
+ */
+
+const TICKET_IMAGE_NAME =
+    'ticket.png';
+
+const TICKET_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'ticket',
+        TICKET_IMAGE_NAME,
+    );
+
+
+async function createTicketImageAttachment() {
+    try {
+        await fs.access(
+            TICKET_IMAGE_PATH,
+        );
+    } catch {
+        logger.warn(
+            `[TICKET] Panel image not found: ${TICKET_IMAGE_PATH}`,
+        );
+
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        TICKET_IMAGE_PATH,
+        {
+            name:
+                TICKET_IMAGE_NAME,
+        },
+    );
+}
 
 function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = null) {
     const dmEnabled = guildConfig.dmOnClose !== false;
@@ -80,19 +123,22 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
 }
 
 function buildPanelEmbed(config) {
-    const embed = new EmbedBuilder()
-        .setTitle(config.ticketPanelTitle || 'Support Tickets')
+    return new EmbedBuilder()
+        .setTitle(
+            config.ticketPanelTitle ||
+            'Support Tickets',
+        )
         .setDescription(
             config.ticketPanelMessage ||
-            'Click the button below to create a support ticket.'
+            'Click the button below to create a support ticket.',
         )
-        .setColor(config.ticketPanelColor || getColor('info'));
-
-    if (config.ticketImage) {
-        embed.setImage(config.ticketImage);
-    }
-
-    return embed;
+        .setColor(
+            config.ticketPanelColor ||
+            getColor('info'),
+        )
+        .setImage(
+            `attachment://${TICKET_IMAGE_NAME}`,
+        );
 }
 
 function buildPanelButtonRow(config) {
@@ -124,9 +170,28 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
         );
     }
 
-    const sentPanel = await channel.send({
-        embeds: [buildPanelEmbed(guildConfig)],
-        components: [buildPanelButtonRow(guildConfig)],
+   const ticketImage =
+    await createTicketImageAttachment();
+
+
+const sentPanel =
+    await channel.send({
+        embeds: [
+            buildPanelEmbed(
+                guildConfig,
+            ),
+        ],
+
+        components: [
+            buildPanelButtonRow(
+                guildConfig,
+            ),
+        ],
+
+        files:
+            ticketImage
+                ? [ticketImage]
+                : [],
     });
 
     await persistPanelMessageId(client, guildId, guildConfig, sentPanel.id);
@@ -295,10 +360,31 @@ async function updateLivePanel(client, guild, config, guildId) {
         }
         if (!panelStatus.exists || !panelStatus.message) return false;
 
-        await panelStatus.message.edit({
-            embeds: [buildPanelEmbed(config)],
-            components: [buildPanelButtonRow(config)],
-        });
+       const ticketImage =
+    await createTicketImageAttachment();
+
+
+await panelStatus.message.edit({
+    embeds: [
+        buildPanelEmbed(
+            config,
+        ),
+    ],
+
+    components: [
+        buildPanelButtonRow(
+            config,
+        ),
+    ],
+
+    attachments:
+        [],
+
+    files:
+        ticketImage
+            ? [ticketImage]
+            : [],
+});
         return true;
     } catch (error) {
         logger.warn('Failed to update live ticket panel:', error.message);
