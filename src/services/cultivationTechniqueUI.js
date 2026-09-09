@@ -21,52 +21,33 @@ import {
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
-const NEW_BUTTON_EMOJI = {
+const TECHNIQUE_BUTTON_EMOJI = {
   id:
-    '1546092721012342804',
-};
-
-const USE_BUTTON_EMOJI = {
-  id:
-    '1546089838128791663',
+    '1546070442169864193',
 };
 
 function applyStyle(
   embed,
 ) {
   embed.setColor(
-    CULTIVATION_CONFIG
-      .ui
-      .color,
+    CULTIVATION_CONFIG.ui.color,
   );
 
   embed.setFooter({
     text:
-      CULTIVATION_CONFIG
-        .ui
-        .footer,
+      CULTIVATION_CONFIG.ui.footer,
   });
 
   if (
-    CULTIVATION_CONFIG
-      .ui
-      .image
+    CULTIVATION_CONFIG.ui.image
   ) {
     embed.setImage(
-      CULTIVATION_CONFIG
-        .ui
-        .image,
+      CULTIVATION_CONFIG.ui.image,
     );
   }
 
   return embed;
 }
-
-/**
- * =========================================================
- * CÔNG PHÁP DASHBOARD
- * =========================================================
- */
 
 export function buildTechniqueEmbed(
   user,
@@ -91,7 +72,9 @@ export function buildTechniqueEmbed(
     learned.length > 0
       ? learned
           .map(
-            (technique) => {
+            (
+              technique,
+            ) => {
               const activeText =
                 active?.id ===
                 technique.id
@@ -143,12 +126,6 @@ export function buildTechniqueEmbed(
   );
 }
 
-/**
- * =========================================================
- * COMPONENTS
- * =========================================================
- */
-
 export function buildTechniqueRows(
   ownerId,
   profile,
@@ -161,7 +138,9 @@ export function buildTechniqueRows(
   const unlearned =
     getTechniqueList()
       .filter(
-        (technique) =>
+        (
+          technique,
+        ) =>
           !profile.techniques
             ?.learned?.[
               technique.id
@@ -185,7 +164,9 @@ export function buildTechniqueRows(
             )
             .addOptions(
               unlearned.map(
-                (technique) => ({
+                (
+                  technique,
+                ) => ({
                   label:
                     technique.name,
 
@@ -219,7 +200,9 @@ export function buildTechniqueRows(
             )
             .addOptions(
               learned.map(
-                (technique) => ({
+                (
+                  technique,
+                ) => ({
                   label:
                     technique.name,
 
@@ -249,7 +232,7 @@ export function buildTechniqueRows(
             'Quay lại Tiên Lộ',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TECHNIQUE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -259,12 +242,6 @@ export function buildTechniqueRows(
 
   return rows;
 }
-
-/**
- * =========================================================
- * XÁC NHẬN LĨNH NGỘ
- * =========================================================
- */
 
 export function buildTechniqueConfirmEmbed(
   user,
@@ -303,7 +280,7 @@ export function buildTechniqueConfirmEmbed(
           `**${technique.effect}**`,
           '',
           '<a:trangtrig18:1546068102817775626> **Cần**',
-          `Vô Danh Kiếm Phổ: **1**`,
+          'Vô Danh Kiếm Phổ: **1**',
           `Hiện Có: **${material}**`,
           '',
           SEPARATOR,
@@ -331,7 +308,7 @@ export function buildTechniqueConfirmRows(
             'Lĩnh Ngộ',
           )
           .setEmoji(
-            USE_BUTTON_EMOJI,
+            TECHNIQUE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -345,7 +322,7 @@ export function buildTechniqueConfirmRows(
             'Quay lại',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TECHNIQUE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -353,12 +330,6 @@ export function buildTechniqueConfirmRows(
       ),
   ];
 }
-
-/**
- * =========================================================
- * LĨNH NGỘ RESULT
- * =========================================================
- */
 
 export function buildTechniqueLearnResultEmbed(
   result,
@@ -440,7 +411,9 @@ export function buildTechniqueLearnResultEmbed(
           `*${result.technique.description}*`,
         ]
           .filter(
-            (line) =>
+            (
+              line,
+            ) =>
               line !== null,
           )
           .join(
@@ -449,12 +422,6 @@ export function buildTechniqueLearnResultEmbed(
       ),
   );
 }
-
-/**
- * =========================================================
- * ACTIVE RESULT
- * =========================================================
- */
 
 export function buildTechniqueActivateResultEmbed(
   result,
@@ -507,7 +474,7 @@ export function buildTechniqueResultRows(
             'Công Pháp',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TECHNIQUE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -521,7 +488,7 @@ export function buildTechniqueResultRows(
             'Tiên Lộ',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TECHNIQUE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
