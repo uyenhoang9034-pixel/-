@@ -42,7 +42,7 @@ async function rejectWrongPlayer(
 
   await interaction.reply({
     content:
-      '🌸 Đây là Tiên Lộ của một đạo hữu khác. Dùng `/tutien` để mở hành trình của riêng bạn.',
+      'Đây là Tiên Lộ của một đạo hữu khác. Dùng `/tutien` để mở hành trình của riêng bạn.',
 
     flags:
       MessageFlags.Ephemeral,
@@ -69,7 +69,7 @@ async function enforceChannel(
   ) {
     await interaction.reply({
       content:
-        `🌸 Tiên Lộ chỉ mở tại <#${CULTIVATION_CONFIG.channelId}>.`,
+        `Tiên Lộ chỉ mở tại <#${CULTIVATION_CONFIG.channelId}>.`,
 
       flags:
         MessageFlags.Ephemeral,
@@ -109,7 +109,7 @@ export default {
     }
 
     /**
-     * Không cho người khác bấm dashboard.
+     * Không cho người khác điều khiển dashboard.
      */
 
     if (
@@ -122,7 +122,7 @@ export default {
     }
 
     /**
-     * Game channel.
+     * Kiểm tra đúng channel.
      */
 
     if (
@@ -237,7 +237,7 @@ export default {
 
     /**
      * =====================================================
-     * PROFILE
+     * HỒ SƠ
      * =====================================================
      */
 
@@ -270,7 +270,7 @@ export default {
 
     /**
      * =====================================================
-     * LEADERBOARD
+     * TIÊN BẢNG
      * =====================================================
      */
 
