@@ -25,7 +25,7 @@ export const CULTIVATION_CONFIG = {
      * Sau khi upload ảnh Tiên Lộ lên asset,
      * thay null bằng RAW URL của ảnh.
      */
-    image: null,
+    image: 'https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/Games/tutien.png',
 
     buttonEmojiId:
       '1546092641467506688',
