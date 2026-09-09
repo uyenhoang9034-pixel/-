@@ -26,7 +26,7 @@ import {
  */
 
 const LEVEL_EMBED_COLOR =
-    0xffffff;
+    0xF5A9C6;
 
 
 /**
