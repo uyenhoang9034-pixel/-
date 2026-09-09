@@ -264,7 +264,7 @@ claimedAt: assignedStaff
     `🌷 **Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
 
   color:
-    priorityInfo.color,
+    '#FFB6C9',
 
   image:
     `attachment://${TICKET_IMAGE_NAME}`,
