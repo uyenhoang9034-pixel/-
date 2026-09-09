@@ -21,43 +21,33 @@ import {
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
-const GAME_BUTTON_EMOJI = {
+const FORGE_BUTTON_EMOJI = {
   id:
-    CULTIVATION_CONFIG
-      .ui
-      .buttonEmojiId,
+    '1546086548632506459',
 };
 
-const ACTION_BUTTON_EMOJI = {
+const EQUIPMENT_BUTTON_EMOJI = {
   id:
-    '1546089838128791663',
+    '1546071877586391121',
 };
 
 function styleEmbed(
   embed,
 ) {
   embed.setColor(
-    CULTIVATION_CONFIG
-      .ui
-      .color,
+    CULTIVATION_CONFIG.ui.color,
   );
 
   embed.setFooter({
     text:
-      CULTIVATION_CONFIG
-        .ui
-        .footer,
+      CULTIVATION_CONFIG.ui.footer,
   });
 
   if (
-    CULTIVATION_CONFIG
-      .ui
-      .image
+    CULTIVATION_CONFIG.ui.image
   ) {
     embed.setImage(
-      CULTIVATION_CONFIG
-        .ui
-        .image,
+      CULTIVATION_CONFIG.ui.image,
     );
   }
 
@@ -68,16 +58,11 @@ function percent(
   value,
 ) {
   return `${Math.round(
-    Number(value || 0) *
-      100,
+    Number(
+      value || 0,
+    ) * 100,
   )}%`;
 }
-
-/**
- * =========================================================
- * LUYỆN KHÍ PHƯỜNG
- * =========================================================
- */
 
 export function buildForgeEmbed(
   user,
@@ -91,17 +76,18 @@ export function buildForgeEmbed(
   const equipmentLines =
     getEquipmentList()
       .map(
-        (item) =>
-          [
-            `${item.emoji} **${item.name}**`,
-            `Cần: **${item.ingredientAmount} Huyền Thiết**`,
-            `Tỷ lệ thành công: **${percent(
-              item.successChance,
-            )}**`,
-            `Hiệu quả: **${item.effect}**`,
-          ].join(
-            '\n',
-          ),
+        (
+          item,
+        ) => [
+          `${item.emoji} **${item.name}**`,
+          `Cần: **${item.ingredientAmount} Huyền Thiết**`,
+          `Tỷ lệ thành công: **${percent(
+            item.successChance,
+          )}**`,
+          `Hiệu quả: **${item.effect}**`,
+        ].join(
+          '\n',
+        ),
       )
       .join(
         '\n\n',
@@ -131,16 +117,10 @@ export function buildForgeEmbed(
   );
 }
 
-/**
- * =========================================================
- * LUYỆN KHÍ PHƯỜNG COMPONENTS
- * =========================================================
- */
-
 export function buildForgeRows(
   ownerId,
 ) {
-  const forgeMenu =
+  const menu =
     new StringSelectMenuBuilder()
       .setCustomId(
         `tutien_equipment_select:${ownerId}`,
@@ -151,7 +131,9 @@ export function buildForgeRows(
       .addOptions(
         getEquipmentList()
           .map(
-            (item) => ({
+            (
+              item,
+            ) => ({
               label:
                 item.name,
 
@@ -172,7 +154,7 @@ export function buildForgeRows(
   return [
     new ActionRowBuilder()
       .addComponents(
-        forgeMenu,
+        menu,
       ),
 
     new ActionRowBuilder()
@@ -185,7 +167,7 @@ export function buildForgeRows(
             'Pháp Khí',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            EQUIPMENT_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -199,7 +181,7 @@ export function buildForgeRows(
             'Quay lại Tiên Lộ',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            FORGE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -207,12 +189,6 @@ export function buildForgeRows(
       ),
   ];
 }
-
-/**
- * =========================================================
- * XÁC NHẬN LUYỆN KHÍ
- * =========================================================
- */
 
 export function buildForgeConfirmEmbed(
   user,
@@ -282,7 +258,7 @@ export function buildForgeConfirmRows(
             'Luyện Khí',
           )
           .setEmoji(
-            ACTION_BUTTON_EMOJI,
+            FORGE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -296,7 +272,7 @@ export function buildForgeConfirmRows(
             'Quay lại',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            FORGE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -304,12 +280,6 @@ export function buildForgeConfirmRows(
       ),
   ];
 }
-
-/**
- * =========================================================
- * KẾT QUẢ LUYỆN KHÍ
- * =========================================================
- */
 
 export function buildForgeResultEmbed(
   result,
@@ -420,7 +390,7 @@ export function buildForgeResultRows(
             'Tiếp tục Luyện Khí',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            FORGE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -434,7 +404,7 @@ export function buildForgeResultRows(
             'Pháp Khí',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            EQUIPMENT_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -448,7 +418,7 @@ export function buildForgeResultRows(
             'Tiên Lộ',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            FORGE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -456,12 +426,6 @@ export function buildForgeResultRows(
       ),
   ];
 }
-
-/**
- * =========================================================
- * PHÁP KHÍ CỦA ĐẠO HỮU
- * =========================================================
- */
 
 export function buildEquipmentEmbed(
   user,
@@ -481,7 +445,9 @@ export function buildEquipmentEmbed(
     owned.length
       ? owned
           .map(
-            (item) => {
+            (
+              item,
+            ) => {
               const quantity =
                 profile.equipment
                   ?.owned?.[
@@ -558,7 +524,9 @@ export function buildEquipmentRows(
             )
             .addOptions(
               owned.map(
-                (item) => ({
+                (
+                  item,
+                ) => ({
                   label:
                     item.name,
 
@@ -588,7 +556,7 @@ export function buildEquipmentRows(
             'Luyện Khí',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            FORGE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -602,7 +570,7 @@ export function buildEquipmentRows(
             'Quay lại Tiên Lộ',
           )
           .setEmoji(
-            GAME_BUTTON_EMOJI,
+            EQUIPMENT_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -612,12 +580,6 @@ export function buildEquipmentRows(
 
   return rows;
 }
-
-/**
- * =========================================================
- * TRANG BỊ THÀNH CÔNG
- * =========================================================
- */
 
 export function buildEquipResultEmbed(
   result,
