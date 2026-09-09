@@ -1,6 +1,7 @@
 import {
     VOICE_LEVEL_INTERVAL_MS,
     LEVELING_MAX_LEVEL,
+    formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
@@ -36,38 +37,66 @@ import {
  * - Đổi từ voice này sang voice khác không reset timer.
  * - Phần thời gian dư được lưu vào database.
  * - Restart bot không làm mất phần thời gian đã lưu.
- * - Khi đạt milestone:
- *      Lv.1
- *      Lv.10
- *      Lv.20
- *      Lv.40
- *      Lv.70
- *      Lv.100
- *      Lv.200
- *      Lv.300
- *      Lv.500
- *      Lv.999
  *
- *   -> levelAnnouncementService tự chọn
- *      thông báo Phá Cảnh · Phi Thăng.
+ * MILESTONES:
  *
- * - Role luôn được đồng bộ để chỉ giữ
- *   role cảnh giới cao nhất.
+ * Lv.1
+ * Lv.10
+ * Lv.20
+ * Lv.40
+ * Lv.70
+ * Lv.100
+ * Lv.200
+ * Lv.300
+ * Lv.500
+ * Lv.999
+ * Lv.1.999
+ * Lv.3.999
+ * Lv.6.999
+ * Lv.9.999
+ *
+ * Khi Voice đưa user tới/vượt milestone:
+ *
+ * -> levelAnnouncementService tự chọn:
+ *
+ * Phá Cảnh · Phi Thăng
+ * Phá Cảnh · Tiên Lộ
+ * Phá Cảnh · Cực Cảnh
+ *
+ * Role luôn được đồng bộ để chỉ giữ
+ * role cảnh giới cao nhất.
  * =========================================================
  */
 
 /**
- * Kiểm tra mỗi 30 giây.
+ * Bot kiểm tra mỗi 30 giây.
  *
- * Không phải 30 giây = XP.
- * Đây chỉ là khoảng thời gian bot kiểm tra
- * xem người dùng đã đủ 30 phút hay chưa.
+ * Đây KHÔNG phải:
+ *
+ * 30 giây = 1 level.
+ *
+ * Mà là:
+ *
+ * mỗi 30 giây kiểm tra thời gian đã tích.
+ *
+ * Đủ:
+ *
+ * 30 phút = +1 Level.
  */
+
 const VOICE_CHECK_INTERVAL_MS =
     30 * 1000;
 
 /**
+ * =========================================================
+ * ACTIVE SESSION MAP
+ * =========================================================
+ *
+ * key:
+ *
  * guildId:userId
+ *
+ * value:
  *
  * {
  *     member,
@@ -75,6 +104,7 @@ const VOICE_CHECK_INTERVAL_MS =
  *     interval
  * }
  */
+
 const activeSessions =
     new Map();
 
@@ -106,7 +136,7 @@ function getSessionKey(
 
 /**
  * =========================================================
- * READ ACCUMULATED TIME
+ * READ ACCUMULATED VOICE TIME
  * =========================================================
  */
 
@@ -151,7 +181,7 @@ async function getStoredVoiceTime(
 
 /**
  * =========================================================
- * SAVE ACCUMULATED TIME
+ * SAVE ACCUMULATED VOICE TIME
  * =========================================================
  */
 
@@ -183,7 +213,7 @@ async function saveStoredVoiceTime(
 
 /**
  * =========================================================
- * CHECK WHETHER MEMBER IS STILL IN VOICE
+ * CHECK MEMBER IN VOICE
  * =========================================================
  */
 
@@ -191,7 +221,9 @@ function isMemberInVoice(
     member,
 ) {
     return Boolean(
-        member?.voice?.channelId,
+        member
+            ?.voice
+            ?.channelId,
     );
 }
 
@@ -223,7 +255,7 @@ export function startVoiceLevelSession(
         );
 
     /**
-     * Session đã tồn tại.
+     * Session đã có rồi.
      */
     if (
         activeSessions.has(
@@ -247,12 +279,6 @@ export function startVoiceLevelSession(
      * =====================================================
      * TIMER
      * =====================================================
-     *
-     * Cứ 30 giây bot ghi nhận thời gian thực tế
-     * đã trôi qua.
-     *
-     * Khi tổng tích lũy >= 30 phút
-     * -> cấp level ngay.
      */
 
     session.interval =
@@ -267,7 +293,7 @@ export function startVoiceLevelSession(
                     error
                 ) {
                     logger.error(
-                        `Voice level timer error for ${key}:`,
+                        `[VOICE LEVEL] Timer error for ${key}:`,
                         error,
                     );
                 }
@@ -276,9 +302,10 @@ export function startVoiceLevelSession(
         );
 
     /**
-     * Không giữ Node process sống
-     * chỉ vì timer này.
+     * Timer này không được giữ
+     * Node process sống một mình.
      */
+
     session.interval
         ?.unref?.();
 
@@ -317,9 +344,10 @@ async function processVoiceSession(
         session.member;
 
     /**
-     * Người dùng đã rời voice nhưng event
-     * chưa xử lý kịp.
+     * Member đã rời Voice nhưng
+     * voiceStateUpdate chưa xử lý kịp.
      */
+
     if (
         !isMemberInVoice(
             member,
@@ -350,9 +378,10 @@ async function processVoiceSession(
     }
 
     /**
-     * Cập nhật trước để tránh tính trùng
-     * nếu DB/service mất thời gian xử lý.
+     * Update trước để tránh
+     * tính trùng nếu DB chậm.
      */
+
     session.lastCheckedAt =
         now;
 
@@ -399,9 +428,9 @@ export async function stopVoiceLevelSession(
     }
 
     /**
-     * Gỡ session khỏi Map trước
-     * để timer không chạy thêm.
+     * Xóa khỏi map trước.
      */
+
     activeSessions.delete(
         sessionKey,
     );
@@ -415,8 +444,8 @@ export async function stopVoiceLevelSession(
     }
 
     /**
-     * Tính phần thời gian từ lần check cuối
-     * đến lúc rời voice.
+     * Tính phần thời gian từ
+     * lần check cuối tới lúc rời.
      */
 
     const now =
@@ -442,7 +471,7 @@ export async function stopVoiceLevelSession(
             error
         ) {
             logger.error(
-                `Failed saving final voice duration for ${member.user.tag}:`,
+                `[VOICE LEVEL] Failed saving final duration for ${member.user.tag}:`,
                 error,
             );
         }
@@ -464,9 +493,16 @@ async function addVoiceDuration(
     member,
     duration,
 ) {
+    const safeDuration =
+        Math.max(
+            0,
+            Number(
+                duration,
+            ) || 0,
+        );
+
     if (
-        !duration ||
-        duration <= 0
+        safeDuration <= 0
     ) {
         return;
     }
@@ -475,10 +511,17 @@ async function addVoiceDuration(
         member.guild;
 
     /**
-     * Khóa theo từng user.
+     * =====================================================
+     * USER LOCK
+     * =====================================================
      *
-     * Tránh timer và voiceStateUpdate
-     * cùng ghi DB một lúc.
+     * Tránh:
+     *
+     * timer
+     * +
+     * voiceStateUpdate
+     *
+     * cùng ghi DB.
      */
 
     const lockKey =
@@ -487,22 +530,62 @@ async function addVoiceDuration(
     await Mutex.runExclusive(
         lockKey,
         async () => {
+            /**
+             * =============================================
+             * LEVEL CONFIG
+             * =============================================
+             */
+
             const levelingConfig =
                 await getLevelingConfig(
                     client,
                     guild.id,
                 );
 
-            /**
-             * Level system bị tắt:
-             * không tính Voice.
-             */
             if (
                 !levelingConfig
                     ?.enabled
             ) {
                 return;
             }
+
+            /**
+             * =============================================
+             * CURRENT LEVEL
+             * =============================================
+             *
+             * Nếu đã Lv.9.999 thì
+             * không cần tiếp tục tích giờ.
+             */
+
+            const currentData =
+                await getUserLevelData(
+                    client,
+                    guild.id,
+                    member.id,
+                );
+
+            if (
+                Number(
+                    currentData.level,
+                ) >=
+                LEVELING_MAX_LEVEL
+            ) {
+                await saveStoredVoiceTime(
+                    client,
+                    guild.id,
+                    member.id,
+                    0,
+                );
+
+                return;
+            }
+
+            /**
+             * =============================================
+             * ACCUMULATED TIME
+             * =============================================
+             */
 
             let accumulated =
                 await getStoredVoiceTime(
@@ -512,12 +595,12 @@ async function addVoiceDuration(
                 );
 
             accumulated +=
-                duration;
+                safeDuration;
 
             /**
-             * =================================================
-             * CALCULATE LEVELS
-             * =================================================
+             * =============================================
+             * LEVELS EARNED
+             * =============================================
              */
 
             const levelsEarned =
@@ -531,8 +614,9 @@ async function addVoiceDuration(
                 VOICE_LEVEL_INTERVAL_MS;
 
             /**
-             * Luôn lưu phần thời gian dư.
+             * Luôn lưu phần dư.
              */
+
             await saveStoredVoiceTime(
                 client,
                 guild.id,
@@ -577,21 +661,23 @@ async function awardVoiceLevels(
         );
 
     const oldLevel =
-        Number(
-            levelData.level,
-        ) || 0;
+        Math.max(
+            0,
+            Number(
+                levelData.level,
+            ) || 0,
+        );
 
     /**
-     * Đã max level.
+     * =====================================================
+     * ALREADY MAX LEVEL
+     * =====================================================
      */
+
     if (
         oldLevel >=
         LEVELING_MAX_LEVEL
     ) {
-        /**
-         * Không cần giữ phút Voice dư nữa
-         * khi đã Lv.999.
-         */
         await saveStoredVoiceTime(
             client,
             guild.id,
@@ -602,11 +688,33 @@ async function awardVoiceLevels(
         return;
     }
 
+    /**
+     * =====================================================
+     * NEW LEVEL
+     * =====================================================
+     */
+
+    const safeLevelsEarned =
+        Math.max(
+            0,
+            Math.floor(
+                Number(
+                    levelsEarned,
+                ) || 0,
+            ),
+        );
+
+    if (
+        safeLevelsEarned <= 0
+    ) {
+        return;
+    }
+
     const newLevel =
         Math.min(
             LEVELING_MAX_LEVEL,
             oldLevel +
-                levelsEarned,
+                safeLevelsEarned,
         );
 
     if (
@@ -616,49 +724,72 @@ async function awardVoiceLevels(
         return;
     }
 
+    /**
+     * Voice tăng Level trực tiếp.
+     *
+     * XP chat hiện tại vẫn giữ nguyên.
+     *
+     * Ví dụ:
+     *
+     * Lv.1998 + 50 XP
+     *
+     * Voice đủ 30 phút
+     *
+     * -> Lv.1999 + 50 XP
+     */
+
     levelData.level =
         newLevel;
 
+    const savedData =
+        await saveUserLevelData(
+            client,
+            guild.id,
+            member.id,
+            levelData,
+        );
+
+    const finalLevel =
+        Number(
+            savedData
+                ?.level ??
+            newLevel,
+        ) || newLevel;
+
     /**
-     * Voice tăng LEVEL trực tiếp.
+     * =====================================================
+     * ROLE SYNC
+     * =====================================================
      *
-     * XP chat hiện tại vẫn được giữ nguyên.
      * Ví dụ:
      *
-     * Lv.9 + 50 XP
-     * Voice đủ 30 phút
-     * -> Lv.10 + 50 XP
-     */
-
-    await saveUserLevelData(
-        client,
-        guild.id,
-        member.id,
-        levelData,
-    );
-
-    /**
-     * =====================================================
-     * ROLE
-     * =====================================================
+     * Lv.999
+     * -> Chân Tiên
      *
-     * syncHighestLevelRole sẽ:
+     * Lv.1999
+     * -> gỡ Chân Tiên
+     * -> Đại La Kim Tiên
      *
-     * - tìm milestone cao nhất <= level
-     * - gắn role đó
-     * - xóa tất cả role milestone thấp hơn
+     * Lv.3999
+     * -> Tiên Vương
+     *
+     * Lv.6999
+     * -> Tiên Đế
+     *
+     * Lv.9999
+     * -> Đạo Tổ
      */
 
     try {
         await syncHighestLevelRole(
             member,
-            newLevel,
+            finalLevel,
         );
     } catch (
         roleError
     ) {
         logger.warn(
-            `[VOICE LEVEL] Failed syncing level role for ${member.user.tag}:`,
+            `[VOICE LEVEL] Failed syncing role for ${member.user.tag}:`,
             roleError,
         );
     }
@@ -668,31 +799,39 @@ async function awardVoiceLevels(
      * ANNOUNCEMENT
      * =====================================================
      *
-     * source: voice
+     * Không vượt milestone:
      *
-     * Nếu level mới là milestone:
-     * -> Phá Cảnh · Phi Thăng
-     *
-     * Nếu không:
      * -> TU VI TINH TIẾN
+     *
+     * Đạt / vượt:
+     *
+     * 999
+     * -> Phi Thăng
+     *
+     * 1999 / 3999 / 6999
+     * -> Tiên Lộ
+     *
+     * 9999
+     * -> Cực Cảnh
      */
 
-   try {
-    await sendLevelChangeAnnouncements({
-        guild,
+    try {
+        await sendLevelChangeAnnouncements({
+            guild,
 
-        member,
+            member,
 
-        oldLevel,
+            oldLevel,
 
-        newLevel,
+            newLevel:
+                finalLevel,
 
-        source:
-            'voice',
-    });
-} catch (
-    announcementError
-) {
+            source:
+                'voice',
+        });
+    } catch (
+        announcementError
+    ) {
         logger.warn(
             `[VOICE LEVEL] Failed sending announcement for ${member.user.tag}:`,
             announcementError,
@@ -700,14 +839,17 @@ async function awardVoiceLevels(
     }
 
     logger.info(
-        `[VOICE LEVEL] ${member.user.tag}: Lv.${oldLevel} -> Lv.${newLevel}`,
+        `[VOICE LEVEL] ${member.user.tag}: Lv.${formatLevelNumber(oldLevel)} -> Lv.${formatLevelNumber(finalLevel)}`,
     );
 
     /**
-     * Lv.999 = cap.
+     * =====================================================
+     * MAX LEVEL
+     * =====================================================
      */
+
     if (
-        newLevel >=
+        finalLevel >=
         LEVELING_MAX_LEVEL
     ) {
         await saveStoredVoiceTime(
@@ -715,6 +857,10 @@ async function awardVoiceLevels(
             guild.id,
             member.id,
             0,
+        );
+
+        logger.info(
+            `[VOICE LEVEL] ${member.user.tag} reached MAX Lv.${formatLevelNumber(LEVELING_MAX_LEVEL)}.`,
         );
     }
 }
@@ -752,8 +898,12 @@ export async function handleVoiceLevelState(
      * SAME CHANNEL
      * =====================================================
      *
-     * mute / unmute / deaf / undeaf
-     * không ảnh hưởng timer.
+     * mute
+     * unmute
+     * deaf
+     * undeaf
+     *
+     * không reset timer.
      */
 
     if (
@@ -765,7 +915,7 @@ export async function handleVoiceLevelState(
 
     /**
      * =====================================================
-     * JOIN VOICE
+     * JOIN
      * =====================================================
      */
 
@@ -783,7 +933,7 @@ export async function handleVoiceLevelState(
 
     /**
      * =====================================================
-     * LEAVE VOICE
+     * LEAVE
      * =====================================================
      */
 
@@ -801,14 +951,12 @@ export async function handleVoiceLevelState(
 
     /**
      * =====================================================
-     * MOVE VOICE CHANNEL
+     * MOVE CHANNEL
      * =====================================================
-     *
-     * Ví dụ:
      *
      * Voice A -> Voice B
      *
-     * Timer KHÔNG reset.
+     * Timer không reset.
      */
 
     if (
@@ -826,10 +974,6 @@ export async function handleVoiceLevelState(
                 key,
             );
 
-        /**
-         * Session đang tồn tại:
-         * chỉ cập nhật member reference.
-         */
         if (
             session
         ) {
@@ -840,8 +984,8 @@ export async function handleVoiceLevelState(
         }
 
         /**
-         * Trường hợp bot vừa restart
-         * hoặc session bị thiếu.
+         * Bot vừa restart hoặc
+         * session bị thiếu.
          */
 
         startVoiceLevelSession(
@@ -858,15 +1002,13 @@ export async function handleVoiceLevelState(
  *
  * Chạy từ ready.js.
  *
- * Nếu bot restart trong lúc người dùng
- * đang ở Voice:
+ * Thời gian bot OFF:
  *
- * - thời gian đã SAVE trong DB vẫn còn
- * - session mới bắt đầu tính tiếp từ lúc
- *   bot Ready
+ * KHÔNG được tính.
  *
- * Khoảng thời gian bot OFF không được tính.
- * =========================================================
+ * Phần thời gian đã lưu trước restart:
+ *
+ * VẪN được giữ.
  */
 
 export function restoreVoiceLevelSessions(
@@ -913,9 +1055,6 @@ export function restoreVoiceLevelSessions(
 /**
  * =========================================================
  * STOP ALL SESSIONS
- * =========================================================
- *
- * Có thể dùng khi bot shutdown/reload.
  * =========================================================
  */
 
