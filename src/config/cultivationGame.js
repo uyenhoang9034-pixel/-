@@ -1,19 +1,7 @@
 export const CULTIVATION_CONFIG = {
   enabled: true,
 
-  /**
-   * =========================================================
-   * GAME CHANNEL
-   * =========================================================
-   */
-
   channelId: '1547233544412205066',
-
-  /**
-   * =========================================================
-   * UI
-   * =========================================================
-   */
 
   ui: {
     color: '#F3AFC8',
@@ -26,13 +14,24 @@ export const CULTIVATION_CONFIG = {
 
     buttonEmojiId:
       '1546092641467506688',
-  },
 
-  /**
-   * =========================================================
-   * GAMEPLAY
-   * =========================================================
-   */
+    itemEmojis: {
+      herb:
+        '<a:trangtrig33:1546908181060526130>',
+
+      pill:
+        '<a:trangtrig34:1547237010572582982>',
+
+      ore:
+        '<a:trangtrig8:1546047024334503997>',
+
+      treasure:
+        '<a:trangtrig18:1546068102817775626>',
+
+      received:
+        '<a:trangtrig9:1546047064952148089>',
+    },
+  },
 
   gameplay: {
     maxStamina: 100,
@@ -48,10 +47,6 @@ export const CULTIVATION_CONFIG = {
     spiritStoneMin: 8,
     spiritStoneMax: 25,
 
-    /**
-     * THÁM HIỂM
-     */
-
     adventureCooldownMs:
       10 * 60 * 1000,
 
@@ -62,12 +57,6 @@ export const CULTIVATION_CONFIG = {
     breakthroughFailureLossPercent: 0.10,
   },
 };
-
-/**
- * =========================================================
- * CẢNH GIỚI
- * =========================================================
- */
 
 export const CULTIVATION_REALMS = [
   'Luyện Khí',
@@ -92,17 +81,10 @@ export const CULTIVATION_STAGES = [
   'Viên Mãn',
 ];
 
-/**
- * =========================================================
- * LINH CĂN
- * =========================================================
- */
-
 export const SPIRIT_ROOTS = [
   {
     id: 'kim',
     name: 'Kim Linh Căn',
-    emoji: '⚔️',
     rarity: 'Phàm',
     weight: 18,
     cultivateBonus: 0.02,
@@ -111,7 +93,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'moc',
     name: 'Mộc Linh Căn',
-    emoji: '🌿',
     rarity: 'Phàm',
     weight: 18,
     cultivateBonus: 0.02,
@@ -120,7 +101,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'thuy',
     name: 'Thủy Linh Căn',
-    emoji: '💧',
     rarity: 'Phàm',
     weight: 18,
     cultivateBonus: 0.02,
@@ -129,7 +109,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'hoa',
     name: 'Hỏa Linh Căn',
-    emoji: '🔥',
     rarity: 'Phàm',
     weight: 18,
     cultivateBonus: 0.02,
@@ -138,7 +117,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'tho',
     name: 'Thổ Linh Căn',
-    emoji: '🪨',
     rarity: 'Phàm',
     weight: 18,
     cultivateBonus: 0.02,
@@ -147,7 +125,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'phong',
     name: 'Phong Linh Căn',
-    emoji: '🌪️',
     rarity: 'Hiếm',
     weight: 4,
     cultivateBonus: 0.05,
@@ -156,7 +133,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'bang',
     name: 'Băng Linh Căn',
-    emoji: '❄️',
     rarity: 'Hiếm',
     weight: 3,
     cultivateBonus: 0.06,
@@ -165,7 +141,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'loi',
     name: 'Lôi Linh Căn',
-    emoji: '⚡',
     rarity: 'Hiếm',
     weight: 2,
     cultivateBonus: 0.08,
@@ -174,7 +149,6 @@ export const SPIRIT_ROOTS = [
   {
     id: 'thien',
     name: 'Thiên Linh Căn',
-    emoji: '✨',
     rarity: 'Cực Hiếm',
     weight: 0.8,
     cultivateBonus: 0.12,
@@ -183,18 +157,125 @@ export const SPIRIT_ROOTS = [
   {
     id: 'hon_don',
     name: 'Hỗn Độn Linh Căn',
-    emoji: '☯️',
     rarity: 'Thần Thoại',
     weight: 0.2,
     cultivateBonus: 0.18,
   },
 ];
 
-/**
- * =========================================================
- * TU LUYỆN EVENTS
- * =========================================================
- */
+export const CULTIVATION_ITEMS = {
+  thien_linh_thao: {
+    id: 'thien_linh_thao',
+
+    name:
+      'Thiên Linh Thảo',
+
+    type:
+      'herb',
+
+    rarity:
+      'Linh Phẩm',
+
+    description:
+      'Linh thảo hấp thu thiên địa linh khí, thường dùng để luyện đan.',
+  },
+
+  huyen_thiet: {
+    id: 'huyen_thiet',
+
+    name:
+      'Huyền Thiết',
+
+    type:
+      'ore',
+
+    rarity:
+      'Huyền Phẩm',
+
+    description:
+      'Khoáng vật cứng chắc, có thể dùng để luyện chế pháp khí.',
+  },
+
+  tu_khi_dan: {
+    id: 'tu_khi_dan',
+
+    name:
+      'Tụ Khí Đan',
+
+    type:
+      'pill',
+
+    rarity:
+      'Linh Phẩm',
+
+    description:
+      'Đan dược giúp tăng hiệu quả hấp thu linh khí.',
+  },
+
+  hoi_nguyen_dan: {
+    id: 'hoi_nguyen_dan',
+
+    name:
+      'Hồi Nguyên Đan',
+
+    type:
+      'pill',
+
+    rarity:
+      'Huyền Phẩm',
+
+    description:
+      'Đan dược dùng để khôi phục tinh lực.',
+  },
+
+  pha_canh_dan: {
+    id: 'pha_canh_dan',
+
+    name:
+      'Phá Cảnh Đan',
+
+    type:
+      'pill',
+
+    rarity:
+      'Địa Phẩm',
+
+    description:
+      'Đan dược quý giúp tăng khả năng phá vỡ bình cảnh.',
+  },
+
+  co_phu: {
+    id: 'co_phu',
+
+    name:
+      'Thượng Cổ Phù',
+
+    type:
+      'treasure',
+
+    rarity:
+      'Địa Phẩm',
+
+    description:
+      'Một lá phù cổ mang khí tức từ thời thượng cổ.',
+  },
+
+  vo_danh_kiem_pho: {
+    id: 'vo_danh_kiem_pho',
+
+    name:
+      'Vô Danh Kiếm Phổ',
+
+    type:
+      'technique',
+
+    rarity:
+      'Thiên Phẩm',
+
+    description:
+      'Một phần kiếm quyết không rõ lai lịch, dường như ẩn chứa huyền cơ.',
+  },
+};
 
 export const CULTIVATION_EVENTS = [
   {
@@ -262,124 +343,257 @@ export const CULTIVATION_EVENTS = [
   },
 ];
 
-/**
- * =========================================================
- * THÁM HIỂM — ĐỊA ĐIỂM
- * =========================================================
- */
-
 export const CULTIVATION_ADVENTURE_LOCATIONS = [
   {
-    id: 'thanh_van_son',
-    name: 'THANH VÂN SƠN',
+    id:
+      'thanh_van_son',
+
+    name:
+      'THANH VÂN SƠN',
   },
 
   {
-    id: 'u_minh_coc',
-    name: 'U MINH CỐC',
+    id:
+      'u_minh_coc',
+
+    name:
+      'U MINH CỐC',
   },
 
   {
-    id: 'xich_viem_dong',
-    name: 'XÍCH VIÊM ĐỘNG',
+    id:
+      'xich_viem_dong',
+
+    name:
+      'XÍCH VIÊM ĐỘNG',
   },
 
   {
-    id: 'dao_hoa_coc',
-    name: 'ĐÀO HOA CỐC',
+    id:
+      'dao_hoa_coc',
+
+    name:
+      'ĐÀO HOA CỐC',
   },
 
   {
-    id: 'loi_vuc',
-    name: 'LÔI VỰC',
+    id:
+      'loi_vuc',
+
+    name:
+      'LÔI VỰC',
   },
 
   {
-    id: 'thuong_co_di_tich',
-    name: 'THƯỢNG CỔ DI TÍCH',
+    id:
+      'thuong_co_di_tich',
+
+    name:
+      'THƯỢNG CỔ DI TÍCH',
   },
 ];
 
-/**
- * =========================================================
- * THÁM HIỂM — RANDOM EVENTS
- * =========================================================
- */
-
 export const CULTIVATION_ADVENTURE_EVENTS = [
-  /**
-   * Bình thường
-   */
-
   {
-    id: 'spirit_gathering',
+    id:
+      'spirit_gathering',
 
-    type: 'normal',
+    type:
+      'normal',
 
-    weight: 28,
+    weight:
+      28,
 
     text:
       'Đạo hữu tìm thấy một nơi linh khí nồng đậm, thuận thế ngồi xuống vận công.',
 
-    cultivationMin: 90,
-    cultivationMax: 170,
+    cultivationMin:
+      90,
 
-    stonesMin: 12,
-    stonesMax: 35,
+    cultivationMax:
+      170,
+
+    stonesMin:
+      12,
+
+    stonesMax:
+      35,
+
+    dropChance:
+      0.18,
+
+    drops: [
+      {
+        itemId:
+          'thien_linh_thao',
+
+        weight:
+          80,
+
+        min:
+          1,
+
+        max:
+          2,
+      },
+
+      {
+        itemId:
+          'tu_khi_dan',
+
+        weight:
+          20,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+    ],
   },
 
-  /**
-   * Linh thạch
-   */
-
   {
-    id: 'spirit_stone_vein',
+    id:
+      'spirit_stone_vein',
 
-    type: 'treasure',
+    type:
+      'treasure',
 
-    weight: 20,
+    weight:
+      20,
 
     text:
       'Sau lớp đá phủ rêu, một mạch Linh Thạch nhỏ bất ngờ lộ ra trước mắt.',
 
-    cultivationMin: 60,
-    cultivationMax: 130,
+    cultivationMin:
+      60,
 
-    stonesMin: 55,
-    stonesMax: 120,
+    cultivationMax:
+      130,
+
+    stonesMin:
+      55,
+
+    stonesMax:
+      120,
+
+    dropChance:
+      0.25,
+
+    drops: [
+      {
+        itemId:
+          'huyen_thiet',
+
+        weight:
+          80,
+
+        min:
+          1,
+
+        max:
+          3,
+      },
+
+      {
+        itemId:
+          'hoi_nguyen_dan',
+
+        weight:
+          20,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+    ],
   },
 
-  /**
-   * Di tích
-   */
-
   {
-    id: 'ancient_ruin',
+    id:
+      'ancient_ruin',
 
-    type: 'treasure',
+    type:
+      'treasure',
 
-    weight: 17,
+    weight:
+      17,
 
     text:
       'Một tòa cổ điện phủ đầy bụi thời gian xuất hiện giữa màn sương.',
 
-    cultivationMin: 120,
-    cultivationMax: 220,
+    cultivationMin:
+      120,
 
-    stonesMin: 30,
-    stonesMax: 80,
+    cultivationMax:
+      220,
+
+    stonesMin:
+      30,
+
+    stonesMax:
+      80,
+
+    dropChance:
+      0.40,
+
+    drops: [
+      {
+        itemId:
+          'co_phu',
+
+        weight:
+          55,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+
+      {
+        itemId:
+          'tu_khi_dan',
+
+        weight:
+          30,
+
+        min:
+          1,
+
+        max:
+          2,
+      },
+
+      {
+        itemId:
+          'vo_danh_kiem_pho',
+
+        weight:
+          15,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+    ],
   },
 
-  /**
-   * Đại cơ duyên
-   */
-
   {
-    id: 'great_fortune',
+    id:
+      'great_fortune',
 
-    type: 'great_fortune',
+    type:
+      'great_fortune',
 
-    weight: 8,
+    weight:
+      8,
 
     title:
       '<a:trangtrig2:1546040703375904801> ĐẠI CƠ DUYÊN <a:trangtrig3:1546040818261954610>',
@@ -387,23 +601,89 @@ export const CULTIVATION_ADVENTURE_EVENTS = [
     text:
       'Trong khe đá, đạo hữu phát hiện một túi Linh Thạch cùng linh khí do tiền nhân để lại.',
 
-    cultivationMin: 220,
-    cultivationMax: 360,
+    cultivationMin:
+      220,
 
-    stonesMin: 120,
-    stonesMax: 260,
+    cultivationMax:
+      360,
+
+    stonesMin:
+      120,
+
+    stonesMax:
+      260,
+
+    dropChance:
+      0.70,
+
+    drops: [
+      {
+        itemId:
+          'pha_canh_dan',
+
+        weight:
+          25,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+
+      {
+        itemId:
+          'co_phu',
+
+        weight:
+          30,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+
+      {
+        itemId:
+          'hoi_nguyen_dan',
+
+        weight:
+          25,
+
+        min:
+          1,
+
+        max:
+          2,
+      },
+
+      {
+        itemId:
+          'vo_danh_kiem_pho',
+
+        weight:
+          20,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+    ],
   },
 
-  /**
-   * Ma lang
-   */
-
   {
-    id: 'blood_eye_wolf',
+    id:
+      'blood_eye_wolf',
 
-    type: 'monster',
+    type:
+      'monster',
 
-    weight: 12,
+    weight:
+      12,
 
     monster:
       'Huyết Nhãn Ma Lang',
@@ -411,20 +691,25 @@ export const CULTIVATION_ADVENTURE_EVENTS = [
     text:
       'Một con Huyết Nhãn Ma Lang bất ngờ lao ra từ trong rừng!',
 
-    cultivationLossMin: 20,
-    cultivationLossMax: 55,
+    cultivationLossMin:
+      20,
+
+    cultivationLossMax:
+      55,
+
+    dropChance:
+      0,
   },
 
-  /**
-   * Hỏa xà
-   */
-
   {
-    id: 'flame_serpent',
+    id:
+      'flame_serpent',
 
-    type: 'monster',
+    type:
+      'monster',
 
-    weight: 8,
+    weight:
+      8,
 
     monster:
       'Xích Viêm Hỏa Xà',
@@ -432,29 +717,59 @@ export const CULTIVATION_ADVENTURE_EVENTS = [
     text:
       'Một con Xích Viêm Hỏa Xà từ khe đá lao ra, hỏa khí lập tức bao phủ xung quanh!',
 
-    cultivationLossMin: 25,
-    cultivationLossMax: 65,
+    cultivationLossMin:
+      25,
+
+    cultivationLossMax:
+      65,
+
+    dropChance:
+      0,
   },
 
-  /**
-   * Bình an
-   */
-
   {
-    id: 'nothing',
+    id:
+      'nothing',
 
-    type: 'empty',
+    type:
+      'empty',
 
-    weight: 7,
+    weight:
+      7,
 
     text:
       'Đạo hữu đi sâu hàng trăm dặm nhưng hôm nay dường như cơ duyên chưa tới.',
 
-    cultivationMin: 20,
-    cultivationMax: 60,
+    cultivationMin:
+      20,
 
-    stonesMin: 0,
-    stonesMax: 10,
+    cultivationMax:
+      60,
+
+    stonesMin:
+      0,
+
+    stonesMax:
+      10,
+
+    dropChance:
+      0.08,
+
+    drops: [
+      {
+        itemId:
+          'thien_linh_thao',
+
+        weight:
+          100,
+
+        min:
+          1,
+
+        max:
+          1,
+      },
+    ],
   },
 ];
 
