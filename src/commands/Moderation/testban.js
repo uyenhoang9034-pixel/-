@@ -3,24 +3,60 @@ import {
     PermissionFlagsBits,
     EmbedBuilder,
     MessageFlags,
+    AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
-const MODERATION_IMAGE_URL =
-    'https://cdn.phototourl.com/free/2026-09-08-9fd00794-554a-4eca-91fd-8f5cd6c3dae9.jpg';
+
+const MODERATION_IMAGE_NAME =
+    'ban.webp';
+
+const MODERATION_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'moderation',
+        MODERATION_IMAGE_NAME,
+    );
+
 
 const EMOJIS = {
     decoration:
         '<a:bang6:1546906224388350035>',
 
-    ban:
-        '<a:bang5:1546905838986330124>',
+    field:
+        '<a:bang4:1546905765439217666>',
 
     reasonEnd:
         '<a:bang1:1546891405371117668>',
 };
+
+
+async function createModerationImageAttachment() {
+    try {
+        await fs.access(
+            MODERATION_IMAGE_PATH,
+        );
+    } catch {
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        MODERATION_IMAGE_PATH,
+        {
+            name:
+                MODERATION_IMAGE_NAME,
+        },
+    );
+}
+
 
 export default {
     data:
@@ -64,6 +100,7 @@ export default {
     category:
         'moderation',
 
+
     async execute(
         interaction,
     ) {
@@ -74,12 +111,14 @@ export default {
                     true,
                 );
 
+
         const reason =
             interaction.options
                 .getString(
                     'reason',
                     true,
                 );
+
 
         const channel =
             await interaction.guild.channels
@@ -89,6 +128,7 @@ export default {
                 .catch(
                     () => null,
                 );
+
 
         if (
             !channel ||
@@ -105,16 +145,27 @@ export default {
             return;
         }
 
-        /**
-         * TEST ONLY
-         *
-         * Không ban thật.
-         * Không tạo case thật.
-         * Không ghi database.
-         */
+
+        const image =
+            await createModerationImageAttachment();
+
+
+        if (!image) {
+            await interaction.reply({
+                content:
+                    'Không tìm thấy file `assets/moderation/ban.webp`.',
+
+                flags:
+                    MessageFlags.Ephemeral,
+            });
+
+            return;
+        }
+
 
         const fakeCaseId =
             'TEST-001';
+
 
         const embed =
             new EmbedBuilder()
@@ -126,35 +177,47 @@ export default {
                 )
                 .setDescription(
                     [
-                        `${EMOJIS.ban} **ĐÃ BAN!**`,
+                        `${EMOJIS.field} **ĐÃ BAN!**`,
 
                         '',
-                        `${EMOJIS.ban} **Thành viên**`,
+
+                        `${EMOJIS.field} **Thành viên**`,
                         `<@${target.id}>`,
 
                         '',
-                        `${EMOJIS.ban} **Người xử lý**`,
+
+                        `${EMOJIS.field} **Người xử lý**`,
                         `<@${interaction.user.id}>`,
 
                         '',
-                        `${EMOJIS.ban} **Lý do**`,
+
+                        `${EMOJIS.field} **Lý do**`,
                         `Vi phạm nội quy: ${reason} ${EMOJIS.reasonEnd}`,
 
                         '',
-                        `${EMOJIS.ban} **Case**`,
+
+                        `${EMOJIS.field} **Case**`,
                         `#${fakeCaseId}`,
-                    ].join('\n'),
+                    ].join(
+                        '\n',
+                    ),
                 )
                 .setImage(
-                    MODERATION_IMAGE_URL,
+                    `attachment://${MODERATION_IMAGE_NAME}`,
                 )
                 .setTimestamp();
+
 
         await channel.send({
             embeds: [
                 embed,
             ],
+
+            files: [
+                image,
+            ],
         });
+
 
         await interaction.reply({
             content:
