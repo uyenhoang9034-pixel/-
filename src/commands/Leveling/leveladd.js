@@ -29,6 +29,7 @@ import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
 
+
 export default {
     data:
         new SlashCommandBuilder()
@@ -84,6 +85,7 @@ export default {
     category:
         'Leveling',
 
+
     async execute(
         interaction,
         config,
@@ -93,11 +95,17 @@ export default {
             interaction,
         );
 
+
+        // =====================================================
+        // CONFIG
+        // =====================================================
+
         const levelingConfig =
             await getLevelingConfig(
                 client,
                 interaction.guildId,
             );
+
 
         if (
             !levelingConfig
@@ -114,17 +122,24 @@ export default {
             return;
         }
 
+
+        // =====================================================
+        // OPTIONS
+        // =====================================================
+
         const targetUser =
             interaction.options.getUser(
                 'user',
                 true,
             );
 
+
         const levelsToAdd =
             interaction.options.getInteger(
                 'levels',
                 true,
             );
+
 
         const member =
             await interaction.guild.members
@@ -134,6 +149,7 @@ export default {
                 .catch(
                     () => null,
                 );
+
 
         if (
             !member
@@ -149,11 +165,10 @@ export default {
             return;
         }
 
-        /**
-         * =====================================================
-         * OLD LEVEL
-         * =====================================================
-         */
+
+        // =====================================================
+        // OLD LEVEL
+        // =====================================================
 
         const oldData =
             await getUserLevelData(
@@ -162,16 +177,16 @@ export default {
                 targetUser.id,
             );
 
+
         const oldLevel =
             Number(
                 oldData.level,
             ) || 0;
 
-        /**
-         * =====================================================
-         * ADD LEVEL
-         * =====================================================
-         */
+
+        // =====================================================
+        // ADD LEVEL
+        // =====================================================
 
         const userData =
             await addLevels(
@@ -181,58 +196,65 @@ export default {
                 levelsToAdd,
             );
 
+
         const newLevel =
             Number(
                 userData.level,
             ) || 0;
 
-        /**
-         * =====================================================
-         * ROLE
-         * =====================================================
-         *
-         * Chỉ giữ role cảnh giới cao nhất.
-         */
+
+        // =====================================================
+        // ROLE
+        // =====================================================
 
         await syncHighestLevelRole(
             member,
             newLevel,
         );
 
-        /**
-         * =====================================================
-         * ANNOUNCEMENT
-         * =====================================================
-         *
-         * Ví dụ:
-         *
-         * Lv.9 -> Lv.21
-         *
-         * sẽ phát:
-         *
-         * Lv.10 Trúc Cơ
-         * Lv.20 Kim Đan
-         */
 
-        await sendLevelChangeAnnouncements({
-            guild:
-                interaction.guild,
+        // =====================================================
+        // ANNOUNCEMENT
+        // =====================================================
+        //
+        // Ví dụ:
+        //
+        // Lv.9 -> Lv.21
+        //
+        // gửi:
+        //
+        // Lv.10 Trúc Cơ + ảnh lv1-70
+        // Lv.20 Kim Đan + ảnh lv1-70
+        //
+        // Lv.99 -> Lv.101
+        //
+        // gửi:
+        //
+        // Lv.100 Luyện Hư + ảnh lv100-300
+        //
+        // Ảnh được xử lý hoàn toàn trong
+        // levelAnnouncementService.js.
+        // =====================================================
 
-            member,
+        const announcementResult =
+            await sendLevelChangeAnnouncements({
+                guild:
+                    interaction.guild,
 
-            oldLevel,
+                member,
 
-            newLevel,
+                oldLevel,
 
-            source:
-                'admin',
-        });
+                newLevel,
 
-        /**
-         * =====================================================
-         * RESPONSE
-         * =====================================================
-         */
+                source:
+                    'admin',
+            });
+
+
+        // =====================================================
+        // RESPONSE
+        // =====================================================
 
         await InteractionHelper.safeEditReply(
             interaction,
@@ -244,11 +266,16 @@ export default {
                         `**Lv.${oldLevel} → Lv.${newLevel}**`,
 
                         `Tăng thực tế: **+${newLevel - oldLevel} level**`,
+
+                        announcementResult.sent > 0
+                            ? `Đã gửi **${announcementResult.sent}** thông báo level.`
+                            : 'Không có thông báo level nào được gửi.',
                     ].join(
                         '\n',
                     ),
             },
         );
+
 
         logger.info(
             `[LEVEL] ${interaction.user.tag} added levels to ${targetUser.tag}: Lv.${oldLevel} -> Lv.${newLevel}`,
