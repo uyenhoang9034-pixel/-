@@ -1,6 +1,7 @@
 import {
     EmbedBuilder,
     PermissionFlagsBits,
+    AttachmentBuilder,
 } from 'discord.js';
 
 import fs from 'node:fs/promises';
@@ -20,6 +21,22 @@ const DATA_FILE = path.join(
     DATA_DIR,
     'boostConfig.json',
 );
+
+
+// ============================================================
+// LOCAL BOOST IMAGE
+// ============================================================
+
+const BOOST_IMAGE_NAME =
+    'boost.webp';
+
+const BOOST_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'boost',
+        BOOST_IMAGE_NAME,
+    );
 
 
 // ============================================================
@@ -49,11 +66,6 @@ const DEFAULT_CONFIG = {
 
     color: '#F5A9C6',
 
-    image: null,
-
-    // 'member' = avatar người boost
-    // URL = thumbnail tùy chỉnh
-    // null = không có thumbnail
     thumbnail: 'member',
 
     footer: '{server}',
@@ -167,6 +179,30 @@ export async function setBoostConfig(
 
 
 // ============================================================
+// LOCAL BOOST IMAGE
+// ============================================================
+
+async function createBoostImageAttachment() {
+    try {
+        await fs.access(
+            BOOST_IMAGE_PATH,
+        );
+    } catch {
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        BOOST_IMAGE_PATH,
+        {
+            name:
+                BOOST_IMAGE_NAME,
+        },
+    );
+}
+
+
+// ============================================================
 // BOOST LEVEL
 // ============================================================
 
@@ -176,19 +212,23 @@ function getBoostLevelInfo(
 ) {
     const realBoostCount =
         Number(
-            guild.premiumSubscriptionCount || 0,
+            guild.premiumSubscriptionCount ||
+            0,
         );
 
     const realCurrentLevel =
         Number(
-            guild.premiumTier || 0,
+            guild.premiumTier ||
+            0,
         );
+
 
     const overrideBoostCount =
         overrides.boostCount;
 
     const overrideCurrentLevel =
         overrides.currentLevel;
+
 
     const boostCount =
         overrideBoostCount === null ||
@@ -200,6 +240,7 @@ function getBoostLevelInfo(
                 ) || 0,
                 0,
             );
+
 
     const currentLevel =
         overrideCurrentLevel === null ||
@@ -219,14 +260,18 @@ function getBoostLevelInfo(
     let nextLevelBoosts = null;
 
 
-    if (currentLevel <= 0) {
+    if (
+        currentLevel <= 0
+    ) {
         nextLevelBoosts = 2;
-    } else if (currentLevel === 1) {
+    } else if (
+        currentLevel === 1
+    ) {
         nextLevelBoosts = 7;
-    } else if (currentLevel === 2) {
+    } else if (
+        currentLevel === 2
+    ) {
         nextLevelBoosts = 14;
-    } else {
-        nextLevelBoosts = null;
     }
 
 
@@ -236,7 +281,8 @@ function getBoostLevelInfo(
     if (
         nextLevelBoosts === null
     ) {
-        boostsToNextLevel = 'MAX';
+        boostsToNextLevel =
+            'MAX';
     } else {
         boostsToNextLevel =
             Math.max(
@@ -267,15 +313,21 @@ function resolveColor(
     color,
 ) {
     if (
-        typeof color !== 'string'
+        typeof color !==
+        'string'
     ) {
         return 0xF5A9C6;
     }
 
+
     const normalized =
         color
-            .replace('#', '')
+            .replace(
+                '#',
+                '',
+            )
             .trim();
+
 
     if (
         !/^[0-9a-fA-F]{6}$/.test(
@@ -284,6 +336,7 @@ function resolveColor(
     ) {
         return 0xF5A9C6;
     }
+
 
     return parseInt(
         normalized,
@@ -306,7 +359,8 @@ function replacePlaceholders(
     },
 ) {
     if (
-        typeof text !== 'string'
+        typeof text !==
+        'string'
     ) {
         return '';
     }
@@ -368,7 +422,7 @@ function replacePlaceholders(
 
 
 // ============================================================
-// BUILD EMBED
+// BUILD BOOST EMBED
 // ============================================================
 
 export function buildBoostEmbed(
@@ -395,8 +449,11 @@ export function buildBoostEmbed(
 
     const placeholderData = {
         member,
+
         guild,
+
         boostInfo,
+
         memberBoosts:
             overrides.memberBoosts,
     };
@@ -420,25 +477,35 @@ export function buildBoostEmbed(
                     config.description,
                     placeholderData,
                 ),
+            )
+            .setImage(
+                `attachment://${BOOST_IMAGE_NAME}`,
             );
 
 
-    // ----------------------------------------------------------
-    // Thumbnail
-    // ----------------------------------------------------------
+    // ========================================================
+    // THUMBNAIL
+    // ========================================================
 
     if (
-        config.thumbnail === 'member'
+        config.thumbnail ===
+        'member'
     ) {
         embed.setThumbnail(
             member.user.displayAvatarURL({
-                extension: 'png',
-                size: 256,
+                extension:
+                    'png',
+
+                size:
+                    256,
             }),
         );
     } else if (
-        typeof config.thumbnail === 'string' &&
-        config.thumbnail.startsWith('http')
+        typeof config.thumbnail ===
+            'string' &&
+        config.thumbnail.startsWith(
+            'http',
+        )
     ) {
         embed.setThumbnail(
             config.thumbnail,
@@ -446,23 +513,9 @@ export function buildBoostEmbed(
     }
 
 
-    // ----------------------------------------------------------
-    // Main Image
-    // ----------------------------------------------------------
-
-    if (
-        typeof config.image === 'string' &&
-        config.image.startsWith('http')
-    ) {
-        embed.setImage(
-            config.image,
-        );
-    }
-
-
-    // ----------------------------------------------------------
-    // Footer
-    // ----------------------------------------------------------
+    // ========================================================
+    // FOOTER
+    // ========================================================
 
     if (
         config.footer
@@ -477,9 +530,9 @@ export function buildBoostEmbed(
     }
 
 
-    // ----------------------------------------------------------
-    // Timestamp
-    // ----------------------------------------------------------
+    // ========================================================
+    // TIMESTAMP
+    // ========================================================
 
     if (
         config.timestamp
@@ -503,7 +556,9 @@ export async function grantTyPhuRole(
     if (!roleId) {
         return {
             success: false,
-            reason: 'ROLE_NOT_CONFIGURED',
+
+            reason:
+                'ROLE_NOT_CONFIGURED',
         };
     }
 
@@ -517,7 +572,9 @@ export async function grantTyPhuRole(
     if (!role) {
         return {
             success: false,
-            reason: 'ROLE_NOT_FOUND',
+
+            reason:
+                'ROLE_NOT_FOUND',
         };
     }
 
@@ -529,7 +586,9 @@ export async function grantTyPhuRole(
     if (!botMember) {
         return {
             success: false,
-            reason: 'BOT_NOT_FOUND',
+
+            reason:
+                'BOT_NOT_FOUND',
         };
     }
 
@@ -541,7 +600,9 @@ export async function grantTyPhuRole(
     ) {
         return {
             success: false,
-            reason: 'MISSING_MANAGE_ROLES',
+
+            reason:
+                'MISSING_MANAGE_ROLES',
         };
     }
 
@@ -551,7 +612,9 @@ export async function grantTyPhuRole(
     ) {
         return {
             success: false,
-            reason: 'MANAGED_ROLE',
+
+            reason:
+                'MANAGED_ROLE',
         };
     }
 
@@ -562,7 +625,9 @@ export async function grantTyPhuRole(
     ) {
         return {
             success: false,
-            reason: 'ROLE_ABOVE_BOT',
+
+            reason:
+                'ROLE_ABOVE_BOT',
         };
     }
 
@@ -574,7 +639,9 @@ export async function grantTyPhuRole(
     ) {
         return {
             success: true,
-            alreadyHadRole: true,
+
+            alreadyHadRole:
+                true,
         };
     }
 
@@ -585,14 +652,20 @@ export async function grantTyPhuRole(
             'Automatic role for server boost',
         );
 
+
         return {
             success: true,
-            alreadyHadRole: false,
+
+            alreadyHadRole:
+                false,
         };
     } catch (error) {
         return {
             success: false,
-            reason: 'ROLE_ADD_FAILED',
+
+            reason:
+                'ROLE_ADD_FAILED',
+
             error,
         };
     }
@@ -638,6 +711,7 @@ export async function removeTyPhuRole(
             'Automatic role removal after server boost ended',
         );
 
+
         return true;
     } catch {
         return false;
@@ -646,7 +720,41 @@ export async function removeTyPhuRole(
 
 
 // ============================================================
-// SEND BOOST MESSAGE
+// RESOLVE BOOST CHANNEL
+// ============================================================
+
+async function resolveBoostChannel(
+    guild,
+    channelId,
+) {
+    if (!channelId) {
+        return null;
+    }
+
+
+    const cachedChannel =
+        guild.channels.cache.get(
+            channelId,
+        );
+
+
+    if (
+        cachedChannel
+    ) {
+        return cachedChannel;
+    }
+
+
+    return guild.channels.fetch(
+        channelId,
+    ).catch(
+        () => null,
+    );
+}
+
+
+// ============================================================
+// SEND BOOST NOTIFICATION
 // ============================================================
 
 export async function sendBoostNotification(
@@ -663,7 +771,9 @@ export async function sendBoostNotification(
     ) {
         return {
             success: false,
-            reason: 'DISABLED',
+
+            reason:
+                'DISABLED',
         };
     }
 
@@ -673,26 +783,26 @@ export async function sendBoostNotification(
     ) {
         return {
             success: false,
-            reason: 'CHANNEL_NOT_CONFIGURED',
+
+            reason:
+                'CHANNEL_NOT_CONFIGURED',
         };
     }
 
 
     const channel =
-        member.guild.channels.cache.get(
+        await resolveBoostChannel(
+            member.guild,
             config.channelId,
-        ) ||
-        await member.guild.channels.fetch(
-            config.channelId,
-        ).catch(
-            () => null,
         );
 
 
     if (!channel) {
         return {
             success: false,
-            reason: 'CHANNEL_NOT_FOUND',
+
+            reason:
+                'CHANNEL_NOT_FOUND',
         };
     }
 
@@ -702,7 +812,25 @@ export async function sendBoostNotification(
     ) {
         return {
             success: false,
-            reason: 'CHANNEL_NOT_TEXT',
+
+            reason:
+                'CHANNEL_NOT_TEXT',
+        };
+    }
+
+
+    const imageAttachment =
+        await createBoostImageAttachment();
+
+
+    if (
+        !imageAttachment
+    ) {
+        return {
+            success: false,
+
+            reason:
+                'BOOST_IMAGE_NOT_FOUND',
         };
     }
 
@@ -719,7 +847,12 @@ export async function sendBoostNotification(
             embeds: [
                 embed,
             ],
+
+            files: [
+                imageAttachment,
+            ],
         });
+
 
         return {
             success: true,
@@ -727,7 +860,10 @@ export async function sendBoostNotification(
     } catch (error) {
         return {
             success: false,
-            reason: 'SEND_FAILED',
+
+            reason:
+                'SEND_FAILED',
+
             error,
         };
     }
@@ -762,6 +898,7 @@ export async function handleBoostStarted(
 
     return {
         roleResult,
+
         messageResult,
     };
 }
@@ -802,30 +939,29 @@ export async function sendTestBoost(
         );
 
 
-    const embed =
-        buildBoostEmbed(
-            config,
-            member,
-            overrides,
-        );
-
-
     let channel =
         targetChannel;
 
 
     if (
-        !channel &&
-        config.channelId
+        !channel
     ) {
+        if (
+            !config.channelId
+        ) {
+            return {
+                success: false,
+
+                reason:
+                    'CHANNEL_NOT_CONFIGURED',
+            };
+        }
+
+
         channel =
-            member.guild.channels.cache.get(
+            await resolveBoostChannel(
+                member.guild,
                 config.channelId,
-            ) ||
-            await member.guild.channels.fetch(
-                config.channelId,
-            ).catch(
-                () => null,
             );
     }
 
@@ -833,7 +969,9 @@ export async function sendTestBoost(
     if (!channel) {
         return {
             success: false,
-            reason: 'CHANNEL_NOT_CONFIGURED',
+
+            reason:
+                'CHANNEL_NOT_FOUND',
         };
     }
 
@@ -843,9 +981,35 @@ export async function sendTestBoost(
     ) {
         return {
             success: false,
-            reason: 'CHANNEL_NOT_TEXT',
+
+            reason:
+                'CHANNEL_NOT_TEXT',
         };
     }
+
+
+    const imageAttachment =
+        await createBoostImageAttachment();
+
+
+    if (
+        !imageAttachment
+    ) {
+        return {
+            success: false,
+
+            reason:
+                'BOOST_IMAGE_NOT_FOUND',
+        };
+    }
+
+
+    const embed =
+        buildBoostEmbed(
+            config,
+            member,
+            overrides,
+        );
 
 
     try {
@@ -853,7 +1017,12 @@ export async function sendTestBoost(
             embeds: [
                 embed,
             ],
+
+            files: [
+                imageAttachment,
+            ],
         });
+
 
         return {
             success: true,
@@ -861,7 +1030,10 @@ export async function sendTestBoost(
     } catch (error) {
         return {
             success: false,
-            reason: 'SEND_FAILED',
+
+            reason:
+                'SEND_FAILED',
+
             error,
         };
     }
