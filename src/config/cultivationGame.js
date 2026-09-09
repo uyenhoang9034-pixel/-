@@ -11,7 +11,7 @@ export const CULTIVATION_CONFIG = {
    *
    * null = tạm thời chơi được mọi kênh để test.
    */
-  channelId: null,
+  channelId: '1547233544412205066',
 
   /**
    * =========================================================
