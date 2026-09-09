@@ -20,52 +20,33 @@ import {
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
-const NEW_BUTTON_EMOJI = {
+const TREASURE_BUTTON_EMOJI = {
   id:
-    '1546092721012342804',
-};
-
-const USE_BUTTON_EMOJI = {
-  id:
-    '1546089838128791663',
+    '1546070834471239730',
 };
 
 function applyStyle(
   embed,
 ) {
   embed.setColor(
-    CULTIVATION_CONFIG
-      .ui
-      .color,
+    CULTIVATION_CONFIG.ui.color,
   );
 
   embed.setFooter({
     text:
-      CULTIVATION_CONFIG
-        .ui
-        .footer,
+      CULTIVATION_CONFIG.ui.footer,
   });
 
   if (
-    CULTIVATION_CONFIG
-      .ui
-      .image
+    CULTIVATION_CONFIG.ui.image
   ) {
     embed.setImage(
-      CULTIVATION_CONFIG
-        .ui
-        .image,
+      CULTIVATION_CONFIG.ui.image,
     );
   }
 
   return embed;
 }
-
-/**
- * =========================================================
- * BÍ BẢO DASHBOARD
- * =========================================================
- */
 
 export function buildTreasureEmbed(
   user,
@@ -89,31 +70,19 @@ export function buildTreasureEmbed(
       .setDescription(
         [
           `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
-
           '',
-
           SEPARATOR,
-
           '',
-
           '<a:trangtrig18:1546068102817775626> **Bí Bảo Hiện Có**',
-
           `Thượng Cổ Phù: **${quantity}**`,
-
           '',
-
           '<a:trangtrig18:1546068102817775626> **Phù Hiệu Đang Kích Hoạt**',
-
           active
             ? `**${active.name}**\n${active.effect}`
             : '**Chưa Có**',
-
           '',
-
           SEPARATOR,
-
           '',
-
           '*Một đạo cổ phù, có thể nghịch chuyển một phần thiên cơ.*',
         ].join(
           '\n',
@@ -121,12 +90,6 @@ export function buildTreasureEmbed(
       ),
   );
 }
-
-/**
- * =========================================================
- * BÍ BẢO COMPONENTS
- * =========================================================
- */
 
 export function buildTreasureRows(
   ownerId,
@@ -138,11 +101,6 @@ export function buildTreasureRows(
     );
 
   const rows = [];
-
-  /**
-   * Nếu chưa có phù active thì
-   * mới cho chọn phù mới.
-   */
 
   if (!active) {
     rows.push(
@@ -196,7 +154,7 @@ export function buildTreasureRows(
             'Quay lại Tiên Lộ',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TREASURE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -206,12 +164,6 @@ export function buildTreasureRows(
 
   return rows;
 }
-
-/**
- * =========================================================
- * CONFIRM
- * =========================================================
- */
 
 export function buildTalismanConfirmEmbed(
   user,
@@ -245,27 +197,16 @@ export function buildTalismanConfirmEmbed(
       .setDescription(
         [
           `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
-
           '',
-
           '**Hiệu Quả**',
-
           `**${talisman.effect}**`,
-
           '',
-
           '<a:trangtrig18:1546068102817775626> **Cần**',
-
           'Thượng Cổ Phù: **1**',
-
           `Hiện Có: **${quantity}**`,
-
           '',
-
           SEPARATOR,
-
           '',
-
           `*${talisman.description}*`,
         ].join(
           '\n',
@@ -289,7 +230,7 @@ export function buildTalismanConfirmRows(
             'Kích Hoạt',
           )
           .setEmoji(
-            USE_BUTTON_EMOJI,
+            TREASURE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -303,7 +244,7 @@ export function buildTalismanConfirmRows(
             'Quay lại',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TREASURE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -312,19 +253,9 @@ export function buildTalismanConfirmRows(
   ];
 }
 
-/**
- * =========================================================
- * RESULT
- * =========================================================
- */
-
 export function buildTalismanResultEmbed(
   result,
 ) {
-  /**
-   * Đang có phù khác.
-   */
-
   if (
     !result.ok &&
     result.reason ===
@@ -338,19 +269,13 @@ export function buildTalismanResultEmbed(
         .setDescription(
           [
             `<a:bang2:1546891483250954290> **${result.activeTalisman.name}** vẫn đang được kích hoạt.`,
-
             '',
-
             SEPARATOR,
-
             '',
-
             result
               .activeTalisman
               .effect,
-
             '',
-
             '*Hãy chờ phù hiệu hiện tại phát huy tác dụng trước khi kích hoạt Thượng Cổ Phù khác.*',
           ].join(
             '\n',
@@ -358,10 +283,6 @@ export function buildTalismanResultEmbed(
         ),
     );
   }
-
-  /**
-   * Không đủ Thượng Cổ Phù.
-   */
 
   if (
     !result.ok &&
@@ -376,15 +297,10 @@ export function buildTalismanResultEmbed(
         .setDescription(
           [
             '<a:bang2:1546891483250954290> Đạo hữu hiện không có đủ Thượng Cổ Phù.',
-
             '',
-
             SEPARATOR,
-
             '',
-
             '<a:trangtrig18:1546068102817775626> Cần: **1**',
-
             `<a:trangtrig18:1546068102817775626> Hiện Có: **${result.available}**`,
           ].join(
             '\n',
@@ -392,10 +308,6 @@ export function buildTalismanResultEmbed(
         ),
     );
   }
-
-  /**
-   * Generic fail.
-   */
 
   if (!result.ok) {
     return applyStyle(
@@ -409,10 +321,6 @@ export function buildTalismanResultEmbed(
     );
   }
 
-  /**
-   * Success.
-   */
-
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
@@ -421,25 +329,15 @@ export function buildTalismanResultEmbed(
       .setDescription(
         [
           'Kim quang từ cổ phù hóa thành đạo văn, chậm rãi nhập vào khí hải.',
-
           '',
-
           SEPARATOR,
-
           '',
-
           `<a:hamsterg2:1546057566209974292> Kích Hoạt: **${result.talisman.name}**`,
-
           '<a:trangtrig18:1546068102817775626> Thượng Cổ Phù: **-1**',
-
           '',
-
           '**Hiệu Quả**',
-
           result.talisman.effect,
-
           '',
-
           `*${result.talisman.description}*`,
         ].join(
           '\n',
@@ -462,7 +360,7 @@ export function buildTalismanResultRows(
             'Bí Bảo',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TREASURE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -476,7 +374,7 @@ export function buildTalismanResultRows(
             'Tiên Lộ',
           )
           .setEmoji(
-            NEW_BUTTON_EMOJI,
+            TREASURE_BUTTON_EMOJI,
           )
           .setStyle(
             ButtonStyle.Secondary,
