@@ -3,9 +3,12 @@ import {
 } from 'discord.js';
 
 import {
-    isGameRolePanelReaction,
     removeGameRoleFromReaction,
 } from '../services/gameRoleService.js';
+
+import {
+    getGameRoleByEmoji,
+} from '../config/gameRoles.js';
 
 import {
     logger,
@@ -27,6 +30,7 @@ export default {
         client,
     ) {
         try {
+
             if (
                 !user ||
                 user.bot
@@ -42,7 +46,7 @@ export default {
                     await reaction.fetch();
                 } catch (error) {
                     logger.warn(
-                        'Could not fetch partial MessageReactionRemove reaction:',
+                        'GameRole: failed to fetch partial removed reaction:',
                         error,
                     );
 
@@ -51,47 +55,69 @@ export default {
             }
 
 
-            if (
-                reaction.message?.partial
-            ) {
-                try {
+            let message =
+                reaction.message;
+
+
+            try {
+                message =
                     await reaction.message.fetch();
-                } catch (error) {
-                    logger.warn(
-                        'Could not fetch partial MessageReactionRemove message:',
-                        error,
-                    );
+            } catch (error) {
+                logger.warn(
+                    'GameRole: failed to fetch removed reaction message:',
+                    error,
+                );
 
-                    return;
-                }
+                return;
             }
 
 
-            logger.warn(
-                `REACTION REMOVED: user=${user.tag ?? user.id}, message=${reaction.message?.id}, emoji=${reaction.emoji?.name}, emojiId=${reaction.emoji?.id ?? 'unicode'}`,
-            );
-
-
-            const isPanel =
-                await isGameRolePanelReaction(
-                    reaction,
-                    client,
+            const config =
+                getGameRoleByEmoji(
+                    reaction.emoji,
                 );
 
 
+            if (!config) {
+                return;
+            }
+
+
             if (
-                !isPanel
+                !message.guild
             ) {
                 return;
             }
 
 
-            logger.warn(
-                `Game Role reaction was removed: ${user.tag ?? user.id} -> ${reaction.emoji?.name}. Role removal will now run.`,
+            if (
+                message.author?.id !==
+                client.user?.id
+            ) {
+                return;
+            }
+
+
+            const title =
+                message.embeds?.[0]?.title ??
+                '';
+
+
+            if (
+                !title.includes(
+                    '𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮',
+                )
+            ) {
+                return;
+            }
+
+
+            logger.info(
+                `[GAME ROLE] Reaction removed | ${user.tag ?? user.id} -> ${config.label}`,
             );
 
 
-            const removed =
+            const success =
                 await removeGameRoleFromReaction(
                     reaction,
                     user,
@@ -99,20 +125,16 @@ export default {
 
 
             if (
-                removed
+                success
             ) {
                 logger.info(
-                    `Game Role removal processed for ${user.tag ?? user.id}.`,
-                );
-            } else {
-                logger.warn(
-                    `Game Role removal failed for ${user.tag ?? user.id}.`,
+                    `[GAME ROLE] Role removed | ${user.tag ?? user.id} -> ${config.label}`,
                 );
             }
 
         } catch (error) {
             logger.error(
-                'Error in MessageReactionRemove Game Role event:',
+                '[GAME ROLE] Unexpected error in messageReactionRemove:',
                 error,
             );
         }
