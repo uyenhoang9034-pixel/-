@@ -1,15 +1,53 @@
 import {
     ActionRowBuilder,
+    AttachmentBuilder,
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
     MessageFlags,
 } from 'discord.js';
 
+import path from 'node:path';
+
 import {
     getHuanqianConfig,
 } from '../../../services/huanqian/huanqianService.js';
 
+
+/**
+ * =========================================================
+ * LOCAL HUAN QIAN IMAGE
+ * =========================================================
+ */
+
+export const HUANQIAN_IMAGE_NAME =
+    'huanqian.png';
+
+export const HUANQIAN_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'huanqian',
+        HUANQIAN_IMAGE_NAME,
+    );
+
+
+export function createHuanqianImageAttachment() {
+    return new AttachmentBuilder(
+        HUANQIAN_IMAGE_PATH,
+        {
+            name:
+                HUANQIAN_IMAGE_NAME,
+        },
+    );
+}
+
+
+/**
+ * =========================================================
+ * DASHBOARD SESSION
+ * =========================================================
+ */
 
 const sessions =
     new Map();
@@ -22,6 +60,7 @@ function createSession(
         `${Date.now()}_${Math.random()
             .toString(36)
             .slice(2, 8)}`;
+
 
     const session = {
         sessionId,
@@ -36,10 +75,12 @@ function createSession(
             Date.now(),
     };
 
+
     sessions.set(
         sessionId,
         session,
     );
+
 
     return session;
 }
@@ -63,33 +104,11 @@ export function deleteHuanqianSession(
 }
 
 
-function isValidImageUrl(
-    value,
-) {
-    if (
-        typeof value !== 'string' ||
-        !value.trim()
-    ) {
-        return false;
-    }
-
-    try {
-        const url =
-            new URL(
-                value.trim(),
-            );
-
-        return (
-            url.protocol ===
-                'https:' ||
-            url.protocol ===
-                'http:'
-        );
-    } catch {
-        return false;
-    }
-}
-
+/**
+ * =========================================================
+ * BUTTON EMOJI
+ * =========================================================
+ */
 
 function resolveButtonEmoji(
     value,
@@ -101,12 +120,16 @@ function resolveButtonEmoji(
         return null;
     }
 
+
     const customEmoji =
         value.match(
             /^<(?<animated>a)?:?(?<name>[^:>]+):(?<id>\d+)>$/,
         );
 
-    if (customEmoji) {
+
+    if (
+        customEmoji
+    ) {
         return {
             name:
                 customEmoji.groups.name,
@@ -121,18 +144,27 @@ function resolveButtonEmoji(
         };
     }
 
+
     return {
-        name: value,
+        name:
+            value,
     };
 }
 
+
+/**
+ * =========================================================
+ * BUTTON STYLE
+ * =========================================================
+ */
 
 function getButtonStyle(
     style,
 ) {
     switch (
-        String(style)
-            .toLowerCase()
+        String(
+            style,
+        ).toLowerCase()
     ) {
         case 'primary':
             return ButtonStyle.Primary;
@@ -150,15 +182,26 @@ function getButtonStyle(
 }
 
 
+/**
+ * =========================================================
+ * BUILD PUBLIC PANEL
+ * =========================================================
+ */
+
 export function buildHuanqianPanel(
     config,
     guild,
 ) {
     const guildIcon =
         guild?.iconURL({
-            dynamic: true,
-            size: 128,
-        }) || null;
+            dynamic:
+                true,
+
+            size:
+                128,
+        }) ||
+        null;
+
 
     const embed =
         new EmbedBuilder()
@@ -185,43 +228,41 @@ export function buildHuanqianPanel(
             .setDescription(
                 config.panelDescription ||
                 'Chưa có nội dung.',
-            );
+            )
 
-    /*
-     * Server icon làm thumbnail.
-     *
-     * Đây KHÔNG phải ảnh custom của Huan Qian.
-     * Ảnh custom duy nhất là panelImage.
+            /**
+             * Ảnh cố định local.
+             */
+            .setImage(
+                `attachment://${HUANQIAN_IMAGE_NAME}`,
+            )
+
+            .setFooter({
+                text:
+                    '🌸 Huan Qian',
+            });
+
+
+    /**
+     * Giữ nguyên server icon làm thumbnail.
      */
-    if (guildIcon) {
+
+    if (
+        guildIcon
+    ) {
         embed.setThumbnail(
             guildIcon,
         );
     }
 
-    /*
-     * Chỉ có MỘT ảnh chính.
-     */
-    if (
-        isValidImageUrl(
-            config.panelImage,
-        )
-    ) {
-        embed.setImage(
-            config.panelImage,
-        );
-    }
-
-    embed.setFooter({
-        text:
-            '🌸 Huan Qian',
-    });
 
     const row =
         new ActionRowBuilder();
 
+
     for (
-        const button of config.buttons
+        const button
+        of config.buttons
     ) {
         const component =
             new ButtonBuilder()
@@ -237,21 +278,27 @@ export function buildHuanqianPanel(
                     ),
                 );
 
+
         const emoji =
             resolveButtonEmoji(
                 button.emoji,
             );
 
-        if (emoji) {
+
+        if (
+            emoji
+        ) {
             component.setEmoji(
                 emoji,
             );
         }
 
+
         row.addComponents(
             component,
         );
     }
+
 
     return {
         embeds: [
@@ -261,9 +308,19 @@ export function buildHuanqianPanel(
         components: [
             row,
         ],
+
+        files: [
+            createHuanqianImageAttachment(),
+        ],
     };
 }
 
+
+/**
+ * =========================================================
+ * DASHBOARD EMBED
+ * =========================================================
+ */
 
 function buildDashboardEmbed(
     config,
@@ -283,13 +340,12 @@ function buildDashboardEmbed(
                 '',
 
                 '🖼️ **Panel Image**',
-                config.panelImage
-                    ? 'Đã cài đặt'
-                    : 'Chưa cài đặt',
+                '`assets/huanqian/huanqian.png`',
 
                 '',
 
                 '📍 **Panel Channel**',
+
                 config.panelChannelId
                     ? `<#${config.panelChannelId}>`
                     : 'Chưa cài đặt',
@@ -302,7 +358,9 @@ function buildDashboardEmbed(
                 '',
 
                 'Chọn chức năng bên dưới để chỉnh sửa.',
-            ].join('\n'),
+            ].join(
+                '\n',
+            ),
         )
         .setFooter({
             text:
@@ -311,16 +369,25 @@ function buildDashboardEmbed(
 }
 
 
+/**
+ * =========================================================
+ * DASHBOARD COMPONENTS
+ * =========================================================
+ */
+
 function buildDashboardComponents(
     config,
     sessionId,
 ) {
     const rows = [];
 
-    /*
-     * Hàng 1:
-     * Panel + Image + Preview
+
+    /**
+     * Hàng 1
+     *
+     * Bỏ nút Image vì ảnh đã nằm local.
      */
+
     rows.push(
         new ActionRowBuilder()
             .addComponents(
@@ -340,20 +407,6 @@ function buildDashboardComponents(
 
                 new ButtonBuilder()
                     .setCustomId(
-                        `huanqiandashboard:${sessionId}:image`,
-                    )
-                    .setLabel(
-                        'Image',
-                    )
-                    .setEmoji(
-                        '🖼️',
-                    )
-                    .setStyle(
-                        ButtonStyle.Secondary,
-                    ),
-
-                new ButtonBuilder()
-                    .setCustomId(
                         `huanqiandashboard:${sessionId}:preview`,
                     )
                     .setLabel(
@@ -368,17 +421,18 @@ function buildDashboardComponents(
             ),
     );
 
-    /*
-     * Hàng 2:
-     * 3 button settings
+
+    /**
+     * Hàng 2
+     *
+     * Giữ nguyên 3 nút chỉnh Info / Nguồn / Note.
      */
+
     rows.push(
         new ActionRowBuilder()
             .addComponents(
                 ...config.buttons.map(
-                    (
-                        button,
-                    ) =>
+                    button =>
                         new ButtonBuilder()
                             .setCustomId(
                                 `huanqiandashboard:${sessionId}:button:${button.id}`,
@@ -401,10 +455,11 @@ function buildDashboardComponents(
             ),
     );
 
-    /*
-     * Hàng 3:
-     * Publish + Close
+
+    /**
+     * Hàng 3
      */
+
     rows.push(
         new ActionRowBuilder()
             .addComponents(
@@ -438,9 +493,16 @@ function buildDashboardComponents(
             ),
     );
 
+
     return rows;
 }
 
+
+/**
+ * =========================================================
+ * SHOW DASHBOARD
+ * =========================================================
+ */
 
 export async function showHuanqianDashboard(
     interaction,
@@ -453,11 +515,13 @@ export async function showHuanqianDashboard(
             interaction,
         );
 
+
     const config =
         await getHuanqianConfig(
             client,
             interaction.guild.id,
         );
+
 
     const payload = {
         embeds: [
@@ -472,6 +536,7 @@ export async function showHuanqianDashboard(
                 currentSession.sessionId,
             ),
     };
+
 
     if (
         interaction.replied ||
@@ -488,6 +553,7 @@ export async function showHuanqianDashboard(
                 MessageFlags.Ephemeral,
         });
     }
+
 
     return currentSession;
 }
