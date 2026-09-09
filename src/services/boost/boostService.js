@@ -26,6 +26,16 @@ const DATA_FILE = path.join(
 // DEFAULT CONFIG
 // ============================================================
 
+const DEFAULT_TITLE =
+    '𝓝𝓰𝓾̛𝓸̛̀𝓲 𝓰𝓲𝓪̀𝓾 𝓽𝓸̛́𝓲 𝓬𝓱𝓸̛𝓲 ≽^- ˕ -^≼';
+
+const DEFAULT_DESCRIPTION =
+    '<a:trangtrig27:1546093546178748426> Xĩe xĩe đại gia {member} đã boost cho server!\n' +
+    '<a:trangtrig14:1546047912969113622> {member} trực tiếp thăng cấp lên role <@&1541305195512856627> của server và nhận được những đãi ngộ độc quyền!\n\n\n' +
+    '⋆.ೃ࿔🌸*:･\n' +
+    '<a:heartg2:1546031808364413019> **Boost hiện tại:** {boosts}\n' +
+    '<a:heartg2:1546031808364413019> **Boost Level:** {boostLevel}';
+
 const DEFAULT_CONFIG = {
     enabled: true,
 
@@ -33,14 +43,9 @@ const DEFAULT_CONFIG = {
 
     tyPhuRoleId: null,
 
-    title: '🌸 Server Boosted!',
+    title: DEFAULT_TITLE,
 
-    description:
-        '<a:chiikawag9:1541427795786207313> {member} vừa **Boost Server**!\n\n' +
-        '<a:pinkheart:1545307544808071258> **Boost hiện tại:** {boosts}\n' +
-        '<a:pinkheart:1545307544808071258> **Boost Level:** {boostLevel}\n' +
-        '<a:pinkheart:1545307544808071258> **Còn:** {boostsToNextLevel} boost để lên level tiếp theo!\n\n' +
-        '👑 **TỶ PHÚ** đã được trao cho {member}.',
+    description: DEFAULT_DESCRIPTION,
 
     color: '#F5A9C6',
 
@@ -167,16 +172,48 @@ export async function setBoostConfig(
 
 function getBoostLevelInfo(
     guild,
+    overrides = {},
 ) {
-    const boostCount =
+    const realBoostCount =
         Number(
             guild.premiumSubscriptionCount || 0,
         );
 
-    const currentLevel =
+    const realCurrentLevel =
         Number(
             guild.premiumTier || 0,
         );
+
+    const overrideBoostCount =
+        overrides.boostCount;
+
+    const overrideCurrentLevel =
+        overrides.currentLevel;
+
+    const boostCount =
+        overrideBoostCount === null ||
+        overrideBoostCount === undefined
+            ? realBoostCount
+            : Math.max(
+                Number(
+                    overrideBoostCount,
+                ) || 0,
+                0,
+            );
+
+    const currentLevel =
+        overrideCurrentLevel === null ||
+        overrideCurrentLevel === undefined
+            ? realCurrentLevel
+            : Math.min(
+                Math.max(
+                    Number(
+                        overrideCurrentLevel,
+                    ) || 0,
+                    0,
+                ),
+                3,
+            );
 
 
     let nextLevelBoosts = null;
@@ -265,6 +302,7 @@ function replacePlaceholders(
         member,
         guild,
         boostInfo,
+        memberBoosts = null,
     },
 ) {
     if (
@@ -290,6 +328,15 @@ function replacePlaceholders(
         .replaceAll(
             '{memberId}',
             member.id,
+        )
+        .replaceAll(
+            '{memberBoosts}',
+            memberBoosts === null ||
+            memberBoosts === undefined
+                ? ''
+                : String(
+                    memberBoosts,
+                ),
         )
         .replaceAll(
             '{boosts}',
@@ -327,6 +374,7 @@ function replacePlaceholders(
 export function buildBoostEmbed(
     config,
     member,
+    overrides = {},
 ) {
     const guild =
         member.guild;
@@ -335,7 +383,23 @@ export function buildBoostEmbed(
     const boostInfo =
         getBoostLevelInfo(
             guild,
+            {
+                boostCount:
+                    overrides.boostCount,
+
+                currentLevel:
+                    overrides.currentLevel,
+            },
         );
+
+
+    const placeholderData = {
+        member,
+        guild,
+        boostInfo,
+        memberBoosts:
+            overrides.memberBoosts,
+    };
 
 
     const embed =
@@ -348,21 +412,13 @@ export function buildBoostEmbed(
             .setTitle(
                 replacePlaceholders(
                     config.title,
-                    {
-                        member,
-                        guild,
-                        boostInfo,
-                    },
+                    placeholderData,
                 ),
             )
             .setDescription(
                 replacePlaceholders(
                     config.description,
-                    {
-                        member,
-                        guild,
-                        boostInfo,
-                    },
+                    placeholderData,
                 ),
             );
 
@@ -415,11 +471,7 @@ export function buildBoostEmbed(
             text:
                 replacePlaceholders(
                     config.footer,
-                    {
-                        member,
-                        guild,
-                        boostInfo,
-                    },
+                    placeholderData,
                 ),
         });
     }
@@ -742,6 +794,7 @@ export async function handleBoostEnded(
 export async function sendTestBoost(
     member,
     targetChannel = null,
+    overrides = {},
 ) {
     const config =
         await getBoostConfig(
@@ -753,24 +806,44 @@ export async function sendTestBoost(
         buildBoostEmbed(
             config,
             member,
+            overrides,
         );
 
 
-    const channel =
-        targetChannel ||
-        (
-            config.channelId
-                ? member.guild.channels.cache.get(
-                    config.channelId,
-                )
-                : null
-        );
+    let channel =
+        targetChannel;
+
+
+    if (
+        !channel &&
+        config.channelId
+    ) {
+        channel =
+            member.guild.channels.cache.get(
+                config.channelId,
+            ) ||
+            await member.guild.channels.fetch(
+                config.channelId,
+            ).catch(
+                () => null,
+            );
+    }
 
 
     if (!channel) {
         return {
             success: false,
             reason: 'CHANNEL_NOT_CONFIGURED',
+        };
+    }
+
+
+    if (
+        !channel.isTextBased()
+    ) {
+        return {
+            success: false,
+            reason: 'CHANNEL_NOT_TEXT',
         };
     }
 
