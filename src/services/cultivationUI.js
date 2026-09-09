@@ -496,6 +496,20 @@ export function buildDashboardRows(
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:alchemy`,
+          )
+          .setLabel(
+            'Luyện Đan',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
       ),
   ];
 }
