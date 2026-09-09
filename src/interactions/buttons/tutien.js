@@ -12,6 +12,7 @@ import {
   cultivate,
   getCultivationLeaderboard,
   getCultivationProfile,
+  useCultivationItem,
 } from '../../services/cultivationService.js';
 
 import {
@@ -22,15 +23,12 @@ import {
   buildDashboardEmbed,
   buildDashboardRows,
   buildInventoryEmbed,
+  buildInventoryRows,
   buildLeaderboardEmbed,
   buildProfileEmbed,
+  buildUseItemResultEmbed,
+  buildUseItemResultRows,
 } from '../../services/cultivationUI.js';
-
-/**
- * =========================================================
- * PLAYER LOCK
- * =========================================================
- */
 
 async function rejectWrongPlayer(
   interaction,
@@ -53,12 +51,6 @@ async function rejectWrongPlayer(
 
   return true;
 }
-
-/**
- * =========================================================
- * CHANNEL CHECK
- * =========================================================
- */
 
 async function enforceChannel(
   interaction,
@@ -84,12 +76,6 @@ async function enforceChannel(
   return true;
 }
 
-/**
- * =========================================================
- * BUTTON HANDLER
- * =========================================================
- */
-
 export default {
   name:
     'tutien_action',
@@ -102,6 +88,7 @@ export default {
     const [
       ownerId,
       action,
+      extra,
     ] = args;
 
     if (
@@ -111,12 +98,6 @@ export default {
       return;
     }
 
-    /**
-     * =====================================================
-     * PLAYER CHECK
-     * =====================================================
-     */
-
     if (
       await rejectWrongPlayer(
         interaction,
@@ -125,12 +106,6 @@ export default {
     ) {
       return;
     }
-
-    /**
-     * =====================================================
-     * CHANNEL CHECK
-     * =====================================================
-     */
 
     if (
       !(await enforceChannel(
@@ -147,9 +122,7 @@ export default {
       interaction.user.id;
 
     /**
-     * =====================================================
      * DASHBOARD
-     * =====================================================
      */
 
     if (
@@ -179,9 +152,7 @@ export default {
     }
 
     /**
-     * =====================================================
      * TU LUYỆN
-     * =====================================================
      */
 
     if (
@@ -211,9 +182,7 @@ export default {
     }
 
     /**
-     * =====================================================
      * ĐỘT PHÁ
-     * =====================================================
      */
 
     if (
@@ -243,9 +212,7 @@ export default {
     }
 
     /**
-     * =====================================================
      * THÁM HIỂM
-     * =====================================================
      */
 
     if (
@@ -275,9 +242,7 @@ export default {
     }
 
     /**
-     * =====================================================
      * TÚI ĐỒ
-     * =====================================================
      */
 
     if (
@@ -299,18 +264,56 @@ export default {
           ),
         ],
 
-        components: [
-          buildBackRow(
+        components:
+          buildInventoryRows(
             ownerId,
+            profile,
           ),
-        ],
       });
     }
 
     /**
-     * =====================================================
+     * SỬ DỤNG ITEM
+     */
+
+    if (
+      action ===
+      'use_item'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được vật phẩm cần sử dụng.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await useCultivationItem(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildUseItemResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildUseItemResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
      * HỒ SƠ
-     * =====================================================
      */
 
     if (
@@ -341,9 +344,7 @@ export default {
     }
 
     /**
-     * =====================================================
      * TIÊN BẢNG
-     * =====================================================
      */
 
     if (
@@ -372,15 +373,6 @@ export default {
         ],
       });
     }
-
-    /**
-     * =====================================================
-     * UNKNOWN ACTION
-     * =====================================================
-     *
-     * Có fallback để sau này nếu button bị lệch customId
-     * thì Discord không hiện "không phản hồi".
-     */
 
     return interaction.reply({
       content:
