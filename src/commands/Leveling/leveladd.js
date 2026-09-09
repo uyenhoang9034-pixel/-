@@ -23,12 +23,12 @@ import {
 
 import {
     LEVELING_MAX_LEVEL,
+    formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
-
 
 export default {
     data:
@@ -85,7 +85,6 @@ export default {
     category:
         'Leveling',
 
-
     async execute(
         interaction,
         config,
@@ -95,21 +94,14 @@ export default {
             interaction,
         );
 
-
-        // =====================================================
-        // CONFIG
-        // =====================================================
-
         const levelingConfig =
             await getLevelingConfig(
                 client,
                 interaction.guildId,
             );
 
-
         if (
-            !levelingConfig
-                ?.enabled
+            !levelingConfig?.enabled
         ) {
             await InteractionHelper.safeEditReply(
                 interaction,
@@ -122,24 +114,17 @@ export default {
             return;
         }
 
-
-        // =====================================================
-        // OPTIONS
-        // =====================================================
-
         const targetUser =
             interaction.options.getUser(
                 'user',
                 true,
             );
 
-
         const levelsToAdd =
             interaction.options.getInteger(
                 'levels',
                 true,
             );
-
 
         const member =
             await interaction.guild.members
@@ -149,7 +134,6 @@ export default {
                 .catch(
                     () => null,
                 );
-
 
         if (
             !member
@@ -165,10 +149,11 @@ export default {
             return;
         }
 
-
-        // =====================================================
-        // OLD LEVEL
-        // =====================================================
+        /**
+         * =====================================================
+         * OLD LEVEL
+         * =====================================================
+         */
 
         const oldData =
             await getUserLevelData(
@@ -177,16 +162,37 @@ export default {
                 targetUser.id,
             );
 
-
         const oldLevel =
             Number(
                 oldData.level,
             ) || 0;
 
+        /**
+         * =====================================================
+         * ALREADY MAX
+         * =====================================================
+         */
 
-        // =====================================================
-        // ADD LEVEL
-        // =====================================================
+        if (
+            oldLevel >=
+            LEVELING_MAX_LEVEL
+        ) {
+            await InteractionHelper.safeEditReply(
+                interaction,
+                {
+                    content:
+                        `${member} đã đạt tối đa **Lv.${formatLevelNumber(LEVELING_MAX_LEVEL)}**.`,
+                },
+            );
+
+            return;
+        }
+
+        /**
+         * =====================================================
+         * ADD
+         * =====================================================
+         */
 
         const userData =
             await addLevels(
@@ -196,45 +202,36 @@ export default {
                 levelsToAdd,
             );
 
-
         const newLevel =
             Number(
                 userData.level,
             ) || 0;
 
-
-        // =====================================================
-        // ROLE
-        // =====================================================
+        /**
+         * =====================================================
+         * ROLE
+         * =====================================================
+         */
 
         await syncHighestLevelRole(
             member,
             newLevel,
         );
 
-
-        // =====================================================
-        // ANNOUNCEMENT
-        // =====================================================
-        //
-        // Ví dụ:
-        //
-        // Lv.9 -> Lv.21
-        //
-        // gửi:
-        //
-        // Lv.10 Trúc Cơ + ảnh lv1-70
-        // Lv.20 Kim Đan + ảnh lv1-70
-        //
-        // Lv.99 -> Lv.101
-        //
-        // gửi:
-        //
-        // Lv.100 Luyện Hư + ảnh lv100-300
-        //
-        // Ảnh được xử lý hoàn toàn trong
-        // levelAnnouncementService.js.
-        // =====================================================
+        /**
+         * =====================================================
+         * ANNOUNCEMENT
+         * =====================================================
+         *
+         * /leveladd phải bắt tất cả milestone đã vượt.
+         *
+         * Ví dụ:
+         *
+         * 998 -> 2000
+         *
+         * -> Lv.999 Chân Tiên
+         * -> Lv.1.999 Đại La Kim Tiên
+         */
 
         const announcementResult =
             await sendLevelChangeAnnouncements({
@@ -251,10 +248,15 @@ export default {
                     'admin',
             });
 
+        /**
+         * =====================================================
+         * RESPONSE
+         * =====================================================
+         */
 
-        // =====================================================
-        // RESPONSE
-        // =====================================================
+        const actualAdded =
+            newLevel -
+            oldLevel;
 
         await InteractionHelper.safeEditReply(
             interaction,
@@ -263,11 +265,12 @@ export default {
                     [
                         `Đã tăng level cho ${member}.`,
 
-                        `**Lv.${oldLevel} → Lv.${newLevel}**`,
+                        `**Lv.${formatLevelNumber(oldLevel)} → Lv.${formatLevelNumber(newLevel)}**`,
 
-                        `Tăng thực tế: **+${newLevel - oldLevel} level**`,
+                        `Tăng thực tế: **+${formatLevelNumber(actualAdded)} level**`,
 
-                        announcementResult.sent > 0
+                        announcementResult.sent >
+                        0
                             ? `Đã gửi **${announcementResult.sent}** thông báo level.`
                             : 'Không có thông báo level nào được gửi.',
                     ].join(
@@ -276,9 +279,8 @@ export default {
             },
         );
 
-
         logger.info(
-            `[LEVEL] ${interaction.user.tag} added levels to ${targetUser.tag}: Lv.${oldLevel} -> Lv.${newLevel}`,
+            `[LEVEL] ${interaction.user.tag} added levels to ${targetUser.tag}: Lv.${formatLevelNumber(oldLevel)} -> Lv.${formatLevelNumber(newLevel)}`,
         );
     },
 };
