@@ -28,7 +28,7 @@ import {
   disableWordChain,
   resetWordChainGame,
   buildWordChainLeaderboard,
-  isValidWord,
+  isValidWordWithFallback,
   normalizeWord,
   getLastSyllable,
   getRandomStartWord,
@@ -46,10 +46,9 @@ import {
   ErrorTypes,
 } from '../../utils/errorHandler.js';
 
-
 /**
  * =========================================================
- * LOCAL IMAGES
+ * IMAGE CONFIG
  * =========================================================
  */
 
@@ -59,7 +58,6 @@ const WORD_CHAIN_SETUP_IMAGE_NAME =
 const WORD_CHAIN_LEADERBOARD_IMAGE_NAME =
   'noituleaderboard.webp';
 
-
 const WORD_CHAIN_SETUP_IMAGE_PATH =
   path.resolve(
     process.cwd(),
@@ -67,7 +65,6 @@ const WORD_CHAIN_SETUP_IMAGE_PATH =
     'noitu',
     WORD_CHAIN_SETUP_IMAGE_NAME,
   );
-
 
 const WORD_CHAIN_LEADERBOARD_IMAGE_PATH =
   path.resolve(
@@ -77,10 +74,9 @@ const WORD_CHAIN_LEADERBOARD_IMAGE_PATH =
     WORD_CHAIN_LEADERBOARD_IMAGE_NAME,
   );
 
-
 /**
  * =========================================================
- * CREATE IMAGE ATTACHMENT
+ * IMAGE ATTACHMENT
  * =========================================================
  */
 
@@ -100,7 +96,6 @@ async function createWordChainImageAttachment(
     return null;
   }
 
-
   return new AttachmentBuilder(
     imagePath,
     {
@@ -110,10 +105,9 @@ async function createWordChainImageAttachment(
   );
 }
 
-
 /**
  * =========================================================
- * COLORS
+ * UI
  * =========================================================
  */
 
@@ -122,13 +116,6 @@ const WORD_CHAIN_COLOR =
 
 const WORD_CHAIN_SETUP_COLOR =
   '#6EA8FE';
-
-
-/**
- * =========================================================
- * EMOJIS
- * =========================================================
- */
 
 const WORD_CHAIN_EMOJIS = {
   title:
@@ -174,13 +161,6 @@ const WORD_CHAIN_EMOJIS = {
     '<a:trangtrig29:1546385117478527016>',
 };
 
-
-/**
- * =========================================================
- * FORMAT NUMBER
- * =========================================================
- */
-
 function formatNumber(
   number,
 ) {
@@ -190,7 +170,6 @@ function formatNumber(
     'en-US',
   );
 }
-
 
 /**
  * =========================================================
@@ -211,10 +190,11 @@ export default {
         false,
       )
 
-
-      // =====================================================
-      // SETUP
-      // =====================================================
+      /**
+       * =====================================================
+       * SETUP
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -237,10 +217,11 @@ export default {
             ),
       )
 
-
-      // =====================================================
-      // MODE
-      // =====================================================
+      /**
+       * =====================================================
+       * MODE
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -283,10 +264,11 @@ export default {
             ),
       )
 
-
-      // =====================================================
-      // DISABLE
-      // =====================================================
+      /**
+       * =====================================================
+       * DISABLE
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -299,10 +281,11 @@ export default {
             ),
       )
 
-
-      // =====================================================
-      // STATUS
-      // =====================================================
+      /**
+       * =====================================================
+       * STATUS
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -315,10 +298,11 @@ export default {
             ),
       )
 
-
-      // =====================================================
-      // RESET
-      // =====================================================
+      /**
+       * =====================================================
+       * RESET
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -341,10 +325,11 @@ export default {
             ),
       )
 
-
-      // =====================================================
-      // RESTART
-      // =====================================================
+      /**
+       * =====================================================
+       * RESTART
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -357,10 +342,11 @@ export default {
             ),
       )
 
-
-      // =====================================================
-      // LEADERBOARD
-      // =====================================================
+      /**
+       * =====================================================
+       * LEADERBOARD
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -373,10 +359,11 @@ export default {
             ),
       )
 
-
-      // =====================================================
-      // GOIY
-      // =====================================================
+      /**
+       * =====================================================
+       * GOIY
+       * =====================================================
+       */
 
       .addSubcommand(
         subcommand =>
@@ -389,19 +376,20 @@ export default {
             ),
       ),
 
-
   category:
     'Fun',
-
 
   async execute(
     interaction,
   ) {
     try {
       const subcommand =
-        interaction.options.getSubcommand();
+        interaction.options
+          .getSubcommand();
 
-
+      /**
+       * Các lệnh xem/reset hiện công khai.
+       */
       const isPublicView =
         subcommand ===
           'status' ||
@@ -411,7 +399,6 @@ export default {
           'restart' ||
         subcommand ===
           'reset';
-
 
       const deferSuccess =
         await InteractionHelper.safeDefer(
@@ -423,7 +410,6 @@ export default {
                 : MessageFlags.Ephemeral,
           },
         );
-
 
       if (
         !deferSuccess
@@ -442,10 +428,11 @@ export default {
         return;
       }
 
-
-      // =====================================================
-      // ADMIN ONLY
-      // =====================================================
+      /**
+       * =====================================================
+       * ADMIN ONLY
+       * =====================================================
+       */
 
       const adminSubcommands =
         new Set([
@@ -453,7 +440,6 @@ export default {
           'mode',
           'disable',
         ]);
-
 
       if (
         adminSubcommands.has(
@@ -477,10 +463,8 @@ export default {
         );
       }
 
-
       const guildId =
         interaction.guildId;
-
 
       const config =
         await getWordChainConfig(
@@ -488,25 +472,34 @@ export default {
           guildId,
         );
 
-
-      // =====================================================
-      // SETUP
-      // =====================================================
+      /**
+       * =====================================================
+       * SETUP
+       * =====================================================
+       */
 
       if (
         subcommand ===
         'setup'
       ) {
         const startWordInput =
-          interaction.options.getString(
-            'start_word',
-          );
+          interaction.options
+            .getString(
+              'start_word',
+            );
 
+        /**
+         * JSON trước.
+         * Không có -> online.
+         */
 
         if (
           startWordInput &&
-          !isValidWord(
-            startWordInput,
+          !(
+            await isValidWordWithFallback(
+              interaction.client,
+              startWordInput,
+            )
           )
         ) {
           return await replyUserError(
@@ -521,10 +514,11 @@ export default {
           );
         }
 
-
-        // ---------------------------------------------------
-        // FETCH FIXED CHANNELS
-        // ---------------------------------------------------
+        /**
+         * ===================================================
+         * FETCH FIXED CHANNELS
+         * ===================================================
+         */
 
         const pvpChannel =
           await interaction.guild.channels
@@ -535,7 +529,6 @@ export default {
               () => null,
             );
 
-
         const botChannel =
           await interaction.guild.channels
             .fetch(
@@ -544,7 +537,6 @@ export default {
             .catch(
               () => null,
             );
-
 
         if (
           !pvpChannel
@@ -561,7 +553,6 @@ export default {
           );
         }
 
-
         if (
           !botChannel
         ) {
@@ -577,10 +568,11 @@ export default {
           );
         }
 
-
-        // ---------------------------------------------------
-        // LOAD LOCAL SETUP IMAGE
-        // ---------------------------------------------------
+        /**
+         * ===================================================
+         * CHECK IMAGE
+         * ===================================================
+         */
 
         const setupImageExists =
           await fs.access(
@@ -592,7 +584,6 @@ export default {
             .catch(
               () => false,
             );
-
 
         if (
           !setupImageExists
@@ -609,10 +600,11 @@ export default {
           );
         }
 
-
-        // ---------------------------------------------------
-        // ACTIVATE PVP
-        // ---------------------------------------------------
+        /**
+         * ===================================================
+         * ACTIVATE PVP
+         * ===================================================
+         */
 
         await activateWordChain(
           interaction.client,
@@ -622,10 +614,11 @@ export default {
           startWordInput,
         );
 
-
-        // ---------------------------------------------------
-        // ACTIVATE PVE
-        // ---------------------------------------------------
+        /**
+         * ===================================================
+         * ACTIVATE PVE
+         * ===================================================
+         */
 
         const updatedConfig =
           await activateWordChain(
@@ -636,10 +629,11 @@ export default {
             startWordInput,
           );
 
-
-        // ---------------------------------------------------
-        // GET GAMES
-        // ---------------------------------------------------
+        /**
+         * ===================================================
+         * GET GAMES
+         * ===================================================
+         */
 
         const pvpGame =
           getWordChainGame(
@@ -647,29 +641,27 @@ export default {
             'pvp',
           );
 
-
         const botGame =
           getWordChainGame(
             updatedConfig,
             'bot',
           );
 
-
         const pvpNext =
           getLastSyllable(
             pvpGame.currentWord,
           );
-
 
         const botNext =
           getLastSyllable(
             botGame.currentWord,
           );
 
-
-        // ===================================================
-        // PVP SETUP PANEL
-        // ===================================================
+        /**
+         * ===================================================
+         * PVP SETUP PANEL
+         * ===================================================
+         */
 
         const pvpEmbed =
           createEmbed({
@@ -686,18 +678,15 @@ export default {
               WORD_CHAIN_SETUP_COLOR,
           });
 
-
         pvpEmbed.setImage(
           `attachment://${WORD_CHAIN_SETUP_IMAGE_NAME}`,
         );
-
 
         const pvpImage =
           await createWordChainImageAttachment(
             WORD_CHAIN_SETUP_IMAGE_PATH,
             WORD_CHAIN_SETUP_IMAGE_NAME,
           );
-
 
         if (
           pvpImage
@@ -722,10 +711,11 @@ export default {
             );
         }
 
-
-        // ===================================================
-        // PVE SETUP PANEL
-        // ===================================================
+        /**
+         * ===================================================
+         * PVE SETUP PANEL
+         * ===================================================
+         */
 
         const botEmbed =
           createEmbed({
@@ -742,24 +732,15 @@ export default {
               WORD_CHAIN_SETUP_COLOR,
           });
 
-
         botEmbed.setImage(
           `attachment://${WORD_CHAIN_SETUP_IMAGE_NAME}`,
         );
 
-
-        /**
-         * Phải tạo AttachmentBuilder mới.
-         *
-         * Không tái sử dụng attachment PvP
-         * cho message PvE.
-         */
         const botImage =
           await createWordChainImageAttachment(
             WORD_CHAIN_SETUP_IMAGE_PATH,
             WORD_CHAIN_SETUP_IMAGE_NAME,
           );
-
 
         if (
           botImage
@@ -784,7 +765,6 @@ export default {
             );
         }
 
-
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -801,26 +781,26 @@ export default {
         );
       }
 
-
-      // =====================================================
-      // MODE
-      // =====================================================
+      /**
+       * =====================================================
+       * MODE
+       * =====================================================
+       */
 
       if (
         subcommand ===
         'mode'
       ) {
         const newMode =
-          interaction.options.getString(
-            'mode',
-          );
-
+          interaction.options
+            .getString(
+              'mode',
+            );
 
         const channelId =
           WORD_CHAIN_CHANNELS[
             newMode
           ];
-
 
         if (
           !channelId
@@ -837,7 +817,6 @@ export default {
           );
         }
 
-
         const channel =
           await interaction.guild.channels
             .fetch(
@@ -846,7 +825,6 @@ export default {
             .catch(
               () => null,
             );
-
 
         if (
           !channel
@@ -863,7 +841,6 @@ export default {
           );
         }
 
-
         const updated =
           await activateWordChain(
             interaction.client,
@@ -873,25 +850,21 @@ export default {
             null,
           );
 
-
         const game =
           getWordChainGame(
             updated,
             newMode,
           );
 
-
         const modeInfo =
           WORD_CHAIN_MODES[
             newMode
           ];
 
-
         const nextSyllable =
           getLastSyllable(
             game.currentWord,
           );
-
 
         await channel
           .send(
@@ -909,7 +882,6 @@ export default {
             () => {},
           );
 
-
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -924,10 +896,11 @@ export default {
         );
       }
 
-
-      // =====================================================
-      // DISABLE
-      // =====================================================
+      /**
+       * =====================================================
+       * DISABLE
+       * =====================================================
+       */
 
       if (
         subcommand ===
@@ -949,12 +922,10 @@ export default {
           );
         }
 
-
         await disableWordChain(
           interaction.client,
           guildId,
         );
-
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -969,10 +940,11 @@ export default {
         );
       }
 
-
-      // =====================================================
-      // STATUS
-      // =====================================================
+      /**
+       * =====================================================
+       * STATUS
+       * =====================================================
+       */
 
       if (
         subcommand ===
@@ -984,13 +956,11 @@ export default {
             'pvp',
           );
 
-
         const botGame =
           getWordChainGame(
             config,
             'bot',
           );
-
 
         const embed =
           createEmbed({
@@ -1045,7 +1015,6 @@ export default {
               WORD_CHAIN_COLOR,
           });
 
-
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -1056,10 +1025,11 @@ export default {
         );
       }
 
-
-      // =====================================================
-      // RESET
-      // =====================================================
+      /**
+       * =====================================================
+       * RESET
+       * =====================================================
+       */
 
       if (
         subcommand ===
@@ -1069,7 +1039,6 @@ export default {
           getWordChainModeForChannel(
             interaction.channelId,
           );
-
 
         if (
           !mode
@@ -1086,13 +1055,11 @@ export default {
           );
         }
 
-
         const game =
           getWordChainGame(
             config,
             mode,
           );
-
 
         if (
           !game.enabled
@@ -1109,17 +1076,23 @@ export default {
           );
         }
 
-
         const startWordInput =
-          interaction.options.getString(
-            'start_word',
-          );
+          interaction.options
+            .getString(
+              'start_word',
+            );
 
+        /**
+         * JSON -> ONLINE FALLBACK
+         */
 
         if (
           startWordInput &&
-          !isValidWord(
-            startWordInput,
+          !(
+            await isValidWordWithFallback(
+              interaction.client,
+              startWordInput,
+            )
           )
         ) {
           return await replyUserError(
@@ -1134,7 +1107,6 @@ export default {
           );
         }
 
-
         const nextStart =
           startWordInput
             ? normalizeWord(
@@ -1148,14 +1120,12 @@ export default {
                 ),
               );
 
-
         await resetWordChainGame(
           interaction.client,
           guildId,
           nextStart,
           mode,
         );
-
 
         await interaction.channel
           .send(
@@ -1173,7 +1143,6 @@ export default {
             () => {},
           );
 
-
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -1187,10 +1156,11 @@ export default {
         );
       }
 
-
-      // =====================================================
-      // RESTART
-      // =====================================================
+      /**
+       * =====================================================
+       * RESTART
+       * =====================================================
+       */
 
       if (
         subcommand ===
@@ -1200,7 +1170,6 @@ export default {
           getWordChainModeForChannel(
             interaction.channelId,
           );
-
 
         if (
           !mode
@@ -1217,13 +1186,11 @@ export default {
           );
         }
 
-
         const game =
           getWordChainGame(
             config,
             mode,
           );
-
 
         if (
           !game.enabled
@@ -1240,18 +1207,15 @@ export default {
           );
         }
 
-
         const endedStreak =
           Number(
             game.currentStreak ||
             0,
           );
 
-
         const finalWord =
           game.currentWord ||
           'Chưa có';
-
 
         const nextStart =
           getRandomStartWord(
@@ -1262,14 +1226,12 @@ export default {
             ),
           );
 
-
         await recordBreak(
           interaction.client,
           guildId,
           nextStart,
           mode,
         );
-
 
         await interaction.channel
           .send(
@@ -1285,7 +1247,6 @@ export default {
             () => {},
           );
 
-
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -1299,10 +1260,11 @@ export default {
         );
       }
 
-
-      // =====================================================
-      // LEADERBOARD
-      // =====================================================
+      /**
+       * =====================================================
+       * LEADERBOARD
+       * =====================================================
+       */
 
       if (
         subcommand ===
@@ -1314,13 +1276,11 @@ export default {
             'bot',
           );
 
-
         const pvpPlayers =
           buildWordChainLeaderboard(
             config,
             'pvp',
           );
-
 
         function formatLeaderboard(
           players,
@@ -1334,11 +1294,9 @@ export default {
             return '*Chưa có người chơi nào.*';
           }
 
-
           const isPvE =
             mode ===
             'bot';
-
 
           return players
             .map(
@@ -1358,7 +1316,6 @@ export default {
                         ? '🥉'
                         : `**#${index + 1}**`;
 
-
                 const mainScore =
                   isPvE
                     ? Number(
@@ -1371,12 +1328,10 @@ export default {
                           0,
                       );
 
-
                 const mainLabel =
                   isPvE
                     ? 'chuỗi'
                     : 'từ';
-
 
                 return [
                   `${medal} <@${entry.userId}>: **${formatNumber(mainScore)} ${mainLabel}** ${WORD_CHAIN_EMOJIS.words}`,
@@ -1391,7 +1346,6 @@ export default {
               '\n',
             );
         }
-
 
         const embed =
           createEmbed({
@@ -1423,18 +1377,15 @@ export default {
               WORD_CHAIN_COLOR,
           });
 
-
         embed.setImage(
           `attachment://${WORD_CHAIN_LEADERBOARD_IMAGE_NAME}`,
         );
-
 
         const leaderboardImage =
           await createWordChainImageAttachment(
             WORD_CHAIN_LEADERBOARD_IMAGE_PATH,
             WORD_CHAIN_LEADERBOARD_IMAGE_NAME,
           );
-
 
         if (
           !leaderboardImage
@@ -1451,7 +1402,6 @@ export default {
           );
         }
 
-
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -1466,10 +1416,11 @@ export default {
         );
       }
 
-
-      // =====================================================
-      // GOIY
-      // =====================================================
+      /**
+       * =====================================================
+       * GOIY
+       * =====================================================
+       */
 
       if (
         subcommand ===
@@ -1479,7 +1430,6 @@ export default {
           getWordChainModeForChannel(
             interaction.channelId,
           );
-
 
         if (
           !mode
@@ -1496,13 +1446,11 @@ export default {
           );
         }
 
-
         const game =
           getWordChainGame(
             config,
             mode,
           );
-
 
         if (
           !game.enabled
@@ -1519,6 +1467,12 @@ export default {
           );
         }
 
+        /**
+         * useWordChainHint() trong service
+         * đã dùng:
+         *
+         * LOCAL JSON -> ONLINE FALLBACK
+         */
 
         const hintResult =
           await useWordChainHint(
@@ -1528,10 +1482,9 @@ export default {
             mode,
           );
 
-
-        // ===================================================
-        // HẾT LƯỢT
-        // ===================================================
+        /**
+         * Hết lượt hint.
+         */
 
         if (
           hintResult.reason ===
@@ -1552,10 +1505,13 @@ export default {
           );
         }
 
-
-        // ===================================================
-        // KHÔNG CÒN TỪ
-        // ===================================================
+        /**
+         * Không tìm thấy ở:
+         *
+         * - JSON
+         * - Cache
+         * - Online
+         */
 
         if (
           hintResult.reason ===
@@ -1567,13 +1523,11 @@ export default {
               guildId,
             );
 
-
           const latestGame =
             getWordChainGame(
               latestConfig,
               mode,
             );
-
 
           const endedStreak =
             Number(
@@ -1589,11 +1543,9 @@ export default {
                     0,
             );
 
-
           const finalWord =
             latestGame.currentWord ||
             'từ hiện tại';
-
 
           const nextStart =
             getRandomStartWord(
@@ -1604,14 +1556,12 @@ export default {
               ),
             );
 
-
           await recordBreak(
             interaction.client,
             guildId,
             nextStart,
             mode,
           );
-
 
           return await InteractionHelper.safeEditReply(
             interaction,
@@ -1634,10 +1584,9 @@ export default {
           );
         }
 
-
-        // ===================================================
-        // HINT SUCCESS
-        // ===================================================
+        /**
+         * Hint success.
+         */
 
         if (
           hintResult.ok &&
@@ -1658,10 +1607,9 @@ export default {
           );
         }
 
-
-        // ===================================================
-        // FALLBACK
-        // ===================================================
+        /**
+         * Fallback cuối.
+         */
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -1684,7 +1632,6 @@ export default {
         'Error executing noitu command:',
         error,
       );
-
 
       return await replyUserError(
         interaction,
