@@ -1,0 +1,268 @@
+export const CULTIVATION_CONFIG = {
+  enabled: true,
+
+  /**
+   * =========================================================
+   * GAME CHANNEL
+   * =========================================================
+   *
+   * Sau khi bạn gửi mình ID kênh Tiên Lộ,
+   * mình sẽ điền cố định vào đây.
+   *
+   * null = tạm thời chơi được mọi kênh để test.
+   */
+  channelId: null,
+
+  /**
+   * =========================================================
+   * UI
+   * =========================================================
+   */
+
+  ui: {
+    color: '#F3AFC8',
+
+    title:
+      '✦ 𝓣𝓲𝓮̂𝓷 𝓛𝓸̣̂ · 修仙之路 ✦',
+
+    footer:
+      'Usagi Cultivation System · Tiên đạo bắt đầu từ một niệm.',
+
+    /**
+     * Sau khi bạn upload ảnh Usagi Tiên Lộ lên asset/repo,
+     * mình sẽ đổi thành link asset cố định.
+     */
+    image: null,
+  },
+
+  /**
+   * =========================================================
+   * GAMEPLAY
+   * =========================================================
+   */
+
+  gameplay: {
+    maxStamina: 100,
+
+    cultivateStaminaCost: 5,
+
+    // 5 phút / lần tu luyện
+    cultivateCooldownMs:
+      5 * 60 * 1000,
+
+    cultivateBaseMin: 90,
+    cultivateBaseMax: 150,
+
+    spiritStoneMin: 8,
+    spiritStoneMax: 25,
+
+    breakthroughBaseChance: 0.88,
+
+    breakthroughMinChance: 0.55,
+
+    breakthroughFailureLossPercent: 0.10,
+  },
+};
+
+/**
+ * =========================================================
+ * CẢNH GIỚI
+ * =========================================================
+ */
+
+export const CULTIVATION_REALMS = [
+  'Luyện Khí',
+  'Trúc Cơ',
+  'Kim Đan',
+  'Nguyên Anh',
+  'Hóa Thần',
+  'Luyện Hư',
+  'Hợp Thể',
+  'Đại Thừa',
+  'Độ Kiếp',
+  'Chân Tiên',
+  'Kim Tiên',
+  'Thái Ất Kim Tiên',
+  'Đại La Kim Tiên',
+];
+
+export const CULTIVATION_STAGES = [
+  'Sơ Kỳ',
+  'Trung Kỳ',
+  'Hậu Kỳ',
+  'Viên Mãn',
+];
+
+/**
+ * =========================================================
+ * LINH CĂN
+ * =========================================================
+ *
+ * weight càng thấp = càng hiếm.
+ */
+
+export const SPIRIT_ROOTS = [
+  {
+    id: 'kim',
+    name: 'Kim Linh Căn',
+    emoji: '⚔️',
+    rarity: 'Phàm',
+    weight: 18,
+    cultivateBonus: 0.02,
+  },
+
+  {
+    id: 'moc',
+    name: 'Mộc Linh Căn',
+    emoji: '🌿',
+    rarity: 'Phàm',
+    weight: 18,
+    cultivateBonus: 0.02,
+  },
+
+  {
+    id: 'thuy',
+    name: 'Thủy Linh Căn',
+    emoji: '💧',
+    rarity: 'Phàm',
+    weight: 18,
+    cultivateBonus: 0.02,
+  },
+
+  {
+    id: 'hoa',
+    name: 'Hỏa Linh Căn',
+    emoji: '🔥',
+    rarity: 'Phàm',
+    weight: 18,
+    cultivateBonus: 0.02,
+  },
+
+  {
+    id: 'tho',
+    name: 'Thổ Linh Căn',
+    emoji: '🪨',
+    rarity: 'Phàm',
+    weight: 18,
+    cultivateBonus: 0.02,
+  },
+
+  {
+    id: 'phong',
+    name: 'Phong Linh Căn',
+    emoji: '🌪️',
+    rarity: 'Hiếm',
+    weight: 4,
+    cultivateBonus: 0.05,
+  },
+
+  {
+    id: 'bang',
+    name: 'Băng Linh Căn',
+    emoji: '❄️',
+    rarity: 'Hiếm',
+    weight: 3,
+    cultivateBonus: 0.06,
+  },
+
+  {
+    id: 'loi',
+    name: 'Lôi Linh Căn',
+    emoji: '⚡',
+    rarity: 'Hiếm',
+    weight: 2,
+    cultivateBonus: 0.08,
+  },
+
+  {
+    id: 'thien',
+    name: 'Thiên Linh Căn',
+    emoji: '✨',
+    rarity: 'Cực Hiếm',
+    weight: 0.8,
+    cultivateBonus: 0.12,
+  },
+
+  {
+    id: 'hon_don',
+    name: 'Hỗn Độn Linh Căn',
+    emoji: '☯️',
+    rarity: 'Thần Thoại',
+    weight: 0.2,
+    cultivateBonus: 0.18,
+  },
+];
+
+/**
+ * =========================================================
+ * RANDOM TU LUYỆN EVENT
+ * =========================================================
+ */
+
+export const CULTIVATION_EVENTS = [
+  {
+    id: 'normal',
+
+    weight: 70,
+
+    title:
+      '🧘 ✦ TĨNH TÂM TU LUYỆN ✦',
+
+    text:
+      'Đạo hữu tĩnh tọa nhập định, vận chuyển công pháp một chu thiên.',
+
+    cultivationMultiplier: 1,
+
+    stoneMultiplier: 1,
+  },
+
+  {
+    id: 'minor_fortune',
+
+    weight: 18,
+
+    title:
+      '🌸 ✦ KỲ NGỘ ✦',
+
+    text:
+      'Một luồng linh khí tinh thuần bất ngờ hội tụ quanh động phủ.',
+
+    cultivationMultiplier: 1.35,
+
+    stoneMultiplier: 1.25,
+  },
+
+  {
+    id: 'great_fortune',
+
+    weight: 7,
+
+    title:
+      '✨ ✦ THIÊN ĐẠO CƠ DUYÊN ✦',
+
+    text:
+      'Thiên địa sinh dị tượng, một tia tiên khí từ thiên ngoại giáng xuống.',
+
+    cultivationMultiplier: 2.25,
+
+    stoneMultiplier: 2,
+  },
+
+  {
+    id: 'deviation',
+
+    weight: 5,
+
+    title:
+      '🔥 ✦ TẨU HỎA NHẬP MA ✦',
+
+    text:
+      'Linh khí nghịch chuyển, kinh mạch chấn động. May mắn đạo cơ chưa tổn hại.',
+
+    cultivationMultiplier: -0.35,
+
+    stoneMultiplier: 0,
+  },
+];
+
+export default CULTIVATION_CONFIG;
