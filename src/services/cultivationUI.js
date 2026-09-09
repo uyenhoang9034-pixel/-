@@ -31,6 +31,11 @@ import {
   getActiveTalisman,
 } from './cultivationTreasure.js';
 
+import {
+  getActivePet,
+  PET_EMOJI,
+} from './cultivationPet.js';
+
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
@@ -55,12 +60,18 @@ export const CULTIVATION_BUTTON_EMOJIS = {
     id: '1546070498570539019',
   },
 
+  /**
+   * Tiên Bảng giữ emoji cũ.
+   */
   leaderboard: {
     id: '1546070728309350421',
   },
 
+  /**
+   * Luyện Đan đổi sang dog15.
+   */
   alchemy: {
-    id: '1546070728309350421',
+    id: '1546072075821645844',
   },
 
   forge: {
@@ -77,6 +88,13 @@ export const CULTIVATION_BUTTON_EMOJIS = {
 
   treasure: {
     id: '1546070834471239730',
+  },
+
+  /**
+   * V2.8 Linh Thú.
+   */
+  pet: {
+    id: '1546070976964333741',
   },
 };
 
@@ -626,6 +644,21 @@ export function buildDashboardRows(
           .setStyle(
             ButtonStyle.Secondary,
           ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:pet`,
+          )
+          .setLabel(
+            'Linh Thú',
+          )
+          .setEmoji(
+            CULTIVATION_BUTTON_EMOJIS
+              .pet,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
       ),
   ];
 }
@@ -913,6 +946,14 @@ export function buildCultivateEmbed(
         )} Linh Thạch**`
       : null;
 
+  const petCultivationLine =
+    result.petCultivationBonus >
+    0
+      ? `${PET_EMOJI} Thanh Phong Linh Hồ: **+${number(
+          result.petCultivationBonus,
+        )} Tu Vi**`
+      : null;
+
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
@@ -933,6 +974,7 @@ export function buildCultivateEmbed(
           `**Thể Lực**: -${result.staminaCost}`,
           equipmentCultivationLine,
           techniqueCultivationLine,
+          petCultivationLine,
           equipmentStoneLine,
           techniqueStoneLine,
           pillLine,
@@ -1083,6 +1125,14 @@ export function buildAdventureEmbed(
         )} Linh Thạch**`
       : null;
 
+  const petStoneLine =
+    result.petStoneBonus >
+    0
+      ? `${PET_EMOJI} Xích Viêm Hỏa Điểu: **+${number(
+          result.petStoneBonus,
+        )} Linh Thạch**`
+      : null;
+
   const title =
     result.event.type ===
       'great_fortune'
@@ -1108,6 +1158,7 @@ export function buildAdventureEmbed(
           )}`,
           equipmentStoneLine,
           techniqueStoneLine,
+          petStoneLine,
           talismanLine,
           dropText,
           '',
@@ -1499,6 +1550,14 @@ export function buildBreakthroughEmbed(
         )}**`
       : null;
 
+  const petChanceLine =
+    result.petBreakthroughBonus >
+    0
+      ? `${PET_EMOJI} Thiên Lôi Bạch Hổ: **+${percent(
+          result.petBreakthroughBonus,
+        )}**`
+      : null;
+
   if (
     result.success
   ) {
@@ -1519,6 +1578,7 @@ export function buildBreakthroughEmbed(
             '',
             `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
             techniqueLine,
+            petChanceLine,
             pillLine,
           ]
             .filter(
@@ -1547,6 +1607,14 @@ export function buildBreakthroughEmbed(
         )} Tu Vi hao tổn**`
       : null;
 
+  const petLossLine =
+    result.petLossSaved >
+    0
+      ? `${PET_EMOJI} Huyền Giáp Linh Quy: **Giảm ${number(
+          result.petLossSaved,
+        )} Tu Vi hao tổn**`
+      : null;
+
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
@@ -1564,8 +1632,10 @@ export function buildBreakthroughEmbed(
           )}**`,
           protectionLine,
           equipmentLossLine,
+          petLossLine,
           `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
           techniqueLine,
+          petChanceLine,
           pillLine,
           '',
           '*Chỉnh tức đạo tâm rồi hãy thử lại.*',
@@ -1625,6 +1695,11 @@ export function buildProfileEmbed(
       profile,
     );
 
+  const activePet =
+    getActivePet(
+      profile,
+    );
+
   const equipmentLine =
     equippedEquipment
       ? `${equippedEquipment.emoji} Pháp Khí: **${equippedEquipment.name}**`
@@ -1640,6 +1715,11 @@ export function buildProfileEmbed(
       ? `<a:trangtrig18:1546068102817775626> Phù Hiệu: **${activeTalisman.name}**`
       : '<a:trangtrig18:1546068102817775626> Phù Hiệu: **Chưa Kích Hoạt**';
 
+  const petLine =
+    activePet
+      ? `${PET_EMOJI} Linh Thú: **${activePet.name}**`
+      : `${PET_EMOJI} Linh Thú: **Chưa Có**`;
+
   const techniqueBreakthroughBonus =
     activeTechnique
       ?.effectType ===
@@ -1650,11 +1730,22 @@ export function buildProfileEmbed(
         )
       : 0;
 
+  const petBreakthroughBonus =
+    activePet
+      ?.effectType ===
+      'breakthrough_bonus'
+      ? Math.round(
+          activePet
+            .effectValue * 100,
+        )
+      : 0;
+
   const chance =
     Math.min(
       95,
       baseChance +
-        techniqueBreakthroughBonus,
+        techniqueBreakthroughBonus +
+        petBreakthroughBonus,
     );
 
   return applyStyle(
@@ -1673,6 +1764,7 @@ export function buildProfileEmbed(
           equipmentLine,
           techniqueLine,
           talismanLine,
+          petLine,
           '',
           `<:trangtri1:1546093044535660644> Tu Vi: **${number(
             profile.cultivation,
@@ -1695,6 +1787,7 @@ export function buildProfileEmbed(
           `<a:trangtrig45:1547239010190237819> Vật Phẩm Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
           `<a:trangtrig45:1547239010190237819> Công Pháp Lĩnh Ngộ: **${profile.stats.techniquesLearned || 0}**`,
           `<a:trangtrig45:1547239010190237819> Phù Hiệu Kích Hoạt: **${profile.stats.talismansActivated || 0}**`,
+          `<a:trangtrig45:1547239010190237819> Linh Thú Thu Phục: **${profile.stats.petsCaptured || 0}**`,
           `<a:trangtrig45:1547239010190237819> Đột Phá Thành Công: **${profile.stats.breakthroughSuccess || 0}**`,
           `<a:trangtrig45:1547239010190237819> Đột Phá Thất Bại: **${profile.stats.breakthroughFail || 0}**`,
         ]
