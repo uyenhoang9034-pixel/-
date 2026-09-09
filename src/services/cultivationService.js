@@ -11,6 +11,12 @@ import {
   SPIRIT_ROOTS,
 } from '../config/cultivationGame.js';
 
+/**
+ * =========================================================
+ * CONSTANTS
+ * =========================================================
+ */
+
 const PROFILE_PREFIX =
   'games:cultivation:profile:';
 
@@ -37,6 +43,57 @@ const USABLE_ITEM_IDS =
       ITEM_EFFECTS,
     ),
   );
+
+/**
+ * =========================================================
+ * LINH THÚ · V2.8
+ * =========================================================
+ *
+ * Không import cultivationPet.js tại đây
+ * để tránh circular import:
+ *
+ * cultivationPet.js
+ * → cultivationService.js
+ *
+ * Vì vậy Service chỉ cần biết ID + effect.
+ */
+
+const PET_ENCOUNTER_CHANCE =
+  0.10;
+
+const PET_ENCOUNTER_POOL = [
+  {
+    id:
+      'thanh_phong_linh_ho',
+
+    weight:
+      40,
+  },
+
+  {
+    id:
+      'xich_viem_hoa_dieu',
+
+    weight:
+      35,
+  },
+
+  {
+    id:
+      'huyen_giap_linh_quy',
+
+    weight:
+      16,
+  },
+
+  {
+    id:
+      'thien_loi_bach_ho',
+
+    weight:
+      9,
+  },
+];
 
 /**
  * =========================================================
@@ -176,6 +233,93 @@ function consumeActiveTalisman(
 
 /**
  * =========================================================
+ * PET HELPERS
+ * =========================================================
+ */
+
+function getActivePetId(
+  profile,
+) {
+  return (
+    profile.pets
+      ?.active || null
+  );
+}
+
+/**
+ * Thanh Phong Linh Hồ
+ * +6% Tu Vi khi Tu Luyện.
+ */
+
+function getPetCultivationBonus(
+  profile,
+) {
+  return (
+    getActivePetId(
+      profile,
+    ) ===
+    'thanh_phong_linh_ho'
+      ? 0.06
+      : 0
+  );
+}
+
+/**
+ * Xích Viêm Hỏa Điểu
+ * +8% Linh Thạch khi Thám Hiểm.
+ */
+
+function getPetAdventureStoneBonus(
+  profile,
+) {
+  return (
+    getActivePetId(
+      profile,
+    ) ===
+    'xich_viem_hoa_dieu'
+      ? 0.08
+      : 0
+  );
+}
+
+/**
+ * Huyền Giáp Linh Quy
+ * -15% Tu Vi tổn thất khi Đột Phá fail.
+ */
+
+function getPetBreakthroughLossReduction(
+  profile,
+) {
+  return (
+    getActivePetId(
+      profile,
+    ) ===
+    'huyen_giap_linh_quy'
+      ? 0.15
+      : 0
+  );
+}
+
+/**
+ * Thiên Lôi Bạch Hổ
+ * +4% tỷ lệ Đột Phá.
+ */
+
+function getPetBreakthroughBonus(
+  profile,
+) {
+  return (
+    getActivePetId(
+      profile,
+    ) ===
+    'thien_loi_bach_ho'
+      ? 0.04
+      : 0
+  );
+}
+
+/**
+ * =========================================================
  * BASIC HELPERS
  * =========================================================
  */
@@ -280,6 +424,58 @@ function weightedPick(
 
 /**
  * =========================================================
+ * PET ENCOUNTER
+ * =========================================================
+ */
+
+function rollPetEncounter(
+  profile,
+) {
+  /**
+   * 10% mỗi lần Thám Hiểm hợp lệ.
+   */
+
+  if (
+    Math.random() >
+    PET_ENCOUNTER_CHANCE
+  ) {
+    return null;
+  }
+
+  /**
+   * Không roll những con đã sở hữu.
+   */
+
+  const available =
+    PET_ENCOUNTER_POOL.filter(
+      (
+        pet,
+      ) =>
+        profile.pets
+          ?.owned?.[
+            pet.id
+          ] !== true,
+    );
+
+  if (
+    available.length === 0
+  ) {
+    return null;
+  }
+
+  const picked =
+    weightedPick(
+      available,
+    );
+
+  return (
+    picked?.id ||
+    null
+  );
+}
+
+/**
+ * =========================================================
  * PROFILE
  * =========================================================
  */
@@ -294,7 +490,7 @@ export function createCultivationProfile(
     );
 
   return {
-    version: 7,
+    version: 8,
 
     guildId,
     userId,
@@ -303,9 +499,12 @@ export function createCultivationProfile(
     stageIndex: 0,
 
     cultivation: 0,
-    totalCultivation: 0,
 
-    spiritStones: 100,
+    totalCultivation:
+      0,
+
+    spiritStones:
+      100,
 
     stamina:
       CULTIVATION_CONFIG
@@ -333,22 +532,63 @@ export function createCultivationProfile(
         0,
     },
 
+    /**
+     * =====================================================
+     * INVENTORY
+     * =====================================================
+     */
+
     inventory: {},
+
+    /**
+     * =====================================================
+     * PHÁP KHÍ
+     * =====================================================
+     */
 
     equipment: {
       owned: {},
       equipped: null,
     },
 
+    /**
+     * =====================================================
+     * CÔNG PHÁP
+     * =====================================================
+     */
+
     techniques: {
       learned: {},
       active: null,
     },
 
+    /**
+     * =====================================================
+     * BÍ BẢO
+     * =====================================================
+     */
+
     treasure: {
       activeTalisman:
         null,
     },
+
+    /**
+     * =====================================================
+     * LINH THÚ · V2.8
+     * =====================================================
+     */
+
+    pets: {
+      owned: {},
+      active: null,
+    },
+
+    /**
+     * =====================================================
+     * DƯỢC HIỆU
+     * =====================================================
+     */
 
     effects: {
       nextCultivationBonus:
@@ -358,13 +598,26 @@ export function createCultivationProfile(
         0,
     },
 
+    /**
+     * =====================================================
+     * COOLDOWN
+     * =====================================================
+     */
+
     cooldowns: {
       cultivateAt: 0,
       adventureAt: 0,
     },
 
+    /**
+     * =====================================================
+     * STATS
+     * =====================================================
+     */
+
     stats: {
-      cultivateCount: 0,
+      cultivateCount:
+        0,
 
       breakthroughSuccess:
         0,
@@ -372,7 +625,8 @@ export function createCultivationProfile(
       breakthroughFail:
         0,
 
-      fortunes: 0,
+      fortunes:
+        0,
 
       adventureCount:
         0,
@@ -383,27 +637,41 @@ export function createCultivationProfile(
       monsterEncounters:
         0,
 
-      itemsFound: 0,
+      itemsFound:
+        0,
 
-      itemsUsed: 0,
+      itemsUsed:
+        0,
 
-      alchemyCount: 0,
+      alchemyCount:
+        0,
 
       alchemySuccess:
         0,
 
-      alchemyFail: 0,
+      alchemyFail:
+        0,
 
-      forgeCount: 0,
+      forgeCount:
+        0,
 
-      forgeSuccess: 0,
+      forgeSuccess:
+        0,
 
-      forgeFail: 0,
+      forgeFail:
+        0,
 
       techniquesLearned:
         0,
 
       talismansActivated:
+        0,
+
+      /**
+       * V2.8
+       */
+
+      petsCaptured:
         0,
     },
 
@@ -414,6 +682,12 @@ export function createCultivationProfile(
       Date.now(),
   };
 }
+
+/**
+ * =========================================================
+ * NORMALIZE PROFILE
+ * =========================================================
+ */
 
 export function normalizeCultivationProfile(
   raw,
@@ -436,6 +710,12 @@ export function normalizeCultivationProfile(
       guildId,
       userId,
     );
+
+  /**
+   * =====================================================
+   * INVENTORY
+   * =====================================================
+   */
 
   const inventory = {};
 
@@ -476,6 +756,12 @@ export function normalizeCultivationProfile(
         safeQuantity;
     }
   }
+
+  /**
+   * =====================================================
+   * EQUIPMENT
+   * =====================================================
+   */
 
   const ownedEquipment =
     {};
@@ -530,6 +816,12 @@ export function normalizeCultivationProfile(
           .equipped
       : null;
 
+  /**
+   * =====================================================
+   * TECHNIQUES
+   * =====================================================
+   */
+
   const learnedTechniques =
     {};
 
@@ -573,6 +865,12 @@ export function normalizeCultivationProfile(
           .active
       : null;
 
+  /**
+   * =====================================================
+   * TALISMAN
+   * =====================================================
+   */
+
   const activeTalisman =
     typeof raw.treasure
       ?.activeTalisman ===
@@ -581,11 +879,71 @@ export function normalizeCultivationProfile(
           .activeTalisman
       : null;
 
+  /**
+   * =====================================================
+   * PETS · V2.8
+   * =====================================================
+   */
+
+  const ownedPets =
+    {};
+
+  const rawOwnedPets =
+    raw.pets?.owned &&
+    typeof raw.pets
+      .owned ===
+      'object' &&
+    !Array.isArray(
+      raw.pets.owned,
+    )
+      ? raw.pets.owned
+      : {};
+
+  for (
+    const [
+      petId,
+      owned,
+    ] of Object.entries(
+      rawOwnedPets,
+    )
+  ) {
+    if (
+      owned === true
+    ) {
+      ownedPets[
+        petId
+      ] =
+        true;
+    }
+  }
+
+  let activePet =
+    typeof raw.pets
+      ?.active ===
+      'string'
+      ? raw.pets.active
+      : null;
+
+  /**
+   * Không cho active một pet
+   * mà profile không sở hữu.
+   */
+
+  if (
+    activePet &&
+    ownedPets[
+      activePet
+    ] !== true
+  ) {
+    activePet =
+      null;
+  }
+
   return {
     ...base,
     ...raw,
 
-    version: 7,
+    version: 8,
 
     guildId,
     userId,
@@ -610,6 +968,14 @@ export function normalizeCultivationProfile(
 
     treasure: {
       activeTalisman,
+    },
+
+    pets: {
+      owned:
+        ownedPets,
+
+      active:
+        activePet,
     },
 
     effects: {
@@ -705,6 +1071,12 @@ export function normalizeCultivationProfile(
   };
 }
 
+/**
+ * =========================================================
+ * GET / SAVE PROFILE
+ * =========================================================
+ */
+
 export async function getCultivationProfile(
   client,
   guildId,
@@ -759,7 +1131,7 @@ export async function saveCultivationProfile(
   const data = {
     ...profile,
 
-    version: 7,
+    version: 8,
 
     updatedAt:
       Date.now(),
@@ -826,6 +1198,15 @@ export function addInventoryItem(
       ) || 0,
     ) +
     safeQuantity;
+
+  if (
+    !profile.stats ||
+    typeof profile.stats !==
+      'object'
+  ) {
+    profile.stats =
+      {};
+  }
 
   profile.stats.itemsFound =
     Math.max(
@@ -960,6 +1341,12 @@ export function getCultivationItem(
   );
 }
 
+/**
+ * =========================================================
+ * DROP
+ * =========================================================
+ */
+
 function rollAdventureDrop(
   event,
   dropBonus = 0,
@@ -1071,8 +1458,10 @@ export async function useCultivationItem(
       ) {
         return {
           ok: false,
+
           reason:
             'not_usable',
+
           profile,
           item,
         };
@@ -1093,12 +1482,20 @@ export async function useCultivationItem(
       ) {
         return {
           ok: false,
+
           reason:
             'not_owned',
+
           profile,
           item,
         };
       }
+
+      /**
+       * =====================================================
+       * TỤ KHÍ ĐAN
+       * =====================================================
+       */
 
       if (
         itemId ===
@@ -1112,8 +1509,10 @@ export async function useCultivationItem(
         ) {
           return {
             ok: false,
+
             reason:
               'effect_active',
+
             profile,
             item,
           };
@@ -1164,6 +1563,12 @@ export async function useCultivationItem(
         };
       }
 
+      /**
+       * =====================================================
+       * HỒI NGUYÊN ĐAN
+       * =====================================================
+       */
+
       if (
         itemId ===
         'hoi_nguyen_dan'
@@ -1174,8 +1579,10 @@ export async function useCultivationItem(
         ) {
           return {
             ok: false,
+
             reason:
               'stamina_full',
+
             profile,
             item,
           };
@@ -1221,6 +1628,7 @@ export async function useCultivationItem(
             'stamina_restore',
 
           item,
+
           before,
 
           after:
@@ -1238,6 +1646,12 @@ export async function useCultivationItem(
         };
       }
 
+      /**
+       * =====================================================
+       * PHÁ CẢNH ĐAN
+       * =====================================================
+       */
+
       if (
         itemId ===
         'pha_canh_dan'
@@ -1250,8 +1664,10 @@ export async function useCultivationItem(
         ) {
           return {
             ok: false,
+
             reason:
               'effect_active',
+
             profile,
             item,
           };
@@ -1304,8 +1720,10 @@ export async function useCultivationItem(
 
       return {
         ok: false,
+
         reason:
           'not_usable',
+
         profile,
         item,
       };
@@ -1315,7 +1733,7 @@ export async function useCultivationItem(
 
 /**
  * =========================================================
- * REALM
+ * REALM HELPERS
  * =========================================================
  */
 
@@ -1383,13 +1801,19 @@ export function isMaxRealm(
 ) {
   return (
     profile.realmIndex >=
-      CULTIVATION_REALMS.length -
-        1 &&
+      CULTIVATION_REALMS
+        .length - 1 &&
     profile.stageIndex >=
-      CULTIVATION_STAGES.length -
-        1
+      CULTIVATION_STAGES
+        .length - 1
   );
 }
+
+/**
+ * =========================================================
+ * BREAKTHROUGH CHANCE
+ * =========================================================
+ */
 
 export function getBreakthroughChance(
   profile,
@@ -1438,23 +1862,39 @@ export function getEffectiveBreakthroughChance(
       profile,
     );
 
+  const petBonus =
+    getPetBreakthroughBonus(
+      profile,
+    );
+
   return Math.min(
     0.95,
+
     base +
       pillBonus +
-      techniqueBonus,
+      techniqueBonus +
+      petBonus,
   );
 }
+
+/**
+ * =========================================================
+ * COOLDOWN
+ * =========================================================
+ */
 
 export function getCultivateCooldownRemaining(
   profile,
 ) {
-  return Math.max(
-    0,
+  const availableAt =
     Number(
       profile.cooldowns
         ?.cultivateAt,
-    ) -
+    ) || 0;
+
+  return Math.max(
+    0,
+    availableAt -
       Date.now(),
   );
 }
@@ -1462,19 +1902,22 @@ export function getCultivateCooldownRemaining(
 export function getAdventureCooldownRemaining(
   profile,
 ) {
-  return Math.max(
-    0,
+  const availableAt =
     Number(
       profile.cooldowns
         ?.adventureAt,
-    ) -
+    ) || 0;
+
+  return Math.max(
+    0,
+    availableAt -
       Date.now(),
   );
 }
 
 /**
  * =========================================================
- * CULTIVATE
+ * TU LUYỆN
  * =========================================================
  */
 
@@ -1529,8 +1972,10 @@ export async function cultivate(
       ) {
         return {
           ok: false,
+
           reason:
             'stamina',
+
           profile,
         };
       }
@@ -1589,6 +2034,12 @@ export async function cultivate(
           ),
         );
 
+      /**
+       * =====================================================
+       * PHÁP KHÍ — LINH THẠCH
+       * =====================================================
+       */
+
       const equipmentStonePercent =
         getEquipmentSpiritStoneBonus(
           profile,
@@ -1601,12 +2052,19 @@ export async function cultivate(
           0
           ? Math.max(
               1,
+
               Math.round(
                 baseStoneReward *
                   equipmentStonePercent,
               ),
             )
           : 0;
+
+      /**
+       * =====================================================
+       * CÔNG PHÁP — LINH THẠCH
+       * =====================================================
+       */
 
       const techniqueStonePercent =
         getTechniqueSpiritStoneBonus(
@@ -1620,6 +2078,7 @@ export async function cultivate(
           0
           ? Math.max(
               1,
+
               Math.round(
                 baseStoneReward *
                   techniqueStonePercent,
@@ -1632,18 +2091,28 @@ export async function cultivate(
         equipmentStoneBonus +
         techniqueStoneBonus;
 
+      /**
+       * Event âm.
+       */
+
       if (
-        cultivationDelta <
-        0
+        cultivationDelta < 0
       ) {
         cultivationDelta =
           -Math.min(
             profile.cultivation,
+
             Math.abs(
               cultivationDelta,
             ),
           );
       }
+
+      /**
+       * =====================================================
+       * THANH PHONG KIẾM
+       * =====================================================
+       */
 
       const equipmentCultivationPercent =
         getEquipmentCultivationBonus(
@@ -1657,12 +2126,19 @@ export async function cultivate(
           0
           ? Math.max(
               1,
+
               Math.round(
                 cultivationDelta *
                   equipmentCultivationPercent,
               ),
             )
           : 0;
+
+      /**
+       * =====================================================
+       * THANH VÂN KIẾM QUYẾT
+       * =====================================================
+       */
 
       const techniqueCultivationPercent =
         getTechniqueCultivationBonus(
@@ -1676,6 +2152,7 @@ export async function cultivate(
           0
           ? Math.max(
               1,
+
               Math.round(
                 cultivationDelta *
                   techniqueCultivationPercent,
@@ -1683,9 +2160,40 @@ export async function cultivate(
             )
           : 0;
 
+      /**
+       * =====================================================
+       * V2.8 — THANH PHONG LINH HỒ
+       * =====================================================
+       */
+
+      const petCultivationPercent =
+        getPetCultivationBonus(
+          profile,
+        );
+
+      const petCultivationBonus =
+        petCultivationPercent >
+          0 &&
+        cultivationDelta >
+          0
+          ? Math.max(
+              1,
+
+              Math.round(
+                cultivationDelta *
+                  petCultivationPercent,
+              ),
+            )
+          : 0;
+
+      /**
+       * Base.
+       */
+
       profile.cultivation =
         Math.max(
           0,
+
           profile.cultivation +
             cultivationDelta,
         );
@@ -1696,17 +2204,30 @@ export async function cultivate(
           cultivationDelta,
         );
 
+      /**
+       * Permanent bonuses.
+       */
+
       profile.cultivation +=
         equipmentCultivationBonus +
-        techniqueCultivationBonus;
+        techniqueCultivationBonus +
+        petCultivationBonus;
 
       profile.totalCultivation +=
         equipmentCultivationBonus +
-        techniqueCultivationBonus;
+        techniqueCultivationBonus +
+        petCultivationBonus;
+
+      /**
+       * =====================================================
+       * TỤ KHÍ ĐAN
+       * =====================================================
+       */
 
       const pillPercent =
         Math.max(
           0,
+
           Number(
             profile.effects
               ?.nextCultivationBonus,
@@ -1726,6 +2247,7 @@ export async function cultivate(
           cultivationPillBonus =
             Math.max(
               1,
+
               Math.round(
                 cultivationDelta *
                   pillPercent,
@@ -1750,6 +2272,7 @@ export async function cultivate(
       profile.stamina =
         Math.max(
           0,
+
           profile.stamina -
             staminaCost,
         );
@@ -1800,6 +2323,14 @@ export async function cultivate(
 
         techniqueCultivationPercent,
 
+        /**
+         * V2.8
+         */
+
+        petCultivationBonus,
+
+        petCultivationPercent,
+
         cultivationPillBonus,
 
         cultivationPillPercent:
@@ -1828,7 +2359,7 @@ export async function cultivate(
 
 /**
  * =========================================================
- * ADVENTURE
+ * THÁM HIỂM
  * =========================================================
  */
 
@@ -1872,6 +2403,61 @@ export async function adventure(
         };
       }
 
+      /**
+       * =====================================================
+       * V2.8 — LINH THÚ HIỆN THẾ
+       * =====================================================
+       *
+       * Đây là một event Thám Hiểm riêng.
+       * Nếu gặp Linh Thú thì không roll event thường.
+       */
+
+      const petEncounter =
+        rollPetEncounter(
+          profile,
+        );
+
+      if (
+        petEncounter
+      ) {
+        profile.stats
+          .adventureCount +=
+          1;
+
+        profile.cooldowns
+          .adventureAt =
+          Date.now() +
+          CULTIVATION_CONFIG
+            .gameplay
+            .adventureCooldownMs;
+
+        const saved =
+          await saveCultivationProfile(
+            client,
+            profile,
+          );
+
+        return {
+          ok: true,
+
+          petEncounter,
+
+          profile:
+            saved,
+
+          required:
+            getCultivationRequired(
+              saved,
+            ),
+        };
+      }
+
+      /**
+       * =====================================================
+       * NORMAL ADVENTURE
+       * =====================================================
+       */
+
       const location =
         randomItem(
           CULTIVATION_ADVENTURE_LOCATIONS,
@@ -1907,11 +2493,20 @@ export async function adventure(
       let techniqueStoneBonus =
         0;
 
+      let petStoneBonus =
+        0;
+
       let talismanStoneBonus =
         0;
 
       let droppedItem =
         null;
+
+      /**
+       * =====================================================
+       * YÊU THÚ
+       * =====================================================
+       */
 
       if (
         event.type ===
@@ -1935,6 +2530,7 @@ export async function adventure(
         profile.cultivation =
           Math.max(
             0,
+
             profile.cultivation -
               actualLoss,
           );
@@ -1943,6 +2539,12 @@ export async function adventure(
           .monsterEncounters +=
           1;
       } else {
+        /**
+         * ===================================================
+         * NORMAL REWARD
+         * ===================================================
+         */
+
         cultivationDelta =
           randomInt(
             event.cultivationMin ||
@@ -1961,6 +2563,10 @@ export async function adventure(
               0,
           );
 
+        /**
+         * Pháp Khí.
+         */
+
         const equipmentStonePercent =
           getEquipmentSpiritStoneBonus(
             profile,
@@ -1974,12 +2580,17 @@ export async function adventure(
           equipmentStoneBonus =
             Math.max(
               1,
+
               Math.round(
                 baseStoneReward *
                   equipmentStonePercent,
               ),
             );
         }
+
+        /**
+         * Công Pháp.
+         */
 
         const techniqueStonePercent =
           getTechniqueSpiritStoneBonus(
@@ -1994,6 +2605,7 @@ export async function adventure(
           techniqueStoneBonus =
             Math.max(
               1,
+
               Math.round(
                 baseStoneReward *
                   techniqueStonePercent,
@@ -2001,14 +2613,47 @@ export async function adventure(
             );
         }
 
+        /**
+         * ===================================================
+         * V2.8 — XÍCH VIÊM HỎA ĐIỂU
+         * ===================================================
+         */
+
+        const petStonePercent =
+          getPetAdventureStoneBonus(
+            profile,
+          );
+
+        if (
+          petStonePercent >
+            0 &&
+          baseStoneReward > 0
+        ) {
+          petStoneBonus =
+            Math.max(
+              1,
+
+              Math.round(
+                baseStoneReward *
+                  petStonePercent,
+              ),
+            );
+        }
+
+        /**
+         * Tụ Tài Phù.
+         */
+
         if (
           activeTalismanId ===
             'tu_tai_phu' &&
-          baseStoneReward > 0
+          baseStoneReward >
+            0
         ) {
           talismanStoneBonus =
             Math.max(
               1,
+
               Math.round(
                 baseStoneReward *
                   0.50,
@@ -2016,10 +2661,16 @@ export async function adventure(
             );
         }
 
+        /**
+         * Tất cả bonus đều tính
+         * trên base reward.
+         */
+
         stoneDelta =
           baseStoneReward +
           equipmentStoneBonus +
           techniqueStoneBonus +
+          petStoneBonus +
           talismanStoneBonus;
 
         const rootBonus =
@@ -2059,6 +2710,10 @@ export async function adventure(
             1;
         }
 
+        /**
+         * Tầm Bảo Phù.
+         */
+
         const dropBonus =
           activeTalismanId ===
           'tam_bao_phu'
@@ -2081,6 +2736,12 @@ export async function adventure(
           );
         }
       }
+
+      /**
+       * =====================================================
+       * CONSUME ADVENTURE TALISMAN
+       * =====================================================
+       */
 
       if (
         adventureTalisman
@@ -2111,14 +2772,22 @@ export async function adventure(
         ok: true,
 
         location,
+
         event,
 
         cultivationDelta,
+
         stoneDelta,
 
         equipmentStoneBonus,
 
         techniqueStoneBonus,
+
+        /**
+         * V2.8
+         */
+
+        petStoneBonus,
 
         talismanStoneBonus,
 
@@ -2146,7 +2815,7 @@ export async function adventure(
 
 /**
  * =========================================================
- * BREAKTHROUGH
+ * ĐỘT PHÁ
  * =========================================================
  */
 
@@ -2176,8 +2845,10 @@ export async function breakthrough(
       ) {
         return {
           ok: false,
+
           reason:
             'max_realm',
+
           profile,
         };
       }
@@ -2208,19 +2879,41 @@ export async function breakthrough(
           profile,
         );
 
+      /**
+       * Phá Cảnh Đan.
+       */
+
       const breakthroughPillBonus =
         Math.max(
           0,
+
           Number(
             profile.effects
               ?.nextBreakthroughBonus,
           ) || 0,
         );
 
+      /**
+       * Huyền Nguyên Tâm Pháp.
+       */
+
       const techniqueBreakthroughBonus =
         getTechniqueBreakthroughBonus(
           profile,
         );
+
+      /**
+       * V2.8 — Thiên Lôi Bạch Hổ.
+       */
+
+      const petBreakthroughBonus =
+        getPetBreakthroughBonus(
+          profile,
+        );
+
+      /**
+       * Trần 95%.
+       */
 
       const chance =
         Math.min(
@@ -2228,13 +2921,19 @@ export async function breakthrough(
 
           baseChance +
             breakthroughPillBonus +
-            techniqueBreakthroughBonus,
+            techniqueBreakthroughBonus +
+            petBreakthroughBonus,
         );
 
       const oldRealm =
         getRealmDisplay(
           profile,
         );
+
+      /**
+       * Phá Cảnh Đan chỉ mất khi
+       * thực sự bắt đầu Đột Phá.
+       */
 
       if (
         breakthroughPillBonus >
@@ -2249,6 +2948,12 @@ export async function breakthrough(
         Math.random() <
         chance;
 
+      /**
+       * =====================================================
+       * SUCCESS
+       * =====================================================
+       */
+
       if (
         success
       ) {
@@ -2257,8 +2962,8 @@ export async function breakthrough(
 
         if (
           profile.stageIndex <
-          CULTIVATION_STAGES.length -
-            1
+          CULTIVATION_STAGES
+            .length - 1
         ) {
           profile.stageIndex +=
             1;
@@ -2293,6 +2998,12 @@ export async function breakthrough(
 
           techniqueBreakthroughBonus,
 
+          /**
+           * V2.8
+           */
+
+          petBreakthroughBonus,
+
           oldRealm,
 
           newRealm:
@@ -2305,9 +3016,16 @@ export async function breakthrough(
         };
       }
 
+      /**
+       * =====================================================
+       * FAIL
+       * =====================================================
+       */
+
       const originalLoss =
         Math.max(
           1,
+
           Math.round(
             required *
               CULTIVATION_CONFIG
@@ -2331,17 +3049,33 @@ export async function breakthrough(
       let equipmentLossSaved =
         0;
 
-      let loss = 0;
+      let petLossReduction =
+        0;
+
+      let petLossSaved =
+        0;
+
+      let loss =
+        0;
+
+      /**
+       * Hộ Đạo Phù ưu tiên cao nhất.
+       */
 
       if (
         talismanProtected
       ) {
-        loss = 0;
+        loss =
+          0;
 
         consumeActiveTalisman(
           profile,
         );
       } else {
+        /**
+         * Huyền Thiết Hộ Phù.
+         */
+
         equipmentLossReduction =
           getEquipmentBreakthroughLossReduction(
             profile,
@@ -2352,6 +3086,7 @@ export async function breakthrough(
             0
             ? Math.max(
                 1,
+
                 Math.round(
                   originalLoss *
                     equipmentLossReduction,
@@ -2359,17 +3094,47 @@ export async function breakthrough(
               )
             : 0;
 
+        /**
+         * V2.8 — Huyền Giáp Linh Quy.
+         */
+
+        petLossReduction =
+          getPetBreakthroughLossReduction(
+            profile,
+          );
+
+        petLossSaved =
+          petLossReduction >
+            0
+            ? Math.max(
+                1,
+
+                Math.round(
+                  originalLoss *
+                    petLossReduction,
+                ),
+              )
+            : 0;
+
+        /**
+         * Hai effect cộng độc lập
+         * trên loss gốc.
+         */
+
         loss =
           Math.max(
             1,
+
             originalLoss -
-              equipmentLossSaved,
+              equipmentLossSaved -
+              petLossSaved,
           );
       }
 
       profile.cultivation =
         Math.max(
           0,
+
           profile.cultivation -
             loss,
         );
@@ -2397,6 +3162,12 @@ export async function breakthrough(
 
         techniqueBreakthroughBonus,
 
+        /**
+         * V2.8
+         */
+
+        petBreakthroughBonus,
+
         originalLoss,
 
         loss,
@@ -2404,6 +3175,10 @@ export async function breakthrough(
         equipmentLossReduction,
 
         equipmentLossSaved,
+
+        petLossReduction,
+
+        petLossSaved,
 
         talismanProtected,
 
@@ -2451,7 +3226,8 @@ export async function getCultivationLeaderboard(
     return [];
   }
 
-  const entries = [];
+  const entries =
+    [];
 
   for (
     const key of keys
