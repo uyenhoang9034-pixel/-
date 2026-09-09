@@ -7,6 +7,7 @@ import {
 } from '../../config/cultivationGame.js';
 
 import {
+  adventure,
   breakthrough,
   cultivate,
   getCultivationLeaderboard,
@@ -14,6 +15,7 @@ import {
 } from '../../services/cultivationService.js';
 
 import {
+  buildAdventureEmbed,
   buildBackRow,
   buildBreakthroughEmbed,
   buildCultivateEmbed,
@@ -122,7 +124,7 @@ export default {
     }
 
     /**
-     * Kiểm tra đúng channel.
+     * Đúng channel Tiên Lộ.
      */
 
     if (
@@ -191,6 +193,38 @@ export default {
       return interaction.update({
         embeds: [
           buildCultivateEmbed(
+            result,
+          ),
+        ],
+
+        components: [
+          buildBackRow(
+            ownerId,
+          ),
+        ],
+      });
+    }
+
+    /**
+     * =====================================================
+     * THÁM HIỂM
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure'
+    ) {
+      const result =
+        await adventure(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildAdventureEmbed(
             result,
           ),
         ],
