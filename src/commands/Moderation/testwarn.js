@@ -3,21 +3,57 @@ import {
     PermissionFlagsBits,
     EmbedBuilder,
     MessageFlags,
+    AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
-const MODERATION_IMAGE_URL =
-    'https://cdn.phototourl.com/free/2026-09-08-9fd00794-554a-4eca-91fd-8f5cd6c3dae9.jpg';
+
+const MODERATION_IMAGE_NAME =
+    'ban.webp';
+
+const MODERATION_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'moderation',
+        MODERATION_IMAGE_NAME,
+    );
+
 
 const EMOJIS = {
     decoration:
         '<a:bang3:1546891744237461635>',
 
-    warn:
-        '<a:bang2:1546891483250954290>',
+    field:
+        '<a:bang4:1546905765439217666>',
 };
+
+
+async function createModerationImageAttachment() {
+    try {
+        await fs.access(
+            MODERATION_IMAGE_PATH,
+        );
+    } catch {
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        MODERATION_IMAGE_PATH,
+        {
+            name:
+                MODERATION_IMAGE_NAME,
+        },
+    );
+}
+
 
 export default {
     data:
@@ -61,6 +97,7 @@ export default {
     category:
         'moderation',
 
+
     async execute(
         interaction,
     ) {
@@ -71,12 +108,14 @@ export default {
                     true,
                 );
 
+
         const reason =
             interaction.options
                 .getString(
                     'reason',
                     true,
                 );
+
 
         const channel =
             await interaction.guild.channels
@@ -86,6 +125,7 @@ export default {
                 .catch(
                     () => null,
                 );
+
 
         if (
             !channel ||
@@ -102,11 +142,30 @@ export default {
             return;
         }
 
+
+        const image =
+            await createModerationImageAttachment();
+
+
+        if (!image) {
+            await interaction.reply({
+                content:
+                    'Không tìm thấy file `assets/moderation/ban.webp`.',
+
+                flags:
+                    MessageFlags.Ephemeral,
+            });
+
+            return;
+        }
+
+
         const fakeTotalWarnings =
             0;
 
         const fakeWarningCase =
             'TEST-001';
+
 
         const embed =
             new EmbedBuilder()
@@ -118,39 +177,52 @@ export default {
                 )
                 .setDescription(
                     [
-                        `${EMOJIS.warn} **CẢNH CÁO!**`,
+                        `${EMOJIS.field} **CẢNH CÁO!**`,
 
                         '',
-                        `${EMOJIS.warn} **Thành viên**`,
+
+                        `${EMOJIS.field} **Thành viên**`,
                         `<@${target.id}>`,
 
                         '',
-                        `${EMOJIS.warn} **Người cảnh cáo**`,
+
+                        `${EMOJIS.field} **Người cảnh cáo**`,
                         `<@${interaction.user.id}>`,
 
                         '',
-                        `${EMOJIS.warn} **Lý do**`,
+
+                        `${EMOJIS.field} **Lý do**`,
                         reason,
 
                         '',
-                        `${EMOJIS.warn} **Tổng cảnh cáo**`,
+
+                        `${EMOJIS.field} **Tổng cảnh cáo**`,
                         `**${fakeTotalWarnings}**`,
 
                         '',
-                        `${EMOJIS.warn} **Warning Case**`,
+
+                        `${EMOJIS.field} **Warning Case**`,
                         `#${fakeWarningCase}`,
-                    ].join('\n'),
+                    ].join(
+                        '\n',
+                    ),
                 )
                 .setImage(
-                    MODERATION_IMAGE_URL,
+                    `attachment://${MODERATION_IMAGE_NAME}`,
                 )
                 .setTimestamp();
+
 
         await channel.send({
             embeds: [
                 embed,
             ],
+
+            files: [
+                image,
+            ],
         });
+
 
         await interaction.reply({
             content:
