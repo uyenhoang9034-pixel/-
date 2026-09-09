@@ -7,7 +7,7 @@ export const CULTIVATION_CONFIG = {
     color: '#F3AFC8',
 
     footer:
-      'Usagi Tu Tiên · Tiên đạo bắt đầu từ một niệm.',
+      'Usagi Tu Tiên · Nhất niệm nhập tiên đồ, vạn kiếp cầu trường sinh.',
 
     image:
       'https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/Games/tutien.png',
