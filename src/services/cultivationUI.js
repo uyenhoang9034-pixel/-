@@ -1,15 +1,31 @@
-import { Mutex } from '../utils/mutex.js';
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder,
+  StringSelectMenuBuilder,
+} from 'discord.js';
 
 import {
   CULTIVATION_CONFIG,
-  CULTIVATION_ADVENTURE_EVENTS,
-  CULTIVATION_ADVENTURE_LOCATIONS,
-  CULTIVATION_EVENTS,
-  CULTIVATION_ITEMS,
-  CULTIVATION_REALMS,
-  CULTIVATION_STAGES,
-  SPIRIT_ROOTS,
 } from '../config/cultivationGame.js';
+
+import {
+  getBreakthroughChance,
+  getCultivationItem,
+  getCultivationRequired,
+  getInventoryEntries,
+  getRealmDisplay,
+  getUsableInventoryEntries,
+} from './cultivationService.js';
+
+import {
+  getEquippedEquipment,
+} from './cultivationEquipment.js';
+
+import {
+  getActiveTechnique,
+} from './cultivationTechnique.js';
 
 /**
  * =========================================================
@@ -17,1416 +33,318 @@ import {
  * =========================================================
  */
 
-const PROFILE_PREFIX =
-  'games:cultivation:profile:';
+const SEPARATOR =
+  '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
-const ITEM_EFFECTS = {
-  tu_khi_dan: {
-    cultivationBonus: 0.25,
-  },
+/**
+ * Emoji button cũ.
+ */
 
-  hoi_nguyen_dan: {
-    staminaRestore: 30,
-  },
-
-  pha_canh_dan: {
-    breakthroughBonus: 0.10,
-  },
+const GAME_BUTTON_EMOJI = {
+  id:
+    CULTIVATION_CONFIG
+      .ui
+      .buttonEmojiId,
 };
 
-const USABLE_ITEM_IDS =
-  new Set(
-    Object.keys(
-      ITEM_EFFECTS,
+/**
+ * Emoji button từ V2.6.
+ *
+ * <a:meongg13:1546092721012342804>
+ */
+
+const NEW_BUTTON_EMOJI = {
+  id:
+    '1546092721012342804',
+};
+
+/**
+ * Emoji button hành động / sử dụng.
+ *
+ * <a:meongg3:1546089838128791663>
+ */
+
+const USE_BUTTON_EMOJI = {
+  id:
+    '1546089838128791663',
+};
+
+/**
+ * =========================================================
+ * STYLE
+ * =========================================================
+ */
+
+function applyStyle(
+  embed,
+) {
+  embed.setColor(
+    CULTIVATION_CONFIG
+      .ui
+      .color,
+  );
+
+  embed.setFooter({
+    text:
+      CULTIVATION_CONFIG
+        .ui
+        .footer,
+  });
+
+  if (
+    CULTIVATION_CONFIG
+      .ui
+      .image
+  ) {
+    embed.setImage(
+      CULTIVATION_CONFIG
+        .ui
+        .image,
+    );
+  }
+
+  return embed;
+}
+
+/**
+ * =========================================================
+ * NUMBER HELPERS
+ * =========================================================
+ */
+
+function number(
+  value,
+) {
+  return new Intl.NumberFormat(
+    'vi-VN',
+  ).format(
+    Math.max(
+      0,
+      Math.round(
+        value || 0,
+      ),
     ),
   );
-
-/**
- * =========================================================
- * PHÁP KHÍ EFFECTS
- * =========================================================
- *
- * Không import cultivationEquipment.js
- * để tránh circular import.
- */
-
-function getEquippedEquipmentId(
-  profile,
-) {
-  return (
-    profile.equipment
-      ?.equipped || null
-  );
 }
 
-function getEquipmentCultivationBonus(
-  profile,
+function signedNumber(
+  value,
 ) {
-  return (
-    getEquippedEquipmentId(
-      profile,
-    ) ===
-    'thanh_phong_kiem'
-      ? 0.05
-      : 0
-  );
+  const normalized =
+    Math.round(
+      value || 0,
+    );
+
+  if (
+    normalized > 0
+  ) {
+    return `+${number(
+      normalized,
+    )}`;
+  }
+
+  if (
+    normalized < 0
+  ) {
+    return `-${number(
+      Math.abs(
+        normalized,
+      ),
+    )}`;
+  }
+
+  return '+0';
 }
 
-function getEquipmentSpiritStoneBonus(
-  profile,
+function percent(
+  value,
 ) {
-  return (
-    getEquippedEquipmentId(
-      profile,
-    ) ===
-    'tu_linh_boi'
-      ? 0.10
-      : 0
-  );
+  return `${Math.round(
+    (
+      Number(
+        value,
+      ) || 0
+    ) * 100,
+  )}%`;
 }
 
-function getEquipmentBreakthroughLossReduction(
-  profile,
-) {
-  return (
-    getEquippedEquipmentId(
-      profile,
-    ) ===
-    'huyen_thiet_ho_phu'
-      ? 0.20
-      : 0
-  );
-}
-
-/**
- * =========================================================
- * CÔNG PHÁP EFFECTS
- * =========================================================
- *
- * Không import cultivationTechnique.js
- * để tránh circular import.
- */
-
-function getActiveTechniqueId(
-  profile,
-) {
-  return (
-    profile.techniques
-      ?.active || null
-  );
-}
-
-function getTechniqueCultivationBonus(
-  profile,
-) {
-  return (
-    getActiveTechniqueId(
-      profile,
-    ) ===
-    'thanh_van_kiem_quyet'
-      ? 0.08
-      : 0
-  );
-}
-
-function getTechniqueBreakthroughBonus(
-  profile,
-) {
-  return (
-    getActiveTechniqueId(
-      profile,
-    ) ===
-    'huyen_nguyen_tam_phap'
-      ? 0.05
-      : 0
-  );
-}
-
-function getTechniqueSpiritStoneBonus(
-  profile,
-) {
-  return (
-    getActiveTechniqueId(
-      profile,
-    ) ===
-    'tu_linh_chan_kinh'
-      ? 0.08
-      : 0
-  );
-}
-
-/**
- * =========================================================
- * BASIC HELPERS
- * =========================================================
- */
-
-function getProfileKey(
-  guildId,
-  userId,
-) {
-  return `${PROFILE_PREFIX}${guildId}:${userId}`;
-}
-
-function getGuildProfilePrefix(
-  guildId,
-) {
-  return `${PROFILE_PREFIX}${guildId}:`;
-}
-
-function randomInt(
-  min,
+function progressBar(
+  current,
   max,
-) {
-  return (
-    Math.floor(
-      Math.random() *
-        (max - min + 1),
-    ) + min
-  );
-}
-
-function randomItem(
-  array,
-) {
-  return array[
-    Math.floor(
-      Math.random() *
-        array.length,
-    )
-  ];
-}
-
-function weightedPick(
-  entries,
+  size = 12,
 ) {
   if (
-    !Array.isArray(entries) ||
-    entries.length === 0
+    !max ||
+    max <= 0
   ) {
-    return null;
+    return '░'.repeat(
+      size,
+    );
   }
 
-  const total =
-    entries.reduce(
-      (sum, entry) =>
-        sum +
-        Number(
-          entry.weight || 0,
-        ),
+  const ratio =
+    Math.max(
       0,
-    );
-
-  if (
-    total <= 0
-  ) {
-    return entries[0];
-  }
-
-  let roll =
-    Math.random() * total;
-
-  for (
-    const entry of entries
-  ) {
-    roll -=
-      Number(
-        entry.weight || 0,
-      );
-
-    if (
-      roll <= 0
-    ) {
-      return entry;
-    }
-  }
-
-  return entries[
-    entries.length - 1
-  ];
-}
-
-/**
- * =========================================================
- * PROFILE
- * =========================================================
- */
-
-export function createCultivationProfile(
-  guildId,
-  userId,
-) {
-  const spiritRoot =
-    weightedPick(
-      SPIRIT_ROOTS,
-    );
-
-  return {
-    version: 6,
-
-    guildId,
-    userId,
-
-    realmIndex: 0,
-    stageIndex: 0,
-
-    cultivation: 0,
-    totalCultivation: 0,
-
-    spiritStones: 100,
-
-    stamina:
-      CULTIVATION_CONFIG
-        .gameplay
-        .maxStamina,
-
-    maxStamina:
-      CULTIVATION_CONFIG
-        .gameplay
-        .maxStamina,
-
-    spiritRoot: {
-      id:
-        spiritRoot.id,
-
-      name:
-        spiritRoot.name,
-
-      rarity:
-        spiritRoot.rarity,
-
-      cultivateBonus:
-        spiritRoot
-          .cultivateBonus ||
-        0,
-    },
-
-    /**
-     * =====================================================
-     * TÚI ĐỒ
-     * =====================================================
-     */
-
-    inventory: {},
-
-    /**
-     * =====================================================
-     * PHÁP KHÍ
-     * =====================================================
-     */
-
-    equipment: {
-      owned: {},
-      equipped: null,
-    },
-
-    /**
-     * =====================================================
-     * CÔNG PHÁP
-     * =====================================================
-     */
-
-    techniques: {
-      learned: {},
-      active: null,
-    },
-
-    /**
-     * =====================================================
-     * DƯỢC HIỆU
-     * =====================================================
-     */
-
-    effects: {
-      nextCultivationBonus: 0,
-      nextBreakthroughBonus: 0,
-    },
-
-    /**
-     * =====================================================
-     * COOLDOWN
-     * =====================================================
-     */
-
-    cooldowns: {
-      cultivateAt: 0,
-      adventureAt: 0,
-    },
-
-    /**
-     * =====================================================
-     * STATS
-     * =====================================================
-     */
-
-    stats: {
-      cultivateCount: 0,
-
-      breakthroughSuccess: 0,
-      breakthroughFail: 0,
-
-      fortunes: 0,
-
-      adventureCount: 0,
-      greatFortunes: 0,
-      monsterEncounters: 0,
-
-      itemsFound: 0,
-      itemsUsed: 0,
-
-      alchemyCount: 0,
-      alchemySuccess: 0,
-      alchemyFail: 0,
-
-      forgeCount: 0,
-      forgeSuccess: 0,
-      forgeFail: 0,
-
-      techniquesLearned: 0,
-    },
-
-    createdAt:
-      Date.now(),
-
-    updatedAt:
-      Date.now(),
-  };
-}
-
-/**
- * =========================================================
- * NORMALIZE PROFILE
- * =========================================================
- */
-
-export function normalizeCultivationProfile(
-  raw,
-  guildId,
-  userId,
-) {
-  if (
-    !raw ||
-    typeof raw !==
-      'object'
-  ) {
-    return createCultivationProfile(
-      guildId,
-      userId,
-    );
-  }
-
-  const base =
-    createCultivationProfile(
-      guildId,
-      userId,
-    );
-
-  /**
-   * =====================================================
-   * INVENTORY
-   * =====================================================
-   */
-
-  const inventory = {};
-
-  const rawInventory =
-    raw.inventory &&
-    typeof raw.inventory ===
-      'object' &&
-    !Array.isArray(
-      raw.inventory,
-    )
-      ? raw.inventory
-      : {};
-
-  for (
-    const [
-      itemId,
-      quantity,
-    ] of Object.entries(
-      rawInventory,
-    )
-  ) {
-    const safeQuantity =
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            quantity,
-          ) || 0,
-        ),
-      );
-
-    if (
-      safeQuantity > 0
-    ) {
-      inventory[
-        itemId
-      ] =
-        safeQuantity;
-    }
-  }
-
-  /**
-   * =====================================================
-   * EQUIPMENT
-   * =====================================================
-   */
-
-  const ownedEquipment =
-    {};
-
-  const rawEquipment =
-    raw.equipment?.owned &&
-    typeof raw.equipment
-      .owned ===
-      'object' &&
-    !Array.isArray(
-      raw.equipment.owned,
-    )
-      ? raw.equipment.owned
-      : {};
-
-  for (
-    const [
-      equipmentId,
-      quantity,
-    ] of Object.entries(
-      rawEquipment,
-    )
-  ) {
-    const safeQuantity =
-      Math.max(
-        0,
-        Math.floor(
-          Number(
-            quantity,
-          ) || 0,
-        ),
-      );
-
-    if (
-      safeQuantity > 0
-    ) {
-      ownedEquipment[
-        equipmentId
-      ] =
-        safeQuantity;
-    }
-  }
-
-  const equippedEquipment =
-    typeof raw.equipment
-      ?.equipped ===
-      'string'
-      ? raw.equipment
-          .equipped
-      : null;
-
-  /**
-   * =====================================================
-   * TECHNIQUES
-   * =====================================================
-   */
-
-  const learnedTechniques =
-    {};
-
-  const rawTechniques =
-    raw.techniques?.learned &&
-    typeof raw.techniques
-      .learned ===
-      'object' &&
-    !Array.isArray(
-      raw.techniques.learned,
-    )
-      ? raw.techniques.learned
-      : {};
-
-  for (
-    const [
-      techniqueId,
-      learned,
-    ] of Object.entries(
-      rawTechniques,
-    )
-  ) {
-    if (
-      learned === true
-    ) {
-      learnedTechniques[
-        techniqueId
-      ] =
-        true;
-    }
-  }
-
-  const activeTechnique =
-    typeof raw.techniques
-      ?.active ===
-      'string'
-      ? raw.techniques
-          .active
-      : null;
-
-  return {
-    ...base,
-    ...raw,
-
-    version: 6,
-
-    guildId,
-    userId,
-
-    inventory,
-
-    equipment: {
-      owned:
-        ownedEquipment,
-
-      equipped:
-        equippedEquipment,
-    },
-
-    techniques: {
-      learned:
-        learnedTechniques,
-
-      active:
-        activeTechnique,
-    },
-
-    effects: {
-      ...base.effects,
-      ...(raw.effects || {}),
-    },
-
-    cooldowns: {
-      ...base.cooldowns,
-      ...(raw.cooldowns || {}),
-    },
-
-    stats: {
-      ...base.stats,
-      ...(raw.stats || {}),
-    },
-
-    spiritRoot:
-      raw.spiritRoot ||
-      base.spiritRoot,
-
-    realmIndex:
-      Math.max(
-        0,
-        Math.min(
-          Number(
-            raw.realmIndex,
-          ) || 0,
-
-          CULTIVATION_REALMS
-            .length - 1,
-        ),
-      ),
-
-    stageIndex:
-      Math.max(
-        0,
-        Math.min(
-          Number(
-            raw.stageIndex,
-          ) || 0,
-
-          CULTIVATION_STAGES
-            .length - 1,
-        ),
-      ),
-
-    cultivation:
-      Math.max(
-        0,
-        Number(
-          raw.cultivation,
-        ) || 0,
-      ),
-
-    totalCultivation:
-      Math.max(
-        0,
-        Number(
-          raw.totalCultivation,
-        ) || 0,
-      ),
-
-    spiritStones:
-      Math.max(
-        0,
-        Number(
-          raw.spiritStones,
-        ) || 0,
-      ),
-
-    stamina:
-      Math.max(
-        0,
-        Number(
-          raw.stamina,
-        ) || 0,
-      ),
-
-    maxStamina:
-      Math.max(
+      Math.min(
         1,
-        Number(
-          raw.maxStamina,
-        ) ||
-          CULTIVATION_CONFIG
-            .gameplay
-            .maxStamina,
-      ),
-  };
-}
-
-/**
- * =========================================================
- * GET / SAVE PROFILE
- * =========================================================
- */
-
-export async function getCultivationProfile(
-  client,
-  guildId,
-  userId,
-  {
-    create = true,
-  } = {},
-) {
-  const key =
-    getProfileKey(
-      guildId,
-      userId,
-    );
-
-  const raw =
-    await client.db.get(
-      key,
-      null,
-    );
-
-  if (
-    !raw &&
-    !create
-  ) {
-    return null;
-  }
-
-  const profile =
-    normalizeCultivationProfile(
-      raw,
-      guildId,
-      userId,
-    );
-
-  if (
-    !raw &&
-    create
-  ) {
-    await client.db.set(
-      key,
-      profile,
-    );
-  }
-
-  return profile;
-}
-
-export async function saveCultivationProfile(
-  client,
-  profile,
-) {
-  const data = {
-    ...profile,
-
-    version: 6,
-
-    updatedAt:
-      Date.now(),
-  };
-
-  await client.db.set(
-    getProfileKey(
-      data.guildId,
-      data.userId,
-    ),
-    data,
-  );
-
-  return data;
-}
-
-/**
- * =========================================================
- * INVENTORY
- * =========================================================
- */
-
-export function addInventoryItem(
-  profile,
-  itemId,
-  quantity = 1,
-) {
-  if (
-    !CULTIVATION_ITEMS[
-      itemId
-    ]
-  ) {
-    return false;
-  }
-
-  const safeQuantity =
-    Math.max(
-      1,
-      Math.floor(
-        Number(
-          quantity,
-        ) || 1,
+        current / max,
       ),
     );
 
-  if (
-    !profile.inventory ||
-    typeof profile.inventory !==
-      'object'
-  ) {
-    profile.inventory = {};
-  }
-
-  const current =
-    Math.max(
-      0,
-      Number(
-        profile.inventory[
-          itemId
-        ],
-      ) || 0,
+  const filled =
+    Math.round(
+      ratio *
+        size,
     );
 
-  profile.inventory[
-    itemId
-  ] =
-    current +
-    safeQuantity;
-
-  if (
-    !profile.stats ||
-    typeof profile.stats !==
-      'object'
-  ) {
-    profile.stats = {};
-  }
-
-  profile.stats.itemsFound =
-    Math.max(
-      0,
-      Number(
-        profile.stats.itemsFound,
-      ) || 0,
+  return (
+    '█'.repeat(
+      filled,
     ) +
-    safeQuantity;
-
-  return true;
+    '░'.repeat(
+      size - filled,
+    )
+  );
 }
 
-export function removeInventoryItem(
-  profile,
-  itemId,
-  quantity = 1,
+function duration(
+  ms,
 ) {
-  const current =
+  const seconds =
+    Math.max(
+      0,
+      Math.ceil(
+        ms / 1000,
+      ),
+    );
+
+  const minutes =
+    Math.floor(
+      seconds / 60,
+    );
+
+  const remaining =
+    seconds % 60;
+
+  if (
+    minutes <= 0
+  ) {
+    return `${remaining}s`;
+  }
+
+  if (
+    remaining <= 0
+  ) {
+    return `${minutes}m`;
+  }
+
+  return `${minutes}m ${remaining}s`;
+}
+
+/**
+ * =========================================================
+ * ITEM EMOJI
+ * =========================================================
+ */
+
+function getItemEmoji(
+  item,
+) {
+  if (
+    item?.type ===
+    'herb'
+  ) {
+    return (
+      CULTIVATION_CONFIG
+        .ui
+        .itemEmojis
+        .herb
+    );
+  }
+
+  if (
+    item?.type ===
+    'pill'
+  ) {
+    return (
+      CULTIVATION_CONFIG
+        .ui
+        .itemEmojis
+        .pill
+    );
+  }
+
+  if (
+    item?.type ===
+    'ore'
+  ) {
+    return (
+      CULTIVATION_CONFIG
+        .ui
+        .itemEmojis
+        .ore
+    );
+  }
+
+  return (
+    CULTIVATION_CONFIG
+      .ui
+      .itemEmojis
+      .treasure
+  );
+}
+
+/**
+ * =========================================================
+ * DROP TEXT
+ * =========================================================
+ */
+
+function buildDropText(
+  droppedItem,
+) {
+  if (
+    !droppedItem
+  ) {
+    return null;
+  }
+
+  return [
+    '',
+
+    `${CULTIVATION_CONFIG.ui.itemEmojis.received} **VẬT PHẨM NHẬN ĐƯỢC**`,
+
+    `${getItemEmoji(
+      droppedItem.item,
+    )} **${droppedItem.item.name}** × ${droppedItem.quantity}`,
+
+    `*${droppedItem.item.rarity}*`,
+  ].join(
+    '\n',
+  );
+}
+
+/**
+ * =========================================================
+ * DƯỢC HIỆU
+ * =========================================================
+ */
+
+function buildEffectsText(
+  profile,
+) {
+  const lines = [];
+
+  const cultivationBonus =
     Math.max(
       0,
       Number(
-        profile.inventory?.[
-          itemId
-        ],
+        profile.effects
+          ?.nextCultivationBonus,
       ) || 0,
     );
 
-  const safeQuantity =
-    Math.max(
-      1,
-      Math.floor(
-        Number(
-          quantity,
-        ) || 1,
-      ),
-    );
-
-  if (
-    current <
-    safeQuantity
-  ) {
-    return false;
-  }
-
-  const next =
-    current -
-    safeQuantity;
-
-  if (
-    next <= 0
-  ) {
-    delete profile.inventory[
-      itemId
-    ];
-  } else {
-    profile.inventory[
-      itemId
-    ] =
-      next;
-  }
-
-  return true;
-}
-
-export function getInventoryEntries(
-  profile,
-) {
-  return Object.entries(
-    profile.inventory || {},
-  )
-    .map(
-      ([
-        itemId,
-        quantity,
-      ]) => {
-        const item =
-          CULTIVATION_ITEMS[
-            itemId
-          ];
-
-        if (
-          !item ||
-          quantity <= 0
-        ) {
-          return null;
-        }
-
-        return {
-          ...item,
-          quantity,
-        };
-      },
-    )
-    .filter(Boolean);
-}
-
-export function getUsableInventoryEntries(
-  profile,
-) {
-  return getInventoryEntries(
-    profile,
-  ).filter(
-    (item) =>
-      USABLE_ITEM_IDS.has(
-        item.id,
-      ),
-  );
-}
-
-export function isCultivationItemUsable(
-  itemId,
-) {
-  return USABLE_ITEM_IDS.has(
-    itemId,
-  );
-}
-
-export function getCultivationItem(
-  itemId,
-) {
-  return (
-    CULTIVATION_ITEMS[
-      itemId
-    ] || null
-  );
-}
-
-/**
- * =========================================================
- * DROP
- * =========================================================
- */
-
-function rollAdventureDrop(
-  event,
-) {
-  const dropChance =
-    Number(
-      event.dropChance,
-    ) || 0;
-
-  if (
-    dropChance <= 0 ||
-    Math.random() >
-      dropChance
-  ) {
-    return null;
-  }
-
-  const drop =
-    weightedPick(
-      event.drops || [],
-    );
-
-  if (
-    !drop ||
-    !CULTIVATION_ITEMS[
-      drop.itemId
-    ]
-  ) {
-    return null;
-  }
-
-  const quantity =
-    randomInt(
-      Math.max(
-        1,
-        Number(
-          drop.min,
-        ) || 1,
-      ),
-
-      Math.max(
-        1,
-        Number(
-          drop.max,
-        ) || 1,
-      ),
-    );
-
-  return {
-    item:
-      CULTIVATION_ITEMS[
-        drop.itemId
-      ],
-
-    itemId:
-      drop.itemId,
-
-    quantity,
-  };
-}
-
-/**
- * =========================================================
- * USE ITEM
- * =========================================================
- */
-
-export async function useCultivationItem(
-  client,
-  guildId,
-  userId,
-  itemId,
-) {
-  const lockKey =
-    `cultivation:${guildId}:${userId}`;
-
-  return Mutex.runExclusive(
-    lockKey,
-
-    async () => {
-      const profile =
-        await getCultivationProfile(
-          client,
-          guildId,
-          userId,
-        );
-
-      const item =
-        CULTIVATION_ITEMS[
-          itemId
-        ];
-
-      if (
-        !item ||
-        !USABLE_ITEM_IDS.has(
-          itemId,
-        )
-      ) {
-        return {
-          ok: false,
-          reason:
-            'not_usable',
-          profile,
-          item,
-        };
-      }
-
-      const quantity =
-        Math.max(
-          0,
-          Number(
-            profile.inventory?.[
-              itemId
-            ],
-          ) || 0,
-        );
-
-      if (
-        quantity <= 0
-      ) {
-        return {
-          ok: false,
-          reason:
-            'not_owned',
-          profile,
-          item,
-        };
-      }
-
-      /**
-       * TỤ KHÍ ĐAN
-       */
-
-      if (
-        itemId ===
-        'tu_khi_dan'
-      ) {
-        if (
-          Number(
-            profile.effects
-              ?.nextCultivationBonus,
-          ) > 0
-        ) {
-          return {
-            ok: false,
-            reason:
-              'effect_active',
-            effect:
-              'cultivation',
-            profile,
-            item,
-          };
-        }
-
-        profile.effects
-          .nextCultivationBonus =
-          ITEM_EFFECTS
-            .tu_khi_dan
-            .cultivationBonus;
-
-        removeInventoryItem(
-          profile,
-          itemId,
-          1,
-        );
-
-        profile.stats
-          .itemsUsed += 1;
-
-        const saved =
-          await saveCultivationProfile(
-            client,
-            profile,
-          );
-
-        return {
-          ok: true,
-          type:
-            'cultivation_buff',
-
-          item,
-
-          bonus:
-            ITEM_EFFECTS
-              .tu_khi_dan
-              .cultivationBonus,
-
-          remaining:
-            saved.inventory?.[
-              itemId
-            ] || 0,
-
-          profile:
-            saved,
-        };
-      }
-
-      /**
-       * HỒI NGUYÊN ĐAN
-       */
-
-      if (
-        itemId ===
-        'hoi_nguyen_dan'
-      ) {
-        if (
-          profile.stamina >=
-          profile.maxStamina
-        ) {
-          return {
-            ok: false,
-            reason:
-              'stamina_full',
-            profile,
-            item,
-          };
-        }
-
-        const before =
-          profile.stamina;
-
-        profile.stamina =
-          Math.min(
-            profile.maxStamina,
-
-            profile.stamina +
-              ITEM_EFFECTS
-                .hoi_nguyen_dan
-                .staminaRestore,
-          );
-
-        const restored =
-          profile.stamina -
-          before;
-
-        removeInventoryItem(
-          profile,
-          itemId,
-          1,
-        );
-
-        profile.stats
-          .itemsUsed += 1;
-
-        const saved =
-          await saveCultivationProfile(
-            client,
-            profile,
-          );
-
-        return {
-          ok: true,
-          type:
-            'stamina_restore',
-
-          item,
-
-          before,
-
-          after:
-            saved.stamina,
-
-          restored,
-
-          remaining:
-            saved.inventory?.[
-              itemId
-            ] || 0,
-
-          profile:
-            saved,
-        };
-      }
-
-      /**
-       * PHÁ CẢNH ĐAN
-       */
-
-      if (
-        itemId ===
-        'pha_canh_dan'
-      ) {
-        if (
-          Number(
-            profile.effects
-              ?.nextBreakthroughBonus,
-          ) > 0
-        ) {
-          return {
-            ok: false,
-            reason:
-              'effect_active',
-            effect:
-              'breakthrough',
-            profile,
-            item,
-          };
-        }
-
-        profile.effects
-          .nextBreakthroughBonus =
-          ITEM_EFFECTS
-            .pha_canh_dan
-            .breakthroughBonus;
-
-        removeInventoryItem(
-          profile,
-          itemId,
-          1,
-        );
-
-        profile.stats
-          .itemsUsed += 1;
-
-        const saved =
-          await saveCultivationProfile(
-            client,
-            profile,
-          );
-
-        return {
-          ok: true,
-          type:
-            'breakthrough_buff',
-
-          item,
-
-          bonus:
-            ITEM_EFFECTS
-              .pha_canh_dan
-              .breakthroughBonus,
-
-          remaining:
-            saved.inventory?.[
-              itemId
-            ] || 0,
-
-          profile:
-            saved,
-        };
-      }
-
-      return {
-        ok: false,
-        reason:
-          'not_usable',
-        profile,
-        item,
-      };
-    },
-  );
-}
-
-/**
- * =========================================================
- * REALM HELPERS
- * =========================================================
- */
-
-export function getRealmName(
-  profile,
-) {
-  return (
-    CULTIVATION_REALMS[
-      profile.realmIndex
-    ] ||
-    CULTIVATION_REALMS[0]
-  );
-}
-
-export function getStageName(
-  profile,
-) {
-  return (
-    CULTIVATION_STAGES[
-      profile.stageIndex
-    ] ||
-    CULTIVATION_STAGES[0]
-  );
-}
-
-export function getRealmDisplay(
-  profile,
-) {
-  return `${getRealmName(
-    profile,
-  )} · ${getStageName(
-    profile,
-  )}`;
-}
-
-export function getProgressionIndex(
-  profile,
-) {
-  return (
-    profile.realmIndex *
-      CULTIVATION_STAGES.length +
-    profile.stageIndex
-  );
-}
-
-export function getCultivationRequired(
-  profile,
-) {
-  const step =
-    getProgressionIndex(
-      profile,
-    );
-
-  return Math.round(
-    500 *
-      Math.pow(
-        1.42,
-        step,
-      ),
-  );
-}
-
-export function isMaxRealm(
-  profile,
-) {
-  return (
-    profile.realmIndex >=
-      CULTIVATION_REALMS
-        .length - 1 &&
-    profile.stageIndex >=
-      CULTIVATION_STAGES
-        .length - 1
-  );
-}
-
-/**
- * =========================================================
- * BREAKTHROUGH CHANCE
- * =========================================================
- */
-
-export function getBreakthroughChance(
-  profile,
-) {
-  const step =
-    getProgressionIndex(
-      profile,
-    );
-
-  const base =
-    CULTIVATION_CONFIG
-      .gameplay
-      .breakthroughBaseChance;
-
-  const min =
-    CULTIVATION_CONFIG
-      .gameplay
-      .breakthroughMinChance;
-
-  return Math.max(
-    min,
-    base -
-      step * 0.008,
-  );
-}
-
-export function getEffectiveBreakthroughChance(
-  profile,
-) {
-  const base =
-    getBreakthroughChance(
-      profile,
-    );
-
-  const pillBonus =
+  const breakthroughBonus =
     Math.max(
       0,
       Number(
@@ -1435,56 +353,501 @@ export function getEffectiveBreakthroughChance(
       ) || 0,
     );
 
-  const techniqueBonus =
-    getTechniqueBreakthroughBonus(
-      profile,
+  if (
+    cultivationBonus >
+    0
+  ) {
+    lines.push(
+      `Tụ Khí Đan: **+${percent(
+        cultivationBonus,
+      )} Tu Vi lần kế tiếp**`,
     );
+  }
 
-  return Math.min(
-    0.95,
+  if (
+    breakthroughBonus >
+    0
+  ) {
+    lines.push(
+      `Phá Cảnh Đan: **+${percent(
+        breakthroughBonus,
+      )} Đột Phá lần kế tiếp**`,
+    );
+  }
 
-    base +
-      pillBonus +
-      techniqueBonus,
+  if (
+    lines.length === 0
+  ) {
+    return null;
+  }
+
+  return [
+    SEPARATOR,
+
+    '',
+
+    '<a:trangtrig34:1547237010572582982> **Dược Hiệu**',
+
+    ...lines,
+  ].join(
+    '\n',
   );
 }
 
 /**
  * =========================================================
- * COOLDOWN
+ * DASHBOARD
  * =========================================================
  */
 
-export function getCultivateCooldownRemaining(
+export function buildDashboardEmbed(
+  user,
   profile,
+  {
+    isNew = false,
+  } = {},
 ) {
-  const availableAt =
-    Number(
-      profile.cooldowns
-        ?.cultivateAt,
-    ) || 0;
+  const required =
+    getCultivationRequired(
+      profile,
+    );
 
-  return Math.max(
-    0,
-    availableAt -
-      Date.now(),
+  const realm =
+    getRealmDisplay(
+      profile,
+    );
+
+  const intro =
+    isNew
+      ? [
+          '<a:trangtrig2:1546040703375904801> **THIÊN ĐẠO KHAI MỞ** <a:trangtrig3:1546040818261954610>',
+
+          '',
+
+          `<@${user.id}> đã chính thức bước vào Tiên Lộ.`,
+
+          '',
+
+          `Linh căn thức tỉnh: **${profile.spiritRoot.name}**`,
+
+          `Phẩm chất: **${profile.spiritRoot.rarity}**`,
+
+          '',
+
+          SEPARATOR,
+
+          '',
+        ].join(
+          '\n',
+        )
+      : '';
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        '<a:trangtrig2:1546040703375904801> 𝓣𝓲𝓮̂𝓷 𝓛𝓸̣̂ · 修仙之路 <a:trangtrig3:1546040818261954610>',
+      )
+      .setDescription(
+        [
+          intro,
+
+          `<a:catg11:1546058047393239151> **Đạo Hữu**: <@${user.id}>`,
+
+          `<a:trangtrig43:1547238351869059082> [**境界**] **${realm}**`,
+
+          `<a:trangtrig44:1547238495494348891> [**灵根**] **${profile.spiritRoot.name}**`,
+
+          '',
+
+          '<:trangtri1:1546093044535660644> **Tu Vi**',
+
+          `${progressBar(
+            profile.cultivation,
+            required,
+          )} **${number(
+            profile.cultivation,
+          )} / ${number(
+            required,
+          )}**`,
+
+          '',
+
+          `<a:trangtrig46:1547240249761996812> **Linh Thạch**: ${number(
+            profile.spiritStones,
+          )}`,
+
+          `<a:heartg4:1546068063500369940> **Thể Lực**: ${profile.stamina}/${profile.maxStamina}`,
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          '*Một niệm nhập tiên đồ — từ phàm nhân, từng bước nghịch thiên mà hành.*',
+        ]
+          .filter(
+            Boolean,
+          )
+          .join(
+            '\n',
+          ),
+      ),
   );
 }
 
-export function getAdventureCooldownRemaining(
+/**
+ * =========================================================
+ * DASHBOARD BUTTONS
+ * =========================================================
+ */
+
+export function buildDashboardRows(
+  ownerId,
+) {
+  return [
+    /**
+     * ROW 1
+     */
+
+    new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:cultivate`,
+          )
+          .setLabel(
+            'Tu Luyện',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:breakthrough`,
+          )
+          .setLabel(
+            'Đột Phá',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure`,
+          )
+          .setLabel(
+            'Thám Hiểm',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:inventory`,
+          )
+          .setLabel(
+            'Túi Đồ',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:profile`,
+          )
+          .setLabel(
+            'Hồ Sơ',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+
+    /**
+     * ROW 2
+     */
+
+    new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:leaderboard`,
+          )
+          .setLabel(
+            'Tiên Bảng',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:alchemy`,
+          )
+          .setLabel(
+            'Luyện Đan',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:forge`,
+          )
+          .setLabel(
+            'Luyện Khí',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:equipment`,
+          )
+          .setLabel(
+            'Pháp Khí',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        /**
+         * V2.6
+         */
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:technique`,
+          )
+          .setLabel(
+            'Công Pháp',
+          )
+          .setEmoji(
+            NEW_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+  ];
+}
+
+/**
+ * =========================================================
+ * BACK BUTTON
+ * =========================================================
+ */
+
+export function buildBackRow(
+  ownerId,
+) {
+  return new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(
+          `tutien_action:${ownerId}:dashboard`,
+        )
+        .setLabel(
+          'Quay lại Tiên Lộ',
+        )
+        .setEmoji(
+          GAME_BUTTON_EMOJI,
+        )
+        .setStyle(
+          ButtonStyle.Secondary,
+        ),
+    );
+}
+
+/**
+ * =========================================================
+ * INVENTORY COMPONENTS
+ * =========================================================
+ */
+
+export function buildInventoryRows(
+  ownerId,
   profile,
 ) {
-  const availableAt =
-    Number(
-      profile.cooldowns
-        ?.adventureAt,
-    ) || 0;
+  const usableItems =
+    getUsableInventoryEntries(
+      profile,
+    );
 
-  return Math.max(
-    0,
-    availableAt -
-      Date.now(),
+  const rows = [];
+
+  if (
+    usableItems.length >
+    0
+  ) {
+    const menu =
+      new StringSelectMenuBuilder()
+        .setCustomId(
+          `tutien_inventory_select:${ownerId}`,
+        )
+        .setPlaceholder(
+          'Chọn Đan Dược muốn sử dụng',
+        )
+        .setMinValues(
+          1,
+        )
+        .setMaxValues(
+          1,
+        )
+        .addOptions(
+          usableItems
+            .slice(
+              0,
+              25,
+            )
+            .map(
+              (
+                item,
+              ) => ({
+                label:
+                  item.name,
+
+                value:
+                  item.id,
+
+                description:
+                  `${item.rarity} · Đang có x${item.quantity}`.slice(
+                    0,
+                    100,
+                  ),
+              }),
+            ),
+        );
+
+    rows.push(
+      new ActionRowBuilder()
+        .addComponents(
+          menu,
+        ),
+    );
+  }
+
+  rows.push(
+    buildBackRow(
+      ownerId,
+    ),
   );
+
+  return rows;
+}
+
+export function buildItemDetailRows(
+  ownerId,
+  itemId,
+) {
+  return [
+    new ActionRowBuilder()
+      .addComponents(
+        /**
+         * SỬ DỤNG
+         * giữ emoji meongg3.
+         */
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:use_item:${itemId}`,
+          )
+          .setLabel(
+            'Sử Dụng',
+          )
+          .setEmoji(
+            USE_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:inventory`,
+          )
+          .setLabel(
+            'Quay lại Túi Đồ',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+  ];
+}
+
+export function buildUseItemResultRows(
+  ownerId,
+) {
+  return [
+    new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:inventory`,
+          )
+          .setLabel(
+            'Quay lại Túi Đồ',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:dashboard`,
+          )
+          .setLabel(
+            'Quay lại Tiên Lộ',
+          )
+          .setEmoji(
+            GAME_BUTTON_EMOJI,
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+  ];
 }
 
 /**
@@ -1493,460 +856,202 @@ export function getAdventureCooldownRemaining(
  * =========================================================
  */
 
-export async function cultivate(
-  client,
-  guildId,
-  userId,
+export function buildCultivateEmbed(
+  result,
 ) {
-  const lockKey =
-    `cultivation:${guildId}:${userId}`;
+  /**
+   * Cooldown.
+   */
 
-  return Mutex.runExclusive(
-    lockKey,
+  if (
+    !result.ok &&
+    result.reason ===
+      'cooldown'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> ĐẠO TÂM CHƯA ỔN ĐỊNH',
+        )
+        .setDescription(
+          [
+            '<a:bang2:1546891483250954290> Linh khí trong kinh mạch vẫn chưa hoàn toàn ổn định.',
 
-    async () => {
-      const profile =
-        await getCultivationProfile(
-          client,
-          guildId,
-          userId,
-        );
+            '',
 
-      /**
-       * Cooldown.
-       */
+            SEPARATOR,
 
-      const cooldown =
-        getCultivateCooldownRemaining(
-          profile,
-        );
+            '',
 
-      if (
-        cooldown > 0
-      ) {
-        return {
-          ok: false,
+            `<a:chiikawag13:1541429102668554250> Đạo hữu cần chờ **${duration(
+              result.cooldownRemaining,
+            )}** trước lần tu luyện tiếp theo.`,
+          ].join(
+            '\n',
+          ),
+        ),
+    );
+  }
 
-          reason:
-            'cooldown',
+  /**
+   * Stamina.
+   */
 
-          cooldownRemaining:
-            cooldown,
+  if (
+    !result.ok &&
+    result.reason ===
+      'stamina'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> THỂ LỰC KHÔNG ĐỦ',
+        )
+        .setDescription(
+          [
+            '<a:bang2:1546891483250954290> Đạo hữu đã tiêu hao quá nhiều tinh lực.',
 
-          profile,
-        };
-      }
+            '',
 
-      /**
-       * Stamina.
-       */
+            SEPARATOR,
 
-      const staminaCost =
-        CULTIVATION_CONFIG
-          .gameplay
-          .cultivateStaminaCost;
+            '',
 
-      if (
-        profile.stamina <
-        staminaCost
-      ) {
-        return {
-          ok: false,
+            '<a:chiikawag13:1541429102668554250> Hiện tại chưa đủ Thể Lực để tiếp tục tu luyện.',
+          ].join(
+            '\n',
+          ),
+        ),
+    );
+  }
 
-          reason:
-            'stamina',
+  /**
+   * =====================================================
+   * ĐAN DƯỢC
+   * =====================================================
+   */
 
-          profile,
-        };
-      }
+  const pillLine =
+    result
+      .cultivationPillBonus >
+    0
+      ? `<a:trangtrig34:1547237010572582982> Tụ Khí Đan: **+${number(
+          result.cultivationPillBonus,
+        )} Tu Vi**`
+      : null;
 
-      /**
-       * Event.
-       */
+  /**
+   * =====================================================
+   * PHÁP KHÍ
+   * =====================================================
+   */
 
-      const event =
-        weightedPick(
-          CULTIVATION_EVENTS,
-        );
+  const equipmentCultivationLine =
+    result
+      .equipmentCultivationBonus >
+    0
+      ? `<a:trangtrig36:1547237577231302737> Thanh Phong Kiếm: **+${number(
+          result.equipmentCultivationBonus,
+        )} Tu Vi**`
+      : null;
 
-      const baseCultivation =
-        randomInt(
-          CULTIVATION_CONFIG
-            .gameplay
-            .cultivateBaseMin,
+  const equipmentStoneLine =
+    result
+      .equipmentStoneBonus >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Bội: **+${number(
+          result.equipmentStoneBonus,
+        )} Linh Thạch**`
+      : null;
 
-          CULTIVATION_CONFIG
-            .gameplay
-            .cultivateBaseMax,
-        );
+  /**
+   * =====================================================
+   * CÔNG PHÁP
+   * =====================================================
+   */
 
-      const baseStones =
-        randomInt(
-          CULTIVATION_CONFIG
-            .gameplay
-            .spiritStoneMin,
+  const techniqueCultivationLine =
+    result
+      .techniqueCultivationBonus >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Thanh Vân Kiếm Quyết: **+${number(
+          result.techniqueCultivationBonus,
+        )} Tu Vi**`
+      : null;
 
-          CULTIVATION_CONFIG
-            .gameplay
-            .spiritStoneMax,
-        );
+  const techniqueStoneLine =
+    result
+      .techniqueStoneBonus >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Chân Kinh: **+${number(
+          result.techniqueStoneBonus,
+        )} Linh Thạch**`
+      : null;
 
-      const rootBonus =
-        Number(
-          profile.spiritRoot
-            ?.cultivateBonus,
-        ) || 0;
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        result.event.title,
+      )
+      .setDescription(
+        [
+          result.event.text,
 
-      let cultivationDelta =
-        Math.round(
-          baseCultivation *
-            event
-              .cultivationMultiplier *
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          `**Tu Vi**: ${signedNumber(
+            result.cultivationDelta,
+          )}`,
+
+          `**Linh Thạch**: ${signedNumber(
+            result.stoneDelta,
+          )}`,
+
+          `**Thể Lực**: -${result.staminaCost}`,
+
+          equipmentCultivationLine,
+
+          techniqueCultivationLine,
+
+          equipmentStoneLine,
+
+          techniqueStoneLine,
+
+          pillLine,
+
+          '',
+
+          `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+            result.profile,
+          )}**`,
+
+          `${progressBar(
+            result.profile
+              .cultivation,
+
+            result.required,
+          )} ${number(
+            result.profile
+              .cultivation,
+          )} / ${number(
+            result.required,
+          )}`,
+        ]
+          .filter(
             (
-              1 +
-              rootBonus
-            ),
-        );
-
-      /**
-       * =====================================================
-       * LINH THẠCH CƠ BẢN
-       * =====================================================
-       */
-
-      const baseStoneReward =
-        Math.max(
-          0,
-          Math.round(
-            baseStones *
-              event
-                .stoneMultiplier,
+              line,
+            ) =>
+              line !==
+              null,
+          )
+          .join(
+            '\n',
           ),
-        );
-
-      /**
-       * Pháp Khí:
-       * Tụ Linh Bội +10%.
-       */
-
-      const equipmentStonePercent =
-        getEquipmentSpiritStoneBonus(
-          profile,
-        );
-
-      const equipmentStoneBonus =
-        equipmentStonePercent >
-          0 &&
-        baseStoneReward >
-          0
-          ? Math.max(
-              1,
-
-              Math.round(
-                baseStoneReward *
-                  equipmentStonePercent,
-              ),
-            )
-          : 0;
-
-      /**
-       * Công Pháp:
-       * Tụ Linh Chân Kinh +8%.
-       */
-
-      const techniqueStonePercent =
-        getTechniqueSpiritStoneBonus(
-          profile,
-        );
-
-      const techniqueStoneBonus =
-        techniqueStonePercent >
-          0 &&
-        baseStoneReward >
-          0
-          ? Math.max(
-              1,
-
-              Math.round(
-                baseStoneReward *
-                  techniqueStonePercent,
-              ),
-            )
-          : 0;
-
-      const stoneDelta =
-        baseStoneReward +
-        equipmentStoneBonus +
-        techniqueStoneBonus;
-
-      /**
-       * Event âm.
-       */
-
-      if (
-        cultivationDelta < 0
-      ) {
-        cultivationDelta =
-          -Math.min(
-            profile.cultivation,
-
-            Math.abs(
-              cultivationDelta,
-            ),
-          );
-      }
-
-      /**
-       * =====================================================
-       * PHÁP KHÍ — THANH PHONG KIẾM
-       * =====================================================
-       */
-
-      const equipmentCultivationPercent =
-        getEquipmentCultivationBonus(
-          profile,
-        );
-
-      const equipmentCultivationBonus =
-        equipmentCultivationPercent >
-          0 &&
-        cultivationDelta > 0
-          ? Math.max(
-              1,
-
-              Math.round(
-                cultivationDelta *
-                  equipmentCultivationPercent,
-              ),
-            )
-          : 0;
-
-      /**
-       * =====================================================
-       * CÔNG PHÁP — THANH VÂN KIẾM QUYẾT
-       * =====================================================
-       */
-
-      const techniqueCultivationPercent =
-        getTechniqueCultivationBonus(
-          profile,
-        );
-
-      const techniqueCultivationBonus =
-        techniqueCultivationPercent >
-          0 &&
-        cultivationDelta > 0
-          ? Math.max(
-              1,
-
-              Math.round(
-                cultivationDelta *
-                  techniqueCultivationPercent,
-              ),
-            )
-          : 0;
-
-      /**
-       * Base Tu Vi.
-       */
-
-      profile.cultivation =
-        Math.max(
-          0,
-
-          profile.cultivation +
-            cultivationDelta,
-        );
-
-      profile.totalCultivation +=
-        Math.max(
-          0,
-          cultivationDelta,
-        );
-
-      /**
-       * Pháp Khí bonus.
-       */
-
-      if (
-        equipmentCultivationBonus >
-        0
-      ) {
-        profile.cultivation +=
-          equipmentCultivationBonus;
-
-        profile.totalCultivation +=
-          equipmentCultivationBonus;
-      }
-
-      /**
-       * Công Pháp bonus.
-       */
-
-      if (
-        techniqueCultivationBonus >
-        0
-      ) {
-        profile.cultivation +=
-          techniqueCultivationBonus;
-
-        profile.totalCultivation +=
-          techniqueCultivationBonus;
-      }
-
-      /**
-       * =====================================================
-       * TỤ KHÍ ĐAN
-       * =====================================================
-       */
-
-      const pillPercent =
-        Math.max(
-          0,
-
-          Number(
-            profile.effects
-              ?.nextCultivationBonus,
-          ) || 0,
-        );
-
-      let cultivationPillBonus =
-        0;
-
-      if (
-        pillPercent > 0
-      ) {
-        if (
-          cultivationDelta >
-          0
-        ) {
-          cultivationPillBonus =
-            Math.max(
-              1,
-
-              Math.round(
-                cultivationDelta *
-                  pillPercent,
-              ),
-            );
-
-          profile.cultivation +=
-            cultivationPillBonus;
-
-          profile.totalCultivation +=
-            cultivationPillBonus;
-        }
-
-        /**
-         * Dược hiệu chỉ dùng 1 lần.
-         */
-
-        profile.effects
-          .nextCultivationBonus =
-          0;
-      }
-
-      /**
-       * =====================================================
-       * APPLY OTHER VALUES
-       * =====================================================
-       */
-
-      profile.spiritStones +=
-        stoneDelta;
-
-      profile.stamina =
-        Math.max(
-          0,
-
-          profile.stamina -
-            staminaCost,
-        );
-
-      profile.cooldowns
-        .cultivateAt =
-        Date.now() +
-        CULTIVATION_CONFIG
-          .gameplay
-          .cultivateCooldownMs;
-
-      profile.stats
-        .cultivateCount +=
-        1;
-
-      if (
-        event.id ===
-          'minor_fortune' ||
-        event.id ===
-          'great_fortune'
-      ) {
-        profile.stats
-          .fortunes += 1;
-      }
-
-      const saved =
-        await saveCultivationProfile(
-          client,
-          profile,
-        );
-
-      return {
-        ok: true,
-
-        event,
-
-        profile:
-          saved,
-
-        /**
-         * Base.
-         */
-
-        cultivationDelta,
-
-        stoneDelta,
-
-        staminaCost,
-
-        /**
-         * Pháp Khí.
-         */
-
-        equipmentCultivationBonus,
-
-        equipmentCultivationPercent,
-
-        equipmentStoneBonus,
-
-        equipmentStonePercent,
-
-        /**
-         * Công Pháp.
-         */
-
-        techniqueCultivationBonus,
-
-        techniqueCultivationPercent,
-
-        techniqueStoneBonus,
-
-        techniqueStonePercent,
-
-        /**
-         * Đan.
-         */
-
-        cultivationPillBonus,
-
-        cultivationPillPercent:
-          pillPercent,
-
-        required:
-          getCultivationRequired(
-            saved,
-          ),
-      };
-    },
+      ),
   );
 }
 
@@ -1956,289 +1061,553 @@ export async function cultivate(
  * =========================================================
  */
 
-export async function adventure(
-  client,
-  guildId,
-  userId,
+export function buildAdventureEmbed(
+  result,
 ) {
-  const lockKey =
-    `cultivation:${guildId}:${userId}`;
+  /**
+   * Cooldown.
+   */
 
-  return Mutex.runExclusive(
-    lockKey,
+  if (
+    !result.ok &&
+    result.reason ===
+      'cooldown'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> HÀNH TRÌNH CHƯA THỂ TIẾP TỤC',
+        )
+        .setDescription(
+          [
+            '<a:bang2:1546891483250954290> Đạo hữu vừa trải qua một chuyến thám hiểm, cần thời gian chỉnh đốn.',
 
-    async () => {
-      const profile =
-        await getCultivationProfile(
-          client,
-          guildId,
-          userId,
-        );
+            '',
 
-      const cooldown =
-        getAdventureCooldownRemaining(
-          profile,
-        );
+            SEPARATOR,
 
-      if (
-        cooldown > 0
-      ) {
-        return {
-          ok: false,
+            '',
 
-          reason:
-            'cooldown',
-
-          cooldownRemaining:
-            cooldown,
-
-          profile,
-        };
-      }
-
-      const location =
-        randomItem(
-          CULTIVATION_ADVENTURE_LOCATIONS,
-        );
-
-      const event =
-        weightedPick(
-          CULTIVATION_ADVENTURE_EVENTS,
-        );
-
-      let cultivationDelta =
-        0;
-
-      let stoneDelta =
-        0;
-
-      let equipmentStoneBonus =
-        0;
-
-      let techniqueStoneBonus =
-        0;
-
-      let droppedItem =
-        null;
-
-      /**
-       * =====================================================
-       * YÊU THÚ
-       * =====================================================
-       */
-
-      if (
-        event.type ===
-        'monster'
-      ) {
-        const requestedLoss =
-          randomInt(
-            event.cultivationLossMin,
-            event.cultivationLossMax,
-          );
-
-        const actualLoss =
-          Math.min(
-            profile.cultivation,
-            requestedLoss,
-          );
-
-        cultivationDelta =
-          -actualLoss;
-
-        profile.cultivation =
-          Math.max(
-            0,
-
-            profile.cultivation -
-              actualLoss,
-          );
-
-        profile.stats
-          .monsterEncounters +=
-          1;
-      } else {
-        /**
-         * ===================================================
-         * NORMAL ADVENTURE
-         * ===================================================
-         */
-
-        cultivationDelta =
-          randomInt(
-            event.cultivationMin ||
-              0,
-
-            event.cultivationMax ||
-              0,
-          );
-
-        const baseStoneReward =
-          randomInt(
-            event.stonesMin ||
-              0,
-
-            event.stonesMax ||
-              0,
-          );
-
-        /**
-         * Pháp Khí:
-         * Tụ Linh Bội.
-         */
-
-        const equipmentStonePercent =
-          getEquipmentSpiritStoneBonus(
-            profile,
-          );
-
-        if (
-          equipmentStonePercent >
-            0 &&
-          baseStoneReward > 0
-        ) {
-          equipmentStoneBonus =
-            Math.max(
-              1,
-
-              Math.round(
-                baseStoneReward *
-                  equipmentStonePercent,
-              ),
-            );
-        }
-
-        /**
-         * Công Pháp:
-         * Tụ Linh Chân Kinh.
-         */
-
-        const techniqueStonePercent =
-          getTechniqueSpiritStoneBonus(
-            profile,
-          );
-
-        if (
-          techniqueStonePercent >
-            0 &&
-          baseStoneReward > 0
-        ) {
-          techniqueStoneBonus =
-            Math.max(
-              1,
-
-              Math.round(
-                baseStoneReward *
-                  techniqueStonePercent,
-              ),
-            );
-        }
-
-        stoneDelta =
-          baseStoneReward +
-          equipmentStoneBonus +
-          techniqueStoneBonus;
-
-        const rootBonus =
-          Number(
-            profile.spiritRoot
-              ?.cultivateBonus,
-          ) || 0;
-
-        cultivationDelta =
-          Math.round(
-            cultivationDelta *
-              (
-                1 +
-                rootBonus
-              ),
-          );
-
-        profile.cultivation +=
-          cultivationDelta;
-
-        profile.totalCultivation +=
-          cultivationDelta;
-
-        profile.spiritStones +=
-          stoneDelta;
-
-        if (
-          event.type ===
-          'great_fortune'
-        ) {
-          profile.stats
-            .greatFortunes +=
-            1;
-
-          profile.stats
-            .fortunes +=
-            1;
-        }
-
-        /**
-         * Drop item.
-         */
-
-        droppedItem =
-          rollAdventureDrop(
-            event,
-          );
-
-        if (
-          droppedItem
-        ) {
-          addInventoryItem(
-            profile,
-            droppedItem.itemId,
-            droppedItem.quantity,
-          );
-        }
-      }
-
-      profile.stats
-        .adventureCount +=
-        1;
-
-      profile.cooldowns
-        .adventureAt =
-        Date.now() +
-        CULTIVATION_CONFIG
-          .gameplay
-          .adventureCooldownMs;
-
-      const saved =
-        await saveCultivationProfile(
-          client,
-          profile,
-        );
-
-      return {
-        ok: true,
-
-        location,
-
-        event,
-
-        cultivationDelta,
-
-        stoneDelta,
-
-        equipmentStoneBonus,
-
-        techniqueStoneBonus,
-
-        droppedItem,
-
-        profile:
-          saved,
-
-        required:
-          getCultivationRequired(
-            saved,
+            `<a:chiikawag13:1541429102668554250> Đạo hữu cần chờ **${duration(
+              result.cooldownRemaining,
+            )}** trước lần Thám Hiểm tiếp theo.`,
+          ].join(
+            '\n',
           ),
-      };
-    },
+        ),
+    );
+  }
+
+  /**
+   * Monster.
+   */
+
+  if (
+    result.event.type ===
+    'monster'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> YÊU THÚ TẬP KÍCH',
+        )
+        .setDescription(
+          [
+            `<a:catg10:1546031290803945594> ${result.event.text}`,
+
+            '',
+
+            SEPARATOR,
+
+            '',
+
+            `**Tu Vi**: ${signedNumber(
+              result.cultivationDelta,
+            )}`,
+
+            '**Linh Thạch**: +0',
+
+            '',
+
+            `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+              result.profile,
+            )}**`,
+
+            `${progressBar(
+              result.profile
+                .cultivation,
+
+              result.required,
+            )} ${number(
+              result.profile
+                .cultivation,
+            )} / ${number(
+              result.required,
+            )}`,
+
+            '',
+
+            '*Tiên lộ vốn không phải nơi bình yên.*',
+          ].join(
+            '\n',
+          ),
+        ),
+    );
+  }
+
+  const dropText =
+    buildDropText(
+      result.droppedItem,
+    );
+
+  /**
+   * Nếu có Tụ Linh Bội.
+   */
+
+  const equipmentStoneLine =
+    result
+      .equipmentStoneBonus >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Bội: **+${number(
+          result.equipmentStoneBonus,
+        )} Linh Thạch**`
+      : null;
+
+  /**
+   * Nếu có Tụ Linh Chân Kinh.
+   */
+
+  const techniqueStoneLine =
+    result
+      .techniqueStoneBonus >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Chân Kinh: **+${number(
+          result.techniqueStoneBonus,
+        )} Linh Thạch**`
+      : null;
+
+  const title =
+    result.event.type ===
+      'great_fortune'
+      ? result.event.title
+      : `<a:trangtrig2:1546040703375904801> ${result.location.name} <a:trangtrig3:1546040818261954610>`;
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        title,
+      )
+      .setDescription(
+        [
+          result.event.text,
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          `**Tu Vi**: ${signedNumber(
+            result.cultivationDelta,
+          )}`,
+
+          `**Linh Thạch**: ${signedNumber(
+            result.stoneDelta,
+          )}`,
+
+          equipmentStoneLine,
+
+          techniqueStoneLine,
+
+          dropText,
+
+          '',
+
+          `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+            result.profile,
+          )}**`,
+
+          `${progressBar(
+            result.profile
+              .cultivation,
+
+            result.required,
+          )} ${number(
+            result.profile
+              .cultivation,
+          )} / ${number(
+            result.required,
+          )}`,
+        ]
+          .filter(
+            (
+              line,
+            ) =>
+              line !==
+              null,
+          )
+          .join(
+            '\n',
+          ),
+      ),
+  );
+}
+
+/**
+ * =========================================================
+ * TÚI ĐỒ
+ * =========================================================
+ */
+
+export function buildInventoryEmbed(
+  user,
+  profile,
+) {
+  const entries =
+    getInventoryEntries(
+      profile,
+    );
+
+  const itemLines =
+    entries.map(
+      (
+        item,
+      ) =>
+        [
+          `${getItemEmoji(
+            item,
+          )} **${item.name}** × **${item.quantity}**`,
+
+          `*${item.rarity} · ${item.description}*`,
+        ].join(
+          '\n',
+        ),
+    );
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        '<a:trangtrig2:1546040703375904801> **TÚI ĐỒ TIÊN NHÂN** <a:trangtrig3:1546040818261954610>',
+      )
+      .setDescription(
+        [
+          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          itemLines.length >
+          0
+            ? itemLines.join(
+                '\n\n',
+              )
+            : '*Túi Đồ hiện đang trống.*',
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          `<a:trangtrig45:1547239010190237819> Vật Phẩm Đã Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
+        ].join(
+          '\n',
+        ),
+      ),
+  );
+}
+
+/**
+ * =========================================================
+ * ITEM DETAIL
+ * =========================================================
+ */
+
+export function buildItemDetailEmbed(
+  user,
+  profile,
+  itemId,
+) {
+  const item =
+    getCultivationItem(
+      itemId,
+    );
+
+  if (!item) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> KHÔNG TÌM THẤY VẬT PHẨM',
+        )
+        .setDescription(
+          'Vật phẩm này không còn tồn tại trong Túi Đồ.',
+        ),
+    );
+  }
+
+  const quantity =
+    profile.inventory?.[
+      itemId
+    ] || 0;
+
+  let effectText =
+    'Vật phẩm này hiện chưa thể sử dụng.';
+
+  if (
+    itemId ===
+    'tu_khi_dan'
+  ) {
+    effectText =
+      'Tăng **+25% Tu Vi** cho lần Tu Luyện kế tiếp.';
+  }
+
+  if (
+    itemId ===
+    'hoi_nguyen_dan'
+  ) {
+    effectText =
+      'Khôi phục tối đa **30 Thể Lực**.';
+  }
+
+  if (
+    itemId ===
+    'pha_canh_dan'
+  ) {
+    effectText =
+      'Tăng **+10%** tỷ lệ cho lần Đột Phá kế tiếp, tối đa **95%**.';
+  }
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        `${getItemEmoji(
+          item,
+        )} ${item.name.toUpperCase()}`,
+      )
+      .setDescription(
+        [
+          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+
+          '',
+
+          `**Phẩm Chất**: ${item.rarity}`,
+
+          `**Số Lượng**: ${quantity}`,
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          effectText,
+
+          '',
+
+          `*${item.description}*`,
+        ].join(
+          '\n',
+        ),
+      ),
+  );
+}
+
+/**
+ * =========================================================
+ * USE ITEM RESULT
+ * =========================================================
+ */
+
+export function buildUseItemResultEmbed(
+  result,
+) {
+  if (
+    !result.ok
+  ) {
+    /**
+     * Full stamina.
+     */
+
+    if (
+      result.reason ===
+      'stamina_full'
+    ) {
+      return applyStyle(
+        new EmbedBuilder()
+          .setTitle(
+            '<a:angryg1:1541441195144773652> KHÔNG THỂ SỬ DỤNG',
+          )
+          .setDescription(
+            [
+              '<a:bang2:1546891483250954290> Thể Lực của đạo hữu hiện đã viên mãn.',
+
+              '',
+
+              SEPARATOR,
+
+              '',
+
+              '*Không cần lãng phí Hồi Nguyên Đan lúc này.*',
+            ].join(
+              '\n',
+            ),
+          ),
+      );
+    }
+
+    /**
+     * Effect active.
+     */
+
+    if (
+      result.reason ===
+      'effect_active'
+    ) {
+      return applyStyle(
+        new EmbedBuilder()
+          .setTitle(
+            '<a:angryg1:1541441195144773652> DƯỢC HIỆU VẪN CÒN',
+          )
+          .setDescription(
+            [
+              '<a:bang2:1546891483250954290> Dược lực của viên đan trước vẫn chưa được tiêu hao.',
+
+              '',
+
+              SEPARATOR,
+
+              '',
+
+              '*Hãy sử dụng hết dược hiệu hiện tại trước khi dùng thêm.*',
+            ].join(
+              '\n',
+            ),
+          ),
+      );
+    }
+
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:angryg1:1541441195144773652> KHÔNG THỂ SỬ DỤNG',
+        )
+        .setDescription(
+          'Đạo hữu không còn vật phẩm này hoặc vật phẩm hiện chưa thể sử dụng.',
+        ),
+    );
+  }
+
+  /**
+   * Tụ Khí Đan.
+   */
+
+  if (
+    result.type ===
+    'cultivation_buff'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:trangtrig34:1547237010572582982> TỤ KHÍ ĐAN',
+        )
+        .setDescription(
+          [
+            'Đạo hữu nuốt xuống một viên Tụ Khí Đan, dược lực lập tức hóa thành linh khí tinh thuần.',
+
+            '',
+
+            SEPARATOR,
+
+            '',
+
+            `<:trangtri1:1546093044535660644> Hiệu quả Tu Luyện kế tiếp: **+${percent(
+              result.bonus,
+            )} Tu Vi**`,
+
+            `<a:trangtrig34:1547237010572582982> Còn lại: **${result.remaining}**`,
+
+            '',
+
+            '*Dược lực sẽ tiêu hao sau lần Tu Luyện tiếp theo.*',
+          ].join(
+            '\n',
+          ),
+        ),
+    );
+  }
+
+  /**
+   * Hồi Nguyên Đan.
+   */
+
+  if (
+    result.type ===
+    'stamina_restore'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:trangtrig34:1547237010572582982> HỒI NGUYÊN ĐAN',
+        )
+        .setDescription(
+          [
+            'Dược lực lan khắp kinh mạch, tinh khí dần khôi phục.',
+
+            '',
+
+            SEPARATOR,
+
+            '',
+
+            `<a:heartg4:1546068063500369940> Thể Lực: **${result.before} → ${result.after}**`,
+
+            `<a:trangtrig34:1547237010572582982> Còn lại: **${result.remaining}**`,
+
+            '',
+
+            '*Khí huyết đã ổn định hơn.*',
+          ].join(
+            '\n',
+          ),
+        ),
+    );
+  }
+
+  /**
+   * Phá Cảnh Đan.
+   */
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        '<a:trangtrig34:1547237010572582982> PHÁ CẢNH ĐAN',
+      )
+      .setDescription(
+        [
+          'Dược lực xung kích bình cảnh, đạo cơ dần trở nên thông suốt.',
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          `<a:trangtrig19:1546068350030053406> Lần Đột Phá kế tiếp: **+${percent(
+            result.bonus,
+          )}**`,
+
+          `<a:trangtrig34:1547237010572582982> Còn lại: **${result.remaining}**`,
+
+          '',
+
+          '*Dược lực sẽ tiêu hao sau lần Đột Phá tiếp theo.*',
+        ].join(
+          '\n',
+        ),
+      ),
   );
 }
 
@@ -2248,396 +1617,433 @@ export async function adventure(
  * =========================================================
  */
 
-export async function breakthrough(
-  client,
-  guildId,
-  userId,
+export function buildBreakthroughEmbed(
+  result,
 ) {
-  const lockKey =
-    `cultivation:${guildId}:${userId}`;
+  /**
+   * Max realm.
+   */
 
-  return Mutex.runExclusive(
-    lockKey,
-
-    async () => {
-      const profile =
-        await getCultivationProfile(
-          client,
-          guildId,
-          userId,
-        );
-
-      /**
-       * Max realm.
-       */
-
-      if (
-        isMaxRealm(
-          profile,
+  if (
+    !result.ok &&
+    result.reason ===
+      'max_realm'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:trangtrig2:1546040703375904801> ĐẠO TẬN CỬU TIÊU <a:trangtrig3:1546040818261954610>',
         )
-      ) {
-        return {
-          ok: false,
+        .setDescription(
+          'Đạo hữu đã đứng tại cảnh giới cao nhất hiện có của Tiên Lộ.',
+        ),
+    );
+  }
 
-          reason:
-            'max_realm',
+  /**
+   * Chưa đủ Tu Vi.
+   */
 
-          profile,
-        };
-      }
+  if (
+    !result.ok &&
+    result.reason ===
+      'not_ready'
+  ) {
+    const missing =
+      Math.max(
+        0,
 
-      const required =
-        getCultivationRequired(
-          profile,
-        );
+        result.required -
+          result.profile
+            .cultivation,
+      );
 
-      /**
-       * Chưa đủ Tu Vi.
-       */
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:trangtrig45:1547239010190237819> BÌNH CẢNH CHƯA MỞ <a:trangtrig45:1547239010190237819>',
+        )
+        .setDescription(
+          [
+            `<a:trangtrig6:1546043036390260756> Cảnh giới hiện tại: **${getRealmDisplay(
+              result.profile,
+            )}**`,
 
-      if (
-        profile.cultivation <
-        required
-      ) {
-        return {
-          ok: false,
+            `<a:trangtrig6:1546043036390260756> Tu Vi: **${number(
+              result.profile
+                .cultivation,
+            )}**`,
 
-          reason:
-            'not_ready',
+            `<a:trangtrig6:1546043036390260756> Thiếu: **${number(
+              missing,
+            )}**`,
 
-          required,
+            '',
 
-          profile,
-        };
-      }
-
-      const baseChance =
-        getBreakthroughChance(
-          profile,
-        );
-
-      /**
-       * Phá Cảnh Đan.
-       */
-
-      const breakthroughPillBonus =
-        Math.max(
-          0,
-
-          Number(
-            profile.effects
-              ?.nextBreakthroughBonus,
-          ) || 0,
-        );
-
-      /**
-       * Huyền Nguyên Tâm Pháp.
-       */
-
-      const techniqueBreakthroughBonus =
-        getTechniqueBreakthroughBonus(
-          profile,
-        );
-
-      /**
-       * Max 95%.
-       */
-
-      const chance =
-        Math.min(
-          0.95,
-
-          baseChance +
-            breakthroughPillBonus +
-            techniqueBreakthroughBonus,
-        );
-
-      const oldRealm =
-        getRealmDisplay(
-          profile,
-        );
-
-      /**
-       * Chỉ tiêu hao Phá Cảnh Đan
-       * khi thực sự bắt đầu phá cảnh.
-       */
-
-      if (
-        breakthroughPillBonus >
-        0
-      ) {
-        profile.effects
-          .nextBreakthroughBonus =
-          0;
-      }
-
-      const success =
-        Math.random() <
-        chance;
-
-      /**
-       * =====================================================
-       * SUCCESS
-       * =====================================================
-       */
-
-      if (
-        success
-      ) {
-        profile.cultivation -=
-          required;
-
-        if (
-          profile.stageIndex <
-          CULTIVATION_STAGES
-            .length - 1
-        ) {
-          profile.stageIndex +=
-            1;
-        } else {
-          profile.stageIndex =
-            0;
-
-          profile.realmIndex +=
-            1;
-        }
-
-        profile.stats
-          .breakthroughSuccess +=
-          1;
-
-        const saved =
-          await saveCultivationProfile(
-            client,
-            profile,
-          );
-
-        return {
-          ok: true,
-
-          success: true,
-
-          chance,
-
-          baseChance,
-
-          breakthroughPillBonus,
-
-          techniqueBreakthroughBonus,
-
-          oldRealm,
-
-          newRealm:
-            getRealmDisplay(
-              saved,
-            ),
-
-          profile:
-            saved,
-        };
-      }
-
-      /**
-       * =====================================================
-       * FAIL
-       * =====================================================
-       */
-
-      const originalLoss =
-        Math.max(
-          1,
-
-          Math.round(
-            required *
-              CULTIVATION_CONFIG
-                .gameplay
-                .breakthroughFailureLossPercent,
+            '<:chiikawa4:1541429063392956516> *Tiếp tục tu luyện để chạm tới bình cảnh.*',
+          ].join(
+            '\n',
           ),
-        );
+        ),
+    );
+  }
 
-      /**
-       * Huyền Thiết Hộ Phù.
-       */
+  const chance =
+    Math.round(
+      result.chance *
+        100,
+    );
 
-      const equipmentLossReduction =
-        getEquipmentBreakthroughLossReduction(
-          profile,
-        );
+  /**
+   * Phá Cảnh Đan.
+   */
 
-      const equipmentLossSaved =
-        equipmentLossReduction >
-        0
-          ? Math.max(
-              1,
+  const pillLine =
+    result
+      .breakthroughPillBonus >
+    0
+      ? `<a:trangtrig34:1547237010572582982> Phá Cảnh Đan: **+${percent(
+          result.breakthroughPillBonus,
+        )}**`
+      : null;
 
-              Math.round(
-                originalLoss *
-                  equipmentLossReduction,
-              ),
+  /**
+   * Huyền Nguyên Tâm Pháp.
+   */
+
+  const techniqueLine =
+    result
+      .techniqueBreakthroughBonus >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Huyền Nguyên Tâm Pháp: **+${percent(
+          result.techniqueBreakthroughBonus,
+        )}**`
+      : null;
+
+  /**
+   * Success.
+   */
+
+  if (
+    result.success
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setTitle(
+          '<a:trangtrig2:1546040703375904801> PHÁ CẢNH THÀNH CÔNG <a:trangtrig3:1546040818261954610>',
+        )
+        .setDescription(
+          [
+            'Thiên địa linh khí chấn động, đạo cơ viên mãn.',
+
+            '',
+
+            SEPARATOR,
+
+            '',
+
+            `**${result.oldRealm}**`,
+
+            '↓',
+
+            `**${result.newRealm}**`,
+
+            '',
+
+            `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
+
+            techniqueLine,
+
+            pillLine,
+          ]
+            .filter(
+              (
+                line,
+              ) =>
+                line !==
+                null,
             )
-          : 0;
+            .join(
+              '\n',
+            ),
+        ),
+    );
+  }
 
-      const loss =
-        Math.max(
-          1,
+  /**
+   * Huyền Thiết Hộ Phù.
+   */
 
-          originalLoss -
-            equipmentLossSaved,
-        );
+  const equipmentLossLine =
+    result
+      .equipmentLossSaved >
+    0
+      ? `<a:trangtrig18:1546068102817775626> Huyền Thiết Hộ Phù: **Giảm ${number(
+          result.equipmentLossSaved,
+        )} Tu Vi hao tổn**`
+      : null;
 
-      profile.cultivation =
-        Math.max(
-          0,
+  /**
+   * Fail.
+   */
 
-          profile.cultivation -
-            loss,
-        );
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        '<a:angryg1:1541441195144773652> ĐỘT PHÁ THẤT BẠI',
+      )
+      .setDescription(
+        [
+          'Thiên uy giáng xuống, linh lực nhất thời tan loạn.',
 
-      profile.stats
-        .breakthroughFail +=
-        1;
+          '',
 
-      const saved =
-        await saveCultivationProfile(
-          client,
-          profile,
-        );
+          SEPARATOR,
 
-      return {
-        ok: true,
+          '',
 
-        success: false,
+          `<a:trangtrig43:1547238351869059082> Cảnh Giới: **${result.oldRealm}**`,
 
-        chance,
+          `<:trangtri1:1546093044535660644> Tu Vi Hao Tổn: **-${number(
+            result.loss,
+          )}**`,
 
-        baseChance,
+          equipmentLossLine,
 
-        breakthroughPillBonus,
+          `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
 
-        techniqueBreakthroughBonus,
+          techniqueLine,
 
-        loss,
+          pillLine,
 
-        originalLoss,
+          '',
 
-        equipmentLossReduction,
-
-        equipmentLossSaved,
-
-        oldRealm,
-
-        profile:
-          saved,
-      };
-    },
+          '*Chỉnh tức đạo tâm rồi hãy thử lại.*',
+        ]
+          .filter(
+            (
+              line,
+            ) =>
+              line !==
+              null,
+          )
+          .join(
+            '\n',
+          ),
+      ),
   );
 }
 
 /**
  * =========================================================
- * LEADERBOARD
+ * HỒ SƠ
  * =========================================================
  */
 
-export async function getCultivationLeaderboard(
-  client,
-  guildId,
-  limit = 10,
+export function buildProfileEmbed(
+  user,
+  profile,
 ) {
-  const prefix =
-    getGuildProfilePrefix(
-      guildId,
-    );
-
-  const keys =
-    await client.db.list(
-      prefix,
-    );
-
-  if (
-    !Array.isArray(keys) ||
-    keys.length === 0
-  ) {
-    return [];
-  }
-
-  const entries = [];
-
-  for (
-    const key of keys
-  ) {
-    const userId =
-      key.slice(
-        prefix.length,
-      );
-
-    if (!userId) {
-      continue;
-    }
-
-    const profile =
-      await getCultivationProfile(
-        client,
-        guildId,
-        userId,
-        {
-          create: false,
-        },
-      );
-
-    if (!profile) {
-      continue;
-    }
-
-    entries.push({
-      userId,
-
+  const required =
+    getCultivationRequired(
       profile,
+    );
 
-      progressionIndex:
-        getProgressionIndex(
-          profile,
-        ),
-    });
-  }
+  const baseChance =
+    Math.round(
+      getBreakthroughChance(
+        profile,
+      ) * 100,
+    );
 
-  entries.sort(
-    (a, b) => {
-      if (
-        b.progressionIndex !==
-        a.progressionIndex
-      ) {
-        return (
-          b.progressionIndex -
-          a.progressionIndex
-        );
-      }
+  const effects =
+    buildEffectsText(
+      profile,
+    );
 
-      if (
-        b.profile
-          .cultivation !==
-        a.profile
-          .cultivation
-      ) {
-        return (
-          b.profile
-            .cultivation -
-          a.profile
-            .cultivation
-        );
-      }
+  /**
+   * Pháp Khí.
+   */
 
-      return (
-        b.profile
-          .totalCultivation -
-        a.profile
-          .totalCultivation
-      );
-    },
+  const equippedEquipment =
+    getEquippedEquipment(
+      profile,
+    );
+
+  const equipmentLine =
+    equippedEquipment
+      ? `${equippedEquipment.emoji} Pháp Khí: **${equippedEquipment.name}**`
+      : '<a:trangtrig18:1546068102817775626> Pháp Khí: **Chưa Trang Bị**';
+
+  /**
+   * Công Pháp.
+   */
+
+  const activeTechnique =
+    getActiveTechnique(
+      profile,
+    );
+
+  const techniqueLine =
+    activeTechnique
+      ? `${activeTechnique.emoji} Công Pháp: **${activeTechnique.name}**`
+      : '<a:trangtrig18:1546068102817775626> Công Pháp: **Chưa Tu Luyện**';
+
+  /**
+   * Nếu đang tu Huyền Nguyên Tâm Pháp,
+   * Hồ Sơ sẽ hiện tỷ lệ cơ bản + bonus.
+   */
+
+  const techniqueBreakthroughBonus =
+    activeTechnique
+      ?.effectType ===
+      'breakthrough_bonus'
+      ? Math.round(
+          activeTechnique
+            .effectValue *
+            100,
+        )
+      : 0;
+
+  const profileChance =
+    Math.min(
+      95,
+
+      baseChance +
+        techniqueBreakthroughBonus,
+    );
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        '<a:trangtrig2:1546040703375904801> HỒ SƠ TIÊN NHÂN <a:trangtrig3:1546040818261954610>',
+      )
+      .setDescription(
+        [
+          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+
+          `<a:trangtrig43:1547238351869059082> Cảnh Giới: **${getRealmDisplay(
+            profile,
+          )}**`,
+
+          `<a:trangtrig44:1547238495494348891> Linh Căn: **${profile.spiritRoot.name}**`,
+
+          `<a:trangtrig31:1546905996893626440> Phẩm Chất: **${profile.spiritRoot.rarity}**`,
+
+          equipmentLine,
+
+          techniqueLine,
+
+          '',
+
+          `<:trangtri1:1546093044535660644> Tu Vi: **${number(
+            profile.cultivation,
+          )} / ${number(
+            required,
+          )}**`,
+
+          `<a:trangtrig46:1547240249761996812> Linh Thạch: **${number(
+            profile.spiritStones,
+          )}**`,
+
+          `<a:heartg4:1546068063500369940> Thể Lực: **${profile.stamina} / ${profile.maxStamina}**`,
+
+          `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${profileChance}%**`,
+
+          effects,
+
+          '',
+
+          SEPARATOR,
+
+          '',
+
+          `<a:trangtrig45:1547239010190237819> Tu Luyện: **${profile.stats.cultivateCount} lần**`,
+
+          `<a:trangtrig45:1547239010190237819> Kỳ Ngộ: **${profile.stats.fortunes} lần**`,
+
+          `<a:trangtrig45:1547239010190237819> Thám Hiểm: **${profile.stats.adventureCount} lần**`,
+
+          `<a:trangtrig45:1547239010190237819> Đại Cơ Duyên: **${profile.stats.greatFortunes} lần**`,
+
+          `<a:trangtrig45:1547239010190237819> Vật Phẩm Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
+
+          `<a:trangtrig45:1547239010190237819> Công Pháp Lĩnh Ngộ: **${profile.stats.techniquesLearned || 0}**`,
+
+          `<a:trangtrig45:1547239010190237819> Đột Phá Thành Công: **${profile.stats.breakthroughSuccess}**`,
+
+          `<a:trangtrig45:1547239010190237819> Đột Phá Thất Bại: **${profile.stats.breakthroughFail}**`,
+        ]
+          .filter(
+            (
+              line,
+            ) =>
+              line !==
+              null,
+          )
+          .join(
+            '\n',
+          ),
+      ),
   );
+}
 
-  return entries.slice(
-    0,
-    limit,
+/**
+ * =========================================================
+ * TIÊN BẢNG
+ * =========================================================
+ */
+
+export function buildLeaderboardEmbed(
+  entries,
+  guild,
+) {
+  const lines =
+    entries.map(
+      (
+        entry,
+        index,
+      ) => {
+        const member =
+          guild
+            ?.members
+            ?.cache
+            ?.get(
+              entry.userId,
+            );
+
+        const name =
+          member
+            ?.displayName ||
+          `<@${entry.userId}>`;
+
+        return [
+          `<a:trangtrig32:1546906170994856026>${index + 1} · **${name}**`,
+
+          `<a:animeg3:1546040346717331477> **${getRealmDisplay(
+            entry.profile,
+          )}** <a:trangtrig29:1546385117478527016> **${number(
+            entry.profile
+              .cultivation,
+          )}** Tu Vi`,
+        ].join(
+          '\n',
+        );
+      },
+    );
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setTitle(
+        '<a:animeg2:1546040159886114846> 𝓣𝓲𝓮̂𝓷 𝓑𝓪̉𝓷𝓰 <a:animeg2:1546040159886114846>',
+      )
+      .setDescription(
+        lines.length >
+        0
+          ? lines.join(
+              '\n\n',
+            )
+          : '<a:animeg3:1546040346717331477> Tiên Bảng hiện chưa lưu danh bất kỳ đạo hữu nào.',
+      ),
   );
 }
