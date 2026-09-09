@@ -11,6 +11,12 @@ import {
   SPIRIT_ROOTS,
 } from '../config/cultivationGame.js';
 
+/**
+ * =========================================================
+ * CONSTANTS
+ * =========================================================
+ */
+
 const PROFILE_PREFIX =
   'games:cultivation:profile:';
 
@@ -37,10 +43,10 @@ const USABLE_ITEM_IDS =
 
 /**
  * =========================================================
- * EQUIPMENT EFFECTS
+ * PHÁP KHÍ EFFECTS
  * =========================================================
  *
- * Không import cultivationEquipment.js tại đây
+ * Không import cultivationEquipment.js
  * để tránh circular import.
  */
 
@@ -91,6 +97,69 @@ function getEquipmentBreakthroughLossReduction(
       : 0
   );
 }
+
+/**
+ * =========================================================
+ * CÔNG PHÁP EFFECTS
+ * =========================================================
+ *
+ * Không import cultivationTechnique.js
+ * để tránh circular import.
+ */
+
+function getActiveTechniqueId(
+  profile,
+) {
+  return (
+    profile.techniques
+      ?.active || null
+  );
+}
+
+function getTechniqueCultivationBonus(
+  profile,
+) {
+  return (
+    getActiveTechniqueId(
+      profile,
+    ) ===
+    'thanh_van_kiem_quyet'
+      ? 0.08
+      : 0
+  );
+}
+
+function getTechniqueBreakthroughBonus(
+  profile,
+) {
+  return (
+    getActiveTechniqueId(
+      profile,
+    ) ===
+    'huyen_nguyen_tam_phap'
+      ? 0.05
+      : 0
+  );
+}
+
+function getTechniqueSpiritStoneBonus(
+  profile,
+) {
+  return (
+    getActiveTechniqueId(
+      profile,
+    ) ===
+    'tu_linh_chan_kinh'
+      ? 0.08
+      : 0
+  );
+}
+
+/**
+ * =========================================================
+ * BASIC HELPERS
+ * =========================================================
+ */
 
 function getProfileKey(
   guildId,
@@ -193,7 +262,7 @@ export function createCultivationProfile(
     );
 
   return {
-    version: 5,
+    version: 6,
 
     guildId,
     userId,
@@ -232,21 +301,18 @@ export function createCultivationProfile(
         0,
     },
 
+    /**
+     * =====================================================
+     * TÚI ĐỒ
+     * =====================================================
+     */
+
     inventory: {},
 
     /**
      * =====================================================
      * PHÁP KHÍ
      * =====================================================
-     *
-     * owned:
-     * {
-     *   thanh_phong_kiem: 1,
-     *   ...
-     * }
-     *
-     * equipped:
-     * id Pháp Khí đang trang bị.
      */
 
     equipment: {
@@ -255,7 +321,20 @@ export function createCultivationProfile(
     },
 
     /**
-     * Dược hiệu chỉ có tác dụng 1 lần.
+     * =====================================================
+     * CÔNG PHÁP
+     * =====================================================
+     */
+
+    techniques: {
+      learned: {},
+      active: null,
+    },
+
+    /**
+     * =====================================================
+     * DƯỢC HIỆU
+     * =====================================================
      */
 
     effects: {
@@ -263,10 +342,22 @@ export function createCultivationProfile(
       nextBreakthroughBonus: 0,
     },
 
+    /**
+     * =====================================================
+     * COOLDOWN
+     * =====================================================
+     */
+
     cooldowns: {
       cultivateAt: 0,
       adventureAt: 0,
     },
+
+    /**
+     * =====================================================
+     * STATS
+     * =====================================================
+     */
 
     stats: {
       cultivateCount: 0,
@@ -283,21 +374,15 @@ export function createCultivationProfile(
       itemsFound: 0,
       itemsUsed: 0,
 
-      /**
-       * Luyện Đan
-       */
-
       alchemyCount: 0,
       alchemySuccess: 0,
       alchemyFail: 0,
 
-      /**
-       * Luyện Khí
-       */
-
       forgeCount: 0,
       forgeSuccess: 0,
       forgeFail: 0,
+
+      techniquesLearned: 0,
     },
 
     createdAt:
@@ -307,6 +392,12 @@ export function createCultivationProfile(
       Date.now(),
   };
 }
+
+/**
+ * =========================================================
+ * NORMALIZE PROFILE
+ * =========================================================
+ */
 
 export function normalizeCultivationProfile(
   raw,
@@ -336,6 +427,8 @@ export function normalizeCultivationProfile(
    * =====================================================
    */
 
+  const inventory = {};
+
   const rawInventory =
     raw.inventory &&
     typeof raw.inventory ===
@@ -346,8 +439,6 @@ export function normalizeCultivationProfile(
       ? raw.inventory
       : {};
 
-  const inventory = {};
-
   for (
     const [
       itemId,
@@ -356,7 +447,7 @@ export function normalizeCultivationProfile(
       rawInventory,
     )
   ) {
-    const normalizedQuantity =
+    const safeQuantity =
       Math.max(
         0,
         Math.floor(
@@ -367,11 +458,12 @@ export function normalizeCultivationProfile(
       );
 
     if (
-      normalizedQuantity >
-      0
+      safeQuantity > 0
     ) {
-      inventory[itemId] =
-        normalizedQuantity;
+      inventory[
+        itemId
+      ] =
+        safeQuantity;
     }
   }
 
@@ -381,7 +473,10 @@ export function normalizeCultivationProfile(
    * =====================================================
    */
 
-  const rawOwnedEquipment =
+  const ownedEquipment =
+    {};
+
+  const rawEquipment =
     raw.equipment?.owned &&
     typeof raw.equipment
       .owned ===
@@ -392,14 +487,12 @@ export function normalizeCultivationProfile(
       ? raw.equipment.owned
       : {};
 
-  const ownedEquipment = {};
-
   for (
     const [
       equipmentId,
       quantity,
     ] of Object.entries(
-      rawOwnedEquipment,
+      rawEquipment,
     )
   ) {
     const safeQuantity =
@@ -422,7 +515,7 @@ export function normalizeCultivationProfile(
     }
   }
 
-  const equipped =
+  const equippedEquipment =
     typeof raw.equipment
       ?.equipped ===
       'string'
@@ -430,11 +523,57 @@ export function normalizeCultivationProfile(
           .equipped
       : null;
 
+  /**
+   * =====================================================
+   * TECHNIQUES
+   * =====================================================
+   */
+
+  const learnedTechniques =
+    {};
+
+  const rawTechniques =
+    raw.techniques?.learned &&
+    typeof raw.techniques
+      .learned ===
+      'object' &&
+    !Array.isArray(
+      raw.techniques.learned,
+    )
+      ? raw.techniques.learned
+      : {};
+
+  for (
+    const [
+      techniqueId,
+      learned,
+    ] of Object.entries(
+      rawTechniques,
+    )
+  ) {
+    if (
+      learned === true
+    ) {
+      learnedTechniques[
+        techniqueId
+      ] =
+        true;
+    }
+  }
+
+  const activeTechnique =
+    typeof raw.techniques
+      ?.active ===
+      'string'
+      ? raw.techniques
+          .active
+      : null;
+
   return {
     ...base,
     ...raw,
 
-    version: 5,
+    version: 6,
 
     guildId,
     userId,
@@ -445,7 +584,16 @@ export function normalizeCultivationProfile(
       owned:
         ownedEquipment,
 
-      equipped,
+      equipped:
+        equippedEquipment,
+    },
+
+    techniques: {
+      learned:
+        learnedTechniques,
+
+      active:
+        activeTechnique,
     },
 
     effects: {
@@ -475,8 +623,8 @@ export function normalizeCultivationProfile(
             raw.realmIndex,
           ) || 0,
 
-          CULTIVATION_REALMS.length -
-            1,
+          CULTIVATION_REALMS
+            .length - 1,
         ),
       ),
 
@@ -488,8 +636,8 @@ export function normalizeCultivationProfile(
             raw.stageIndex,
           ) || 0,
 
-          CULTIVATION_STAGES.length -
-            1,
+          CULTIVATION_STAGES
+            .length - 1,
         ),
       ),
 
@@ -537,6 +685,12 @@ export function normalizeCultivationProfile(
       ),
   };
 }
+
+/**
+ * =========================================================
+ * GET / SAVE PROFILE
+ * =========================================================
+ */
 
 export async function getCultivationProfile(
   client,
@@ -592,7 +746,7 @@ export async function saveCultivationProfile(
   const data = {
     ...profile,
 
-    version: 5,
+    version: 6,
 
     updatedAt:
       Date.now(),
@@ -646,9 +800,7 @@ export function addInventoryItem(
     profile.inventory = {};
   }
 
-  profile.inventory[
-    itemId
-  ] =
+  const current =
     Math.max(
       0,
       Number(
@@ -656,7 +808,12 @@ export function addInventoryItem(
           itemId
         ],
       ) || 0,
-    ) +
+    );
+
+  profile.inventory[
+    itemId
+  ] =
+    current +
     safeQuantity;
 
   if (
@@ -724,7 +881,8 @@ export function removeInventoryItem(
   } else {
     profile.inventory[
       itemId
-    ] = next;
+    ] =
+      next;
   }
 
   return true;
@@ -733,11 +891,8 @@ export function removeInventoryItem(
 export function getInventoryEntries(
   profile,
 ) {
-  const inventory =
-    profile.inventory || {};
-
   return Object.entries(
-    inventory,
+    profile.inventory || {},
   )
     .map(
       ([
@@ -795,6 +950,12 @@ export function getCultivationItem(
     ] || null
   );
 }
+
+/**
+ * =========================================================
+ * DROP
+ * =========================================================
+ */
 
 function rollAdventureDrop(
   event,
@@ -1019,6 +1180,7 @@ export async function useCultivationItem(
         profile.stamina =
           Math.min(
             profile.maxStamina,
+
             profile.stamina +
               ITEM_EFFECTS
                 .hoi_nguyen_dan
@@ -1052,6 +1214,7 @@ export async function useCultivationItem(
           item,
 
           before,
+
           after:
             saved.stamina,
 
@@ -1148,7 +1311,7 @@ export async function useCultivationItem(
 
 /**
  * =========================================================
- * REALM
+ * REALM HELPERS
  * =========================================================
  */
 
@@ -1216,13 +1379,19 @@ export function isMaxRealm(
 ) {
   return (
     profile.realmIndex >=
-      CULTIVATION_REALMS.length -
-        1 &&
+      CULTIVATION_REALMS
+        .length - 1 &&
     profile.stageIndex >=
-      CULTIVATION_STAGES.length -
-        1
+      CULTIVATION_STAGES
+        .length - 1
   );
 }
+
+/**
+ * =========================================================
+ * BREAKTHROUGH CHANCE
+ * =========================================================
+ */
 
 export function getBreakthroughChance(
   profile,
@@ -1257,7 +1426,7 @@ export function getEffectiveBreakthroughChance(
       profile,
     );
 
-  const bonus =
+  const pillBonus =
     Math.max(
       0,
       Number(
@@ -1266,9 +1435,17 @@ export function getEffectiveBreakthroughChance(
       ) || 0,
     );
 
+  const techniqueBonus =
+    getTechniqueBreakthroughBonus(
+      profile,
+    );
+
   return Math.min(
     0.95,
-    base + bonus,
+
+    base +
+      pillBonus +
+      techniqueBonus,
   );
 }
 
@@ -1335,6 +1512,10 @@ export async function cultivate(
           userId,
         );
 
+      /**
+       * Cooldown.
+       */
+
       const cooldown =
         getCultivateCooldownRemaining(
           profile,
@@ -1356,6 +1537,10 @@ export async function cultivate(
         };
       }
 
+      /**
+       * Stamina.
+       */
+
       const staminaCost =
         CULTIVATION_CONFIG
           .gameplay
@@ -1374,6 +1559,10 @@ export async function cultivate(
           profile,
         };
       }
+
+      /**
+       * Event.
+       */
 
       const event =
         weightedPick(
@@ -1404,8 +1593,7 @@ export async function cultivate(
 
       const rootBonus =
         Number(
-          profile
-            .spiritRoot
+          profile.spiritRoot
             ?.cultivateBonus,
         ) || 0;
 
@@ -1414,8 +1602,10 @@ export async function cultivate(
           baseCultivation *
             event
               .cultivationMultiplier *
-            (1 +
-              rootBonus),
+            (
+              1 +
+              rootBonus
+            ),
         );
 
       /**
@@ -1424,7 +1614,7 @@ export async function cultivate(
        * =====================================================
        */
 
-      let stoneDelta =
+      const baseStoneReward =
         Math.max(
           0,
           Math.round(
@@ -1435,11 +1625,8 @@ export async function cultivate(
         );
 
       /**
-       * =====================================================
-       * TỤ LINH BỘI
-       * =====================================================
-       *
-       * +10% Linh Thạch nhận được.
+       * Pháp Khí:
+       * Tụ Linh Bội +10%.
        */
 
       const equipmentStonePercent =
@@ -1447,39 +1634,62 @@ export async function cultivate(
           profile,
         );
 
-      let equipmentStoneBonus =
-        0;
-
-      if (
+      const equipmentStoneBonus =
         equipmentStonePercent >
           0 &&
-        stoneDelta > 0
-      ) {
-        equipmentStoneBonus =
-          Math.max(
-            1,
-            Math.round(
-              stoneDelta *
-                equipmentStonePercent,
-            ),
-          );
+        baseStoneReward >
+          0
+          ? Math.max(
+              1,
 
-        stoneDelta +=
-          equipmentStoneBonus;
-      }
+              Math.round(
+                baseStoneReward *
+                  equipmentStonePercent,
+              ),
+            )
+          : 0;
 
       /**
-       * Nếu gặp event mất Tu Vi,
-       * không cho mất quá số đang có.
+       * Công Pháp:
+       * Tụ Linh Chân Kinh +8%.
+       */
+
+      const techniqueStonePercent =
+        getTechniqueSpiritStoneBonus(
+          profile,
+        );
+
+      const techniqueStoneBonus =
+        techniqueStonePercent >
+          0 &&
+        baseStoneReward >
+          0
+          ? Math.max(
+              1,
+
+              Math.round(
+                baseStoneReward *
+                  techniqueStonePercent,
+              ),
+            )
+          : 0;
+
+      const stoneDelta =
+        baseStoneReward +
+        equipmentStoneBonus +
+        techniqueStoneBonus;
+
+      /**
+       * Event âm.
        */
 
       if (
-        cultivationDelta <
-        0
+        cultivationDelta < 0
       ) {
         cultivationDelta =
           -Math.min(
             profile.cultivation,
+
             Math.abs(
               cultivationDelta,
             ),
@@ -1488,13 +1698,8 @@ export async function cultivate(
 
       /**
        * =====================================================
-       * THANH PHONG KIẾM
+       * PHÁP KHÍ — THANH PHONG KIẾM
        * =====================================================
-       *
-       * +5% Tu Vi khi Tu Luyện.
-       *
-       * Chỉ kích hoạt khi lần Tu Luyện
-       * thực sự nhận Tu Vi.
        */
 
       const equipmentCultivationPercent =
@@ -1502,27 +1707,53 @@ export async function cultivate(
           profile,
         );
 
-      let equipmentCultivationBonus =
-        0;
-
-      if (
+      const equipmentCultivationBonus =
         equipmentCultivationPercent >
           0 &&
         cultivationDelta > 0
-      ) {
-        equipmentCultivationBonus =
-          Math.max(
-            1,
-            Math.round(
-              cultivationDelta *
-                equipmentCultivationPercent,
-            ),
-          );
-      }
+          ? Math.max(
+              1,
+
+              Math.round(
+                cultivationDelta *
+                  equipmentCultivationPercent,
+              ),
+            )
+          : 0;
+
+      /**
+       * =====================================================
+       * CÔNG PHÁP — THANH VÂN KIẾM QUYẾT
+       * =====================================================
+       */
+
+      const techniqueCultivationPercent =
+        getTechniqueCultivationBonus(
+          profile,
+        );
+
+      const techniqueCultivationBonus =
+        techniqueCultivationPercent >
+          0 &&
+        cultivationDelta > 0
+          ? Math.max(
+              1,
+
+              Math.round(
+                cultivationDelta *
+                  techniqueCultivationPercent,
+              ),
+            )
+          : 0;
+
+      /**
+       * Base Tu Vi.
+       */
 
       profile.cultivation =
         Math.max(
           0,
+
           profile.cultivation +
             cultivationDelta,
         );
@@ -1534,7 +1765,7 @@ export async function cultivate(
         );
 
       /**
-       * Cộng bonus Thanh Phong Kiếm.
+       * Pháp Khí bonus.
        */
 
       if (
@@ -1549,6 +1780,21 @@ export async function cultivate(
       }
 
       /**
+       * Công Pháp bonus.
+       */
+
+      if (
+        techniqueCultivationBonus >
+        0
+      ) {
+        profile.cultivation +=
+          techniqueCultivationBonus;
+
+        profile.totalCultivation +=
+          techniqueCultivationBonus;
+      }
+
+      /**
        * =====================================================
        * TỤ KHÍ ĐAN
        * =====================================================
@@ -1557,6 +1803,7 @@ export async function cultivate(
       const pillPercent =
         Math.max(
           0,
+
           Number(
             profile.effects
               ?.nextCultivationBonus,
@@ -1576,6 +1823,7 @@ export async function cultivate(
           cultivationPillBonus =
             Math.max(
               1,
+
               Math.round(
                 cultivationDelta *
                   pillPercent,
@@ -1590,8 +1838,7 @@ export async function cultivate(
         }
 
         /**
-         * Tiêu hao dược hiệu sau
-         * lần Tu Luyện kế tiếp.
+         * Dược hiệu chỉ dùng 1 lần.
          */
 
         profile.effects
@@ -1599,12 +1846,19 @@ export async function cultivate(
           0;
       }
 
+      /**
+       * =====================================================
+       * APPLY OTHER VALUES
+       * =====================================================
+       */
+
       profile.spiritStones +=
         stoneDelta;
 
       profile.stamina =
         Math.max(
           0,
+
           profile.stamina -
             staminaCost,
         );
@@ -1617,7 +1871,8 @@ export async function cultivate(
           .cultivateCooldownMs;
 
       profile.stats
-        .cultivateCount += 1;
+        .cultivateCount +=
+        1;
 
       if (
         event.id ===
@@ -1643,24 +1898,48 @@ export async function cultivate(
         profile:
           saved,
 
+        /**
+         * Base.
+         */
+
         cultivationDelta,
+
+        stoneDelta,
+
+        staminaCost,
+
+        /**
+         * Pháp Khí.
+         */
 
         equipmentCultivationBonus,
 
         equipmentCultivationPercent,
 
-        cultivationPillBonus,
-
-        cultivationPillPercent:
-          pillPercent,
-
-        stoneDelta,
-
         equipmentStoneBonus,
 
         equipmentStonePercent,
 
-        staminaCost,
+        /**
+         * Công Pháp.
+         */
+
+        techniqueCultivationBonus,
+
+        techniqueCultivationPercent,
+
+        techniqueStoneBonus,
+
+        techniqueStonePercent,
+
+        /**
+         * Đan.
+         */
+
+        cultivationPillBonus,
+
+        cultivationPillPercent:
+          pillPercent,
 
         required:
           getCultivationRequired(
@@ -1736,8 +2015,17 @@ export async function adventure(
       let equipmentStoneBonus =
         0;
 
+      let techniqueStoneBonus =
+        0;
+
       let droppedItem =
         null;
+
+      /**
+       * =====================================================
+       * YÊU THÚ
+       * =====================================================
+       */
 
       if (
         event.type ===
@@ -1761,6 +2049,7 @@ export async function adventure(
         profile.cultivation =
           Math.max(
             0,
+
             profile.cultivation -
               actualLoss,
           );
@@ -1769,6 +2058,12 @@ export async function adventure(
           .monsterEncounters +=
           1;
       } else {
+        /**
+         * ===================================================
+         * NORMAL ADVENTURE
+         * ===================================================
+         */
+
         cultivationDelta =
           randomInt(
             event.cultivationMin ||
@@ -1778,7 +2073,7 @@ export async function adventure(
               0,
           );
 
-        stoneDelta =
+        const baseStoneReward =
           randomInt(
             event.stonesMin ||
               0,
@@ -1788,9 +2083,8 @@ export async function adventure(
           );
 
         /**
-         * ===================================================
-         * TỤ LINH BỘI
-         * ===================================================
+         * Pháp Khí:
+         * Tụ Linh Bội.
          */
 
         const equipmentStonePercent =
@@ -1801,33 +2095,63 @@ export async function adventure(
         if (
           equipmentStonePercent >
             0 &&
-          stoneDelta > 0
+          baseStoneReward > 0
         ) {
           equipmentStoneBonus =
             Math.max(
               1,
+
               Math.round(
-                stoneDelta *
+                baseStoneReward *
                   equipmentStonePercent,
               ),
             );
-
-          stoneDelta +=
-            equipmentStoneBonus;
         }
+
+        /**
+         * Công Pháp:
+         * Tụ Linh Chân Kinh.
+         */
+
+        const techniqueStonePercent =
+          getTechniqueSpiritStoneBonus(
+            profile,
+          );
+
+        if (
+          techniqueStonePercent >
+            0 &&
+          baseStoneReward > 0
+        ) {
+          techniqueStoneBonus =
+            Math.max(
+              1,
+
+              Math.round(
+                baseStoneReward *
+                  techniqueStonePercent,
+              ),
+            );
+        }
+
+        stoneDelta =
+          baseStoneReward +
+          equipmentStoneBonus +
+          techniqueStoneBonus;
 
         const rootBonus =
           Number(
-            profile
-              .spiritRoot
+            profile.spiritRoot
               ?.cultivateBonus,
           ) || 0;
 
         cultivationDelta =
           Math.round(
             cultivationDelta *
-              (1 +
-                rootBonus),
+              (
+                1 +
+                rootBonus
+              ),
           );
 
         profile.cultivation +=
@@ -1848,8 +2172,13 @@ export async function adventure(
             1;
 
           profile.stats
-            .fortunes += 1;
+            .fortunes +=
+            1;
         }
+
+        /**
+         * Drop item.
+         */
 
         droppedItem =
           rollAdventureDrop(
@@ -1888,12 +2217,16 @@ export async function adventure(
         ok: true,
 
         location,
+
         event,
 
         cultivationDelta,
+
         stoneDelta,
 
         equipmentStoneBonus,
+
+        techniqueStoneBonus,
 
         droppedItem,
 
@@ -1934,6 +2267,10 @@ export async function breakthrough(
           userId,
         );
 
+      /**
+       * Max realm.
+       */
+
       if (
         isMaxRealm(
           profile,
@@ -1953,6 +2290,10 @@ export async function breakthrough(
         getCultivationRequired(
           profile,
         );
+
+      /**
+       * Chưa đủ Tu Vi.
+       */
 
       if (
         profile.cultivation <
@@ -1975,20 +2316,40 @@ export async function breakthrough(
           profile,
         );
 
+      /**
+       * Phá Cảnh Đan.
+       */
+
       const breakthroughPillBonus =
         Math.max(
           0,
+
           Number(
             profile.effects
               ?.nextBreakthroughBonus,
           ) || 0,
         );
 
+      /**
+       * Huyền Nguyên Tâm Pháp.
+       */
+
+      const techniqueBreakthroughBonus =
+        getTechniqueBreakthroughBonus(
+          profile,
+        );
+
+      /**
+       * Max 95%.
+       */
+
       const chance =
         Math.min(
           0.95,
+
           baseChance +
-            breakthroughPillBonus,
+            breakthroughPillBonus +
+            techniqueBreakthroughBonus,
         );
 
       const oldRealm =
@@ -1998,7 +2359,7 @@ export async function breakthrough(
 
       /**
        * Chỉ tiêu hao Phá Cảnh Đan
-       * khi thực sự bắt đầu Đột Phá.
+       * khi thực sự bắt đầu phá cảnh.
        */
 
       if (
@@ -2016,7 +2377,7 @@ export async function breakthrough(
 
       /**
        * =====================================================
-       * ĐỘT PHÁ THÀNH CÔNG
+       * SUCCESS
        * =====================================================
        */
 
@@ -2028,8 +2389,8 @@ export async function breakthrough(
 
         if (
           profile.stageIndex <
-          CULTIVATION_STAGES.length -
-            1
+          CULTIVATION_STAGES
+            .length - 1
         ) {
           profile.stageIndex +=
             1;
@@ -2062,6 +2423,8 @@ export async function breakthrough(
 
           breakthroughPillBonus,
 
+          techniqueBreakthroughBonus,
+
           oldRealm,
 
           newRealm:
@@ -2076,13 +2439,14 @@ export async function breakthrough(
 
       /**
        * =====================================================
-       * ĐỘT PHÁ THẤT BẠI
+       * FAIL
        * =====================================================
        */
 
       const originalLoss =
         Math.max(
           1,
+
           Math.round(
             required *
               CULTIVATION_CONFIG
@@ -2092,12 +2456,7 @@ export async function breakthrough(
         );
 
       /**
-       * =====================================================
-       * HUYỀN THIẾT HỘ PHÙ
-       * =====================================================
-       *
-       * Giảm 20% lượng Tu Vi
-       * bị mất khi Đột Phá thất bại.
+       * Huyền Thiết Hộ Phù.
        */
 
       const equipmentLossReduction =
@@ -2110,6 +2469,7 @@ export async function breakthrough(
         0
           ? Math.max(
               1,
+
               Math.round(
                 originalLoss *
                   equipmentLossReduction,
@@ -2120,6 +2480,7 @@ export async function breakthrough(
       const loss =
         Math.max(
           1,
+
           originalLoss -
             equipmentLossSaved,
         );
@@ -2127,6 +2488,7 @@ export async function breakthrough(
       profile.cultivation =
         Math.max(
           0,
+
           profile.cultivation -
             loss,
         );
@@ -2151,6 +2513,8 @@ export async function breakthrough(
         baseChance,
 
         breakthroughPillBonus,
+
+        techniqueBreakthroughBonus,
 
         loss,
 
