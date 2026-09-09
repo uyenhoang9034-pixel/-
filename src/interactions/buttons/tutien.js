@@ -24,6 +24,10 @@ import {
 } from '../../services/cultivationEquipment.js';
 
 import {
+  learnCultivationTechnique,
+} from '../../services/cultivationTechnique.js';
+
+import {
   buildAdventureEmbed,
   buildBackRow,
   buildBreakthroughEmbed,
@@ -53,6 +57,13 @@ import {
   buildForgeResultRows,
   buildForgeRows,
 } from '../../services/cultivationEquipmentUI.js';
+
+import {
+  buildTechniqueEmbed,
+  buildTechniqueLearnResultEmbed,
+  buildTechniqueResultRows,
+  buildTechniqueRows,
+} from '../../services/cultivationTechniqueUI.js';
 
 /**
  * =========================================================
@@ -556,6 +567,81 @@ export default {
           buildEquipmentRows(
             ownerId,
             profile,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * CÔNG PHÁP
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'technique'
+    ) {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTechniqueEmbed(
+            interaction.user,
+            profile,
+          ),
+        ],
+
+        components:
+          buildTechniqueRows(
+            ownerId,
+            profile,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * LĨNH NGỘ CÔNG PHÁP
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'technique_learn'
+    ) {
+      if (!extra) {
+        return interaction.reply({
+          content:
+            'Không xác định được Công Pháp cần lĩnh ngộ.',
+
+          flags:
+            MessageFlags.Ephemeral,
+        });
+      }
+
+      const result =
+        await learnCultivationTechnique(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      return interaction.update({
+        embeds: [
+          buildTechniqueLearnResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildTechniqueResultRows(
+            ownerId,
           ),
       });
     }
