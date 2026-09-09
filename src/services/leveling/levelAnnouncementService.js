@@ -11,13 +11,13 @@ import {
     LEVEL_ANNOUNCEMENT_CHANNEL_ID,
     LEVEL_EMOJIS,
     LEVEL_MILESTONES,
+    formatLevelNumber,
     getExactMilestone,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
     logger,
 } from '../../utils/logger.js';
-
 
 /**
  * =========================================================
@@ -28,43 +28,28 @@ import {
 const LEVEL_EMBED_COLOR =
     0xF5A9C6;
 
-
 /**
  * =========================================================
- * LOCAL IMAGE DIRECTORY
- * =========================================================
- */
-
-const LEVEL_IMAGE_DIR =
-    path.resolve(
-        process.cwd(),
-        'assets',
-        'level',
-    );
-
-
-/**
- * =========================================================
- * CREATE LOCAL IMAGE ATTACHMENT
+ * IMAGE HELPERS
  * =========================================================
  */
 
 async function createLevelImageAttachment(
-    imageName,
+    image,
 ) {
     if (
-        !imageName
+        !image ||
+        !image.path ||
+        !image.name
     ) {
         return null;
     }
 
-
     const imagePath =
-        path.join(
-            LEVEL_IMAGE_DIR,
-            imageName,
+        path.resolve(
+            process.cwd(),
+            image.path,
         );
-
 
     try {
         await fs.access(
@@ -78,16 +63,14 @@ async function createLevelImageAttachment(
         return null;
     }
 
-
     return new AttachmentBuilder(
         imagePath,
         {
             name:
-                imageName,
+                image.name,
         },
     );
 }
-
 
 /**
  * =========================================================
@@ -99,6 +82,11 @@ export function buildNormalLevelEmbed(
     member,
     level,
 ) {
+    const displayLevel =
+        formatLevelNumber(
+            level,
+        );
+
     return new EmbedBuilder()
         .setColor(
             LEVEL_EMBED_COLOR,
@@ -118,7 +106,7 @@ export function buildNormalLevelEmbed(
 
                 '',
 
-                `${LEVEL_EMOJIS.line} Cảnh giới hiện tại: **Lv.${level}**`,
+                `${LEVEL_EMOJIS.line} Cảnh giới hiện tại: **Lv.${displayLevel}**`,
 
                 '',
 
@@ -128,7 +116,6 @@ export function buildNormalLevelEmbed(
             ),
         );
 }
-
 
 /**
  * =========================================================
@@ -140,6 +127,11 @@ export function buildVoiceLevelEmbed(
     member,
     level,
 ) {
+    const displayLevel =
+        formatLevelNumber(
+            level,
+        );
+
     return new EmbedBuilder()
         .setColor(
             LEVEL_EMBED_COLOR,
@@ -160,7 +152,7 @@ export function buildVoiceLevelEmbed(
                 '',
 
                 `${LEVEL_EMOJIS.line} Cảnh giới hiện tại:`,
-                `**Lv.${level}**`,
+                `**Lv.${displayLevel}**`,
 
                 '',
 
@@ -171,10 +163,132 @@ export function buildVoiceLevelEmbed(
         );
 }
 
+/**
+ * =========================================================
+ * MILESTONE TITLE
+ * =========================================================
+ */
+
+function getMilestoneTitle(
+    milestone,
+) {
+    switch (
+        milestone.announcementType
+    ) {
+        case 'tien_lo':
+            return (
+                `${LEVEL_EMOJIS.left} ` +
+                '𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 · 𝓣𝓲𝓮̂𝓷 𝓛𝓸̣̂ ' +
+                `${LEVEL_EMOJIS.right}`
+            );
+
+        case 'cuc_canh':
+            return (
+                `${LEVEL_EMOJIS.left} ` +
+                '𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 · 𝓒𝓾̛̣𝓬 𝓒𝓪̉𝓷𝓱 ' +
+                `${LEVEL_EMOJIS.right}`
+            );
+
+        case 'phi_thang':
+        default:
+            return (
+                `${LEVEL_EMOJIS.left} ` +
+                '𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 · 𝓟𝓱𝓲 𝓣𝓱𝓪̆𝓷𝓰 ' +
+                `${LEVEL_EMOJIS.right}`
+            );
+    }
+}
 
 /**
  * =========================================================
- * PHÁ CẢNH · PHI THĂNG
+ * OLD MILESTONE STYLE
+ * =========================================================
+ *
+ * Lv.1 -> Lv.999
+ */
+
+function buildClassicMilestoneDescription(
+    member,
+    level,
+    milestone,
+) {
+    const displayLevel =
+        formatLevelNumber(
+            level,
+        );
+
+    return [
+        `${LEVEL_EMOJIS.title} **${milestone.heading}**`,
+
+        '',
+
+        `${LEVEL_EMOJIS.line} ${milestone.intro}`,
+
+        `${member} ${milestone.body}`,
+
+        '',
+
+        `${LEVEL_EMOJIS.line} Cảnh giới hiện tại:`,
+        `**${milestone.realm}**`,
+        `**Lv.${displayLevel}**`,
+
+        '',
+
+        milestone.ending,
+    ].join(
+        '\n',
+    );
+}
+
+/**
+ * =========================================================
+ * ADVANCED IMMORTAL STYLE
+ * =========================================================
+ *
+ * Lv.1999
+ * Lv.3999
+ * Lv.6999
+ * Lv.9999
+ */
+
+function buildAdvancedMilestoneDescription(
+    member,
+    level,
+    milestone,
+) {
+    const displayLevel =
+        formatLevelNumber(
+            level,
+        );
+
+    return [
+        `${LEVEL_EMOJIS.immortalTitle}${LEVEL_EMOJIS.title} **${milestone.heading}**`,
+
+        '',
+
+        `${LEVEL_EMOJIS.line} ${milestone.intro}`,
+
+        `${member} ${milestone.body} ${LEVEL_EMOJIS.line}`,
+
+        '',
+
+        `${LEVEL_EMOJIS.line} Cảnh giới hiện tại:`,
+
+        `${LEVEL_EMOJIS.realm} **${milestone.realm}**`,
+
+        `${LEVEL_EMOJIS.realm} **Lv.${displayLevel}**`,
+
+        '',
+
+        `${LEVEL_EMOJIS.ending} ${milestone.ending} ${LEVEL_EMOJIS.ending}`,
+    ].join(
+        '\n',
+    );
+}
+
+/**
+ * =========================================================
+ * BUILD MILESTONE EMBED
  * =========================================================
  */
 
@@ -187,13 +301,24 @@ export function buildMilestoneLevelEmbed(
             level,
         );
 
-
     if (
         !milestone
     ) {
         return null;
     }
 
+    const description =
+        milestone.advancedStyle
+            ? buildAdvancedMilestoneDescription(
+                member,
+                level,
+                milestone,
+            )
+            : buildClassicMilestoneDescription(
+                member,
+                level,
+                milestone,
+            );
 
     const embed =
         new EmbedBuilder()
@@ -201,45 +326,36 @@ export function buildMilestoneLevelEmbed(
                 LEVEL_EMBED_COLOR,
             )
             .setTitle(
-                `${LEVEL_EMOJIS.left} 𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 · 𝓟𝓱𝓲 𝓣𝓱𝓪̆𝓷𝓰 ${LEVEL_EMOJIS.right}`,
+                getMilestoneTitle(
+                    milestone,
+                ),
             )
             .setDescription(
-                [
-                    `${LEVEL_EMOJIS.title} **${milestone.heading}**`,
-
-                    '',
-
-                    `${LEVEL_EMOJIS.line} ${milestone.intro}`,
-
-                    `${member} ${milestone.body}`,
-
-                    '',
-
-                    `${LEVEL_EMOJIS.line} Cảnh giới hiện tại:`,
-                    `**${milestone.realm}**`,
-                    `**Lv.${level}**`,
-
-                    '',
-
-                    milestone.ending,
-                ].join(
-                    '\n',
-                ),
+                description,
             );
 
+    /**
+     * Attachment URL phải dùng đúng filename.
+     *
+     * PNG:
+     * lv1999.png
+     * lv3999.png
+     * lv6999.png
+     *
+     * GIF:
+     * lv9999.gif
+     */
 
     if (
-        milestone.image
+        milestone.image?.name
     ) {
         embed.setImage(
-            `attachment://${milestone.image}`,
+            `attachment://${milestone.image.name}`,
         );
     }
 
-
     return embed;
 }
-
 
 /**
  * =========================================================
@@ -254,20 +370,22 @@ export function getCrossedMilestones(
     const safeOldLevel =
         Math.max(
             0,
-            Number(
-                oldLevel,
-            ) || 0,
+            Math.floor(
+                Number(
+                    oldLevel,
+                ) || 0,
+            ),
         );
-
 
     const safeNewLevel =
         Math.max(
             0,
-            Number(
-                newLevel,
-            ) || 0,
+            Math.floor(
+                Number(
+                    newLevel,
+                ) || 0,
+            ),
         );
-
 
     if (
         safeNewLevel <=
@@ -275,7 +393,6 @@ export function getCrossedMilestones(
     ) {
         return [];
     }
-
 
     return Object.entries(
         LEVEL_MILESTONES,
@@ -310,10 +427,9 @@ export function getCrossedMilestones(
         );
 }
 
-
 /**
  * =========================================================
- * BUILD ANNOUNCEMENT BY TYPE
+ * BUILD ANNOUNCEMENT
  * =========================================================
  */
 
@@ -323,9 +439,19 @@ export function buildLevelAnnouncementEmbed({
     source = 'chat',
     forceType = null,
 }) {
+    /**
+     * Test bất kỳ milestone nào.
+     */
+
     if (
         forceType ===
-        'phi_thang'
+        'milestone' ||
+        forceType ===
+        'phi_thang' ||
+        forceType ===
+        'tien_lo' ||
+        forceType ===
+        'cuc_canh'
     ) {
         return (
             buildMilestoneLevelEmbed(
@@ -339,6 +465,9 @@ export function buildLevelAnnouncementEmbed({
         );
     }
 
+    /**
+     * Test Phá Cảnh thường.
+     */
 
     if (
         forceType ===
@@ -350,6 +479,9 @@ export function buildLevelAnnouncementEmbed({
         );
     }
 
+    /**
+     * Milestone thật luôn ưu tiên.
+     */
 
     const milestoneEmbed =
         buildMilestoneLevelEmbed(
@@ -357,13 +489,15 @@ export function buildLevelAnnouncementEmbed({
             level,
         );
 
-
     if (
         milestoneEmbed
     ) {
         return milestoneEmbed;
     }
 
+    /**
+     * Voice thường.
+     */
 
     if (
         source ===
@@ -375,13 +509,15 @@ export function buildLevelAnnouncementEmbed({
         );
     }
 
+    /**
+     * Chat/Admin thường.
+     */
 
     return buildNormalLevelEmbed(
         member,
         level,
     );
 }
-
 
 /**
  * =========================================================
@@ -404,7 +540,6 @@ async function getAnnouncementChannel(
                 () => null,
             );
 
-
     if (
         !channel ||
         !channel.isTextBased()
@@ -416,10 +551,8 @@ async function getAnnouncementChannel(
         return null;
     }
 
-
     const botMember =
         guild.members.me;
-
 
     if (
         !botMember
@@ -431,12 +564,10 @@ async function getAnnouncementChannel(
         return null;
     }
 
-
     const permissions =
         channel.permissionsFor(
             botMember,
         );
-
 
     if (
         !permissions ||
@@ -445,19 +576,20 @@ async function getAnnouncementChannel(
         ) ||
         !permissions.has(
             PermissionFlagsBits.EmbedLinks,
+        ) ||
+        !permissions.has(
+            PermissionFlagsBits.AttachFiles,
         )
     ) {
         logger.warn(
-            `[LEVEL] Missing SendMessages/EmbedLinks permission in channel ${channel.id}`,
+            `[LEVEL] Missing SendMessages/EmbedLinks/AttachFiles permission in channel ${channel.id}`,
         );
 
         return null;
     }
 
-
     return channel;
 }
-
 
 /**
  * =========================================================
@@ -478,13 +610,11 @@ export async function sendLevelAnnouncement({
                 guild,
             );
 
-
         if (
             !channel
         ) {
             return false;
         }
-
 
         const embed =
             buildLevelAnnouncementEmbed({
@@ -494,15 +624,16 @@ export async function sendLevelAnnouncement({
                 forceType,
             });
 
-
         const milestone =
             getExactMilestone(
                 level,
             );
 
-
         const files = [];
 
+        /**
+         * Chỉ milestone có ảnh mới attach.
+         */
 
         if (
             milestone?.image
@@ -512,7 +643,6 @@ export async function sendLevelAnnouncement({
                     milestone.image,
                 );
 
-
             if (
                 attachment
             ) {
@@ -520,12 +650,22 @@ export async function sendLevelAnnouncement({
                     attachment,
                 );
             } else {
+                /**
+                 * Nếu file ảnh bị thiếu,
+                 * vẫn gửi embed nhưng bỏ image
+                 * để Discord không báo
+                 * Invalid Form Body.
+                 */
+
+                embed.setImage(
+                    null,
+                );
+
                 logger.warn(
-                    `[LEVEL] Cannot send milestone image for Lv.${level}: ${milestone.image}`,
+                    `[LEVEL] Milestone image unavailable for Lv.${level}`,
                 );
             }
         }
-
 
         await channel.send({
             embeds: [
@@ -534,7 +674,6 @@ export async function sendLevelAnnouncement({
 
             files,
         });
-
 
         return true;
     } catch (
@@ -548,7 +687,6 @@ export async function sendLevelAnnouncement({
         return false;
     }
 }
-
 
 /**
  * =========================================================
@@ -567,20 +705,22 @@ export async function sendLevelChangeAnnouncements({
         const safeOldLevel =
             Math.max(
                 0,
-                Number(
-                    oldLevel,
-                ) || 0,
+                Math.floor(
+                    Number(
+                        oldLevel,
+                    ) || 0,
+                ),
             );
-
 
         const safeNewLevel =
             Math.max(
                 0,
-                Number(
-                    newLevel,
-                ) || 0,
+                Math.floor(
+                    Number(
+                        newLevel,
+                    ) || 0,
+                ),
             );
-
 
         if (
             safeNewLevel <=
@@ -595,13 +735,17 @@ export async function sendLevelChangeAnnouncements({
             };
         }
 
-
         const crossedMilestones =
             getCrossedMilestones(
                 safeOldLevel,
                 safeNewLevel,
             );
 
+        /**
+         * Không vượt cảnh giới.
+         *
+         * -> gửi level cuối.
+         */
 
         if (
             crossedMilestones.length ===
@@ -610,7 +754,6 @@ export async function sendLevelChangeAnnouncements({
             const success =
                 await sendLevelAnnouncement({
                     guild,
-
                     member,
 
                     level:
@@ -618,7 +761,6 @@ export async function sendLevelChangeAnnouncements({
 
                     source,
                 });
-
 
             return {
                 sent:
@@ -631,10 +773,20 @@ export async function sendLevelChangeAnnouncements({
             };
         }
 
+        /**
+         * Có vượt cảnh giới.
+         *
+         * Ví dụ:
+         *
+         * 998 -> 2000
+         *
+         * gửi:
+         * Lv.999
+         * Lv.1.999
+         */
 
         let sent =
             0;
-
 
         for (
             const milestone
@@ -643,7 +795,6 @@ export async function sendLevelChangeAnnouncements({
             const success =
                 await sendLevelAnnouncement({
                     guild,
-
                     member,
 
                     level:
@@ -652,7 +803,6 @@ export async function sendLevelChangeAnnouncements({
                     source,
                 });
 
-
             if (
                 success
             ) {
@@ -660,7 +810,6 @@ export async function sendLevelChangeAnnouncements({
                     1;
             }
         }
-
 
         return {
             sent,
@@ -675,7 +824,6 @@ export async function sendLevelChangeAnnouncements({
             '[LEVEL] Failed sending level change announcements:',
             error,
         );
-
 
         return {
             sent:
