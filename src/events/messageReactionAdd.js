@@ -1,14 +1,15 @@
 import {
     Events,
+    PermissionFlagsBits,
 } from 'discord.js';
-
-import {
-    addGameRoleFromReaction,
-} from '../services/gameRoleService.js';
 
 import {
     getGameRoleByEmoji,
 } from '../config/gameRoles.js';
+
+import {
+    sendGameRoleNotification,
+} from '../services/gameRoleService.js';
 
 import {
     logger,
@@ -17,19 +18,20 @@ import {
 
 export default {
 
-    name:
-        Events.MessageReactionAdd,
+    name: Events.MessageReactionAdd,
 
-    once:
-        false,
+    once: false,
 
 
     async execute(
         reaction,
         user,
-        client,
     ) {
         try {
+
+            // =================================================
+            // IGNORE BOT
+            // =================================================
 
             if (
                 !user ||
@@ -39,183 +41,271 @@ export default {
             }
 
 
-            /**
-             * =============================================
-             * FETCH REACTION
-             * =============================================
-             */
+            // =================================================
+            // FETCH PARTIAL REACTION
+            // =================================================
 
             if (
                 reaction.partial
             ) {
                 try {
                     await reaction.fetch();
-                } catch (error) {
-                    logger.warn(
-                        'GameRole: failed to fetch partial reaction:',
-                        error,
-                    );
-
+                } catch {
                     return;
                 }
             }
 
 
-            /**
-             * =============================================
-             * FETCH FULL MESSAGE
-             * =============================================
-             */
+            // =================================================
+            // FETCH MESSAGE
+            // =================================================
 
             let message =
                 reaction.message;
 
-
             try {
-                message =
-                    await reaction.message.fetch();
-            } catch (error) {
-                logger.warn(
-                    'GameRole: failed to fetch reaction message:',
-                    error,
-                );
-
+                if (
+                    message.partial
+                ) {
+                    message =
+                        await message.fetch();
+                }
+            } catch {
                 return;
             }
 
 
-            /**
-             * =============================================
-             * DEBUG - EVENT ĐÃ CHẠY
-             * =============================================
-             */
+            // =================================================
+            // GUILD ONLY
+            // =================================================
 
-            logger.info(
-                `[GAME ROLE] ReactionAdd fired | user=${user.tag ?? user.id} | message=${message.id} | emoji=${reaction.emoji.name} | emojiId=${reaction.emoji.id ?? 'unicode'}`,
-            );
+            const guild =
+                message.guild;
+
+            if (!guild) {
+                return;
+            }
 
 
-            /**
-             * =============================================
-             * CHECK EMOJI
-             * =============================================
-             */
+            // =================================================
+            // MAP EMOJI -> ROLE CONFIG
+            // =================================================
 
             const config =
                 getGameRoleByEmoji(
                     reaction.emoji,
                 );
 
-
             if (!config) {
-                logger.debug(
-                    `[GAME ROLE] Ignored unmapped emoji ${reaction.emoji.id ?? reaction.emoji.name}`,
-                );
-
                 return;
             }
 
 
-            /**
-             * =============================================
-             * MESSAGE PHẢI Ở SERVER
-             * =============================================
-             */
+            // =================================================
+            // CHỈ NHẬN PANEL GET ROLE CỦA BOT
+            // =================================================
+
+            const botId =
+                guild.members.me?.id;
 
             if (
-                !message.guild
-            ) {
-                return;
-            }
-
-
-            /**
-             * =============================================
-             * MESSAGE PHẢI DO BOT NÀY GỬI
-             * =============================================
-             */
-
-            if (
+                !botId ||
                 message.author?.id !==
-                client.user?.id
+                    botId
             ) {
-                logger.debug(
-                    `[GAME ROLE] Message ${message.id} was not sent by this bot.`,
-                );
-
                 return;
             }
 
 
-            /**
-             * =============================================
-             * CHECK GET ROLE EMBED
-             * =============================================
-             */
-
-            const embed =
-                message.embeds?.[0];
-
-
-            const title =
-                embed?.title ??
+            const panelTitle =
+                message.embeds?.[0]?.title ??
                 '';
 
-
             if (
-                !title.includes(
+                !panelTitle.includes(
                     '𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮',
                 )
             ) {
-                logger.debug(
-                    `[GAME ROLE] Message ${message.id} is not a Get Role panel. Title="${title}"`,
+                return;
+            }
+
+
+            // =================================================
+            // FETCH MEMBER TỪ DISCORD
+            // =================================================
+
+            const member =
+                await guild.members
+                    .fetch(
+                        user.id,
+                    )
+                    .catch(
+                        () =>
+                            null,
+                    );
+
+            if (!member) {
+                logger.warn(
+                    `[GAME ROLE] Không lấy được member ${user.id}.`,
                 );
 
                 return;
             }
 
 
-            /**
-             * =============================================
-             * VALID PANEL
-             * =============================================
-             */
+            // =================================================
+            // FETCH ROLE
+            // =================================================
 
-            logger.info(
-                `[GAME ROLE] Valid panel reaction | ${user.tag ?? user.id} -> ${config.label} -> role ${config.roleId}`,
+            const role =
+                await guild.roles
+                    .fetch(
+                        config.roleId,
+                    )
+                    .catch(
+                        () =>
+                            null,
+                    );
+
+            if (!role) {
+                logger.warn(
+                    `[GAME ROLE] Không tìm thấy role ${config.roleId}.`,
+                );
+
+                return;
+            }
+
+
+            // =================================================
+            // CHECK BOT MEMBER
+            // =================================================
+
+            const botMember =
+                guild.members.me ??
+                await guild.members
+                    .fetchMe()
+                    .catch(
+                        () =>
+                            null,
+                    );
+
+            if (!botMember) {
+                return;
+            }
+
+
+            // =================================================
+            // CHECK MANAGE ROLES
+            // =================================================
+
+            if (
+                !botMember.permissions.has(
+                    PermissionFlagsBits.ManageRoles,
+                )
+            ) {
+                logger.warn(
+                    '[GAME ROLE] Bot thiếu quyền Manage Roles.',
+                );
+
+                return;
+            }
+
+
+            // =================================================
+            // CHECK ROLE HIERARCHY
+            // =================================================
+
+            if (
+                role.position >=
+                botMember.roles.highest.position
+            ) {
+                logger.warn(
+                    `[GAME ROLE] Role bot thấp hơn role ${role.name}.`,
+                );
+
+                return;
+            }
+
+
+            // =================================================
+            // ALREADY HAS ROLE
+            // =================================================
+
+            if (
+                member.roles.cache.has(
+                    role.id,
+                )
+            ) {
+                return;
+            }
+
+
+            // =================================================
+            // ADD ROLE
+            // =================================================
+
+            await member.roles.add(
+                role.id,
+                `Game Role reaction: ${config.label}`,
             );
 
 
-            /**
-             * =============================================
-             * ADD ROLE
-             * =============================================
-             */
+            // =================================================
+            // VERIFY ROLE
+            // =================================================
 
-            const success =
-                await addGameRoleFromReaction(
-                    reaction,
-                    user,
-                );
+            const freshMember =
+                await guild.members
+                    .fetch(
+                        {
+                            user:
+                                member.id,
+
+                            force:
+                                true,
+                        },
+                    )
+                    .catch(
+                        () =>
+                            null,
+                    );
 
 
             if (
-                success
+                !freshMember ||
+                !freshMember.roles.cache.has(
+                    role.id,
+                )
             ) {
-                logger.info(
-                    `[GAME ROLE] SUCCESS | ${user.tag ?? user.id} -> ${config.label}`,
+                logger.warn(
+                    `[GAME ROLE] Discord không giữ lại role ${role.name} sau khi add.`,
                 );
+
+                return;
             }
 
-            else {
-                logger.error(
-                    `[GAME ROLE] FAILED | ${user.tag ?? user.id} -> ${config.label}`,
-                );
-            }
+
+            // =================================================
+            // SUCCESS
+            // =================================================
+
+            logger.info(
+                `[GAME ROLE] Đã cấp ${role.name} cho ${freshMember.user.tag}.`,
+            );
+
+
+            // =================================================
+            // NOTIFICATION
+            // =================================================
+
+            await sendGameRoleNotification(
+                freshMember,
+                role.id,
+            );
 
         } catch (error) {
             logger.error(
-                '[GAME ROLE] Unexpected error in messageReactionAdd:',
+                '[GAME ROLE] Lỗi cấp role từ reaction:',
                 error,
             );
         }
