@@ -22,6 +22,7 @@ import {
 import {
     getHighestMilestone,
     LEVELING_MAX_LEVEL,
+    formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
@@ -50,7 +51,7 @@ const EMOJIS = {
 
 /**
  * =========================================================
- * HELPERS
+ * REALM NAME
  * =========================================================
  */
 
@@ -62,9 +63,6 @@ function getRealmName(
             level,
         );
 
-    /**
-     * Chưa đạt Lv.1.
-     */
     if (
         !milestone
     ) {
@@ -106,6 +104,27 @@ function getRankPrefix(
 
 /**
  * =========================================================
+ * NUMBER FORMAT
+ * =========================================================
+ */
+
+function formatXp(
+    value,
+) {
+    return Math.max(
+        0,
+        Math.floor(
+            Number(
+                value,
+            ) || 0,
+        ),
+    ).toLocaleString(
+        'vi-VN',
+    );
+}
+
+/**
+ * =========================================================
  * COMMAND
  * =========================================================
  */
@@ -137,7 +156,7 @@ export default {
 
         /**
          * =====================================================
-         * GET LEVEL CONFIG
+         * CONFIG
          * =====================================================
          */
 
@@ -147,15 +166,8 @@ export default {
                 interaction.guildId,
             );
 
-        /**
-         * =====================================================
-         * LEVEL SYSTEM DISABLED
-         * =====================================================
-         */
-
         if (
-            !levelingConfig
-                ?.enabled
+            !levelingConfig?.enabled
         ) {
             await InteractionHelper.safeEditReply(
                 interaction,
@@ -180,7 +192,7 @@ export default {
 
         /**
          * =====================================================
-         * GET TOP 20
+         * TOP 20
          * =====================================================
          */
 
@@ -190,12 +202,6 @@ export default {
                 interaction.guildId,
                 20,
             );
-
-        /**
-         * =====================================================
-         * NO DATA
-         * =====================================================
-         */
 
         if (
             leaderboard.length ===
@@ -210,7 +216,7 @@ export default {
 
         /**
          * =====================================================
-         * BUILD RANKING
+         * BUILD USERS
          * =====================================================
          */
 
@@ -222,12 +228,6 @@ export default {
                         index,
                     ) => {
                         try {
-                            /**
-                             * ---------------------------------
-                             * MEMBER
-                             * ---------------------------------
-                             */
-
                             const member =
                                 await interaction.guild.members
                                     .fetch(
@@ -243,36 +243,28 @@ export default {
                                     ?.toString() ||
                                 `<@${user.userId}>`;
 
-                            /**
-                             * ---------------------------------
-                             * LEVEL
-                             * ---------------------------------
-                             */
-
                             const level =
                                 Math.max(
                                     0,
-                                    Number(
-                                        user.level,
-                                    ) || 0,
+                                    Math.min(
+                                        Math.floor(
+                                            Number(
+                                                user.level,
+                                            ) || 0,
+                                        ),
+                                        LEVELING_MAX_LEVEL,
+                                    ),
                                 );
 
-                            /**
-                             * ---------------------------------
-                             * REALM
-                             * ---------------------------------
-                             */
+                            const displayLevel =
+                                formatLevelNumber(
+                                    level,
+                                );
 
                             const realm =
                                 getRealmName(
                                     level,
                                 );
-
-                            /**
-                             * ---------------------------------
-                             * RANK
-                             * ---------------------------------
-                             */
 
                             const rankPrefix =
                                 getRankPrefix(
@@ -284,8 +276,7 @@ export default {
                              * MAX LEVEL
                              * =================================
                              *
-                             * Lv.999 không cần hiển thị
-                             * XP cần cho level tiếp theo.
+                             * Lv.9.999 không còn level tiếp theo.
                              */
 
                             if (
@@ -295,7 +286,9 @@ export default {
                                 return [
                                     `${rankPrefix} ${userMention}`,
 
-                                    `└ **Lv.${LEVELING_MAX_LEVEL} · ${realm}**`,
+                                    `└ **Lv.${displayLevel} · ${realm}**`,
+
+                                    `└ **Đại Đạo viên mãn**`,
                                 ].join(
                                     '\n',
                                 );
@@ -320,18 +313,12 @@ export default {
                                     level,
                                 );
 
-                            /**
-                             * =================================
-                             * USER LINE
-                             * =================================
-                             */
-
                             return [
                                 `${rankPrefix} ${userMention}`,
 
-                                `└ **Lv.${level} · ${realm}**`,
+                                `└ **Lv.${displayLevel} · ${realm}**`,
 
-                                `└ Linh lực: **${currentXp}/${xpForNextLevel} XP**`,
+                                `└ Linh lực: **${formatXp(currentXp)}/${formatXp(xpForNextLevel)} XP**`,
                             ].join(
                                 '\n',
                             );
@@ -357,7 +344,7 @@ export default {
 
         /**
          * =====================================================
-         * BUILD EMBED
+         * EMBED
          * =====================================================
          */
 
