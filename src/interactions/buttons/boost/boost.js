@@ -23,7 +23,9 @@ async function handleBoostButton(
 ) {
     const action =
         args[0] ||
-        interaction.customId.split(':')[1];
+        interaction.customId.split(
+            ':',
+        )[1];
 
 
     // ========================================================
@@ -31,7 +33,8 @@ async function handleBoostButton(
     // ========================================================
 
     if (
-        action === 'embed'
+        action ===
+        'embed'
     ) {
         const config =
             await getBoostConfig(
@@ -64,7 +67,8 @@ async function handleBoostButton(
                     false,
                 )
                 .setValue(
-                    config.title || '',
+                    config.title ||
+                    '',
                 );
 
 
@@ -83,7 +87,8 @@ async function handleBoostButton(
                     false,
                 )
                 .setValue(
-                    config.description || '',
+                    config.description ||
+                    '',
                 );
 
 
@@ -102,7 +107,8 @@ async function handleBoostButton(
                     false,
                 )
                 .setValue(
-                    config.color || '#F5A9C6',
+                    config.color ||
+                    '#F5A9C6',
                 );
 
 
@@ -121,7 +127,8 @@ async function handleBoostButton(
                     false,
                 )
                 .setValue(
-                    config.footer || '',
+                    config.footer ||
+                    '',
                 );
 
 
@@ -152,63 +159,6 @@ async function handleBoostButton(
             modal,
         );
 
-        return;
-    }
-
-
-    // ========================================================
-    // IMAGE
-    // ========================================================
-
-    if (
-        action === 'image'
-    ) {
-        const config =
-            await getBoostConfig(
-                interaction.guild.id,
-            );
-
-
-        const modal =
-            new ModalBuilder()
-                .setCustomId(
-                    'boost_modal:image',
-                )
-                .setTitle(
-                    'Boost Image',
-                );
-
-
-        const imageInput =
-            new TextInputBuilder()
-                .setCustomId(
-                    'image',
-                )
-                .setLabel(
-                    'Main Image URL',
-                )
-                .setStyle(
-                    TextInputStyle.Short,
-                )
-                .setRequired(
-                    false,
-                )
-                .setValue(
-                    config.image || '',
-                );
-
-
-        modal.addComponents(
-            new ActionRowBuilder()
-                .addComponents(
-                    imageInput,
-                ),
-        );
-
-
-        await interaction.showModal(
-            modal,
-        );
 
         return;
     }
@@ -219,7 +169,8 @@ async function handleBoostButton(
     // ========================================================
 
     if (
-        action === 'settings'
+        action ===
+        'settings'
     ) {
         const config =
             await getBoostConfig(
@@ -252,7 +203,8 @@ async function handleBoostButton(
                     false,
                 )
                 .setValue(
-                    config.channelId || '',
+                    config.channelId ||
+                    '',
                 );
 
 
@@ -271,7 +223,8 @@ async function handleBoostButton(
                     false,
                 )
                 .setValue(
-                    config.tyPhuRoleId || '',
+                    config.tyPhuRoleId ||
+                    '',
                 );
 
 
@@ -292,6 +245,7 @@ async function handleBoostButton(
             modal,
         );
 
+
         return;
     }
 
@@ -301,7 +255,8 @@ async function handleBoostButton(
     // ========================================================
 
     if (
-        action === 'test'
+        action ===
+        'test'
     ) {
         const result =
             await sendTestBoost(
@@ -309,15 +264,40 @@ async function handleBoostButton(
             );
 
 
+        const errorText = {
+            CHANNEL_NOT_CONFIGURED:
+                'Boost Channel chưa được cài.',
+
+            CHANNEL_NOT_FOUND:
+                'Không tìm thấy Boost Channel.',
+
+            CHANNEL_NOT_TEXT:
+                'Boost Channel không phải kênh text.',
+
+            BOOST_IMAGE_NOT_FOUND:
+                'Không tìm thấy file `assets/boost/boost.webp`.',
+
+            SEND_FAILED:
+                'Không gửi được thông báo lên Discord.',
+        }[
+            result.reason
+        ];
+
+
         await interaction.reply({
             content:
                 result.success
                     ? '✅ Test Boost đã được gửi.'
-                    : '❌ Không thể gửi Test Boost. Hãy kiểm tra Boost Channel.',
+                    : `❌ Không thể gửi Test Boost.\nLỗi: **${
+                        errorText ||
+                        result.reason ||
+                        'UNKNOWN'
+                    }**`,
 
             flags:
                 MessageFlags.Ephemeral,
         });
+
 
         return;
     }
@@ -329,7 +309,9 @@ async function handleBoostButton(
 // ============================================================
 
 export default {
-    name: 'boost_dashboard',
+    name:
+        'boost_dashboard',
 
-    execute: handleBoostButton,
+    execute:
+        handleBoostButton,
 };
