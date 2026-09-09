@@ -27,11 +27,6 @@ export default {
         client,
     ) {
         try {
-
-            /**
-             * Không xử lý bot.
-             */
-
             if (
                 !user ||
                 user.bot
@@ -40,21 +35,14 @@ export default {
             }
 
 
-            /**
-             * =================================================
-             * PARTIAL REACTION
-             * =================================================
-             */
-
             if (
                 reaction.partial
             ) {
                 try {
                     await reaction.fetch();
-
                 } catch (error) {
                     logger.warn(
-                        'Could not fetch partial removed reaction:',
+                        'Could not fetch partial MessageReactionRemove reaction:',
                         error,
                     );
 
@@ -62,22 +50,15 @@ export default {
                 }
             }
 
-
-            /**
-             * =================================================
-             * PARTIAL MESSAGE
-             * =================================================
-             */
 
             if (
                 reaction.message?.partial
             ) {
                 try {
                     await reaction.message.fetch();
-
                 } catch (error) {
                     logger.warn(
-                        'Could not fetch partial reaction message:',
+                        'Could not fetch partial MessageReactionRemove message:',
                         error,
                     );
 
@@ -86,15 +67,17 @@ export default {
             }
 
 
-            /**
-             * Chỉ xử lý panel Game Role.
-             */
+            logger.warn(
+                `REACTION REMOVED: user=${user.tag ?? user.id}, message=${reaction.message?.id}, emoji=${reaction.emoji?.name}, emojiId=${reaction.emoji?.id ?? 'unicode'}`,
+            );
+
 
             const isPanel =
                 await isGameRolePanelReaction(
                     reaction,
                     client,
                 );
+
 
             if (
                 !isPanel
@@ -103,20 +86,33 @@ export default {
             }
 
 
-            /**
-             * =================================================
-             * REMOVE ROLE
-             * =================================================
-             */
-
-            await removeGameRoleFromReaction(
-                reaction,
-                user,
+            logger.warn(
+                `Game Role reaction was removed: ${user.tag ?? user.id} -> ${reaction.emoji?.name}. Role removal will now run.`,
             );
+
+
+            const removed =
+                await removeGameRoleFromReaction(
+                    reaction,
+                    user,
+                );
+
+
+            if (
+                removed
+            ) {
+                logger.info(
+                    `Game Role removal processed for ${user.tag ?? user.id}.`,
+                );
+            } else {
+                logger.warn(
+                    `Game Role removal failed for ${user.tag ?? user.id}.`,
+                );
+            }
 
         } catch (error) {
             logger.error(
-                'Error in messageReactionRemove game role event:',
+                'Error in MessageReactionRemove Game Role event:',
                 error,
             );
         }
