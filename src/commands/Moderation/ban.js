@@ -2,7 +2,11 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
+    AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
     successEmbed,
@@ -21,22 +25,78 @@ import {
     ErrorTypes,
 } from '../../utils/errorHandler.js';
 
+
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
-const MODERATION_IMAGE_URL =
-    'https://cdn.phototourl.com/free/2026-09-08-9fd00794-554a-4eca-91fd-8f5cd6c3dae9.jpg';
+
+/**
+ * =========================================================
+ * LOCAL MODERATION IMAGE
+ * =========================================================
+ */
+
+const MODERATION_IMAGE_NAME =
+    'ban.webp';
+
+const MODERATION_IMAGE_PATH =
+    path.resolve(
+        process.cwd(),
+        'assets',
+        'moderation',
+        MODERATION_IMAGE_NAME,
+    );
+
+
+/**
+ * =========================================================
+ * EMOJIS
+ * =========================================================
+ */
 
 const EMOJIS = {
     decoration:
         '<a:bang6:1546906224388350035>',
 
-    ban:
-        '<a:bang5:1546905838986330124>',
+    field:
+        '<a:bang4:1546905765439217666>',
 
     reasonEnd:
         '<a:bang1:1546891405371117668>',
 };
+
+
+/**
+ * =========================================================
+ * CREATE LOCAL IMAGE
+ * =========================================================
+ */
+
+async function createModerationImageAttachment() {
+    try {
+        await fs.access(
+            MODERATION_IMAGE_PATH,
+        );
+    } catch {
+        return null;
+    }
+
+
+    return new AttachmentBuilder(
+        MODERATION_IMAGE_PATH,
+        {
+            name:
+                MODERATION_IMAGE_NAME,
+        },
+    );
+}
+
+
+/**
+ * =========================================================
+ * SEND USAGI BAN LOG
+ * =========================================================
+ */
 
 async function sendUsagiBanLog({
     guild,
@@ -54,12 +114,18 @@ async function sendUsagiBanLog({
                 () => null,
             );
 
+
     if (
         !channel ||
         !channel.isTextBased()
     ) {
         return;
     }
+
+
+    const image =
+        await createModerationImageAttachment();
+
 
     const embed =
         new EmbedBuilder()
@@ -71,36 +137,61 @@ async function sendUsagiBanLog({
             )
             .setDescription(
                 [
-                    `${EMOJIS.ban} **ĐÃ BAN!**`,
+                    `${EMOJIS.field} **ĐÃ BAN!**`,
 
                     '',
-                    `${EMOJIS.ban} **Thành viên**`,
+
+                    `${EMOJIS.field} **Thành viên**`,
                     `<@${target.id}>`,
 
                     '',
-                    `${EMOJIS.ban} **Người xử lý**`,
+
+                    `${EMOJIS.field} **Người xử lý**`,
                     `<@${moderator.id}>`,
 
                     '',
-                    `${EMOJIS.ban} **Lý do**`,
+
+                    `${EMOJIS.field} **Lý do**`,
                     `Vi phạm nội quy: ${reason} ${EMOJIS.reasonEnd}`,
 
                     '',
-                    `${EMOJIS.ban} **Case**`,
+
+                    `${EMOJIS.field} **Case**`,
                     `#${caseId}`,
-                ].join('\n'),
-            )
-            .setImage(
-                MODERATION_IMAGE_URL,
+                ].join(
+                    '\n',
+                ),
             )
             .setTimestamp();
+
+
+    if (
+        image
+    ) {
+        embed.setImage(
+            `attachment://${MODERATION_IMAGE_NAME}`,
+        );
+    }
+
 
     await channel.send({
         embeds: [
             embed,
         ],
+
+        files:
+            image
+                ? [image]
+                : [],
     });
 }
+
+
+/**
+ * =========================================================
+ * COMMAND
+ * =========================================================
+ */
 
 export default {
     data:
@@ -141,6 +232,7 @@ export default {
     category:
         'moderation',
 
+
     async execute(
         interaction,
         config,
@@ -152,12 +244,14 @@ export default {
                     'target',
                 );
 
+
         const reason =
             interaction.options
                 .getString(
                     'reason',
                 ) ||
             'Không có lý do';
+
 
         if (!user) {
             throw new TitanBotError(
@@ -166,6 +260,7 @@ export default {
                 'You must specify a user to ban.',
             );
         }
+
 
         if (
             user.id ===
@@ -178,6 +273,7 @@ export default {
             );
         }
 
+
         if (
             user.id ===
             client.user.id
@@ -188,6 +284,7 @@ export default {
                 'You cannot ban the bot.',
             );
         }
+
 
         const result =
             await ModerationService
@@ -202,6 +299,7 @@ export default {
 
                     reason,
                 });
+
 
         await sendUsagiBanLog({
             guild:
@@ -218,6 +316,7 @@ export default {
             caseId:
                 result.caseId,
         });
+
 
         await InteractionHelper
             .universalReply(
