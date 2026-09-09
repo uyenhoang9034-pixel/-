@@ -5,16 +5,11 @@ import {
   CULTIVATION_ADVENTURE_EVENTS,
   CULTIVATION_ADVENTURE_LOCATIONS,
   CULTIVATION_EVENTS,
+  CULTIVATION_ITEMS,
   CULTIVATION_REALMS,
   CULTIVATION_STAGES,
   SPIRIT_ROOTS,
 } from '../config/cultivationGame.js';
-
-/**
- * =========================================================
- * DATABASE KEYS
- * =========================================================
- */
 
 const PROFILE_PREFIX =
   'games:cultivation:profile:';
@@ -31,12 +26,6 @@ function getGuildProfilePrefix(
 ) {
   return `${PROFILE_PREFIX}${guildId}:`;
 }
-
-/**
- * =========================================================
- * RANDOM
- * =========================================================
- */
 
 function randomInt(
   min,
@@ -64,6 +53,13 @@ function randomItem(
 function weightedPick(
   entries,
 ) {
+  if (
+    !Array.isArray(entries) ||
+    entries.length === 0
+  ) {
+    return null;
+  }
+
   const total =
     entries.reduce(
       (sum, entry) =>
@@ -73,6 +69,12 @@ function weightedPick(
         ),
       0,
     );
+
+  if (
+    total <= 0
+  ) {
+    return entries[0];
+  }
 
   let roll =
     Math.random() * total;
@@ -97,12 +99,6 @@ function weightedPick(
   ];
 }
 
-/**
- * =========================================================
- * CREATE PROFILE
- * =========================================================
- */
-
 export function createCultivationProfile(
   guildId,
   userId,
@@ -113,7 +109,7 @@ export function createCultivationProfile(
     );
 
   return {
-    version: 2,
+    version: 3,
 
     guildId,
     userId,
@@ -145,9 +141,6 @@ export function createCultivationProfile(
       name:
         spiritRoot.name,
 
-      emoji:
-        spiritRoot.emoji,
-
       rarity:
         spiritRoot.rarity,
 
@@ -156,6 +149,8 @@ export function createCultivationProfile(
           .cultivateBonus ||
         0,
     },
+
+    inventory: {},
 
     cooldowns: {
       cultivateAt: 0,
@@ -177,6 +172,8 @@ export function createCultivationProfile(
       greatFortunes: 0,
 
       monsterEncounters: 0,
+
+      itemsFound: 0,
     },
 
     createdAt:
@@ -186,12 +183,6 @@ export function createCultivationProfile(
       Date.now(),
   };
 }
-
-/**
- * =========================================================
- * NORMALIZE
- * =========================================================
- */
 
 export function normalizeCultivationProfile(
   raw,
@@ -215,15 +206,56 @@ export function normalizeCultivationProfile(
       userId,
     );
 
+  const rawInventory =
+    raw.inventory &&
+    typeof raw.inventory ===
+      'object' &&
+    !Array.isArray(
+      raw.inventory,
+    )
+      ? raw.inventory
+      : {};
+
+  const inventory = {};
+
+  for (
+    const [
+      itemId,
+      quantity,
+    ] of Object.entries(
+      rawInventory,
+    )
+  ) {
+    const normalizedQuantity =
+      Math.max(
+        0,
+
+        Math.floor(
+          Number(
+            quantity,
+          ) || 0,
+        ),
+      );
+
+    if (
+      normalizedQuantity > 0
+    ) {
+      inventory[itemId] =
+        normalizedQuantity;
+    }
+  }
+
   return {
     ...base,
 
     ...raw,
 
-    version: 2,
+    version: 3,
 
     guildId,
     userId,
+
+    inventory,
 
     cooldowns: {
       ...base.cooldowns,
@@ -320,12 +352,6 @@ export function normalizeCultivationProfile(
   };
 }
 
-/**
- * =========================================================
- * DATABASE
- * =========================================================
- */
-
 export async function getCultivationProfile(
   client,
   guildId,
@@ -380,7 +406,7 @@ export async function saveCultivationProfile(
   const data = {
     ...profile,
 
-    version: 2,
+    version: 3,
 
     updatedAt:
       Date.now(),
@@ -398,11 +424,157 @@ export async function saveCultivationProfile(
   return data;
 }
 
-/**
- * =========================================================
- * REALM
- * =========================================================
- */
+export function addInventoryItem(
+  profile,
+  itemId,
+  quantity = 1,
+) {
+  if (
+    !CULTIVATION_ITEMS[
+      itemId
+    ]
+  ) {
+    return false;
+  }
+
+  const safeQuantity =
+    Math.max(
+      1,
+
+      Math.floor(
+        Number(
+          quantity,
+        ) || 1,
+      ),
+    );
+
+  if (
+    !profile.inventory ||
+    typeof profile.inventory !==
+      'object'
+  ) {
+    profile.inventory = {};
+  }
+
+  profile.inventory[
+    itemId
+  ] =
+    Math.max(
+      0,
+
+      Number(
+        profile.inventory[
+          itemId
+        ],
+      ) || 0,
+    ) +
+    safeQuantity;
+
+  profile.stats.itemsFound +=
+    safeQuantity;
+
+  return true;
+}
+
+export function getInventoryEntries(
+  profile,
+) {
+  const inventory =
+    profile.inventory || {};
+
+  return Object.entries(
+    inventory,
+  )
+    .map(
+      ([
+        itemId,
+        quantity,
+      ]) => {
+        const item =
+          CULTIVATION_ITEMS[
+            itemId
+          ];
+
+        if (
+          !item ||
+          quantity <= 0
+        ) {
+          return null;
+        }
+
+        return {
+          ...item,
+
+          quantity,
+        };
+      },
+    )
+    .filter(
+      Boolean,
+    );
+}
+
+function rollAdventureDrop(
+  event,
+) {
+  const dropChance =
+    Number(
+      event.dropChance,
+    ) || 0;
+
+  if (
+    dropChance <= 0 ||
+    Math.random() >
+      dropChance
+  ) {
+    return null;
+  }
+
+  const drop =
+    weightedPick(
+      event.drops || [],
+    );
+
+  if (
+    !drop ||
+    !CULTIVATION_ITEMS[
+      drop.itemId
+    ]
+  ) {
+    return null;
+  }
+
+  const quantity =
+    randomInt(
+      Math.max(
+        1,
+
+        Number(
+          drop.min,
+        ) || 1,
+      ),
+
+      Math.max(
+        1,
+
+        Number(
+          drop.max,
+        ) || 1,
+      ),
+    );
+
+  return {
+    item:
+      CULTIVATION_ITEMS[
+        drop.itemId
+      ],
+
+    itemId:
+      drop.itemId,
+
+    quantity,
+  };
+}
 
 export function getRealmName(
   profile,
@@ -446,12 +618,6 @@ export function getProgressionIndex(
   );
 }
 
-/**
- * =========================================================
- * TU VI REQUIRED
- * =========================================================
- */
-
 export function getCultivationRequired(
   profile,
 ) {
@@ -468,12 +634,6 @@ export function getCultivationRequired(
       ),
   );
 }
-
-/**
- * =========================================================
- * BREAKTHROUGH
- * =========================================================
- */
 
 export function isMaxRealm(
   profile,
@@ -514,12 +674,6 @@ export function getBreakthroughChance(
   );
 }
 
-/**
- * =========================================================
- * COOLDOWNS
- * =========================================================
- */
-
 export function getCultivateCooldownRemaining(
   profile,
 ) {
@@ -553,12 +707,6 @@ export function getAdventureCooldownRemaining(
       Date.now(),
   );
 }
-
-/**
- * =========================================================
- * TU LUYỆN
- * =========================================================
- */
 
 export async function cultivate(
   client,
@@ -761,12 +909,6 @@ export async function cultivate(
   );
 }
 
-/**
- * =========================================================
- * THÁM HIỂM
- * =========================================================
- */
-
 export async function adventure(
   client,
   guildId,
@@ -823,9 +965,8 @@ export async function adventure(
       let stoneDelta =
         0;
 
-      /**
-       * YÊU THÚ
-       */
+      let droppedItem =
+        null;
 
       if (
         event.type ===
@@ -856,16 +997,7 @@ export async function adventure(
 
         profile.stats
           .monsterEncounters += 1;
-      }
-
-      /**
-       * EVENT BÌNH THƯỜNG /
-       * TREASURE /
-       * GREAT FORTUNE /
-       * EMPTY
-       */
-
-      else {
+      } else {
         cultivationDelta =
           randomInt(
             event.cultivationMin ||
@@ -917,6 +1049,23 @@ export async function adventure(
           profile.stats
             .fortunes += 1;
         }
+
+        droppedItem =
+          rollAdventureDrop(
+            event,
+          );
+
+        if (
+          droppedItem
+        ) {
+          addInventoryItem(
+            profile,
+
+            droppedItem.itemId,
+
+            droppedItem.quantity,
+          );
+        }
       }
 
       profile.stats
@@ -946,6 +1095,8 @@ export async function adventure(
 
         stoneDelta,
 
+        droppedItem,
+
         profile:
           saved,
 
@@ -957,12 +1108,6 @@ export async function adventure(
     },
   );
 }
-
-/**
- * =========================================================
- * ĐỘT PHÁ
- * =========================================================
- */
 
 export async function breakthrough(
   client,
@@ -1129,12 +1274,6 @@ export async function breakthrough(
     },
   );
 }
-
-/**
- * =========================================================
- * LEADERBOARD
- * =========================================================
- */
 
 export async function getCultivationLeaderboard(
   client,
