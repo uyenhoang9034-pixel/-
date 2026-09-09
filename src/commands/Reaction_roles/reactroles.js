@@ -86,10 +86,24 @@ const DIVIDER =
  */
 
 function buildRoleList() {
+    const gameNames = {
+        tft: 'Teamfight Tactics',
+        valorant: 'Valorant',
+        goose_goose_duck: 'Goose Goose Duck',
+        lien_quan_mobile: 'Liên Quân Mobile',
+        wuthering_waves: 'Wuthering Waves',
+        genshin_impact: 'Genshin Impact',
+        pubg: 'PUBG',
+        roblox: 'Roblox',
+        minecraft: 'Minecraft',
+        other_games: 'Các Game Khác',
+        no_game: 'Không Thích Chơi Game',
+    };
+
     return GAME_ROLES
         .map(
             (config) =>
-                `⌞${getEmojiDisplay(config)}⌝ │<@&${config.roleId}>`,
+                `⌞${getEmojiDisplay(config)}⌝ │${gameNames[config.key] ?? config.label}`,
         )
         .join('\n');
 }
