@@ -6,6 +6,7 @@ import {
 
 import fs from 'fs';
 import path from 'path';
+
 import {
     fileURLToPath,
 } from 'url';
@@ -36,11 +37,9 @@ const __dirname =
 
 
 /**
- * Project root:
- *
- * src/services/gameRoleService.js
- * -> ../../
- * -> project root
+ * =========================================================
+ * PATHS
+ * =========================================================
  */
 
 const PROJECT_ROOT =
@@ -48,7 +47,6 @@ const PROJECT_ROOT =
         __dirname,
         '../..',
     );
-
 
 const ROLE_ASSET_DIRECTORY =
     path.join(
@@ -60,14 +58,8 @@ const ROLE_ASSET_DIRECTORY =
 
 /**
  * =========================================================
- * PANEL DATA
+ * PANEL STORAGE
  * =========================================================
- *
- * Chỉ cần một panel role chính.
- *
- * Message ID được lưu DB sau khi chạy:
- *
- * /reactroles setup
  */
 
 const GAME_ROLE_PANEL_KEY_PREFIX =
@@ -77,15 +69,95 @@ const GAME_ROLE_PANEL_KEY_PREFIX =
 function getPanelKey(
     guildId,
 ) {
-    return (
-        `${GAME_ROLE_PANEL_KEY_PREFIX}${guildId}`
-    );
+    return `${GAME_ROLE_PANEL_KEY_PREFIX}${guildId}`;
 }
 
 
 /**
  * =========================================================
- * PANEL STORAGE
+ * NOTIFICATION DEDUPE
+ * =========================================================
+ *
+ * Có 2 nguồn notification:
+ *
+ * 1. Reaction -> add role -> gửi trực tiếp
+ * 2. GuildMemberUpdate -> phát hiện role mới
+ *
+ * Dedupe để không gửi 2 lần.
+ */
+
+const recentRoleNotifications =
+    new Map();
+
+const ROLE_NOTIFICATION_DEDUPE_MS =
+    5000;
+
+
+function getNotificationDedupeKey(
+    memberId,
+    roleId,
+) {
+    return `${memberId}:${roleId}`;
+}
+
+
+function shouldSkipDuplicateNotification(
+    memberId,
+    roleId,
+) {
+    const key =
+        getNotificationDedupeKey(
+            memberId,
+            roleId,
+        );
+
+    const now =
+        Date.now();
+
+    const previous =
+        recentRoleNotifications.get(
+            key,
+        );
+
+    if (
+        previous &&
+        now - previous <
+            ROLE_NOTIFICATION_DEDUPE_MS
+    ) {
+        return true;
+    }
+
+    recentRoleNotifications.set(
+        key,
+        now,
+    );
+
+    setTimeout(
+        () => {
+            const stored =
+                recentRoleNotifications.get(
+                    key,
+                );
+
+            if (
+                stored === now
+            ) {
+                recentRoleNotifications.delete(
+                    key,
+                );
+            }
+        },
+        ROLE_NOTIFICATION_DEDUPE_MS +
+            1000,
+    );
+
+    return false;
+}
+
+
+/**
+ * =========================================================
+ * SAVE PANEL
  * =========================================================
  */
 
@@ -115,11 +187,27 @@ export async function saveGameRolePanel(
 }
 
 
+/**
+ * =========================================================
+ * GET PANEL
+ * =========================================================
+ */
+
 export async function getGameRolePanel(
     client,
     guildId,
 ) {
     try {
+        if (
+            !client?.db
+        ) {
+            logger.warn(
+                'Database unavailable while reading Game Role panel.',
+            );
+
+            return null;
+        }
+
         const result =
             await client.db.get(
                 getPanelKey(
@@ -132,11 +220,12 @@ export async function getGameRolePanel(
         }
 
         /**
-         * Hỗ trợ cả DB wrapper:
+         * DB wrapper:
          *
-         * { ok, value }
-         *
-         * và DB trả object trực tiếp.
+         * {
+         *   ok,
+         *   value
+         * }
          */
 
         if (
@@ -157,8 +246,8 @@ export async function getGameRolePanel(
         return result;
 
     } catch (error) {
-        logger.error(
-            'Failed to get game role panel:',
+        logger.warn(
+            'Failed to read Game Role panel from DB:',
             error,
         );
 
@@ -169,46 +258,165 @@ export async function getGameRolePanel(
 
 /**
  * =========================================================
- * CHECK PANEL REACTION
+ * CHECK GAME ROLE PANEL
  * =========================================================
+ *
+ * Ưu tiên:
+ *
+ * 1. Check messageId trong DB.
+ * 2. Nếu DB mất data sau restart:
+ *    nhận diện bằng message của bot + title Get Role.
+ * 3. Khôi phục panel vào DB.
  */
 
 export async function isGameRolePanelReaction(
     reaction,
     client,
 ) {
-    const message =
-        reaction?.message;
+    try {
+        const message =
+            reaction?.message;
 
-    if (
-        !message?.guildId ||
-        !message?.id
-    ) {
-        return false;
-    }
+        if (
+            !message?.guildId ||
+            !message?.id
+        ) {
+            return false;
+        }
 
-    const panel =
-        await getGameRolePanel(
-            client,
-            message.guildId,
+
+        /**
+         * Emoji phải thuộc 11 Game Roles.
+         */
+
+        const gameRole =
+            getGameRoleByEmoji(
+                reaction?.emoji,
+            );
+
+        if (!gameRole) {
+            return false;
+        }
+
+
+        /**
+         * =============================================
+         * CHECK DATABASE
+         * =============================================
+         */
+
+        const panel =
+            await getGameRolePanel(
+                client,
+                message.guildId,
+            );
+
+        if (
+            panel &&
+            panel.messageId ===
+                message.id &&
+            panel.channelId ===
+                message.channelId
+        ) {
+            return true;
+        }
+
+
+        /**
+         * =============================================
+         * FALLBACK
+         * =============================================
+         *
+         * Panel vẫn còn trên Discord nhưng DB mất.
+         */
+
+        if (
+            message.author?.id !==
+            client.user?.id
+        ) {
+            return false;
+        }
+
+
+        const embed =
+            message.embeds?.[0];
+
+        if (!embed) {
+            return false;
+        }
+
+
+        const title =
+            embed.title ??
+            '';
+
+
+        if (
+            !title.includes(
+                '𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮',
+            )
+        ) {
+            return false;
+        }
+
+
+        logger.warn(
+            `Game Role panel ${message.id} detected through fallback.`,
         );
 
-    if (!panel) {
+
+        /**
+         * Khôi phục panel vào DB.
+         */
+
+        try {
+            if (
+                client?.db
+            ) {
+                await saveGameRolePanel(
+                    client,
+                    message.guildId,
+                    {
+                        channelId:
+                            message.channelId,
+
+                        messageId:
+                            message.id,
+
+                        createdAt:
+                            new Date().toISOString(),
+                    },
+                );
+
+                logger.info(
+                    `Recovered Game Role panel ${message.id} into database.`,
+                );
+            }
+
+        } catch (saveError) {
+            logger.warn(
+                'Could not recover Game Role panel:',
+                saveError,
+            );
+        }
+
+
+        return true;
+
+    } catch (error) {
+        logger.error(
+            'Failed to identify Game Role panel:',
+            error,
+        );
+
         return false;
     }
-
-    return (
-        panel.messageId ===
-            message.id &&
-        panel.channelId ===
-            message.channelId
-    );
 }
 
 
 /**
  * =========================================================
- * REACTION ROLE LOOKUP
+ * GET CONFIG FROM REACTION
  * =========================================================
  */
 
@@ -223,7 +431,7 @@ export function getGameRoleConfigFromReaction(
 
 /**
  * =========================================================
- * MEMBER FETCH
+ * FETCH MEMBER
  * =========================================================
  */
 
@@ -232,31 +440,35 @@ async function fetchGuildMember(
     user,
 ) {
     const guild =
-        reaction.message.guild;
+        reaction?.message?.guild;
 
     if (!guild) {
         return null;
     }
 
-    return (
+    const cached =
         guild.members.cache.get(
             user.id,
-        ) ??
-        await guild.members
-            .fetch(
-                user.id,
-            )
-            .catch(
-                () =>
-                    null,
-            )
-    );
+        );
+
+    if (cached) {
+        return cached;
+    }
+
+    return await guild.members
+        .fetch(
+            user.id,
+        )
+        .catch(
+            () =>
+                null,
+        );
 }
 
 
 /**
  * =========================================================
- * ROLE SAFETY
+ * BOT CAN MANAGE ROLE
  * =========================================================
  */
 
@@ -274,27 +486,51 @@ async function canBotManageRole(
             );
 
     if (!me) {
+        logger.warn(
+            'Could not fetch bot guild member.',
+        );
+
         return false;
     }
+
 
     if (
         !me.permissions.has(
             PermissionFlagsBits.ManageRoles,
         )
     ) {
+        logger.warn(
+            'Bot is missing Manage Roles permission.',
+        );
+
         return false;
     }
+
 
     if (
         role.managed
     ) {
+        logger.warn(
+            `Role ${role.name} is managed and cannot be assigned.`,
+        );
+
         return false;
     }
 
-    return (
-        role.position <
+
+    if (
+        role.position >=
         me.roles.highest.position
-    );
+    ) {
+        logger.warn(
+            `Bot role hierarchy too low for ${role.name}. Bot=${me.roles.highest.position}, Role=${role.position}`,
+        );
+
+        return false;
+    }
+
+
+    return true;
 }
 
 
@@ -302,132 +538,160 @@ async function canBotManageRole(
  * =========================================================
  * ADD ROLE FROM REACTION
  * =========================================================
- *
- * Notification KHÔNG gửi tại đây.
- *
- * Khi role được thêm:
- *
- * member.roles.add()
- *        ↓
- * GuildMemberUpdate
- *        ↓
- * sendGameRoleNotification()
- *
- * Nhờ vậy:
- *
- * Reaction cấp role
- * Admin cấp role
- * Command cấp role
- *
- * đều dùng chung notification.
  */
 
 export async function addGameRoleFromReaction(
     reaction,
     user,
 ) {
-    if (
-        !reaction ||
-        !user ||
-        user.bot
-    ) {
-        return false;
-    }
+    try {
+        if (
+            !reaction ||
+            !user ||
+            user.bot
+        ) {
+            return false;
+        }
 
-    const config =
-        getGameRoleConfigFromReaction(
-            reaction,
-        );
 
-    if (!config) {
-        return false;
-    }
-
-    const guild =
-        reaction.message.guild;
-
-    if (!guild) {
-        return false;
-    }
-
-    const member =
-        await fetchGuildMember(
-            reaction,
-            user,
-        );
-
-    if (!member) {
-        logger.warn(
-            `Could not fetch member ${user.id} for game role reaction.`,
-        );
-
-        return false;
-    }
-
-    const role =
-        guild.roles.cache.get(
-            config.roleId,
-        ) ??
-        await guild.roles
-            .fetch(
-                config.roleId,
-            )
-            .catch(
-                () =>
-                    null,
+        const config =
+            getGameRoleConfigFromReaction(
+                reaction,
             );
 
-    if (!role) {
-        logger.warn(
-            `Game role ${config.roleId} (${config.label}) does not exist.`,
-        );
+        if (!config) {
+            logger.warn(
+                `Reaction emoji is not mapped to a Game Role: ${reaction?.emoji?.id ?? reaction?.emoji?.name}`,
+            );
 
-        return false;
-    }
+            return false;
+        }
 
-    const manageable =
-        await canBotManageRole(
-            guild,
-            role,
-        );
 
-    if (!manageable) {
-        logger.warn(
-            `Bot cannot manage game role ${role.name} (${role.id}).`,
-        );
+        const guild =
+            reaction.message.guild;
 
-        return false;
-    }
+        if (!guild) {
+            return false;
+        }
 
-    /**
-     * User đã có role.
-     *
-     * Không add lại.
-     */
 
-    if (
-        member.roles.cache.has(
-            role.id,
-        )
-    ) {
-        return true;
-    }
+        const member =
+            await fetchGuildMember(
+                reaction,
+                user,
+            );
 
-    try {
+        if (!member) {
+            logger.warn(
+                `Could not fetch member ${user.id}.`,
+            );
+
+            return false;
+        }
+
+
+        /**
+         * =============================================
+         * FETCH ROLE
+         * =============================================
+         */
+
+        const role =
+            guild.roles.cache.get(
+                config.roleId,
+            ) ??
+            await guild.roles
+                .fetch(
+                    config.roleId,
+                )
+                .catch(
+                    () =>
+                        null,
+                );
+
+
+        if (!role) {
+            logger.warn(
+                `Game role does not exist: ${config.label} (${config.roleId})`,
+            );
+
+            return false;
+        }
+
+
+        /**
+         * =============================================
+         * PERMISSION CHECK
+         * =============================================
+         */
+
+        const manageable =
+            await canBotManageRole(
+                guild,
+                role,
+            );
+
+        if (!manageable) {
+            return false;
+        }
+
+
+        /**
+         * =============================================
+         * MEMBER ALREADY HAS ROLE
+         * =============================================
+         */
+
+        if (
+            member.roles.cache.has(
+                role.id,
+            )
+        ) {
+            logger.info(
+                `${member.user.tag} already has Game Role ${role.name}.`,
+            );
+
+            return true;
+        }
+
+
+        /**
+         * =============================================
+         * ADD ROLE
+         * =============================================
+         */
+
         await member.roles.add(
             role,
-            `Game role reaction: ${config.label}`,
+            `Game Role reaction: ${config.label}`,
         );
 
+
         logger.info(
-            `Added game role ${role.name} to ${member.user.tag} via reaction.`,
+            `Added Game Role ${role.name} (${role.id}) to ${member.user.tag}.`,
         );
+
+
+        /**
+         * =============================================
+         * SEND NOTIFICATION DIRECTLY
+         * =============================================
+         *
+         * Không phụ thuộc hoàn toàn GuildMemberUpdate.
+         */
+
+        await sendGameRoleNotification(
+            member,
+            role.id,
+        );
+
 
         return true;
 
     } catch (error) {
         logger.error(
-            `Failed to add game role ${role.id} to ${member.user.tag}:`,
+            `Failed to add Game Role from reaction for ${user?.tag ?? user?.id}:`,
             error,
         );
 
@@ -440,98 +704,110 @@ export async function addGameRoleFromReaction(
  * =========================================================
  * REMOVE ROLE FROM REACTION
  * =========================================================
- *
- * Không gửi notification khi gỡ role.
  */
 
 export async function removeGameRoleFromReaction(
     reaction,
     user,
 ) {
-    if (
-        !reaction ||
-        !user ||
-        user.bot
-    ) {
-        return false;
-    }
+    try {
+        if (
+            !reaction ||
+            !user ||
+            user.bot
+        ) {
+            return false;
+        }
 
-    const config =
-        getGameRoleConfigFromReaction(
-            reaction,
-        );
 
-    if (!config) {
-        return false;
-    }
-
-    const guild =
-        reaction.message.guild;
-
-    if (!guild) {
-        return false;
-    }
-
-    const member =
-        await fetchGuildMember(
-            reaction,
-            user,
-        );
-
-    if (!member) {
-        return false;
-    }
-
-    const role =
-        guild.roles.cache.get(
-            config.roleId,
-        ) ??
-        await guild.roles
-            .fetch(
-                config.roleId,
-            )
-            .catch(
-                () =>
-                    null,
+        const config =
+            getGameRoleConfigFromReaction(
+                reaction,
             );
 
-    if (!role) {
-        return false;
-    }
+        if (!config) {
+            return false;
+        }
 
-    const manageable =
-        await canBotManageRole(
-            guild,
-            role,
-        );
 
-    if (!manageable) {
-        return false;
-    }
+        const guild =
+            reaction.message.guild;
 
-    if (
-        !member.roles.cache.has(
-            role.id,
-        )
-    ) {
-        return true;
-    }
+        if (!guild) {
+            return false;
+        }
 
-    try {
+
+        const member =
+            await fetchGuildMember(
+                reaction,
+                user,
+            );
+
+        if (!member) {
+            return false;
+        }
+
+
+        const role =
+            guild.roles.cache.get(
+                config.roleId,
+            ) ??
+            await guild.roles
+                .fetch(
+                    config.roleId,
+                )
+                .catch(
+                    () =>
+                        null,
+                );
+
+
+        if (!role) {
+            return false;
+        }
+
+
+        const manageable =
+            await canBotManageRole(
+                guild,
+                role,
+            );
+
+        if (!manageable) {
+            return false;
+        }
+
+
+        if (
+            !member.roles.cache.has(
+                role.id,
+            )
+        ) {
+            return true;
+        }
+
+
         await member.roles.remove(
             role,
-            `Game role reaction removed: ${config.label}`,
+            `Game Role reaction removed: ${config.label}`,
         );
 
+
         logger.info(
-            `Removed game role ${role.name} from ${member.user.tag} via reaction.`,
+            `Removed Game Role ${role.name} (${role.id}) from ${member.user.tag}.`,
         );
+
+
+        /**
+         * Gỡ role KHÔNG gửi notification.
+         */
 
         return true;
 
     } catch (error) {
         logger.error(
-            `Failed to remove game role ${role.id} from ${member.user.tag}:`,
+            `Failed to remove Game Role from reaction for ${user?.tag ?? user?.id}:`,
             error,
         );
 
@@ -542,7 +818,7 @@ export async function removeGameRoleFromReaction(
 
 /**
  * =========================================================
- * IMAGE
+ * ROLE IMAGE
  * =========================================================
  */
 
@@ -555,11 +831,13 @@ function getRoleImagePath(
         return null;
     }
 
+
     const imagePath =
         path.join(
             ROLE_ASSET_DIRECTORY,
             config.image,
         );
+
 
     if (
         !fs.existsSync(
@@ -567,11 +845,12 @@ function getRoleImagePath(
         )
     ) {
         logger.warn(
-            `Game role image not found: ${imagePath}`,
+            `Game Role image not found: ${imagePath}`,
         );
 
         return null;
     }
+
 
     return imagePath;
 }
@@ -579,7 +858,7 @@ function getRoleImagePath(
 
 /**
  * =========================================================
- * ROLE NOTIFICATION
+ * SEND GAME ROLE NOTIFICATION
  * =========================================================
  */
 
@@ -595,9 +874,6 @@ export async function sendGameRoleNotification(
             return false;
         }
 
-        /**
-         * Không gửi thông báo cho bot.
-         */
 
         if (
             member.user.bot
@@ -605,17 +881,56 @@ export async function sendGameRoleNotification(
             return false;
         }
 
+
+        /**
+         * =============================================
+         * DEDUPE
+         * =============================================
+         */
+
+        if (
+            shouldSkipDuplicateNotification(
+                member.id,
+                roleId,
+            )
+        ) {
+            logger.debug(
+                `Skipped duplicate Game Role notification: member=${member.id}, role=${roleId}`,
+            );
+
+            return false;
+        }
+
+
+        /**
+         * =============================================
+         * CONFIG
+         * =============================================
+         */
+
         const config =
             getGameRoleByRoleId(
                 roleId,
             );
 
         if (!config) {
+            logger.warn(
+                `Notification ignored because role ${roleId} is not a configured Game Role.`,
+            );
+
             return false;
         }
 
+
         const guild =
             member.guild;
+
+
+        /**
+         * =============================================
+         * NOTIFICATION CHANNEL
+         * =============================================
+         */
 
         const notificationChannel =
             guild.channels.cache.get(
@@ -630,33 +945,117 @@ export async function sendGameRoleNotification(
                         null,
                 );
 
+
         if (
             !notificationChannel ||
             !notificationChannel.isTextBased?.()
         ) {
             logger.warn(
-                `Game role notification channel ${GAME_ROLE_NOTIFICATION_CHANNEL_ID} not found.`,
+                `Game Role notification channel not found: ${GAME_ROLE_NOTIFICATION_CHANNEL_ID}`,
             );
 
             return false;
         }
 
+
         /**
-         * =================================================
+         * =============================================
+         * BOT MEMBER
+         * =============================================
+         */
+
+        const botMember =
+            guild.members.me ??
+            await guild.members
+                .fetchMe()
+                .catch(
+                    () =>
+                        null,
+                );
+
+
+        if (!botMember) {
+            logger.warn(
+                'Could not fetch bot member before notification.',
+            );
+
+            return false;
+        }
+
+
+        /**
+         * =============================================
+         * CHANNEL PERMISSIONS
+         * =============================================
+         */
+
+        const permissions =
+            notificationChannel.permissionsFor(
+                botMember,
+            );
+
+
+        const requiredPermissions = [
+            [
+                PermissionFlagsBits.ViewChannel,
+                'View Channel',
+            ],
+
+            [
+                PermissionFlagsBits.SendMessages,
+                'Send Messages',
+            ],
+
+            [
+                PermissionFlagsBits.EmbedLinks,
+                'Embed Links',
+            ],
+
+            [
+                PermissionFlagsBits.AttachFiles,
+                'Attach Files',
+            ],
+        ];
+
+
+        const missingPermissions =
+            requiredPermissions
+                .filter(
+                    ([permission]) =>
+                        !permissions?.has(
+                            permission,
+                        ),
+                )
+                .map(
+                    ([, label]) =>
+                        label,
+                );
+
+
+        if (
+            missingPermissions.length >
+            0
+        ) {
+            logger.warn(
+                `Game Role notification channel missing permissions: ${missingPermissions.join(', ')}`,
+            );
+
+            return false;
+        }
+
+
+        /**
+         * =============================================
          * DESCRIPTION
-         * =================================================
+         * =============================================
          */
 
         let description =
             `<a:heartg5:1546906071199907972> Chúc mừng ${member} đã được cấp role <@&${config.roleId}> và nhận được những đặc quyền liên quan đến role.`;
 
+
         /**
-         * Role game bình thường:
-         * thêm channel được mở khóa.
-         *
-         * no_game:
-         * config.channelId = null
-         * nên không thêm đoạn này.
+         * Role bình thường có channel.
          */
 
         if (
@@ -664,19 +1063,26 @@ export async function sendGameRoleNotification(
         ) {
             description +=
                 ` Đồng thời mở khóa kênh <#${config.channelId}>!`;
-        } else {
+        }
+
+        /**
+         * Không Thích Chơi Game.
+         */
+
+        else {
             description +=
                 '!';
         }
+
 
         description +=
             '\n\n<a:heartg5:1546906071199907972> Chúc bạn chơi zui zẻ ở server bọn mình và nhớ chăm chỉ up level để nhận thưởng khi đạt mốc 300 nhé!';
 
 
         /**
-         * =================================================
+         * =============================================
          * EMBED
-         * =================================================
+         * =============================================
          */
 
         const embed =
@@ -693,9 +1099,9 @@ export async function sendGameRoleNotification(
 
 
         /**
-         * =================================================
-         * ATTACH ROLE IMAGE
-         * =================================================
+         * =============================================
+         * IMAGE
+         * =============================================
          */
 
         const imagePath =
@@ -703,7 +1109,9 @@ export async function sendGameRoleNotification(
                 config,
             );
 
+
         const files = [];
+
 
         if (
             imagePath
@@ -711,18 +1119,17 @@ export async function sendGameRoleNotification(
             const attachmentName =
                 `game-role-${config.key}.png`;
 
-            const attachment =
+
+            files.push(
                 new AttachmentBuilder(
                     imagePath,
                     {
                         name:
                             attachmentName,
                     },
-                );
-
-            files.push(
-                attachment,
+                ),
             );
+
 
             embed.setImage(
                 `attachment://${attachmentName}`,
@@ -731,9 +1138,9 @@ export async function sendGameRoleNotification(
 
 
         /**
-         * =================================================
+         * =============================================
          * SEND
-         * =================================================
+         * =============================================
          */
 
         await notificationChannel.send({
@@ -742,18 +1149,27 @@ export async function sendGameRoleNotification(
             ],
 
             files,
+
+            allowedMentions: {
+                users: [
+                    member.id,
+                ],
+
+                roles: [],
+            },
         });
 
 
         logger.info(
-            `Sent game role notification for ${member.user.tag}: ${config.label}`,
+            `Sent Game Role notification: ${member.user.tag} -> ${config.label}`,
         );
+
 
         return true;
 
     } catch (error) {
         logger.error(
-            `Failed to send game role notification for role ${roleId}:`,
+            `Failed to send Game Role notification for member=${member?.id}, role=${roleId}:`,
             error,
         );
 
@@ -764,7 +1180,7 @@ export async function sendGameRoleNotification(
 
 /**
  * =========================================================
- * REACT PANEL
+ * ADD ALL PANEL REACTIONS
  * =========================================================
  */
 
@@ -782,9 +1198,14 @@ export async function addAllGameRoleReactions(
                 ),
             );
 
+
+            logger.debug(
+                `Added panel emoji ${config.label}: ${config.emoji.id ?? config.emoji.name}`,
+            );
+
         } catch (error) {
             logger.error(
-                `Failed to add reaction ${config.label} (${config.emoji.id ?? config.emoji.name}) to game role panel:`,
+                `Failed to react ${config.label} (${config.emoji.id ?? config.emoji.name}):`,
                 error,
             );
         }
