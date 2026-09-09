@@ -5,12 +5,8 @@ export const CULTIVATION_CONFIG = {
    * =========================================================
    * GAME CHANNEL
    * =========================================================
-   *
-   * Sau khi bạn gửi mình ID kênh Tiên Lộ,
-   * mình sẽ điền cố định vào đây.
-   *
-   * null = tạm thời chơi được mọi kênh để test.
    */
+
   channelId: '1547233544412205066',
 
   /**
@@ -22,17 +18,17 @@ export const CULTIVATION_CONFIG = {
   ui: {
     color: '#F3AFC8',
 
-    title:
-      '✦ 𝓣𝓲𝓮̂𝓷 𝓛𝓸̣̂ · 修仙之路 ✦',
-
     footer:
-      'Usagi Cultivation System · Tiên đạo bắt đầu từ một niệm.',
+      'Usagi Tu Tiên · Tiên đạo bắt đầu từ một niệm.',
 
     /**
-     * Sau khi bạn upload ảnh Usagi Tiên Lộ lên asset/repo,
-     * mình sẽ đổi thành link asset cố định.
+     * Sau khi upload ảnh Tiên Lộ lên asset,
+     * thay null bằng RAW URL của ảnh.
      */
     image: null,
+
+    buttonEmojiId:
+      '1546092641467506688',
   },
 
   /**
@@ -46,7 +42,6 @@ export const CULTIVATION_CONFIG = {
 
     cultivateStaminaCost: 5,
 
-    // 5 phút / lần tu luyện
     cultivateCooldownMs:
       5 * 60 * 1000,
 
@@ -97,8 +92,6 @@ export const CULTIVATION_STAGES = [
  * =========================================================
  * LINH CĂN
  * =========================================================
- *
- * weight càng thấp = càng hiếm.
  */
 
 export const SPIRIT_ROOTS = [
@@ -206,7 +199,7 @@ export const CULTIVATION_EVENTS = [
     weight: 70,
 
     title:
-      '🧘 ✦ TĨNH TÂM TU LUYỆN ✦',
+      '<a:trangtrig2:1546040703375904801> TĨNH TÂM TU LUYỆN <a:trangtrig3:1546040818261954610>',
 
     text:
       'Đạo hữu tĩnh tọa nhập định, vận chuyển công pháp một chu thiên.',
@@ -222,7 +215,7 @@ export const CULTIVATION_EVENTS = [
     weight: 18,
 
     title:
-      '🌸 ✦ KỲ NGỘ ✦',
+      '<a:trangtrig2:1546040703375904801> KỲ NGỘ <a:trangtrig3:1546040818261954610>',
 
     text:
       'Một luồng linh khí tinh thuần bất ngờ hội tụ quanh động phủ.',
@@ -238,7 +231,7 @@ export const CULTIVATION_EVENTS = [
     weight: 7,
 
     title:
-      '✨ ✦ THIÊN ĐẠO CƠ DUYÊN ✦',
+      '<a:trangtrig2:1546040703375904801> THIÊN ĐẠO CƠ DUYÊN <a:trangtrig3:1546040818261954610>',
 
     text:
       'Thiên địa sinh dị tượng, một tia tiên khí từ thiên ngoại giáng xuống.',
@@ -254,7 +247,7 @@ export const CULTIVATION_EVENTS = [
     weight: 5,
 
     title:
-      '🔥 ✦ TẨU HỎA NHẬP MA ✦',
+      '<a:angryg1:1541441195144773652> TẨU HỎA NHẬP MA',
 
     text:
       'Linh khí nghịch chuyển, kinh mạch chấn động. May mắn đạo cơ chưa tổn hại.',
