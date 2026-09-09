@@ -18,17 +18,17 @@ import {
 } from '../../services/leveling/levelRoleService.js';
 
 import {
-    sendLevelChangeAnnouncements,
+    sendLevelAnnouncement,
 } from '../../services/leveling/levelAnnouncementService.js';
 
 import {
     LEVELING_MAX_LEVEL,
+    formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
-
 
 export default {
     data:
@@ -85,7 +85,6 @@ export default {
     category:
         'Leveling',
 
-
     async execute(
         interaction,
         config,
@@ -95,21 +94,14 @@ export default {
             interaction,
         );
 
-
-        // =====================================================
-        // CONFIG
-        // =====================================================
-
         const levelingConfig =
             await getLevelingConfig(
                 client,
                 interaction.guildId,
             );
 
-
         if (
-            !levelingConfig
-                ?.enabled
+            !levelingConfig?.enabled
         ) {
             await InteractionHelper.safeEditReply(
                 interaction,
@@ -122,24 +114,17 @@ export default {
             return;
         }
 
-
-        // =====================================================
-        // OPTIONS
-        // =====================================================
-
         const targetUser =
             interaction.options.getUser(
                 'user',
                 true,
             );
 
-
         const requestedLevel =
             interaction.options.getInteger(
                 'level',
                 true,
             );
-
 
         const member =
             await interaction.guild.members
@@ -149,7 +134,6 @@ export default {
                 .catch(
                     () => null,
                 );
-
 
         if (
             !member
@@ -165,10 +149,11 @@ export default {
             return;
         }
 
-
-        // =====================================================
-        // OLD DATA
-        // =====================================================
+        /**
+         * =====================================================
+         * OLD DATA
+         * =====================================================
+         */
 
         const oldData =
             await getUserLevelData(
@@ -177,16 +162,16 @@ export default {
                 targetUser.id,
             );
 
-
         const oldLevel =
             Number(
                 oldData.level,
             ) || 0;
 
-
-        // =====================================================
-        // SET LEVEL
-        // =====================================================
+        /**
+         * =====================================================
+         * SET
+         * =====================================================
+         */
 
         const userData =
             await setUserLevel(
@@ -196,91 +181,88 @@ export default {
                 requestedLevel,
             );
 
-
         const newLevel =
             Number(
                 userData.level,
             ) || 0;
 
-
-        // =====================================================
-        // ROLE
-        // =====================================================
+        /**
+         * =====================================================
+         * ROLE
+         * =====================================================
+         *
+         * Luôn sync, kể cả set xuống.
+         */
 
         await syncHighestLevelRole(
             member,
             newLevel,
         );
 
+        /**
+         * =====================================================
+         * ANNOUNCEMENT
+         * =====================================================
+         *
+         * /levelset KHÔNG duyệt các milestone trung gian.
+         *
+         * Nếu set tăng:
+         * -> chỉ gửi thông báo của level cuối.
+         *
+         * Nếu level cuối chính là milestone:
+         * -> service tự chọn Phi Thăng / Tiên Lộ / Cực Cảnh.
+         *
+         * Nếu level cuối không phải milestone:
+         * -> Phá Cảnh thường.
+         *
+         * Set xuống:
+         * -> không thông báo.
+         */
 
-        // =====================================================
-        // ANNOUNCEMENT
-        // =====================================================
-        //
-        // Chỉ thông báo nếu level tăng.
-        //
-        // Nếu đi qua milestone:
-        // -> gửi từng Phi Thăng.
-        //
-        // Nếu không đi qua milestone:
-        // -> gửi level cuối bình thường.
-        //
-        // Set xuống:
-        // -> không thông báo, chỉ sync role.
-        // =====================================================
-
-        let announcementResult = {
-            sent:
-                0,
-
-            milestones:
-                [],
-        };
-
+        let announced =
+            false;
 
         if (
             newLevel >
             oldLevel
         ) {
-            announcementResult =
-                await sendLevelChangeAnnouncements({
+            announced =
+                await sendLevelAnnouncement({
                     guild:
                         interaction.guild,
 
                     member,
 
-                    oldLevel,
-
-                    newLevel,
+                    level:
+                        newLevel,
 
                     source:
                         'admin',
                 });
         }
 
-
-        // =====================================================
-        // RESPONSE
-        // =====================================================
+        /**
+         * =====================================================
+         * RESPONSE
+         * =====================================================
+         */
 
         const responseLines = [
             `Đã đặt level của ${member}.`,
 
-            `**Lv.${oldLevel} → Lv.${newLevel}**`,
+            `**Lv.${formatLevelNumber(oldLevel)} → Lv.${formatLevelNumber(newLevel)}**`,
         ];
-
 
         if (
             newLevel >
             oldLevel
         ) {
             responseLines.push(
-                announcementResult.sent > 0
-                    ? `Đã gửi **${announcementResult.sent}** thông báo level.`
-                    : 'Không có thông báo level nào được gửi.',
+                announced
+                    ? 'Đã gửi thông báo level.'
+                    : 'Không thể gửi thông báo level.',
             );
         }
-
 
         await InteractionHelper.safeEditReply(
             interaction,
@@ -292,9 +274,8 @@ export default {
             },
         );
 
-
         logger.info(
-            `[LEVEL] ${interaction.user.tag} set ${targetUser.tag} from Lv.${oldLevel} to Lv.${newLevel}`,
+            `[LEVEL] ${interaction.user.tag} set ${targetUser.tag} from Lv.${formatLevelNumber(oldLevel)} to Lv.${formatLevelNumber(newLevel)}`,
         );
     },
 };
