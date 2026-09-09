@@ -21,11 +21,8 @@ export const CULTIVATION_CONFIG = {
     footer:
       'Usagi Tu Tiên · Tiên đạo bắt đầu từ một niệm.',
 
-    /**
-     * Sau khi upload ảnh Tiên Lộ lên asset,
-     * thay null bằng RAW URL của ảnh.
-     */
-    image: 'https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/Games/tutien.png',
+    image:
+      'https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/Games/tutien.png',
 
     buttonEmojiId:
       '1546092641467506688',
@@ -50,6 +47,13 @@ export const CULTIVATION_CONFIG = {
 
     spiritStoneMin: 8,
     spiritStoneMax: 25,
+
+    /**
+     * THÁM HIỂM
+     */
+
+    adventureCooldownMs:
+      10 * 60 * 1000,
 
     breakthroughBaseChance: 0.88,
 
@@ -188,7 +192,7 @@ export const SPIRIT_ROOTS = [
 
 /**
  * =========================================================
- * RANDOM TU LUYỆN EVENT
+ * TU LUYỆN EVENTS
  * =========================================================
  */
 
@@ -255,6 +259,202 @@ export const CULTIVATION_EVENTS = [
     cultivationMultiplier: -0.35,
 
     stoneMultiplier: 0,
+  },
+];
+
+/**
+ * =========================================================
+ * THÁM HIỂM — ĐỊA ĐIỂM
+ * =========================================================
+ */
+
+export const CULTIVATION_ADVENTURE_LOCATIONS = [
+  {
+    id: 'thanh_van_son',
+    name: 'THANH VÂN SƠN',
+  },
+
+  {
+    id: 'u_minh_coc',
+    name: 'U MINH CỐC',
+  },
+
+  {
+    id: 'xich_viem_dong',
+    name: 'XÍCH VIÊM ĐỘNG',
+  },
+
+  {
+    id: 'dao_hoa_coc',
+    name: 'ĐÀO HOA CỐC',
+  },
+
+  {
+    id: 'loi_vuc',
+    name: 'LÔI VỰC',
+  },
+
+  {
+    id: 'thuong_co_di_tich',
+    name: 'THƯỢNG CỔ DI TÍCH',
+  },
+];
+
+/**
+ * =========================================================
+ * THÁM HIỂM — RANDOM EVENTS
+ * =========================================================
+ */
+
+export const CULTIVATION_ADVENTURE_EVENTS = [
+  /**
+   * Bình thường
+   */
+
+  {
+    id: 'spirit_gathering',
+
+    type: 'normal',
+
+    weight: 28,
+
+    text:
+      'Đạo hữu tìm thấy một nơi linh khí nồng đậm, thuận thế ngồi xuống vận công.',
+
+    cultivationMin: 90,
+    cultivationMax: 170,
+
+    stonesMin: 12,
+    stonesMax: 35,
+  },
+
+  /**
+   * Linh thạch
+   */
+
+  {
+    id: 'spirit_stone_vein',
+
+    type: 'treasure',
+
+    weight: 20,
+
+    text:
+      'Sau lớp đá phủ rêu, một mạch Linh Thạch nhỏ bất ngờ lộ ra trước mắt.',
+
+    cultivationMin: 60,
+    cultivationMax: 130,
+
+    stonesMin: 55,
+    stonesMax: 120,
+  },
+
+  /**
+   * Di tích
+   */
+
+  {
+    id: 'ancient_ruin',
+
+    type: 'treasure',
+
+    weight: 17,
+
+    text:
+      'Một tòa cổ điện phủ đầy bụi thời gian xuất hiện giữa màn sương.',
+
+    cultivationMin: 120,
+    cultivationMax: 220,
+
+    stonesMin: 30,
+    stonesMax: 80,
+  },
+
+  /**
+   * Đại cơ duyên
+   */
+
+  {
+    id: 'great_fortune',
+
+    type: 'great_fortune',
+
+    weight: 8,
+
+    title:
+      '<a:trangtrig2:1546040703375904801> ĐẠI CƠ DUYÊN <a:trangtrig3:1546040818261954610>',
+
+    text:
+      'Trong khe đá, đạo hữu phát hiện một túi Linh Thạch cùng linh khí do tiền nhân để lại.',
+
+    cultivationMin: 220,
+    cultivationMax: 360,
+
+    stonesMin: 120,
+    stonesMax: 260,
+  },
+
+  /**
+   * Ma lang
+   */
+
+  {
+    id: 'blood_eye_wolf',
+
+    type: 'monster',
+
+    weight: 12,
+
+    monster:
+      'Huyết Nhãn Ma Lang',
+
+    text:
+      'Một con Huyết Nhãn Ma Lang bất ngờ lao ra từ trong rừng!',
+
+    cultivationLossMin: 20,
+    cultivationLossMax: 55,
+  },
+
+  /**
+   * Hỏa xà
+   */
+
+  {
+    id: 'flame_serpent',
+
+    type: 'monster',
+
+    weight: 8,
+
+    monster:
+      'Xích Viêm Hỏa Xà',
+
+    text:
+      'Một con Xích Viêm Hỏa Xà từ khe đá lao ra, hỏa khí lập tức bao phủ xung quanh!',
+
+    cultivationLossMin: 25,
+    cultivationLossMax: 65,
+  },
+
+  /**
+   * Bình an
+   */
+
+  {
+    id: 'nothing',
+
+    type: 'empty',
+
+    weight: 7,
+
+    text:
+      'Đạo hữu đi sâu hàng trăm dặm nhưng hôm nay dường như cơ duyên chưa tới.',
+
+    cultivationMin: 20,
+    cultivationMax: 60,
+
+    stonesMin: 0,
+    stonesMax: 10,
   },
 ];
 
