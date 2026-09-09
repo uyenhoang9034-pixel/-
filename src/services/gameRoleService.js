@@ -662,32 +662,160 @@ export async function addGameRoleFromReaction(
          * =============================================
          */
 
-        await member.roles.add(
-            role,
-            `Game Role reaction: ${config.label}`,
+       /**
+ * =============================================
+ * ADD ROLE
+ * =============================================
+ */
+
+await member.roles.add(
+    role.id,
+    `Game Role reaction: ${config.label}`,
+);
+
+logger.info(
+    `Discord accepted Game Role add: ${role.name} (${role.id}) -> ${member.user.tag}.`,
+);
+
+
+/**
+ * =============================================
+ * VERIFY ROLE REALLY EXISTS
+ * =============================================
+ *
+ * Không tin cache ngay sau khi add.
+ * Fetch member mới hoàn toàn từ Discord.
+ */
+
+await new Promise(
+    (resolve) =>
+        setTimeout(
+            resolve,
+            750,
+        ),
+);
+
+
+let freshMember =
+    await guild.members
+        .fetch(
+            {
+                user:
+                    member.id,
+
+                force:
+                    true,
+            },
+        )
+        .catch(
+            () =>
+                null,
         );
 
 
-        logger.info(
-            `Added Game Role ${role.name} (${role.id}) to ${member.user.tag}.`,
-        );
+if (
+    !freshMember
+) {
+    logger.error(
+        `Could not refetch ${member.user.tag} after adding Game Role ${role.name}.`,
+    );
+
+    return false;
+}
 
 
-        /**
-         * =============================================
-         * SEND NOTIFICATION DIRECTLY
-         * =============================================
-         *
-         * Không phụ thuộc hoàn toàn GuildMemberUpdate.
-         */
+/**
+ * Role vừa add nhưng đã biến mất.
+ *
+ * Có thể do:
+ * - reaction bị remove ngay lập tức
+ * - bot khác đang gỡ role
+ * - automation khác trong server can thiệp
+ */
 
-        await sendGameRoleNotification(
-            member,
+if (
+    !freshMember.roles.cache.has(
+        role.id,
+    )
+) {
+    logger.warn(
+        `Game Role ${role.name} disappeared immediately after assignment for ${member.user.tag}. Retrying once...`,
+    );
+
+
+    /**
+     * Retry một lần.
+     */
+
+    await freshMember.roles.add(
+        role.id,
+        `Game Role verification retry: ${config.label}`,
+    );
+
+
+    await new Promise(
+        (resolve) =>
+            setTimeout(
+                resolve,
+                750,
+            ),
+    );
+
+
+    freshMember =
+        await guild.members
+            .fetch(
+                {
+                    user:
+                        member.id,
+
+                    force:
+                        true,
+                },
+            )
+            .catch(
+                () =>
+                    null,
+            );
+
+
+    if (
+        !freshMember ||
+        !freshMember.roles.cache.has(
             role.id,
+        )
+    ) {
+        logger.error(
+            `Game Role ${role.name} was removed again after retry for ${member.user.tag}. Another bot/system is most likely removing it.`,
         );
 
+        return false;
+    }
+}
 
-        return true;
+
+/**
+ * =============================================
+ * VERIFIED
+ * =============================================
+ */
+
+logger.info(
+    `Verified Game Role ${role.name} is present on ${member.user.tag}.`,
+);
+
+
+/**
+ * Chỉ thông báo SAU KHI verify role còn tồn tại.
+ */
+
+await sendGameRoleNotification(
+    freshMember,
+    role.id,
+);
+
+
+return true;
 
     } catch (error) {
         logger.error(
