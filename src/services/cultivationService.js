@@ -1,217 +1,1048 @@
 import { Mutex } from '../utils/mutex.js';
 
 import {
-  getCultivationProfile,
-  removeInventoryItem,
-  saveCultivationProfile,
-} from './cultivationService.js';
+  CULTIVATION_CONFIG,
+  CULTIVATION_ADVENTURE_EVENTS,
+  CULTIVATION_ADVENTURE_LOCATIONS,
+  CULTIVATION_EVENTS,
+  CULTIVATION_ITEMS,
+  CULTIVATION_REALMS,
+  CULTIVATION_STAGES,
+  SPIRIT_ROOTS,
+} from '../config/cultivationGame.js';
 
-export const CULTIVATION_TALISMANS = {
-  ho_dao_phu: {
-    id:
-      'ho_dao_phu',
+const PROFILE_PREFIX =
+  'games:cultivation:profile:';
 
-    name:
-      'Hộ Đạo Phù',
-
-    materialId:
-      'thuong_co_phu',
-
-    materialName:
-      'Thượng Cổ Phù',
-
-    materialAmount: 1,
-
-    description:
-      'Phù văn hộ thể, thiên kiếp cũng khó tổn đạo cơ.',
-
-    effect:
-      'Lần Đột Phá thất bại kế tiếp không mất Tu Vi.',
-
-    effectType:
-      'breakthrough_protection',
+const ITEM_EFFECTS = {
+  tu_khi_dan: {
+    cultivationBonus:
+      0.25,
   },
 
-  tam_bao_phu: {
-    id:
-      'tam_bao_phu',
-
-    name:
-      'Tầm Bảo Phù',
-
-    materialId:
-      'thuong_co_phu',
-
-    materialName:
-      'Thượng Cổ Phù',
-
-    materialAmount: 1,
-
-    description:
-      'Phù quang dẫn lối, cơ duyên ẩn sâu cũng khó thoát khỏi linh thức.',
-
-    effect:
-      'Lần Thám Hiểm kế tiếp tăng mạnh tỷ lệ tìm thấy vật phẩm.',
-
-    effectType:
-      'adventure_drop_bonus',
-
-    effectValue:
-      0.35,
+  hoi_nguyen_dan: {
+    staminaRestore:
+      30,
   },
 
-  tu_tai_phu: {
-    id:
-      'tu_tai_phu',
-
-    name:
-      'Tụ Tài Phù',
-
-    materialId:
-      'thuong_co_phu',
-
-    materialName:
-      'Thượng Cổ Phù',
-
-    materialAmount: 1,
-
-    description:
-      'Tài khí hội tụ, linh thạch theo phù lực mà đến.',
-
-    effect:
-      'Lần Thám Hiểm kế tiếp nhận thêm 50% Linh Thạch.',
-
-    effectType:
-      'adventure_stone_bonus',
-
-    effectValue:
-      0.50,
+  pha_canh_dan: {
+    breakthroughBonus:
+      0.10,
   },
 };
 
-export function getCultivationTalisman(
-  talismanId,
+const USABLE_ITEM_IDS =
+  new Set(
+    Object.keys(
+      ITEM_EFFECTS,
+    ),
+  );
+
+/**
+ * =========================================================
+ * EQUIPMENT
+ * =========================================================
+ */
+
+function getEquippedEquipmentId(
+  profile,
 ) {
   return (
-    CULTIVATION_TALISMANS[
-      talismanId
-    ] || null
+    profile.equipment
+      ?.equipped || null
   );
 }
 
-export function getCultivationTalismanList() {
-  return Object.values(
-    CULTIVATION_TALISMANS,
+function getEquipmentCultivationBonus(
+  profile,
+) {
+  return (
+    getEquippedEquipmentId(
+      profile,
+    ) ===
+    'thanh_phong_kiem'
+      ? 0.05
+      : 0
   );
 }
 
-export function ensureTreasureData(
+function getEquipmentSpiritStoneBonus(
+  profile,
+) {
+  return (
+    getEquippedEquipmentId(
+      profile,
+    ) ===
+    'tu_linh_boi'
+      ? 0.10
+      : 0
+  );
+}
+
+function getEquipmentBreakthroughLossReduction(
+  profile,
+) {
+  return (
+    getEquippedEquipmentId(
+      profile,
+    ) ===
+    'huyen_thiet_ho_phu'
+      ? 0.20
+      : 0
+  );
+}
+
+/**
+ * =========================================================
+ * TECHNIQUE
+ * =========================================================
+ */
+
+function getActiveTechniqueId(
+  profile,
+) {
+  return (
+    profile.techniques
+      ?.active || null
+  );
+}
+
+function getTechniqueCultivationBonus(
+  profile,
+) {
+  return (
+    getActiveTechniqueId(
+      profile,
+    ) ===
+    'thanh_van_kiem_quyet'
+      ? 0.08
+      : 0
+  );
+}
+
+function getTechniqueBreakthroughBonus(
+  profile,
+) {
+  return (
+    getActiveTechniqueId(
+      profile,
+    ) ===
+    'huyen_nguyen_tam_phap'
+      ? 0.05
+      : 0
+  );
+}
+
+function getTechniqueSpiritStoneBonus(
+  profile,
+) {
+  return (
+    getActiveTechniqueId(
+      profile,
+    ) ===
+    'tu_linh_chan_kinh'
+      ? 0.08
+      : 0
+  );
+}
+
+/**
+ * =========================================================
+ * TALISMAN
+ * =========================================================
+ */
+
+function getActiveTalismanId(
+  profile,
+) {
+  return (
+    profile.treasure
+      ?.activeTalisman ||
+    null
+  );
+}
+
+function consumeActiveTalisman(
   profile,
 ) {
   if (
-    !profile.treasure ||
-    typeof profile.treasure !==
-      'object' ||
-    Array.isArray(
-      profile.treasure,
-    )
-  ) {
-    profile.treasure = {
-      activeTalisman:
-        null,
-    };
-  }
-
-  if (
-    typeof profile.treasure
-      .activeTalisman !==
-      'string'
+    profile.treasure
   ) {
     profile.treasure
       .activeTalisman =
       null;
   }
-
-  return profile;
 }
 
-export function getActiveTalisman(
-  profile,
-) {
-  ensureTreasureData(
-    profile,
-  );
+/**
+ * =========================================================
+ * BASIC HELPERS
+ * =========================================================
+ */
 
+function getProfileKey(
+  guildId,
+  userId,
+) {
+  return `${PROFILE_PREFIX}${guildId}:${userId}`;
+}
+
+function getGuildProfilePrefix(
+  guildId,
+) {
+  return `${PROFILE_PREFIX}${guildId}:`;
+}
+
+function randomInt(
+  min,
+  max,
+) {
+  return (
+    Math.floor(
+      Math.random() *
+        (
+          max -
+          min +
+          1
+        ),
+    ) +
+    min
+  );
+}
+
+function randomItem(
+  array,
+) {
+  return array[
+    Math.floor(
+      Math.random() *
+        array.length,
+    )
+  ];
+}
+
+function weightedPick(
+  entries,
+) {
   if (
-    !profile.treasure
-      .activeTalisman
+    !Array.isArray(
+      entries,
+    ) ||
+    entries.length === 0
   ) {
     return null;
   }
 
-  return getCultivationTalisman(
-    profile.treasure
-      .activeTalisman,
-  );
-}
-
-export function hasActiveTalisman(
-  profile,
-  effectType,
-) {
-  const talisman =
-    getActiveTalisman(
-      profile,
-    );
-
-  return (
-    talisman?.effectType ===
-    effectType
-  );
-}
-
-export function getTalismanEffectValue(
-  profile,
-  effectType,
-) {
-  const talisman =
-    getActiveTalisman(
-      profile,
+  const total =
+    entries.reduce(
+      (
+        sum,
+        entry,
+      ) =>
+        sum +
+        Number(
+          entry.weight ||
+            0,
+        ),
+      0,
     );
 
   if (
-    !talisman ||
-    talisman.effectType !==
-      effectType
+    total <= 0
   ) {
-    return 0;
+    return entries[0];
   }
 
-  return Math.max(
-    0,
-    Number(
-      talisman.effectValue,
-    ) || 0,
-  );
+  let roll =
+    Math.random() *
+    total;
+
+  for (
+    const entry of entries
+  ) {
+    roll -=
+      Number(
+        entry.weight ||
+          0,
+      );
+
+    if (
+      roll <= 0
+    ) {
+      return entry;
+    }
+  }
+
+  return entries[
+    entries.length - 1
+  ];
 }
 
-export function getAncientTalismanQuantity(
-  profile,
+/**
+ * =========================================================
+ * PROFILE
+ * =========================================================
+ */
+
+export function createCultivationProfile(
+  guildId,
+  userId,
 ) {
-  return Math.max(
-    0,
-    Number(
-      profile.inventory
-        ?.thuong_co_phu,
-    ) || 0,
-  );
+  const spiritRoot =
+    weightedPick(
+      SPIRIT_ROOTS,
+    );
+
+  return {
+    version: 7,
+
+    guildId,
+    userId,
+
+    realmIndex: 0,
+    stageIndex: 0,
+
+    cultivation: 0,
+    totalCultivation: 0,
+
+    spiritStones: 100,
+
+    stamina:
+      CULTIVATION_CONFIG
+        .gameplay
+        .maxStamina,
+
+    maxStamina:
+      CULTIVATION_CONFIG
+        .gameplay
+        .maxStamina,
+
+    spiritRoot: {
+      id:
+        spiritRoot.id,
+
+      name:
+        spiritRoot.name,
+
+      rarity:
+        spiritRoot.rarity,
+
+      cultivateBonus:
+        spiritRoot
+          .cultivateBonus ||
+        0,
+    },
+
+    inventory: {},
+
+    equipment: {
+      owned: {},
+      equipped: null,
+    },
+
+    techniques: {
+      learned: {},
+      active: null,
+    },
+
+    treasure: {
+      activeTalisman:
+        null,
+    },
+
+    effects: {
+      nextCultivationBonus:
+        0,
+
+      nextBreakthroughBonus:
+        0,
+    },
+
+    cooldowns: {
+      cultivateAt: 0,
+      adventureAt: 0,
+    },
+
+    stats: {
+      cultivateCount: 0,
+
+      breakthroughSuccess:
+        0,
+
+      breakthroughFail:
+        0,
+
+      fortunes: 0,
+
+      adventureCount:
+        0,
+
+      greatFortunes:
+        0,
+
+      monsterEncounters:
+        0,
+
+      itemsFound: 0,
+
+      itemsUsed: 0,
+
+      alchemyCount: 0,
+
+      alchemySuccess:
+        0,
+
+      alchemyFail: 0,
+
+      forgeCount: 0,
+
+      forgeSuccess: 0,
+
+      forgeFail: 0,
+
+      techniquesLearned:
+        0,
+
+      talismansActivated:
+        0,
+    },
+
+    createdAt:
+      Date.now(),
+
+    updatedAt:
+      Date.now(),
+  };
 }
 
-export async function activateCultivationTalisman(
+export function normalizeCultivationProfile(
+  raw,
+  guildId,
+  userId,
+) {
+  if (
+    !raw ||
+    typeof raw !==
+      'object'
+  ) {
+    return createCultivationProfile(
+      guildId,
+      userId,
+    );
+  }
+
+  const base =
+    createCultivationProfile(
+      guildId,
+      userId,
+    );
+
+  const inventory = {};
+
+  const rawInventory =
+    raw.inventory &&
+    typeof raw.inventory ===
+      'object' &&
+    !Array.isArray(
+      raw.inventory,
+    )
+      ? raw.inventory
+      : {};
+
+  for (
+    const [
+      itemId,
+      quantity,
+    ] of Object.entries(
+      rawInventory,
+    )
+  ) {
+    const safeQuantity =
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            quantity,
+          ) || 0,
+        ),
+      );
+
+    if (
+      safeQuantity > 0
+    ) {
+      inventory[
+        itemId
+      ] =
+        safeQuantity;
+    }
+  }
+
+  const ownedEquipment =
+    {};
+
+  const rawOwnedEquipment =
+    raw.equipment
+      ?.owned &&
+    typeof raw.equipment
+      .owned ===
+      'object' &&
+    !Array.isArray(
+      raw.equipment
+        .owned,
+    )
+      ? raw.equipment
+          .owned
+      : {};
+
+  for (
+    const [
+      equipmentId,
+      quantity,
+    ] of Object.entries(
+      rawOwnedEquipment,
+    )
+  ) {
+    const safeQuantity =
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            quantity,
+          ) || 0,
+        ),
+      );
+
+    if (
+      safeQuantity > 0
+    ) {
+      ownedEquipment[
+        equipmentId
+      ] =
+        safeQuantity;
+    }
+  }
+
+  const equippedEquipment =
+    typeof raw.equipment
+      ?.equipped ===
+      'string'
+      ? raw.equipment
+          .equipped
+      : null;
+
+  const learnedTechniques =
+    {};
+
+  const rawTechniques =
+    raw.techniques
+      ?.learned &&
+    typeof raw.techniques
+      .learned ===
+      'object' &&
+    !Array.isArray(
+      raw.techniques
+        .learned,
+    )
+      ? raw.techniques
+          .learned
+      : {};
+
+  for (
+    const [
+      techniqueId,
+      learned,
+    ] of Object.entries(
+      rawTechniques,
+    )
+  ) {
+    if (
+      learned === true
+    ) {
+      learnedTechniques[
+        techniqueId
+      ] =
+        true;
+    }
+  }
+
+  const activeTechnique =
+    typeof raw.techniques
+      ?.active ===
+      'string'
+      ? raw.techniques
+          .active
+      : null;
+
+  const activeTalisman =
+    typeof raw.treasure
+      ?.activeTalisman ===
+      'string'
+      ? raw.treasure
+          .activeTalisman
+      : null;
+
+  return {
+    ...base,
+    ...raw,
+
+    version: 7,
+
+    guildId,
+    userId,
+
+    inventory,
+
+    equipment: {
+      owned:
+        ownedEquipment,
+
+      equipped:
+        equippedEquipment,
+    },
+
+    techniques: {
+      learned:
+        learnedTechniques,
+
+      active:
+        activeTechnique,
+    },
+
+    treasure: {
+      activeTalisman,
+    },
+
+    effects: {
+      ...base.effects,
+      ...(raw.effects ||
+        {}),
+    },
+
+    cooldowns: {
+      ...base.cooldowns,
+      ...(raw.cooldowns ||
+        {}),
+    },
+
+    stats: {
+      ...base.stats,
+      ...(raw.stats ||
+        {}),
+    },
+
+    spiritRoot:
+      raw.spiritRoot ||
+      base.spiritRoot,
+
+    realmIndex:
+      Math.max(
+        0,
+        Math.min(
+          Number(
+            raw.realmIndex,
+          ) || 0,
+
+          CULTIVATION_REALMS
+            .length - 1,
+        ),
+      ),
+
+    stageIndex:
+      Math.max(
+        0,
+        Math.min(
+          Number(
+            raw.stageIndex,
+          ) || 0,
+
+          CULTIVATION_STAGES
+            .length - 1,
+        ),
+      ),
+
+    cultivation:
+      Math.max(
+        0,
+        Number(
+          raw.cultivation,
+        ) || 0,
+      ),
+
+    totalCultivation:
+      Math.max(
+        0,
+        Number(
+          raw.totalCultivation,
+        ) || 0,
+      ),
+
+    spiritStones:
+      Math.max(
+        0,
+        Number(
+          raw.spiritStones,
+        ) || 0,
+      ),
+
+    stamina:
+      Math.max(
+        0,
+        Number(
+          raw.stamina,
+        ) || 0,
+      ),
+
+    maxStamina:
+      Math.max(
+        1,
+        Number(
+          raw.maxStamina,
+        ) ||
+          CULTIVATION_CONFIG
+            .gameplay
+            .maxStamina,
+      ),
+  };
+}
+
+export async function getCultivationProfile(
   client,
   guildId,
   userId,
-  talismanId,
+  {
+    create = true,
+  } = {},
+) {
+  const key =
+    getProfileKey(
+      guildId,
+      userId,
+    );
+
+  const raw =
+    await client.db.get(
+      key,
+      null,
+    );
+
+  if (
+    !raw &&
+    !create
+  ) {
+    return null;
+  }
+
+  const profile =
+    normalizeCultivationProfile(
+      raw,
+      guildId,
+      userId,
+    );
+
+  if (
+    !raw &&
+    create
+  ) {
+    await client.db.set(
+      key,
+      profile,
+    );
+  }
+
+  return profile;
+}
+
+export async function saveCultivationProfile(
+  client,
+  profile,
+) {
+  const data = {
+    ...profile,
+
+    version: 7,
+
+    updatedAt:
+      Date.now(),
+  };
+
+  await client.db.set(
+    getProfileKey(
+      data.guildId,
+      data.userId,
+    ),
+    data,
+  );
+
+  return data;
+}
+
+/**
+ * =========================================================
+ * INVENTORY
+ * =========================================================
+ */
+
+export function addInventoryItem(
+  profile,
+  itemId,
+  quantity = 1,
+) {
+  if (
+    !CULTIVATION_ITEMS[
+      itemId
+    ]
+  ) {
+    return false;
+  }
+
+  const safeQuantity =
+    Math.max(
+      1,
+      Math.floor(
+        Number(
+          quantity,
+        ) || 1,
+      ),
+    );
+
+  if (
+    !profile.inventory ||
+    typeof profile.inventory !==
+      'object'
+  ) {
+    profile.inventory =
+      {};
+  }
+
+  profile.inventory[
+    itemId
+  ] =
+    Math.max(
+      0,
+      Number(
+        profile.inventory[
+          itemId
+        ],
+      ) || 0,
+    ) +
+    safeQuantity;
+
+  profile.stats.itemsFound =
+    Math.max(
+      0,
+      Number(
+        profile.stats
+          .itemsFound,
+      ) || 0,
+    ) +
+    safeQuantity;
+
+  return true;
+}
+
+export function removeInventoryItem(
+  profile,
+  itemId,
+  quantity = 1,
+) {
+  const current =
+    Math.max(
+      0,
+      Number(
+        profile.inventory?.[
+          itemId
+        ],
+      ) || 0,
+    );
+
+  const safeQuantity =
+    Math.max(
+      1,
+      Math.floor(
+        Number(
+          quantity,
+        ) || 1,
+      ),
+    );
+
+  if (
+    current <
+    safeQuantity
+  ) {
+    return false;
+  }
+
+  const next =
+    current -
+    safeQuantity;
+
+  if (
+    next <= 0
+  ) {
+    delete profile.inventory[
+      itemId
+    ];
+  } else {
+    profile.inventory[
+      itemId
+    ] =
+      next;
+  }
+
+  return true;
+}
+
+export function getInventoryEntries(
+  profile,
+) {
+  return Object.entries(
+    profile.inventory ||
+      {},
+  )
+    .map(
+      ([
+        itemId,
+        quantity,
+      ]) => {
+        const item =
+          CULTIVATION_ITEMS[
+            itemId
+          ];
+
+        if (
+          !item ||
+          quantity <= 0
+        ) {
+          return null;
+        }
+
+        return {
+          ...item,
+          quantity,
+        };
+      },
+    )
+    .filter(
+      Boolean,
+    );
+}
+
+export function getUsableInventoryEntries(
+  profile,
+) {
+  return getInventoryEntries(
+    profile,
+  ).filter(
+    (
+      item,
+    ) =>
+      USABLE_ITEM_IDS.has(
+        item.id,
+      ),
+  );
+}
+
+export function isCultivationItemUsable(
+  itemId,
+) {
+  return USABLE_ITEM_IDS.has(
+    itemId,
+  );
+}
+
+export function getCultivationItem(
+  itemId,
+) {
+  return (
+    CULTIVATION_ITEMS[
+      itemId
+    ] || null
+  );
+}
+
+function rollAdventureDrop(
+  event,
+  dropBonus = 0,
+) {
+  const baseChance =
+    Number(
+      event.dropChance,
+    ) || 0;
+
+  const dropChance =
+    Math.min(
+      1,
+      Math.max(
+        0,
+        baseChance +
+          dropBonus,
+      ),
+    );
+
+  if (
+    dropChance <= 0 ||
+    Math.random() >
+      dropChance
+  ) {
+    return null;
+  }
+
+  const drop =
+    weightedPick(
+      event.drops ||
+        [],
+    );
+
+  if (
+    !drop ||
+    !CULTIVATION_ITEMS[
+      drop.itemId
+    ]
+  ) {
+    return null;
+  }
+
+  const quantity =
+    randomInt(
+      Math.max(
+        1,
+        Number(
+          drop.min,
+        ) || 1,
+      ),
+
+      Math.max(
+        1,
+        Number(
+          drop.max,
+        ) || 1,
+      ),
+    );
+
+  return {
+    item:
+      CULTIVATION_ITEMS[
+        drop.itemId
+      ],
+
+    itemId:
+      drop.itemId,
+
+    quantity,
+  };
+}
+
+/**
+ * =========================================================
+ * USE ITEM
+ * =========================================================
+ */
+
+export async function useCultivationItem(
+  client,
+  guildId,
+  userId,
+  itemId,
 ) {
   const lockKey =
     `cultivation:${guildId}:${userId}`;
@@ -220,19 +1051,6 @@ export async function activateCultivationTalisman(
     lockKey,
 
     async () => {
-      const talisman =
-        getCultivationTalisman(
-          talismanId,
-        );
-
-      if (!talisman) {
-        return {
-          ok: false,
-          reason:
-            'invalid_talisman',
-        };
-      }
-
       const profile =
         await getCultivationProfile(
           client,
@@ -240,78 +1058,723 @@ export async function activateCultivationTalisman(
           userId,
         );
 
-      ensureTreasureData(
-        profile,
-      );
-
-      const current =
-        getActiveTalisman(
-          profile,
-        );
-
-      if (current) {
-        return {
-          ok: false,
-          reason:
-            'talisman_active',
-          activeTalisman:
-            current,
-          talisman,
-          profile,
-        };
-      }
-
-      const available =
-        getAncientTalismanQuantity(
-          profile,
-        );
+      const item =
+        CULTIVATION_ITEMS[
+          itemId
+        ];
 
       if (
-        available <
-        talisman.materialAmount
+        !item ||
+        !USABLE_ITEM_IDS.has(
+          itemId,
+        )
       ) {
         return {
           ok: false,
           reason:
-            'not_enough_material',
-          available,
-          required:
-            talisman.materialAmount,
-          talisman,
+            'not_usable',
           profile,
+          item,
         };
       }
 
-      const removed =
-        removeInventoryItem(
-          profile,
-          talisman.materialId,
-          talisman.materialAmount,
-        );
-
-      if (!removed) {
-        return {
-          ok: false,
-          reason:
-            'consume_failed',
-          talisman,
-          profile,
-        };
-      }
-
-      profile.treasure
-        .activeTalisman =
-        talisman.id;
-
-      profile.stats
-        .talismansActivated =
+      const quantity =
         Math.max(
           0,
           Number(
-            profile.stats
-              .talismansActivated,
+            profile.inventory?.[
+              itemId
+            ],
           ) || 0,
-        ) + 1;
+        );
+
+      if (
+        quantity <= 0
+      ) {
+        return {
+          ok: false,
+          reason:
+            'not_owned',
+          profile,
+          item,
+        };
+      }
+
+      if (
+        itemId ===
+        'tu_khi_dan'
+      ) {
+        if (
+          Number(
+            profile.effects
+              ?.nextCultivationBonus,
+          ) > 0
+        ) {
+          return {
+            ok: false,
+            reason:
+              'effect_active',
+            profile,
+            item,
+          };
+        }
+
+        profile.effects
+          .nextCultivationBonus =
+          ITEM_EFFECTS
+            .tu_khi_dan
+            .cultivationBonus;
+
+        removeInventoryItem(
+          profile,
+          itemId,
+          1,
+        );
+
+        profile.stats
+          .itemsUsed +=
+          1;
+
+        const saved =
+          await saveCultivationProfile(
+            client,
+            profile,
+          );
+
+        return {
+          ok: true,
+
+          type:
+            'cultivation_buff',
+
+          item,
+
+          bonus:
+            ITEM_EFFECTS
+              .tu_khi_dan
+              .cultivationBonus,
+
+          remaining:
+            saved.inventory?.[
+              itemId
+            ] || 0,
+
+          profile:
+            saved,
+        };
+      }
+
+      if (
+        itemId ===
+        'hoi_nguyen_dan'
+      ) {
+        if (
+          profile.stamina >=
+          profile.maxStamina
+        ) {
+          return {
+            ok: false,
+            reason:
+              'stamina_full',
+            profile,
+            item,
+          };
+        }
+
+        const before =
+          profile.stamina;
+
+        profile.stamina =
+          Math.min(
+            profile.maxStamina,
+
+            profile.stamina +
+              ITEM_EFFECTS
+                .hoi_nguyen_dan
+                .staminaRestore,
+          );
+
+        const restored =
+          profile.stamina -
+          before;
+
+        removeInventoryItem(
+          profile,
+          itemId,
+          1,
+        );
+
+        profile.stats
+          .itemsUsed +=
+          1;
+
+        const saved =
+          await saveCultivationProfile(
+            client,
+            profile,
+          );
+
+        return {
+          ok: true,
+
+          type:
+            'stamina_restore',
+
+          item,
+          before,
+
+          after:
+            saved.stamina,
+
+          restored,
+
+          remaining:
+            saved.inventory?.[
+              itemId
+            ] || 0,
+
+          profile:
+            saved,
+        };
+      }
+
+      if (
+        itemId ===
+        'pha_canh_dan'
+      ) {
+        if (
+          Number(
+            profile.effects
+              ?.nextBreakthroughBonus,
+          ) > 0
+        ) {
+          return {
+            ok: false,
+            reason:
+              'effect_active',
+            profile,
+            item,
+          };
+        }
+
+        profile.effects
+          .nextBreakthroughBonus =
+          ITEM_EFFECTS
+            .pha_canh_dan
+            .breakthroughBonus;
+
+        removeInventoryItem(
+          profile,
+          itemId,
+          1,
+        );
+
+        profile.stats
+          .itemsUsed +=
+          1;
+
+        const saved =
+          await saveCultivationProfile(
+            client,
+            profile,
+          );
+
+        return {
+          ok: true,
+
+          type:
+            'breakthrough_buff',
+
+          item,
+
+          bonus:
+            ITEM_EFFECTS
+              .pha_canh_dan
+              .breakthroughBonus,
+
+          remaining:
+            saved.inventory?.[
+              itemId
+            ] || 0,
+
+          profile:
+            saved,
+        };
+      }
+
+      return {
+        ok: false,
+        reason:
+          'not_usable',
+        profile,
+        item,
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * REALM
+ * =========================================================
+ */
+
+export function getRealmName(
+  profile,
+) {
+  return (
+    CULTIVATION_REALMS[
+      profile.realmIndex
+    ] ||
+    CULTIVATION_REALMS[0]
+  );
+}
+
+export function getStageName(
+  profile,
+) {
+  return (
+    CULTIVATION_STAGES[
+      profile.stageIndex
+    ] ||
+    CULTIVATION_STAGES[0]
+  );
+}
+
+export function getRealmDisplay(
+  profile,
+) {
+  return `${getRealmName(
+    profile,
+  )} · ${getStageName(
+    profile,
+  )}`;
+}
+
+export function getProgressionIndex(
+  profile,
+) {
+  return (
+    profile.realmIndex *
+      CULTIVATION_STAGES.length +
+    profile.stageIndex
+  );
+}
+
+export function getCultivationRequired(
+  profile,
+) {
+  const step =
+    getProgressionIndex(
+      profile,
+    );
+
+  return Math.round(
+    500 *
+      Math.pow(
+        1.42,
+        step,
+      ),
+  );
+}
+
+export function isMaxRealm(
+  profile,
+) {
+  return (
+    profile.realmIndex >=
+      CULTIVATION_REALMS.length -
+        1 &&
+    profile.stageIndex >=
+      CULTIVATION_STAGES.length -
+        1
+  );
+}
+
+export function getBreakthroughChance(
+  profile,
+) {
+  const step =
+    getProgressionIndex(
+      profile,
+    );
+
+  const base =
+    CULTIVATION_CONFIG
+      .gameplay
+      .breakthroughBaseChance;
+
+  const min =
+    CULTIVATION_CONFIG
+      .gameplay
+      .breakthroughMinChance;
+
+  return Math.max(
+    min,
+    base -
+      step * 0.008,
+  );
+}
+
+export function getEffectiveBreakthroughChance(
+  profile,
+) {
+  const base =
+    getBreakthroughChance(
+      profile,
+    );
+
+  const pillBonus =
+    Math.max(
+      0,
+      Number(
+        profile.effects
+          ?.nextBreakthroughBonus,
+      ) || 0,
+    );
+
+  const techniqueBonus =
+    getTechniqueBreakthroughBonus(
+      profile,
+    );
+
+  return Math.min(
+    0.95,
+    base +
+      pillBonus +
+      techniqueBonus,
+  );
+}
+
+export function getCultivateCooldownRemaining(
+  profile,
+) {
+  return Math.max(
+    0,
+    Number(
+      profile.cooldowns
+        ?.cultivateAt,
+    ) -
+      Date.now(),
+  );
+}
+
+export function getAdventureCooldownRemaining(
+  profile,
+) {
+  return Math.max(
+    0,
+    Number(
+      profile.cooldowns
+        ?.adventureAt,
+    ) -
+      Date.now(),
+  );
+}
+
+/**
+ * =========================================================
+ * CULTIVATE
+ * =========================================================
+ */
+
+export async function cultivate(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      const cooldown =
+        getCultivateCooldownRemaining(
+          profile,
+        );
+
+      if (
+        cooldown > 0
+      ) {
+        return {
+          ok: false,
+
+          reason:
+            'cooldown',
+
+          cooldownRemaining:
+            cooldown,
+
+          profile,
+        };
+      }
+
+      const staminaCost =
+        CULTIVATION_CONFIG
+          .gameplay
+          .cultivateStaminaCost;
+
+      if (
+        profile.stamina <
+        staminaCost
+      ) {
+        return {
+          ok: false,
+          reason:
+            'stamina',
+          profile,
+        };
+      }
+
+      const event =
+        weightedPick(
+          CULTIVATION_EVENTS,
+        );
+
+      const baseCultivation =
+        randomInt(
+          CULTIVATION_CONFIG
+            .gameplay
+            .cultivateBaseMin,
+
+          CULTIVATION_CONFIG
+            .gameplay
+            .cultivateBaseMax,
+        );
+
+      const baseStones =
+        randomInt(
+          CULTIVATION_CONFIG
+            .gameplay
+            .spiritStoneMin,
+
+          CULTIVATION_CONFIG
+            .gameplay
+            .spiritStoneMax,
+        );
+
+      const rootBonus =
+        Number(
+          profile.spiritRoot
+            ?.cultivateBonus,
+        ) || 0;
+
+      let cultivationDelta =
+        Math.round(
+          baseCultivation *
+            event
+              .cultivationMultiplier *
+            (
+              1 +
+              rootBonus
+            ),
+        );
+
+      const baseStoneReward =
+        Math.max(
+          0,
+          Math.round(
+            baseStones *
+              event
+                .stoneMultiplier,
+          ),
+        );
+
+      const equipmentStonePercent =
+        getEquipmentSpiritStoneBonus(
+          profile,
+        );
+
+      const equipmentStoneBonus =
+        equipmentStonePercent >
+          0 &&
+        baseStoneReward >
+          0
+          ? Math.max(
+              1,
+              Math.round(
+                baseStoneReward *
+                  equipmentStonePercent,
+              ),
+            )
+          : 0;
+
+      const techniqueStonePercent =
+        getTechniqueSpiritStoneBonus(
+          profile,
+        );
+
+      const techniqueStoneBonus =
+        techniqueStonePercent >
+          0 &&
+        baseStoneReward >
+          0
+          ? Math.max(
+              1,
+              Math.round(
+                baseStoneReward *
+                  techniqueStonePercent,
+              ),
+            )
+          : 0;
+
+      const stoneDelta =
+        baseStoneReward +
+        equipmentStoneBonus +
+        techniqueStoneBonus;
+
+      if (
+        cultivationDelta <
+        0
+      ) {
+        cultivationDelta =
+          -Math.min(
+            profile.cultivation,
+            Math.abs(
+              cultivationDelta,
+            ),
+          );
+      }
+
+      const equipmentCultivationPercent =
+        getEquipmentCultivationBonus(
+          profile,
+        );
+
+      const equipmentCultivationBonus =
+        equipmentCultivationPercent >
+          0 &&
+        cultivationDelta >
+          0
+          ? Math.max(
+              1,
+              Math.round(
+                cultivationDelta *
+                  equipmentCultivationPercent,
+              ),
+            )
+          : 0;
+
+      const techniqueCultivationPercent =
+        getTechniqueCultivationBonus(
+          profile,
+        );
+
+      const techniqueCultivationBonus =
+        techniqueCultivationPercent >
+          0 &&
+        cultivationDelta >
+          0
+          ? Math.max(
+              1,
+              Math.round(
+                cultivationDelta *
+                  techniqueCultivationPercent,
+              ),
+            )
+          : 0;
+
+      profile.cultivation =
+        Math.max(
+          0,
+          profile.cultivation +
+            cultivationDelta,
+        );
+
+      profile.totalCultivation +=
+        Math.max(
+          0,
+          cultivationDelta,
+        );
+
+      profile.cultivation +=
+        equipmentCultivationBonus +
+        techniqueCultivationBonus;
+
+      profile.totalCultivation +=
+        equipmentCultivationBonus +
+        techniqueCultivationBonus;
+
+      const pillPercent =
+        Math.max(
+          0,
+          Number(
+            profile.effects
+              ?.nextCultivationBonus,
+          ) || 0,
+        );
+
+      let cultivationPillBonus =
+        0;
+
+      if (
+        pillPercent > 0
+      ) {
+        if (
+          cultivationDelta >
+          0
+        ) {
+          cultivationPillBonus =
+            Math.max(
+              1,
+              Math.round(
+                cultivationDelta *
+                  pillPercent,
+              ),
+            );
+
+          profile.cultivation +=
+            cultivationPillBonus;
+
+          profile.totalCultivation +=
+            cultivationPillBonus;
+        }
+
+        profile.effects
+          .nextCultivationBonus =
+          0;
+      }
+
+      profile.spiritStones +=
+        stoneDelta;
+
+      profile.stamina =
+        Math.max(
+          0,
+          profile.stamina -
+            staminaCost,
+        );
+
+      profile.cooldowns
+        .cultivateAt =
+        Date.now() +
+        CULTIVATION_CONFIG
+          .gameplay
+          .cultivateCooldownMs;
+
+      profile.stats
+        .cultivateCount +=
+        1;
+
+      if (
+        event.id ===
+          'minor_fortune' ||
+        event.id ===
+          'great_fortune'
+      ) {
+        profile.stats
+          .fortunes +=
+          1;
+      }
 
       const saved =
         await saveCultivationProfile(
@@ -321,17 +1784,754 @@ export async function activateCultivationTalisman(
 
       return {
         ok: true,
-        talisman,
-        consumed: 1,
 
-        remaining:
-          saved.inventory
-            ?.thuong_co_phu ||
+        event,
+
+        profile:
+          saved,
+
+        cultivationDelta,
+
+        equipmentCultivationBonus,
+
+        equipmentCultivationPercent,
+
+        techniqueCultivationBonus,
+
+        techniqueCultivationPercent,
+
+        cultivationPillBonus,
+
+        cultivationPillPercent:
+          pillPercent,
+
+        stoneDelta,
+
+        equipmentStoneBonus,
+
+        equipmentStonePercent,
+
+        techniqueStoneBonus,
+
+        techniqueStonePercent,
+
+        staminaCost,
+
+        required:
+          getCultivationRequired(
+            saved,
+          ),
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * ADVENTURE
+ * =========================================================
+ */
+
+export async function adventure(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      const cooldown =
+        getAdventureCooldownRemaining(
+          profile,
+        );
+
+      if (
+        cooldown > 0
+      ) {
+        return {
+          ok: false,
+
+          reason:
+            'cooldown',
+
+          cooldownRemaining:
+            cooldown,
+
+          profile,
+        };
+      }
+
+      const location =
+        randomItem(
+          CULTIVATION_ADVENTURE_LOCATIONS,
+        );
+
+      const event =
+        weightedPick(
+          CULTIVATION_ADVENTURE_EVENTS,
+        );
+
+      const activeTalismanId =
+        getActiveTalismanId(
+          profile,
+        );
+
+      const adventureTalisman =
+        [
+          'tam_bao_phu',
+          'tu_tai_phu',
+        ].includes(
+          activeTalismanId,
+        );
+
+      let cultivationDelta =
+        0;
+
+      let stoneDelta =
+        0;
+
+      let equipmentStoneBonus =
+        0;
+
+      let techniqueStoneBonus =
+        0;
+
+      let talismanStoneBonus =
+        0;
+
+      let droppedItem =
+        null;
+
+      if (
+        event.type ===
+        'monster'
+      ) {
+        const requestedLoss =
+          randomInt(
+            event.cultivationLossMin,
+            event.cultivationLossMax,
+          );
+
+        const actualLoss =
+          Math.min(
+            profile.cultivation,
+            requestedLoss,
+          );
+
+        cultivationDelta =
+          -actualLoss;
+
+        profile.cultivation =
+          Math.max(
+            0,
+            profile.cultivation -
+              actualLoss,
+          );
+
+        profile.stats
+          .monsterEncounters +=
+          1;
+      } else {
+        cultivationDelta =
+          randomInt(
+            event.cultivationMin ||
+              0,
+
+            event.cultivationMax ||
+              0,
+          );
+
+        const baseStoneReward =
+          randomInt(
+            event.stonesMin ||
+              0,
+
+            event.stonesMax ||
+              0,
+          );
+
+        const equipmentStonePercent =
+          getEquipmentSpiritStoneBonus(
+            profile,
+          );
+
+        if (
+          equipmentStonePercent >
+            0 &&
+          baseStoneReward > 0
+        ) {
+          equipmentStoneBonus =
+            Math.max(
+              1,
+              Math.round(
+                baseStoneReward *
+                  equipmentStonePercent,
+              ),
+            );
+        }
+
+        const techniqueStonePercent =
+          getTechniqueSpiritStoneBonus(
+            profile,
+          );
+
+        if (
+          techniqueStonePercent >
+            0 &&
+          baseStoneReward > 0
+        ) {
+          techniqueStoneBonus =
+            Math.max(
+              1,
+              Math.round(
+                baseStoneReward *
+                  techniqueStonePercent,
+              ),
+            );
+        }
+
+        if (
+          activeTalismanId ===
+            'tu_tai_phu' &&
+          baseStoneReward > 0
+        ) {
+          talismanStoneBonus =
+            Math.max(
+              1,
+              Math.round(
+                baseStoneReward *
+                  0.50,
+              ),
+            );
+        }
+
+        stoneDelta =
+          baseStoneReward +
+          equipmentStoneBonus +
+          techniqueStoneBonus +
+          talismanStoneBonus;
+
+        const rootBonus =
+          Number(
+            profile.spiritRoot
+              ?.cultivateBonus,
+          ) || 0;
+
+        cultivationDelta =
+          Math.round(
+            cultivationDelta *
+              (
+                1 +
+                rootBonus
+              ),
+          );
+
+        profile.cultivation +=
+          cultivationDelta;
+
+        profile.totalCultivation +=
+          cultivationDelta;
+
+        profile.spiritStones +=
+          stoneDelta;
+
+        if (
+          event.type ===
+          'great_fortune'
+        ) {
+          profile.stats
+            .greatFortunes +=
+            1;
+
+          profile.stats
+            .fortunes +=
+            1;
+        }
+
+        const dropBonus =
+          activeTalismanId ===
+          'tam_bao_phu'
+            ? 0.35
+            : 0;
+
+        droppedItem =
+          rollAdventureDrop(
+            event,
+            dropBonus,
+          );
+
+        if (
+          droppedItem
+        ) {
+          addInventoryItem(
+            profile,
+            droppedItem.itemId,
+            droppedItem.quantity,
+          );
+        }
+      }
+
+      if (
+        adventureTalisman
+      ) {
+        consumeActiveTalisman(
+          profile,
+        );
+      }
+
+      profile.stats
+        .adventureCount +=
+        1;
+
+      profile.cooldowns
+        .adventureAt =
+        Date.now() +
+        CULTIVATION_CONFIG
+          .gameplay
+          .adventureCooldownMs;
+
+      const saved =
+        await saveCultivationProfile(
+          client,
+          profile,
+        );
+
+      return {
+        ok: true,
+
+        location,
+        event,
+
+        cultivationDelta,
+        stoneDelta,
+
+        equipmentStoneBonus,
+
+        techniqueStoneBonus,
+
+        talismanStoneBonus,
+
+        talismanConsumed:
+          adventureTalisman,
+
+        talismanId:
+          adventureTalisman
+            ? activeTalismanId
+            : null,
+
+        droppedItem,
+
+        profile:
+          saved,
+
+        required:
+          getCultivationRequired(
+            saved,
+          ),
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * BREAKTHROUGH
+ * =========================================================
+ */
+
+export async function breakthrough(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (
+        isMaxRealm(
+          profile,
+        )
+      ) {
+        return {
+          ok: false,
+          reason:
+            'max_realm',
+          profile,
+        };
+      }
+
+      const required =
+        getCultivationRequired(
+          profile,
+        );
+
+      if (
+        profile.cultivation <
+        required
+      ) {
+        return {
+          ok: false,
+
+          reason:
+            'not_ready',
+
+          required,
+
+          profile,
+        };
+      }
+
+      const baseChance =
+        getBreakthroughChance(
+          profile,
+        );
+
+      const breakthroughPillBonus =
+        Math.max(
           0,
+          Number(
+            profile.effects
+              ?.nextBreakthroughBonus,
+          ) || 0,
+        );
+
+      const techniqueBreakthroughBonus =
+        getTechniqueBreakthroughBonus(
+          profile,
+        );
+
+      const chance =
+        Math.min(
+          0.95,
+
+          baseChance +
+            breakthroughPillBonus +
+            techniqueBreakthroughBonus,
+        );
+
+      const oldRealm =
+        getRealmDisplay(
+          profile,
+        );
+
+      if (
+        breakthroughPillBonus >
+        0
+      ) {
+        profile.effects
+          .nextBreakthroughBonus =
+          0;
+      }
+
+      const success =
+        Math.random() <
+        chance;
+
+      if (
+        success
+      ) {
+        profile.cultivation -=
+          required;
+
+        if (
+          profile.stageIndex <
+          CULTIVATION_STAGES.length -
+            1
+        ) {
+          profile.stageIndex +=
+            1;
+        } else {
+          profile.stageIndex =
+            0;
+
+          profile.realmIndex +=
+            1;
+        }
+
+        profile.stats
+          .breakthroughSuccess +=
+          1;
+
+        const saved =
+          await saveCultivationProfile(
+            client,
+            profile,
+          );
+
+        return {
+          ok: true,
+
+          success: true,
+
+          chance,
+
+          baseChance,
+
+          breakthroughPillBonus,
+
+          techniqueBreakthroughBonus,
+
+          oldRealm,
+
+          newRealm:
+            getRealmDisplay(
+              saved,
+            ),
+
+          profile:
+            saved,
+        };
+      }
+
+      const originalLoss =
+        Math.max(
+          1,
+          Math.round(
+            required *
+              CULTIVATION_CONFIG
+                .gameplay
+                .breakthroughFailureLossPercent,
+          ),
+        );
+
+      const activeTalismanId =
+        getActiveTalismanId(
+          profile,
+        );
+
+      const talismanProtected =
+        activeTalismanId ===
+        'ho_dao_phu';
+
+      let equipmentLossReduction =
+        0;
+
+      let equipmentLossSaved =
+        0;
+
+      let loss = 0;
+
+      if (
+        talismanProtected
+      ) {
+        loss = 0;
+
+        consumeActiveTalisman(
+          profile,
+        );
+      } else {
+        equipmentLossReduction =
+          getEquipmentBreakthroughLossReduction(
+            profile,
+          );
+
+        equipmentLossSaved =
+          equipmentLossReduction >
+            0
+            ? Math.max(
+                1,
+                Math.round(
+                  originalLoss *
+                    equipmentLossReduction,
+                ),
+              )
+            : 0;
+
+        loss =
+          Math.max(
+            1,
+            originalLoss -
+              equipmentLossSaved,
+          );
+      }
+
+      profile.cultivation =
+        Math.max(
+          0,
+          profile.cultivation -
+            loss,
+        );
+
+      profile.stats
+        .breakthroughFail +=
+        1;
+
+      const saved =
+        await saveCultivationProfile(
+          client,
+          profile,
+        );
+
+      return {
+        ok: true,
+
+        success: false,
+
+        chance,
+
+        baseChance,
+
+        breakthroughPillBonus,
+
+        techniqueBreakthroughBonus,
+
+        originalLoss,
+
+        loss,
+
+        equipmentLossReduction,
+
+        equipmentLossSaved,
+
+        talismanProtected,
+
+        talismanId:
+          talismanProtected
+            ? 'ho_dao_phu'
+            : null,
+
+        oldRealm,
 
         profile:
           saved,
       };
     },
+  );
+}
+
+/**
+ * =========================================================
+ * LEADERBOARD
+ * =========================================================
+ */
+
+export async function getCultivationLeaderboard(
+  client,
+  guildId,
+  limit = 10,
+) {
+  const prefix =
+    getGuildProfilePrefix(
+      guildId,
+    );
+
+  const keys =
+    await client.db.list(
+      prefix,
+    );
+
+  if (
+    !Array.isArray(
+      keys,
+    ) ||
+    keys.length === 0
+  ) {
+    return [];
+  }
+
+  const entries = [];
+
+  for (
+    const key of keys
+  ) {
+    const userId =
+      key.slice(
+        prefix.length,
+      );
+
+    if (!userId) {
+      continue;
+    }
+
+    const profile =
+      await getCultivationProfile(
+        client,
+        guildId,
+        userId,
+        {
+          create:
+            false,
+        },
+      );
+
+    if (!profile) {
+      continue;
+    }
+
+    entries.push({
+      userId,
+
+      profile,
+
+      progressionIndex:
+        getProgressionIndex(
+          profile,
+        ),
+    });
+  }
+
+  entries.sort(
+    (
+      a,
+      b,
+    ) => {
+      if (
+        b.progressionIndex !==
+        a.progressionIndex
+      ) {
+        return (
+          b.progressionIndex -
+          a.progressionIndex
+        );
+      }
+
+      if (
+        b.profile
+          .cultivation !==
+        a.profile
+          .cultivation
+      ) {
+        return (
+          b.profile
+            .cultivation -
+          a.profile
+            .cultivation
+        );
+      }
+
+      return (
+        b.profile
+          .totalCultivation -
+        a.profile
+          .totalCultivation
+      );
+    },
+  );
+
+  return entries.slice(
+    0,
+    limit,
   );
 }
