@@ -4,14 +4,13 @@ import { fileURLToPath } from 'url';
 
 import { logger } from '../utils/logger.js';
 
+import {
+  isOnlineWordValid,
+  findOnlineNextWord,
+} from './wordChainOnlineDictionary.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-/**
- * =========================================================
- * CONSTANTS
- * =========================================================
- */
 
 export const WORD_CHAIN_CHANNELS = {
   pvp: '1545291672504508416',
@@ -38,42 +37,14 @@ export const WORD_CHAIN_MODES = {
 
 const WORD_CHAIN_KEY_PREFIX = 'wordChain:';
 
-/**
- * =========================================================
- * STATE LOCK
- * =========================================================
- *
- * Các thao tác:
- *
- *   get -> validate -> modify -> save
- *
- * phải chạy tuần tự trong cùng process.
- *
- * Điều này tránh trường hợp hai message đến gần như đồng thời
- * cùng đọc một state cũ rồi ghi đè state của nhau.
- *
- * Đây là lock cấp process.
- *
- * Nếu bot chạy nhiều process/shard riêng biệt thì database
- * vẫn cần transaction/atomic update ở tầng database.
- */
-
 const stateQueues = new Map();
 
 function getQueueKey(guildId, mode = 'all') {
   return `${guildId}:${mode}`;
 }
 
-function withStateLock(
-  guildId,
-  mode,
-  task,
-) {
-  const key =
-    getQueueKey(
-      guildId,
-      mode,
-    );
+function withStateLock(guildId, mode, task) {
+  const key = getQueueKey(guildId, mode);
 
   const previous =
     stateQueues.get(key) ||
@@ -84,61 +55,42 @@ function withStateLock(
       .catch(() => {})
       .then(task);
 
-  stateQueues.set(
-    key,
-    current,
-  );
+  stateQueues.set(key, current);
 
   return current.finally(() => {
-    if (
-      stateQueues.get(key) ===
-      current
-    ) {
+    if (stateQueues.get(key) === current) {
       stateQueues.delete(key);
     }
   });
 }
 
-/**
- * =========================================================
- * DICTIONARY
- * =========================================================
- */
+let validWordsSet = new Set();
+let startWordMap = new Map();
+let dictionaryLoaded = false;
 
-let validWordsSet =
-  new Set();
+export function normalizeWord(word) {
+  if (typeof word !== 'string') {
+    return '';
+  }
 
-let startWordMap =
-  new Map();
-
-let dictionaryLoaded =
-  false;
-
-/**
- * =========================================================
- * INIT DICTIONARY
- * =========================================================
- */
+  return word
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
 
 export function initDictionary() {
-  if (
-    dictionaryLoaded
-  ) {
+  if (dictionaryLoaded) {
     return true;
   }
 
   try {
-    const dictPath =
-      path.join(
-        __dirname,
-        '../data/vietnamese_words.json',
-      );
+    const dictPath = path.join(
+      __dirname,
+      '../data/vietnamese_words.json',
+    );
 
-    if (
-      !fs.existsSync(
-        dictPath,
-      )
-    ) {
+    if (!fs.existsSync(dictPath)) {
       logger.warn(
         `Vietnamese dictionary file not found at ${dictPath}`,
       );
@@ -146,22 +98,14 @@ export function initDictionary() {
       return false;
     }
 
-    const rawData =
-      fs.readFileSync(
-        dictPath,
-        'utf8',
-      );
+    const rawData = fs.readFileSync(
+      dictPath,
+      'utf8',
+    );
 
-    const words =
-      JSON.parse(
-        rawData,
-      );
+    const words = JSON.parse(rawData);
 
-    if (
-      !Array.isArray(
-        words,
-      )
-    ) {
+    if (!Array.isArray(words)) {
       logger.error(
         'Vietnamese dictionary must be an array.',
       );
@@ -169,68 +113,37 @@ export function initDictionary() {
       return false;
     }
 
-    const nextValidWords =
-      new Set();
+    const nextValidWords = new Set();
+    const nextStartWordMap = new Map();
 
-    const nextStartWordMap =
-      new Map();
-
-    for (
-      const word of words
-    ) {
-      const cleaned =
-        normalizeWord(
-          word,
-        );
+    for (const word of words) {
+      const cleaned = normalizeWord(word);
 
       if (!cleaned) {
         continue;
       }
 
-      const parts =
-        cleaned.split(' ');
+      const parts = cleaned.split(' ');
 
-      /**
-       * Chỉ nhận đúng 2 tiếng.
-       */
-      if (
-        parts.length !== 2
-      ) {
+      if (parts.length !== 2) {
         continue;
       }
 
-      /**
-       * Chỉ nhận chữ cái Unicode.
-       *
-       * Bao gồm chữ tiếng Việt.
-       */
       if (
         !parts.every(
-          (part) =>
-            /^\p{L}+$/u.test(
-              part,
-            ),
+          part =>
+            /^\p{L}+$/u.test(part),
         )
       ) {
         continue;
       }
 
-      nextValidWords.add(
-        cleaned,
-      );
+      nextValidWords.add(cleaned);
 
-      const first =
-        parts[0];
+      const first = parts[0];
 
-      if (
-        !nextStartWordMap.has(
-          first,
-        )
-      ) {
-        nextStartWordMap.set(
-          first,
-          [],
-        );
+      if (!nextStartWordMap.has(first)) {
+        nextStartWordMap.set(first, []);
       }
 
       nextStartWordMap
@@ -238,14 +151,9 @@ export function initDictionary() {
         .push(cleaned);
     }
 
-    validWordsSet =
-      nextValidWords;
-
-    startWordMap =
-      nextStartWordMap;
-
-    dictionaryLoaded =
-      true;
+    validWordsSet = nextValidWords;
+    startWordMap = nextStartWordMap;
+    dictionaryLoaded = true;
 
     logger.info(
       `Loaded ${validWordsSet.size} Vietnamese words for Word Chain minigame.`,
@@ -264,90 +172,42 @@ export function initDictionary() {
 
 initDictionary();
 
-/**
- * =========================================================
- * DEFAULT GAME
- * =========================================================
- */
-
-function createDefaultGame(
-  mode,
-) {
+function createDefaultGame(mode) {
   return {
-    enabled:
-      false,
+    enabled: false,
 
     channelId:
-      WORD_CHAIN_CHANNELS[
-        mode
-      ] || null,
+      WORD_CHAIN_CHANNELS[mode] ||
+      null,
 
     mode,
 
-    currentWord:
-      null,
+    currentWord: null,
 
-    lastUserId:
-      null,
+    lastUserId: null,
 
-    usedWords:
-      [],
+    usedWords: [],
 
-    currentStreak:
-      0,
+    currentStreak: 0,
 
-    bestStreak:
-      0,
+    bestStreak: 0,
 
-    /**
-     * PvE:
-     *
-     * {
-     *   userId: streak
-     * }
-     *
-     * PvP không sử dụng
-     * personal streak.
-     */
-    personalStreaks:
-      {},
+    personalStreaks: {},
 
-    /**
-     * {
-     *   userId: number
-     * }
-     */
-    hintUses:
-      {},
+    hintUses: {},
   };
 }
 
-/**
- * =========================================================
- * DEFAULT CONFIG
- * =========================================================
- */
-
 const DEFAULT_WORD_CHAIN_CONFIG = {
-  enabled:
-    false,
+  enabled: false,
 
-  channelId:
-    null,
+  channelId: null,
 
-  mode:
-    'bot',
+  mode: 'bot',
 
   games: {
-    pvp:
-      createDefaultGame(
-        'pvp',
-      ),
-
-    bot:
-      createDefaultGame(
-        'bot',
-      ),
+    pvp: createDefaultGame('pvp'),
+    bot: createDefaultGame('bot'),
   },
 
   leaderboard: {
@@ -356,22 +216,11 @@ const DEFAULT_WORD_CHAIN_CONFIG = {
   },
 };
 
-/**
- * =========================================================
- * NUMBER NORMALIZATION
- * =========================================================
- */
-
-function toNonNegativeNumber(
-  value,
-) {
-  const number =
-    Number(value);
+function toNonNegativeNumber(value) {
+  const number = Number(value);
 
   if (
-    !Number.isFinite(
-      number,
-    ) ||
+    !Number.isFinite(number) ||
     number < 0
   ) {
     return 0;
@@ -380,130 +229,72 @@ function toNonNegativeNumber(
   return number;
 }
 
-/**
- * =========================================================
- * NORMALIZE PERSONAL STREAKS
- * =========================================================
- */
-
-function normalizePersonalStreaks(
-  value,
-) {
+function normalizePersonalStreaks(value) {
   if (
     !value ||
-    typeof value !==
-      'object' ||
+    typeof value !== 'object' ||
     Array.isArray(value)
   ) {
     return {};
   }
 
-  const result =
-    {};
+  const result = {};
 
   for (
-    const [
-      userId,
-      streak,
-    ] of Object.entries(
-      value,
-    )
+    const [userId, streak]
+    of Object.entries(value)
   ) {
     result[userId] =
-      toNonNegativeNumber(
-        streak,
-      );
+      toNonNegativeNumber(streak);
   }
 
   return result;
 }
 
-/**
- * =========================================================
- * NORMALIZE HINT USES
- * =========================================================
- */
-
-function normalizeHintUses(
-  value,
-) {
+function normalizeHintUses(value) {
   if (
     !value ||
-    typeof value !==
-      'object' ||
+    typeof value !== 'object' ||
     Array.isArray(value)
   ) {
     return {};
   }
 
-  const result =
-    {};
+  const result = {};
 
   for (
-    const [
-      userId,
-      uses,
-    ] of Object.entries(
-      value,
-    )
+    const [userId, uses]
+    of Object.entries(value)
   ) {
     result[userId] =
       Math.min(
         WORD_CHAIN_HINT_LIMIT,
-        toNonNegativeNumber(
-          uses,
-        ),
+        toNonNegativeNumber(uses),
       );
   }
 
   return result;
 }
 
-/**
- * =========================================================
- * NORMALIZE LEADERBOARD
- * =========================================================
- */
-
-function normalizeLeaderboardMode(
-  value,
-) {
+function normalizeLeaderboardMode(value) {
   if (
     !value ||
-    typeof value !==
-      'object' ||
+    typeof value !== 'object' ||
     Array.isArray(value)
   ) {
     return {};
   }
 
-  const result =
-    {};
+  const result = {};
 
   for (
-    const [
-      userId,
-      rawStats,
-    ] of Object.entries(
-      value,
-    )
+    const [userId, rawStats]
+    of Object.entries(value)
   ) {
-    /**
-     * Config mới:
-     *
-     * {
-     *   correct,
-     *   wrong,
-     *   bestStreak
-     * }
-     */
     if (
       rawStats &&
-      typeof rawStats ===
-        'object' &&
-      !Array.isArray(
-        rawStats,
-      )
+      typeof rawStats === 'object' &&
+      !Array.isArray(rawStats)
     ) {
       result[userId] = {
         correct:
@@ -525,72 +316,38 @@ function normalizeLeaderboardMode(
       continue;
     }
 
-    /**
-     * Migration dữ liệu cũ:
-     *
-     * {
-     *   userId: score
-     * }
-     */
     result[userId] = {
       correct:
         toNonNegativeNumber(
           rawStats,
         ),
 
-      wrong:
-        0,
+      wrong: 0,
 
-      bestStreak:
-        0,
+      bestStreak: 0,
     };
   }
 
   return result;
 }
 
-/**
- * =========================================================
- * NORMALIZE GAME
- * =========================================================
- */
-
-function normalizeGame(
-  rawGame,
-  mode,
-) {
+function normalizeGame(rawGame, mode) {
   const game = {
-    ...createDefaultGame(
-      mode,
-    ),
+    ...createDefaultGame(mode),
 
     ...(rawGame &&
-    typeof rawGame ===
-      'object'
+    typeof rawGame === 'object'
       ? rawGame
       : {}),
   };
 
-  /**
-   * Mode luôn lấy từ key.
-   */
-  game.mode =
-    mode;
+  game.mode = mode;
 
-  /**
-   * Channel luôn cố định.
-   *
-   * Không lấy channelId từ database.
-   */
   game.channelId =
-    WORD_CHAIN_CHANNELS[
-      mode
-    ];
+    WORD_CHAIN_CHANNELS[mode];
 
   game.enabled =
-    Boolean(
-      game.enabled,
-    );
+    Boolean(game.enabled);
 
   game.currentWord =
     game.currentWord
@@ -601,20 +358,16 @@ function normalizeGame(
 
   game.lastUserId =
     typeof game.lastUserId ===
-      'string'
+    'string'
       ? game.lastUserId
       : null;
 
   game.usedWords =
-    Array.isArray(
-      game.usedWords,
-    )
+    Array.isArray(game.usedWords)
       ? [
           ...new Set(
             game.usedWords
-              .map(
-                normalizeWord,
-              )
+              .map(normalizeWord)
               .filter(Boolean),
           ),
         ]
@@ -643,38 +396,19 @@ function normalizeGame(
   return game;
 }
 
-/**
- * =========================================================
- * NORMALIZE WHOLE CONFIG
- * =========================================================
- */
-
-function normalizeWordChainConfig(
-  state,
-) {
+function normalizeWordChainConfig(state) {
   const raw =
     state &&
-    typeof state ===
-      'object' &&
+    typeof state === 'object' &&
     !Array.isArray(state)
       ? state
       : {};
 
-  /**
-   * -------------------------------------------------------
-   * GAMES
-   * -------------------------------------------------------
-   */
-
   let games;
 
-  /**
-   * Config mới.
-   */
   if (
     raw.games &&
-    typeof raw.games ===
-      'object'
+    typeof raw.games === 'object'
   ) {
     games = {
       pvp:
@@ -690,12 +424,6 @@ function normalizeWordChainConfig(
         ),
     };
   } else {
-    /**
-     * -----------------------------------------------------
-     * MIGRATE CONFIG CŨ
-     * -----------------------------------------------------
-     */
-
     const oldMode =
       raw.mode === 'pvp'
         ? 'pvp'
@@ -705,9 +433,7 @@ function normalizeWordChainConfig(
       normalizeGame(
         {
           enabled:
-            Boolean(
-              raw.enabled,
-            ),
+            Boolean(raw.enabled),
 
           currentWord:
             raw.currentWord,
@@ -752,17 +478,9 @@ function normalizeWordChainConfig(
         ),
     };
 
-    games[
-      oldMode
-    ] =
+    games[oldMode] =
       migratedGame;
   }
-
-  /**
-   * -------------------------------------------------------
-   * LEADERBOARD
-   * -------------------------------------------------------
-   */
 
   const rawLeaderboard =
     raw.leaderboard &&
@@ -794,24 +512,16 @@ function normalizeWordChainConfig(
             ),
         }
       : {
-          /**
-           * Config cũ chỉ có
-           * một leaderboard.
-           *
-           * Giữ dữ liệu cũ ở Bot.
-           */
           bot:
             normalizeLeaderboardMode(
               rawLeaderboard,
             ),
 
-          pvp:
-            {},
+          pvp: {},
         };
 
   return {
     ...DEFAULT_WORD_CHAIN_CONFIG,
-
     ...raw,
 
     enabled:
@@ -821,13 +531,8 @@ function normalizeWordChainConfig(
       ),
 
     games,
-
     leaderboard,
 
-    /**
-     * Giữ field cũ để không phá
-     * các config khác.
-     */
     channelId:
       typeof raw.channelId ===
         'string'
@@ -840,12 +545,6 @@ function normalizeWordChainConfig(
         : 'bot',
   };
 }
-
-/**
- * =========================================================
- * CHANNEL MODE
- * =========================================================
- */
 
 export function getWordChainModeForChannel(
   channelId,
@@ -867,86 +566,31 @@ export function getWordChainModeForChannel(
   return null;
 }
 
-/**
- * =========================================================
- * WORD NORMALIZATION
- * =========================================================
- */
-
-export function normalizeWord(
-  word,
-) {
-  if (
-    typeof word !==
-    'string'
-  ) {
-    return '';
-  }
-
-  return word
-    .trim()
-    .toLowerCase()
-    .replace(
-      /\s+/g,
-      ' ',
-    );
-}
-
-/**
- * =========================================================
- * FIRST SYLLABLE
- * =========================================================
- */
-
-export function getFirstSyllable(
-  word,
-) {
+export function getFirstSyllable(word) {
   const parts =
-    normalizeWord(
-      word,
-    ).split(' ');
+    normalizeWord(word)
+      .split(' ');
 
-  return parts.length ===
-    2
+  return parts.length === 2
     ? parts[0]
     : '';
 }
 
-/**
- * =========================================================
- * LAST SYLLABLE
- * =========================================================
- */
-
-export function getLastSyllable(
-  word,
-) {
+export function getLastSyllable(word) {
   const parts =
-    normalizeWord(
-      word,
-    ).split(' ');
+    normalizeWord(word)
+      .split(' ');
 
-  return parts.length ===
-    2
+  return parts.length === 2
     ? parts[1]
     : '';
 }
 
-/**
- * =========================================================
- * VALID WORD
- * =========================================================
- */
-
-export function isValidWord(
-  word,
-) {
+export function isValidWord(word) {
   initDictionary();
 
   const cleaned =
-    normalizeWord(
-      word,
-    );
+    normalizeWord(word);
 
   if (!cleaned) {
     return false;
@@ -955,24 +599,14 @@ export function isValidWord(
   const parts =
     cleaned.split(' ');
 
-  /**
-   * Chính xác 2 tiếng.
-   */
-  if (
-    parts.length !== 2
-  ) {
+  if (parts.length !== 2) {
     return false;
   }
 
-  /**
-   * Chỉ chữ cái Unicode.
-   */
   if (
     !parts.every(
-      (part) =>
-        /^\p{L}+$/u.test(
-          part,
-        ),
+      part =>
+        /^\p{L}+$/u.test(part),
     )
   ) {
     return false;
@@ -984,19 +618,93 @@ export function isValidWord(
 }
 
 /**
- * =========================================================
- * CAN CHAIN
- * =========================================================
+ * Từ được tìm thấy online sẽ được
+ * thêm vào dictionary runtime.
+ *
+ * Không sửa file JSON trên GitHub.
+ * Chỉ tồn tại trong RAM của bot cho
+ * đến khi bot restart.
  */
+function registerRuntimeWord(word) {
+  const cleaned =
+    normalizeWord(word);
+
+  const parts =
+    cleaned
+      .split(' ')
+      .filter(Boolean);
+
+  if (
+    parts.length !== 2 ||
+    !parts.every(
+      part =>
+        /^\p{L}+$/u.test(part),
+    )
+  ) {
+    return false;
+  }
+
+  validWordsSet.add(cleaned);
+
+  const first =
+    parts[0];
+
+  if (!startWordMap.has(first)) {
+    startWordMap.set(
+      first,
+      [],
+    );
+  }
+
+  const list =
+    startWordMap.get(first);
+
+  if (!list.includes(cleaned)) {
+    list.push(cleaned);
+  }
+
+  return true;
+}
+
+/**
+ * =========================================================
+ * LOCAL JSON -> ONLINE FALLBACK
+ * =========================================================
+ *
+ * Đây là hàm messageCreate/noitu nên dùng
+ * thay cho isValidWord() khi kiểm tra từ
+ * do người chơi nhập.
+ */
+export async function isValidWordWithFallback(
+  client,
+  word,
+) {
+  const cleaned =
+    normalizeWord(word);
+
+  if (isValidWord(cleaned)) {
+    return true;
+  }
+
+  const onlineValid =
+    await isOnlineWordValid(
+      client,
+      cleaned,
+    );
+
+  if (onlineValid) {
+    registerRuntimeWord(
+      cleaned,
+    );
+  }
+
+  return onlineValid;
+}
 
 export function canChain(
   prevWord,
   nextWord,
 ) {
-  /**
-   * Game chưa có từ hiện tại
-   * thì từ tiếp theo được phép.
-   */
   if (
     !prevWord ||
     !nextWord
@@ -1005,14 +713,12 @@ export function canChain(
   }
 
   const previous =
-    normalizeWord(
-      prevWord,
-    ).split(' ');
+    normalizeWord(prevWord)
+      .split(' ');
 
   const next =
-    normalizeWord(
-      nextWord,
-    ).split(' ');
+    normalizeWord(nextWord)
+      .split(' ');
 
   if (
     previous.length !== 2 ||
@@ -1026,18 +732,6 @@ export function canChain(
     next[0]
   );
 }
-
-/**
- * =========================================================
- * FIND BOT NEXT WORD
- * =========================================================
- *
- * Tìm một từ:
- *
- * - bắt đầu bằng tiếng cuối của từ hiện tại
- * - có trong dictionary
- * - chưa được sử dụng
- */
 
 export function findBotNextWord(
   prevWord,
@@ -1068,23 +762,17 @@ export function findBotNextWord(
 
   const usedSet =
     new Set(
-      Array.isArray(
-        usedWords,
-      )
+      Array.isArray(usedWords)
         ? usedWords
-            .map(
-              normalizeWord,
-            )
+            .map(normalizeWord)
             .filter(Boolean)
         : [],
     );
 
   const available =
     candidates.filter(
-      (word) =>
-        !usedSet.has(
-          word,
-        ),
+      word =>
+        !usedSet.has(word),
     );
 
   if (
@@ -1103,9 +791,44 @@ export function findBotNextWord(
 
 /**
  * =========================================================
- * RANDOM START WORD
+ * BOT LOCAL -> ONLINE FALLBACK
  * =========================================================
+ *
+ * Bot ưu tiên JSON.
+ *
+ * Chỉ khi JSON không tìm được từ nối
+ * thì mới gọi nguồn online.
  */
+export async function findBotNextWordWithFallback(
+  client,
+  prevWord,
+  usedWords = [],
+) {
+  const localWord =
+    findBotNextWord(
+      prevWord,
+      usedWords,
+    );
+
+  if (localWord) {
+    return localWord;
+  }
+
+  const onlineWord =
+    await findOnlineNextWord(
+      client,
+      prevWord,
+      usedWords,
+    );
+
+  if (onlineWord) {
+    registerRuntimeWord(
+      onlineWord,
+    );
+  }
+
+  return onlineWord;
+}
 
 export function getRandomStartWord(
   excludeWords = [],
@@ -1114,13 +837,9 @@ export function getRandomStartWord(
 
   const excluded =
     new Set(
-      Array.isArray(
-        excludeWords,
-      )
+      Array.isArray(excludeWords)
         ? excludeWords
-            .map(
-              normalizeWord,
-            )
+            .map(normalizeWord)
             .filter(Boolean)
         : [],
     );
@@ -1129,15 +848,11 @@ export function getRandomStartWord(
     Array.from(
       validWordsSet,
     ).filter(
-      (word) =>
-        !excluded.has(
-          word,
-        ),
+      word =>
+        !excluded.has(word),
     );
 
-  if (
-    available.length > 0
-  ) {
+  if (available.length > 0) {
     return available[
       Math.floor(
         Math.random() *
@@ -1146,18 +861,12 @@ export function getRandomStartWord(
     ];
   }
 
-  /**
-   * Fallback nếu dictionary
-   * nhỏ hơn danh sách loại trừ.
-   */
   const allWords =
     Array.from(
       validWordsSet,
     );
 
-  if (
-    allWords.length > 0
-  ) {
+  if (allWords.length > 0) {
     return allWords[
       Math.floor(
         Math.random() *
@@ -1166,29 +875,12 @@ export function getRandomStartWord(
     ];
   }
 
-  /**
-   * Fallback cuối cùng.
-   */
   return 'học sinh';
 }
 
-/**
- * =========================================================
- * STORAGE KEY
- * =========================================================
- */
-
-function getStorageKey(
-  guildId,
-) {
+function getStorageKey(guildId) {
   return `${WORD_CHAIN_KEY_PREFIX}${guildId}`;
 }
-
-/**
- * =========================================================
- * GET CONFIG
- * =========================================================
- */
 
 export async function getWordChainConfig(
   client,
@@ -1209,9 +901,7 @@ export async function getWordChainConfig(
 
     const rawState =
       await client.db.get(
-        getStorageKey(
-          guildId,
-        ),
+        getStorageKey(guildId),
       );
 
     return normalizeWordChainConfig(
@@ -1229,12 +919,6 @@ export async function getWordChainConfig(
     return normalizeWordChainConfig();
   }
 }
-
-/**
- * =========================================================
- * SAVE CONFIG
- * =========================================================
- */
 
 export async function saveWordChainConfig(
   client,
@@ -1258,22 +942,11 @@ export async function saveWordChainConfig(
 
   const saved =
     await client.db.set(
-      getStorageKey(
-        guildId,
-      ),
+      getStorageKey(guildId),
       normalized,
     );
 
-  /**
-   * Một số DB adapter trả
-   * undefined khi thành công.
-   *
-   * Chỉ false mới coi là
-   * write thất bại.
-   */
-  if (
-    saved === false
-  ) {
+  if (saved === false) {
     throw new Error(
       'Word Chain database rejected the write.',
     );
@@ -1281,12 +954,6 @@ export async function saveWordChainConfig(
 
   return normalized;
 }
-
-/**
- * =========================================================
- * GET GAME
- * =========================================================
- */
 
 export function getWordChainGame(
   config,
@@ -1306,12 +973,6 @@ export function getWordChainGame(
   );
 }
 
-/**
- * =========================================================
- * CHOOSE START WORD
- * =========================================================
- */
-
 function chooseStartWord(
   startWord,
   excludeWords = [],
@@ -1325,9 +986,7 @@ function chooseStartWord(
 
   if (
     normalized &&
-    isValidWord(
-      normalized,
-    )
+    isValidWord(normalized)
   ) {
     return normalized;
   }
@@ -1336,12 +995,6 @@ function chooseStartWord(
     excludeWords,
   );
 }
-
-/**
- * =========================================================
- * BUILD FRESH GAME
- * =========================================================
- */
 
 function buildFreshGame(
   existingGame,
@@ -1355,17 +1008,12 @@ function buildFreshGame(
     );
 
   return {
-    ...createDefaultGame(
-      mode,
-    ),
+    ...createDefaultGame(mode),
 
-    enabled:
-      true,
+    enabled: true,
 
     channelId:
-      WORD_CHAIN_CHANNELS[
-        mode
-      ],
+      WORD_CHAIN_CHANNELS[mode],
 
     mode,
 
@@ -1383,10 +1031,6 @@ function buildFreshGame(
     currentStreak:
       0,
 
-    /**
-     * Không xoá bestStreak
-     * của mode.
-     */
     bestStreak:
       existing.bestStreak,
 
@@ -1397,12 +1041,6 @@ function buildFreshGame(
       {},
   };
 }
-
-/**
- * =========================================================
- * ACTIVATE WORD CHAIN
- * =========================================================
- */
 
 export async function activateWordChain(
   client,
@@ -1434,16 +1072,6 @@ export async function activateWordChain(
           resolvedMode,
         );
 
-      /**
-       * Nếu có startWord hợp lệ:
-       * dùng nó.
-       *
-       * Nếu không:
-       * random.
-       *
-       * Không lấy lại currentWord
-       * ngay round trước.
-       */
       const initialWord =
         chooseStartWord(
           startWord,
@@ -1471,13 +1099,6 @@ export async function activateWordChain(
             .enabled,
         );
 
-      /**
-       * Giữ compatibility với
-       * config cũ.
-       *
-       * channelId truyền vào không
-       * được dùng để phá channel cố định.
-       */
       current.mode =
         resolvedMode;
 
@@ -1494,12 +1115,6 @@ export async function activateWordChain(
     },
   );
 }
-
-/**
- * =========================================================
- * DISABLE ALL
- * =========================================================
- */
 
 export async function disableWordChain(
   client,
@@ -1532,12 +1147,6 @@ export async function disableWordChain(
     },
   );
 }
-
-/**
- * =========================================================
- * DISABLE ONE MODE
- * =========================================================
- */
 
 export async function disableWordChainMode(
   client,
@@ -1580,12 +1189,6 @@ export async function disableWordChainMode(
     },
   );
 }
-
-/**
- * =========================================================
- * RESET GAME
- * =========================================================
- */
 
 export async function resetWordChainGame(
   client,
@@ -1656,21 +1259,12 @@ export async function resetWordChainGame(
         currentStreak:
           0,
 
-        /**
-         * Giữ bestStreak.
-         */
         bestStreak:
           existingGame.bestStreak,
 
-        /**
-         * Reset streak hiện tại.
-         */
         personalStreaks:
           {},
 
-        /**
-         * Reset hint.
-         */
         hintUses:
           {},
       };
@@ -1691,12 +1285,6 @@ export async function resetWordChainGame(
     },
   );
 }
-
-/**
- * =========================================================
- * USE HINT
- * =========================================================
- */
 
 export async function useWordChainHint(
   client,
@@ -1725,29 +1313,15 @@ export async function useWordChainHint(
           resolvedMode,
         );
 
-      /**
-       * Game chưa bật.
-       */
-      if (
-        !game.enabled
-      ) {
+      if (!game.enabled) {
         return {
           ok: false,
-
-          reason:
-            'disabled',
-
-          used:
-            0,
-
+          reason: 'disabled',
+          used: 0,
           remaining:
             WORD_CHAIN_HINT_LIMIT,
-
-          word:
-            null,
-
-          config:
-            current,
+          word: null,
+          config: current,
         };
       }
 
@@ -1761,78 +1335,49 @@ export async function useWordChainHint(
           ),
         );
 
-      /**
-       * -----------------------------------------------------
-       * HẾT HINT
-       * -----------------------------------------------------
-       */
-
       if (
         used >=
         WORD_CHAIN_HINT_LIMIT
       ) {
         return {
           ok: false,
-
-          reason:
-            'limit',
-
+          reason: 'limit',
           used,
-
-          remaining:
-            0,
-
-          word:
-            null,
-
-          config:
-            current,
+          remaining: 0,
+          word: null,
+          config: current,
         };
       }
 
       /**
-       * -----------------------------------------------------
-       * FIND HINT
-       * -----------------------------------------------------
+       * Gợi ý cũng dùng:
+       *
+       * JSON -> online.
        */
-
       const word =
-        findBotNextWord(
+        await findBotNextWordWithFallback(
+          client,
           game.currentWord,
           game.usedWords,
         );
 
-      /**
-       * -----------------------------------------------------
-       * KHÔNG CÒN TỪ
-       * -----------------------------------------------------
-       *
-       * Không trừ hint.
-       */
       if (!word) {
         return {
           ok: false,
-
-          reason:
-            'no_word',
-
+          reason: 'no_word',
           used,
 
           remaining:
             WORD_CHAIN_HINT_LIMIT -
             used,
 
-          word:
-            null,
-
-          config:
-            current,
+          word: null,
+          config: current,
         };
       }
 
       const hintUses = {
-        ...(game.hintUses ||
-          {}),
+        ...(game.hintUses || {}),
 
         [userId]:
           used + 1,
@@ -1842,7 +1387,6 @@ export async function useWordChainHint(
         resolvedMode
       ] = {
         ...game,
-
         hintUses,
       };
 
@@ -1854,11 +1398,8 @@ export async function useWordChainHint(
         );
 
       return {
-        ok:
-          true,
-
-        reason:
-          null,
+        ok: true,
+        reason: null,
 
         used:
           used + 1,
@@ -1869,19 +1410,11 @@ export async function useWordChainHint(
           1,
 
         word,
-
-        config:
-          updated,
+        config: updated,
       };
     },
   );
 }
-
-/**
- * =========================================================
- * GET USER STATS
- * =========================================================
- */
 
 function getUserStats(
   leaderboard,
@@ -1894,11 +1427,8 @@ function getUserStats(
 
   if (
     existing &&
-    typeof existing ===
-      'object' &&
-    !Array.isArray(
-      existing,
-    )
+    typeof existing === 'object' &&
+    !Array.isArray(existing)
   ) {
     return {
       correct:
@@ -1918,41 +1448,16 @@ function getUserStats(
     };
   }
 
-  /**
-   * Legacy:
-   *
-   * userId: score
-   */
   return {
     correct:
       toNonNegativeNumber(
         existing,
       ),
 
-    wrong:
-      0,
-
-    bestStreak:
-      0,
+    wrong: 0,
+    bestStreak: 0,
   };
 }
-
-/**
- * =========================================================
- * RECORD USER SUCCESS
- * =========================================================
- *
- * PvE:
- * - correct +1
- * - personal streak +1
- * - bestStreak update
- *
- * PvP:
- * - correct +1
- * - currentStreak +1
- *
- * Bot không được tính như player.
- */
 
 export async function recordUserSuccess(
   client,
@@ -1983,27 +1488,18 @@ export async function recordUserSuccess(
         );
 
       const normalized =
-        normalizeWord(
-          word,
-        );
+        normalizeWord(word);
 
       /**
-       * -----------------------------------------------------
-       * SAFETY CHECK
-       * -----------------------------------------------------
+       * Từ online đã được register vào
+       * validWordsSet trước khi hàm này chạy.
        *
-       * messageCreate.js đã check trước đó,
-       * nhưng giữa lúc check và lúc save có thể
-       * có message khác cập nhật game.
-       *
-       * Nếu state hiện tại không còn khớp:
-       * KHÔNG được ghi đè state mới.
+       * Vì vậy isValidWord() vẫn hoạt động
+       * bình thường ở đây.
        */
       if (
         !game.enabled ||
-        !isValidWord(
-          normalized,
-        ) ||
+        !isValidWord(normalized) ||
         (
           game.currentWord &&
           !canChain(
@@ -2047,9 +1543,6 @@ export async function recordUserSuccess(
           userId,
         );
 
-      /**
-       * +1 correct.
-       */
       stats.correct += 1;
 
       const personalStreaks =
@@ -2058,12 +1551,6 @@ export async function recordUserSuccess(
         );
 
       let nextStreak;
-
-      /**
-       * -----------------------------------------------------
-       * PVE
-       * -----------------------------------------------------
-       */
 
       if (
         resolvedMode === 'bot'
@@ -2085,15 +1572,7 @@ export async function recordUserSuccess(
             stats.bestStreak,
             nextStreak,
           );
-      }
-
-      /**
-       * -----------------------------------------------------
-       * PVP
-       * -----------------------------------------------------
-       */
-
-      else {
+      } else {
         nextStreak =
           game.currentStreak +
           1;
@@ -2103,12 +1582,6 @@ export async function recordUserSuccess(
         resolvedMode
       ][userId] =
         stats;
-
-      /**
-       * -----------------------------------------------------
-       * UPDATE GAME
-       * -----------------------------------------------------
-       */
 
       current.games[
         resolvedMode
@@ -2137,10 +1610,6 @@ export async function recordUserSuccess(
 
         personalStreaks,
 
-        /**
-         * Hint đã dùng vẫn được
-         * giữ nguyên trong round.
-         */
         hintUses:
           game.hintUses || {},
       };
@@ -2156,19 +1625,6 @@ export async function recordUserSuccess(
             .enabled,
         );
 
-      /**
-       * -----------------------------------------------------
-       * SAVE + ACCEPTED FLAG
-       * -----------------------------------------------------
-       *
-       * Quan trọng:
-       *
-       * Chỉ sau khi state được save thành công
-       * mới đánh dấu lượt này thực sự được chấp nhận.
-       *
-       * messageCreate.js sẽ dựa vào flag này
-       * để quyết định có react ✅ hay không.
-       */
       const saved =
         await saveWordChainConfig(
           client,
@@ -2185,22 +1641,6 @@ export async function recordUserSuccess(
     },
   );
 }
-
-/**
- * =========================================================
- * RECORD USER FAILURE
- * =========================================================
- *
- * Giữ nguyên logic hiện tại:
- *
- * - wrong +1
- * - không thay đổi currentWord
- * - không thay đổi usedWords
- * - không reset streak
- *
- * messageCreate.js đang dùng X như
- * một lần nhập sai chứ không phải kết thúc round.
- */
 
 export async function recordUserFailure(
   client,
@@ -2270,24 +1710,6 @@ export async function recordUserFailure(
   );
 }
 
-/**
- * =========================================================
- * RECORD BOT SUCCESS
- * =========================================================
- *
- * Bot:
- *
- * - không correct
- * - không wrong
- * - không personal streak
- * - không bestStreak
- *
- * Chỉ thay đổi:
- *
- * - currentWord
- * - usedWords
- */
-
 export async function recordBotSuccess(
   client,
   guildId,
@@ -2316,19 +1738,11 @@ export async function recordBotSuccess(
         );
 
       const normalized =
-        normalizeWord(
-          botWord,
-        );
+        normalizeWord(botWord);
 
-      /**
-       * Không cho Bot ghi một
-       * response stale.
-       */
       if (
         !game.enabled ||
-        !isValidWord(
-          normalized,
-        ) ||
+        !isValidWord(normalized) ||
         (
           game.currentWord &&
           !canChain(
@@ -2356,12 +1770,6 @@ export async function recordBotSuccess(
           normalized,
         ],
 
-        /**
-         * Bot không phải player.
-         *
-         * Giữ lastUserId của user
-         * vừa chơi.
-         */
         lastUserId:
           game.lastUserId,
       };
@@ -2382,26 +1790,6 @@ export async function recordBotSuccess(
     },
   );
 }
-
-/**
- * =========================================================
- * RECORD BREAK
- * =========================================================
- *
- * Kết thúc round:
- *
- * - currentWord -> từ mới
- * - lastUserId -> null
- * - usedWords -> reset
- * - currentStreak -> 0
- * - personalStreaks -> reset
- * - hintUses -> reset
- *
- * Không reset:
- *
- * - leaderboard
- * - bestStreak
- */
 
 export async function recordBreak(
   client,
@@ -2472,21 +1860,12 @@ export async function recordBreak(
         currentStreak:
           0,
 
-        /**
-         * Giữ kỷ lục.
-         */
         bestStreak:
           game.bestStreak,
 
-        /**
-         * Round mới.
-         */
         personalStreaks:
           {},
 
-        /**
-         * 3 hint mới.
-         */
         hintUses:
           {},
       };
@@ -2508,18 +1887,6 @@ export async function recordBreak(
   );
 }
 
-/**
- * =========================================================
- * LEADERBOARD
- * =========================================================
- *
- * PvP:
- *   score = correct
- *
- * PvE:
- *   score = bestStreak
- */
-
 export function buildWordChainLeaderboard(
   config,
   mode = 'bot',
@@ -2538,25 +1905,15 @@ export function buildWordChainLeaderboard(
     leaderboard,
   )
     .map(
-      ([
-        userId,
-        value,
-      ]) => {
+      ([userId]) => {
         const stats =
           getUserStats(
             leaderboard,
             userId,
           );
 
-        /**
-         * ---------------------------------------------------
-         * PVE
-         * ---------------------------------------------------
-         */
-
         if (
-          resolvedMode ===
-          'bot'
+          resolvedMode === 'bot'
         ) {
           return {
             userId,
@@ -2574,12 +1931,6 @@ export function buildWordChainLeaderboard(
               stats.wrong,
           };
         }
-
-        /**
-         * ---------------------------------------------------
-         * PVP
-         * ---------------------------------------------------
-         */
 
         return {
           userId,
@@ -2599,9 +1950,8 @@ export function buildWordChainLeaderboard(
       },
     )
     .filter(
-      (entry) =>
-        resolvedMode ===
-        'bot'
+      entry =>
+        resolvedMode === 'bot'
           ? entry.bestStreak >
               0 ||
             entry.correct >
@@ -2614,16 +1964,7 @@ export function buildWordChainLeaderboard(
               0,
     )
     .sort(
-      (
-        a,
-        b,
-      ) => {
-        /**
-         * Điểm chính:
-         *
-         * PvP = correct
-         * PvE = bestStreak
-         */
+      (a, b) => {
         if (
           b.score !==
           a.score
@@ -2634,10 +1975,6 @@ export function buildWordChainLeaderboard(
           );
         }
 
-        /**
-         * Nếu cùng điểm:
-         * nhiều correct hơn đứng trên.
-         */
         if (
           b.correct !==
           a.correct
@@ -2648,10 +1985,6 @@ export function buildWordChainLeaderboard(
           );
         }
 
-        /**
-         * Cuối cùng:
-         * ít wrong hơn đứng trên.
-         */
         return (
           a.wrong -
           b.wrong
