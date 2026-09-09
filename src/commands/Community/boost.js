@@ -45,7 +45,63 @@ export default {
                 subcommand
                     .setName('testboost')
                     .setDescription(
-                        'Test Embed Boost',
+                        'Gửi thông báo Boost thủ công để test hoặc gửi bù',
+                    )
+                    .addUserOption(
+                        option =>
+                            option
+                                .setName('member')
+                                .setDescription(
+                                    'Người được hiển thị trong thông báo Boost',
+                                )
+                                .setRequired(
+                                    true,
+                                ),
+                    )
+                    .addIntegerOption(
+                        option =>
+                            option
+                                .setName('member_boosts')
+                                .setDescription(
+                                    'Số boost của riêng người này',
+                                )
+                                .setMinValue(
+                                    1,
+                                )
+                                .setRequired(
+                                    true,
+                                ),
+                    )
+                    .addIntegerOption(
+                        option =>
+                            option
+                                .setName('total_boosts')
+                                .setDescription(
+                                    'Tổng số Boost hiện tại muốn hiển thị',
+                                )
+                                .setMinValue(
+                                    0,
+                                )
+                                .setRequired(
+                                    true,
+                                ),
+                    )
+                    .addIntegerOption(
+                        option =>
+                            option
+                                .setName('level')
+                                .setDescription(
+                                    'Boost Level muốn hiển thị (0 - 3)',
+                                )
+                                .setMinValue(
+                                    0,
+                                )
+                                .setMaxValue(
+                                    3,
+                                )
+                                .setRequired(
+                                    true,
+                                ),
                     ),
         )
 
@@ -242,15 +298,72 @@ export default {
 
 
         // =====================================================
-        // TEST
+        // TESTBOOST
         // =====================================================
 
         if (
             subcommand === 'testboost'
         ) {
+            const user =
+                interaction.options.getUser(
+                    'member',
+                    true,
+                );
+
+            const memberBoosts =
+                interaction.options.getInteger(
+                    'member_boosts',
+                    true,
+                );
+
+            const totalBoosts =
+                interaction.options.getInteger(
+                    'total_boosts',
+                    true,
+                );
+
+            const level =
+                interaction.options.getInteger(
+                    'level',
+                    true,
+                );
+
+
+            const member =
+                interaction.guild.members.cache.get(
+                    user.id,
+                ) ||
+                await interaction.guild.members.fetch(
+                    user.id,
+                ).catch(
+                    () => null,
+                );
+
+
+            if (!member) {
+                await interaction.reply({
+                    content:
+                        '❌ Không tìm thấy thành viên này trong server.',
+
+                    flags:
+                        MessageFlags.Ephemeral,
+                });
+
+                return;
+            }
+
+
             const result =
                 await sendTestBoost(
-                    interaction.member,
+                    member,
+                    null,
+                    {
+                        memberBoosts,
+                        boostCount:
+                            totalBoosts,
+                        currentLevel:
+                            level,
+                    },
                 );
 
 
@@ -271,7 +384,10 @@ export default {
 
             await interaction.reply({
                 content:
-                    '✅ Đã gửi Test Boost Embed.',
+                    `✅ Đã gửi thông báo Boost cho ${member}.\n` +
+                    `• Boost của member: **${memberBoosts}**\n` +
+                    `• Tổng Boost hiển thị: **${totalBoosts}**\n` +
+                    `• Boost Level hiển thị: **${level}**`,
 
                 flags:
                     MessageFlags.Ephemeral,
