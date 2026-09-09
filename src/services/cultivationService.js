@@ -245,7 +245,7 @@ export function normalizeCultivationProfile(
 
 /**
  * =========================================================
- * PROFILE DB
+ * PROFILE DATABASE
  * =========================================================
  */
 
@@ -312,7 +312,6 @@ export async function saveCultivationProfile(
       data.guildId,
       data.userId,
     ),
-
     data,
   );
 
@@ -368,7 +367,9 @@ export function getProgressionIndex(
 }
 
 /**
- * Tu vi cần để đột phá.
+ * =========================================================
+ * TU VI REQUIRED
+ * =========================================================
  */
 
 export function getCultivationRequired(
@@ -427,7 +428,6 @@ export function getBreakthroughChance(
 
   return Math.max(
     min,
-
     base -
       step * 0.008,
   );
@@ -573,11 +573,6 @@ export async function cultivate(
                 .stoneMultiplier,
           ),
         );
-
-      /**
-       * Nếu tẩu hỏa nhập ma
-       * thì không thể âm tu vi.
-       */
 
       if (
         cultivationDelta <
@@ -742,10 +737,6 @@ export async function breakthrough(
         Math.random() <
         chance;
 
-      /**
-       * SUCCESS
-       */
-
       if (success) {
         profile.cultivation -=
           required;
@@ -793,10 +784,6 @@ export async function breakthrough(
             saved,
         };
       }
-
-      /**
-       * FAIL
-       */
 
       const loss =
         Math.max(
