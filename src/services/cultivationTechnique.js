@@ -8,12 +8,6 @@ import {
   saveCultivationProfile,
 } from './cultivationService.js';
 
-/**
- * =========================================================
- * CÔNG PHÁP · 功法
- * =========================================================
- */
-
 export const CULTIVATION_TECHNIQUES = {
   thanh_van_kiem_quyet: {
     id:
@@ -23,7 +17,7 @@ export const CULTIVATION_TECHNIQUES = {
       'Thanh Vân Kiếm Quyết',
 
     emoji:
-      '<a:trangtrig18:1546068102817775626>',
+      '<a:ttbikip:1547448442022797342>',
 
     description:
       'Kiếm tâm nhất niệm, thanh vân tự khai.',
@@ -34,7 +28,8 @@ export const CULTIVATION_TECHNIQUES = {
     materialName:
       'Vô Danh Kiếm Phổ',
 
-    materialAmount: 1,
+    materialAmount:
+      1,
 
     effect:
       '+8% Tu Vi khi Tu Luyện',
@@ -54,7 +49,7 @@ export const CULTIVATION_TECHNIQUES = {
       'Huyền Nguyên Tâm Pháp',
 
     emoji:
-      '<a:trangtrig18:1546068102817775626>',
+      '<a:ttbikip:1547448442022797342>',
 
     description:
       'Tâm định khí hòa, đạo cơ tự nhiên viên mãn.',
@@ -65,7 +60,8 @@ export const CULTIVATION_TECHNIQUES = {
     materialName:
       'Vô Danh Kiếm Phổ',
 
-    materialAmount: 1,
+    materialAmount:
+      1,
 
     effect:
       '+5% Tỷ Lệ Đột Phá',
@@ -85,7 +81,7 @@ export const CULTIVATION_TECHNIQUES = {
       'Tụ Linh Chân Kinh',
 
     emoji:
-      '<a:trangtrig18:1546068102817775626>',
+      '<a:ttbikip:1547448442022797342>',
 
     description:
       'Tụ thiên địa linh vận, hóa vạn khí thành tài.',
@@ -96,7 +92,8 @@ export const CULTIVATION_TECHNIQUES = {
     materialName:
       'Vô Danh Kiếm Phổ',
 
-    materialAmount: 1,
+    materialAmount:
+      1,
 
     effect:
       '+8% Linh Thạch nhận được',
@@ -108,12 +105,6 @@ export const CULTIVATION_TECHNIQUES = {
       0.08,
   },
 };
-
-/**
- * =========================================================
- * HELPERS
- * =========================================================
- */
 
 export function getTechnique(
   techniqueId,
@@ -130,12 +121,6 @@ export function getTechniqueList() {
     CULTIVATION_TECHNIQUES,
   );
 }
-
-/**
- * =========================================================
- * NORMALIZE TECHNIQUE DATA
- * =========================================================
- */
 
 export function ensureTechniqueData(
   profile,
@@ -180,12 +165,6 @@ export function ensureTechniqueData(
   return profile;
 }
 
-/**
- * =========================================================
- * GET LEARNED TECHNIQUES
- * =========================================================
- */
-
 export function getLearnedTechniques(
   profile,
 ) {
@@ -203,12 +182,6 @@ export function getLearnedTechniques(
     );
 }
 
-/**
- * =========================================================
- * GET ACTIVE TECHNIQUE
- * =========================================================
- */
-
 export function getActiveTechnique(
   profile,
 ) {
@@ -223,24 +196,12 @@ export function getActiveTechnique(
     return null;
   }
 
-  /**
-   * Nếu dữ liệu cũ lưu một id
-   * không còn tồn tại thì xem như
-   * chưa kích hoạt.
-   */
-
   return (
     getTechnique(
       activeId,
     ) || null
   );
 }
-
-/**
- * =========================================================
- * GET BONUS
- * =========================================================
- */
 
 export function getTechniqueBonus(
   profile,
@@ -267,12 +228,6 @@ export function getTechniqueBonus(
   );
 }
 
-/**
- * =========================================================
- * MATERIAL
- * =========================================================
- */
-
 export function getTechniqueMaterialQuantity(
   profile,
 ) {
@@ -284,19 +239,6 @@ export function getTechniqueMaterialQuantity(
     ) || 0,
   );
 }
-
-/**
- * =========================================================
- * LĨNH NGỘ CÔNG PHÁP
- * =========================================================
- *
- * Dùng cùng player lock:
- *
- * cultivation:guildId:userId
- *
- * với cultivate / breakthrough /
- * use item và các hệ thống Tu Tiên khác.
- */
 
 export async function learnCultivationTechnique(
   client,
@@ -316,14 +258,9 @@ export async function learnCultivationTechnique(
           techniqueId,
         );
 
-      /**
-       * Công Pháp không tồn tại.
-       */
-
       if (!technique) {
         return {
           ok: false,
-
           reason:
             'invalid_technique',
         };
@@ -340,10 +277,6 @@ export async function learnCultivationTechnique(
         profile,
       );
 
-      /**
-       * Đã học rồi.
-       */
-
       if (
         profile.techniques
           .learned[
@@ -352,19 +285,12 @@ export async function learnCultivationTechnique(
       ) {
         return {
           ok: false,
-
           reason:
             'already_learned',
-
           technique,
-
           profile,
         };
       }
-
-      /**
-       * Kiểm tra Vô Danh Kiếm Phổ.
-       */
 
       const available =
         getTechniqueMaterialQuantity(
@@ -377,12 +303,9 @@ export async function learnCultivationTechnique(
       ) {
         return {
           ok: false,
-
           reason:
             'not_enough_material',
-
           technique,
-
           available,
 
           required:
@@ -392,10 +315,6 @@ export async function learnCultivationTechnique(
           profile,
         };
       }
-
-      /**
-       * Trừ bí tịch.
-       */
 
       const removed =
         removeInventoryItem(
@@ -407,34 +326,18 @@ export async function learnCultivationTechnique(
       if (!removed) {
         return {
           ok: false,
-
           reason:
             'consume_failed',
-
           technique,
-
           available,
-
           profile,
         };
       }
-
-      /**
-       * =====================================================
-       * LEARN
-       * =====================================================
-       */
 
       profile.techniques
         .learned[
           technique.id
         ] = true;
-
-      /**
-       * Công Pháp đầu tiên lĩnh ngộ
-       * sẽ tự động trở thành Công Pháp
-       * đang tu.
-       */
 
       let autoActivated =
         false;
@@ -448,10 +351,6 @@ export async function learnCultivationTechnique(
         autoActivated =
           true;
       }
-
-      /**
-       * Stats V2.6.
-       */
 
       if (
         !profile.stats ||
@@ -471,10 +370,6 @@ export async function learnCultivationTechnique(
           ) || 0,
         ) + 1;
 
-      /**
-       * Save.
-       */
-
       const saved =
         await saveCultivationProfile(
           client,
@@ -483,7 +378,6 @@ export async function learnCultivationTechnique(
 
       return {
         ok: true,
-
         technique,
 
         consumed:
@@ -502,15 +396,6 @@ export async function learnCultivationTechnique(
     },
   );
 }
-
-/**
- * =========================================================
- * KÍCH HOẠT CÔNG PHÁP
- * =========================================================
- *
- * Người chơi chỉ được active
- * 1 Công Pháp tại một thời điểm.
- */
 
 export async function activateCultivationTechnique(
   client,
@@ -533,7 +418,6 @@ export async function activateCultivationTechnique(
       if (!technique) {
         return {
           ok: false,
-
           reason:
             'invalid_technique',
         };
@@ -550,10 +434,6 @@ export async function activateCultivationTechnique(
         profile,
       );
 
-      /**
-       * Chưa lĩnh ngộ.
-       */
-
       if (
         profile.techniques
           .learned[
@@ -562,19 +442,12 @@ export async function activateCultivationTechnique(
       ) {
         return {
           ok: false,
-
           reason:
             'not_learned',
-
           technique,
-
           profile,
         };
       }
-
-      /**
-       * Đang active rồi.
-       */
 
       if (
         profile.techniques
@@ -588,14 +461,9 @@ export async function activateCultivationTechnique(
             true,
 
           technique,
-
           profile,
         };
       }
-
-      /**
-       * Chuyển Công Pháp.
-       */
 
       profile.techniques.active =
         technique.id;
