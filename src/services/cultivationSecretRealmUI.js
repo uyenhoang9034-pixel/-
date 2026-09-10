@@ -12,7 +12,7 @@ import {
 
 /**
  * =========================================================
- * EMOJI
+ * EMOJI · DISPLAY
  * =========================================================
  */
 
@@ -66,6 +66,49 @@ const E = {
     '<a:ttlinhthao:1547464708318167122>',
 };
 
+/**
+ * =========================================================
+ * BUTTON EMOJI
+ * =========================================================
+ */
+
+function buttonEmoji(
+  id,
+) {
+  return {
+    id:
+      String(id),
+  };
+}
+
+const B = {
+  abyss:
+    buttonEmoji(
+      '1547481470690660433',
+    ),
+
+  combat:
+    buttonEmoji(
+      '1547482030747680898',
+    ),
+
+  assist:
+    buttonEmoji(
+      '1547493158923927602',
+    ),
+
+  victory:
+    buttonEmoji(
+      '1547493833724403722',
+    ),
+};
+
+/**
+ * =========================================================
+ * HELPERS
+ * =========================================================
+ */
+
 function style(
   embed,
 ) {
@@ -112,7 +155,9 @@ function number(
     Math.max(
       0,
       Math.round(
-        Number(value) || 0,
+        Number(
+          value,
+        ) || 0,
       ),
     ),
   );
@@ -126,14 +171,19 @@ function dangerStars(
       5,
       Math.max(
         1,
-        Number(value) || 1,
+        Number(
+          value,
+        ) || 1,
       ),
     );
 
   return (
-    '★'.repeat(amount) +
+    '★'.repeat(
+      amount,
+    ) +
     '☆'.repeat(
-      5 - amount,
+      5 -
+        amount,
     )
   );
 }
@@ -180,22 +230,42 @@ function lootLines(
       itemId,
       quantity,
     ] of Object.entries(
-      loot?.items || {},
+      loot?.items ||
+        {},
     )
   ) {
+    const safeQuantity =
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            quantity,
+          ) || 0,
+        ),
+      );
+
+    if (
+      safeQuantity <=
+      0
+    ) {
+      continue;
+    }
+
     const item =
       CULTIVATION_ITEMS[
         itemId
       ];
 
-    if (!item) {
+    if (
+      !item
+    ) {
       continue;
     }
 
     lines.push(
       `${itemEmoji(
         item,
-      )} ${item.name} × **${quantity}**`,
+      )} ${item.name} × **${safeQuantity}**`,
     );
   }
 
@@ -233,7 +303,7 @@ export function buildSecretRealmDiscoverEmbed(
 
           '',
 
-          `**Yêu cầu đề xuất**`,
+          '**Yêu cầu đề xuất**',
           realm.recommendedRealm,
 
           '',
@@ -246,7 +316,9 @@ export function buildSecretRealmDiscoverEmbed(
           '',
 
           '*Càng tiến sâu, phần thưởng càng lớn — nhưng nếu thất bại, phần lớn chiến lợi phẩm sẽ bị mất.*',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -266,7 +338,7 @@ export function buildSecretRealmDiscoverRows(
             'Tiến vào bí cảnh',
           )
           .setEmoji(
-            '1547481470690660433',
+            B.abyss,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -329,7 +401,9 @@ export function buildSecretRealmFloorEmbed(
           ...lootLines(
             result.loot,
           ),
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -348,7 +422,7 @@ export function buildSecretRealmFloorRows(
             'Giao chiến',
           )
           .setEmoji(
-            '1547482030747680898',
+            B.combat,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -362,7 +436,7 @@ export function buildSecretRealmFloorRows(
             'Linh Thú trợ chiến',
           )
           .setEmoji(
-            '1547493158923927602',
+            B.assist,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -402,7 +476,7 @@ export function buildSecretRealmAssistEmbed(
           '',
 
           result.pet
-            ? `${result.pet.emoji} **${result.pet.name}**`
+            ? `${result.pet.emoji || ''} **${result.pet.name}**`
             : `${E.defeat} *Không có Linh Thú đang xuất chiến.*`,
 
           '',
@@ -415,10 +489,17 @@ export function buildSecretRealmAssistEmbed(
 
           `${E.combat} **Tỷ lệ chiến thắng**`,
           `**${Math.round(
-            result.winChance *
+            (
+              Number(
+                result.winChance,
+              ) ||
+              0
+            ) *
               100,
           )}%**`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -438,7 +519,7 @@ export function buildSecretRealmAssistRows(
             'Giao chiến',
           )
           .setEmoji(
-            '1547482030747680898',
+            B.combat,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -455,7 +536,7 @@ export function buildSecretRealmAssistRows(
             'Tự mình giao chiến',
           )
           .setEmoji(
-            '1547482030747680898',
+            B.combat,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -513,17 +594,24 @@ export function buildSecretRealmWinEmbed(
   ) {
     const item =
       CULTIVATION_ITEMS[
-        result.droppedItem
+        result
+          .droppedItem
           .itemId
       ];
 
-    if (item) {
+    if (
+      item
+    ) {
       lines.push(
         '',
         '**Vật phẩm tầng này**',
         `${itemEmoji(
           item,
-        )} ${item.name} × **${result.droppedItem.quantity}**`,
+        )} ${item.name} × **${number(
+          result
+            .droppedItem
+            .quantity,
+        )}**`,
       );
     }
   }
@@ -553,7 +641,9 @@ export function buildSecretRealmWinEmbed(
   return style(
     new EmbedBuilder()
       .setDescription(
-        lines.join('\n'),
+        lines.join(
+          '\n',
+        ),
       ),
   );
 }
@@ -562,7 +652,9 @@ export function buildSecretRealmWinRows(
   ownerId,
   completed,
 ) {
-  if (completed) {
+  if (
+    completed
+  ) {
     return [
       new ActionRowBuilder()
         .addComponents(
@@ -574,7 +666,7 @@ export function buildSecretRealmWinRows(
               'Thu chiến lợi phẩm',
             )
             .setEmoji(
-              '1547493833724403722',
+              B.victory,
             )
             .setStyle(
               ButtonStyle.Secondary,
@@ -594,7 +686,7 @@ export function buildSecretRealmWinRows(
             'Đi tiếp',
           )
           .setEmoji(
-            '1547481470690660433',
+            B.abyss,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -637,7 +729,7 @@ export function buildSecretRealmFailEmbed(
 
           '',
 
-          `**Thất bại tại**`,
+          '**Thất bại tại**',
           `Tầng ${result.floor}`,
 
           '',
@@ -667,7 +759,9 @@ export function buildSecretRealmFailEmbed(
           ...lootLines(
             result.lostLoot,
           ),
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -705,7 +799,9 @@ export function buildSecretRealmExitEmbed(
 
           `${E.abyss} **Bí Cảnh đã đến**`,
           `Tầng ${result.floor}`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
