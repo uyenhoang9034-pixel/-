@@ -405,32 +405,74 @@ const adventureError = () =>
      * =====================================================
      */
 
+   if (
+  action ===
+  'adventure'
+) {
+  try {
+    const result =
+      await getAdventureV2Preview(
+        client,
+        guildId,
+        userId,
+      );
+
+    const embed =
+      buildAdventureV2PreviewEmbed(
+        interaction.user,
+        result,
+      );
+
+    const components =
+      buildAdventureV2PreviewRows(
+        ownerId,
+        result.ok,
+      );
+
+    return await interaction.update({
+      embeds: [
+        embed,
+      ],
+
+      components,
+    });
+  } catch (error) {
+    const message =
+      String(
+        error?.stack ||
+        error?.message ||
+        error ||
+        'Unknown error',
+      ).slice(
+        0,
+        1800,
+      );
+
+    console.error(
+      '[TU TIEN ADVENTURE ERROR]',
+      error,
+    );
+
     if (
-      action ===
-      'adventure'
+      interaction.replied ||
+      interaction.deferred
     ) {
-      const result =
-        await getAdventureV2Preview(
-          client,
-          guildId,
-          userId,
-        );
-
-      return interaction.update({
-        embeds: [
-          buildAdventureV2PreviewEmbed(
-            interaction.user,
-            result,
-          ),
-        ],
-
-        components:
-          buildAdventureV2PreviewRows(
-            ownerId,
-            result.ok,
-          ),
+      return interaction.followUp({
+        content:
+          `❌ **Lỗi Thám Hiểm thật:**\n\`\`\`js\n${message}\n\`\`\``,
+        flags:
+          MessageFlags.Ephemeral,
       });
     }
+
+    return interaction.reply({
+      content:
+        `❌ **Lỗi Thám Hiểm thật:**\n\`\`\`js\n${message}\n\`\`\``,
+      flags:
+        MessageFlags.Ephemeral,
+    });
+  }
+}
 
     /**
      * =====================================================
