@@ -33,68 +33,120 @@ import {
 
 import {
   getActivePet,
-  PET_EMOJI,
+  getCultivationPet,
 } from './cultivationPet.js';
 
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
+const E =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis;
+
 export const CULTIVATION_BUTTON_EMOJIS = {
   cultivate: {
-    id: '1546070789734924418',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .cultivate,
   },
 
   breakthrough: {
-    id: '1546086115210170478',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .breakthrough,
   },
 
   adventure: {
-    id: '1546072124270055464',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .adventure,
   },
 
   inventory: {
-    id: '1546070876263284807',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .inventory,
   },
 
   profile: {
-    id: '1546070498570539019',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .profile,
   },
 
-  /**
-   * Tiên Bảng giữ emoji cũ.
-   */
   leaderboard: {
-    id: '1546070728309350421',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .leaderboard,
   },
 
-  /**
-   * Luyện Đan đổi sang dog15.
-   */
   alchemy: {
-    id: '1546072075821645844',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .alchemy,
   },
 
   forge: {
-    id: '1546086548632506459',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .forge,
   },
 
   equipment: {
-    id: '1546071877586391121',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .equipment,
   },
 
   technique: {
-    id: '1546070442169864193',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .technique,
   },
 
   treasure: {
-    id: '1546070834471239730',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .treasure,
   },
 
-  /**
-   * V2.8 Linh Thú.
-   */
   pet: {
-    id: '1546070976964333741',
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .pet,
+  },
+
+  use: {
+    id:
+      CULTIVATION_CONFIG
+        .ui
+        .buttonEmojis
+        .use,
   },
 };
 
@@ -256,43 +308,40 @@ function getItemEmoji(
     item?.type ===
     'herb'
   ) {
-    return (
-      CULTIVATION_CONFIG
-        .ui
-        .itemEmojis
-        .herb
-    );
+    return E.herb;
   }
 
   if (
     item?.type ===
     'pill'
   ) {
-    return (
-      CULTIVATION_CONFIG
-        .ui
-        .itemEmojis
-        .pill
-    );
+    return E.pill;
   }
 
   if (
     item?.type ===
     'ore'
   ) {
-    return (
-      CULTIVATION_CONFIG
-        .ui
-        .itemEmojis
-        .ore
-    );
+    return E.ore;
   }
 
+  if (
+    item?.type ===
+    'technique'
+  ) {
+    return E.swordManual;
+  }
+
+  return E.talisman;
+}
+
+function getPetEmoji(
+  petId,
+) {
   return (
-    CULTIVATION_CONFIG
-      .ui
-      .itemEmojis
-      .treasure
+    getCultivationPet(
+      petId,
+    )?.emoji || ''
   );
 }
 
@@ -305,7 +354,7 @@ function buildDropText(
 
   return [
     '',
-    `${CULTIVATION_CONFIG.ui.itemEmojis.received} **VẬT PHẨM NHẬN ĐƯỢC**`,
+    `**VẬT PHẨM NHẬN ĐƯỢC**`,
     `${getItemEmoji(
       droppedItem.item,
     )} **${droppedItem.item.name}** × ${droppedItem.quantity}`,
@@ -342,7 +391,7 @@ function buildEffectsText(
     cultivationBonus > 0
   ) {
     lines.push(
-      `Tụ Khí Đan: **+${percent(
+      `${E.pill} Tụ Khí Đan: **+${percent(
         cultivationBonus,
       )} Tu Vi lần kế tiếp**`,
     );
@@ -352,7 +401,7 @@ function buildEffectsText(
     breakthroughBonus > 0
   ) {
     lines.push(
-      `Phá Cảnh Đan: **+${percent(
+      `${E.pill} Phá Cảnh Đan: **+${percent(
         breakthroughBonus,
       )} Đột Phá lần kế tiếp**`,
     );
@@ -367,18 +416,12 @@ function buildEffectsText(
   return [
     SEPARATOR,
     '',
-    '<a:trangtrig34:1547237010572582982> **Dược Hiệu**',
+    `${E.pill} **Dược Hiệu**`,
     ...lines,
   ].join(
     '\n',
   );
 }
-
-/**
- * =========================================================
- * DASHBOARD
- * =========================================================
- */
 
 export function buildDashboardEmbed(
   user,
@@ -400,12 +443,12 @@ export function buildDashboardEmbed(
   const intro =
     isNew
       ? [
-          '<a:trangtrig2:1546040703375904801> **THIÊN ĐẠO KHAI MỞ** <a:trangtrig3:1546040818261954610>',
+          '**THIÊN ĐẠO KHAI MỞ**',
           '',
           `<@${user.id}> đã chính thức bước vào Tiên Lộ.`,
           '',
-          `Linh căn thức tỉnh: **${profile.spiritRoot.name}**`,
-          `Phẩm chất: **${profile.spiritRoot.rarity}**`,
+          `${E.spiritRoot} Linh Căn thức tỉnh: **${profile.spiritRoot.name}**`,
+          `Phẩm Chất: **${profile.spiritRoot.rarity}**`,
           '',
           SEPARATOR,
           '',
@@ -417,21 +460,21 @@ export function buildDashboardEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> 𝓣𝓲𝓮̂𝓷 𝓛𝓸̣̂ · 修仙之路 <a:trangtrig3:1546040818261954610>',
+        '𝓣𝓲𝓮̂𝓷 𝓛𝓸̣̂ · 修仙之路',
       )
       .setDescription(
         [
           intro,
 
-          `<a:catg11:1546058047393239151> **Đạo Hữu**: <@${user.id}>`,
+          `${E.user} **Đạo Hữu**: <@${user.id}>`,
 
-          `<a:trangtrig43:1547238351869059082> [**境界**] **${realm}**`,
+          `${E.realm} [**境界**] **${realm}**`,
 
-          `<a:trangtrig44:1547238495494348891> [**灵根**] **${profile.spiritRoot.name}**`,
+          `${E.spiritRoot} [**灵根**] **${profile.spiritRoot.name}**`,
 
           '',
 
-          '<:trangtri1:1546093044535660644> **Tu Vi**',
+          `${E.cultivation} **Tu Vi**`,
 
           `${progressBar(
             profile.cultivation,
@@ -444,11 +487,11 @@ export function buildDashboardEmbed(
 
           '',
 
-          `<a:trangtrig46:1547240249761996812> **Linh Thạch**: ${number(
+          `${E.spiritStone} **Linh Thạch**: ${number(
             profile.spiritStones,
           )}`,
 
-          `<a:heartg4:1546068063500369940> **Thể Lực**: ${profile.stamina}/${profile.maxStamina}`,
+          `${E.stamina} **Thể Lực**: ${profile.stamina}/${profile.maxStamina}`,
 
           '',
 
@@ -482,8 +525,7 @@ export function buildDashboardRows(
             'Tu Luyện',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .cultivate,
+            CULTIVATION_BUTTON_EMOJIS.cultivate,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -497,8 +539,7 @@ export function buildDashboardRows(
             'Đột Phá',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .breakthrough,
+            CULTIVATION_BUTTON_EMOJIS.breakthrough,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -512,8 +553,7 @@ export function buildDashboardRows(
             'Thám Hiểm',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .adventure,
+            CULTIVATION_BUTTON_EMOJIS.adventure,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -527,8 +567,7 @@ export function buildDashboardRows(
             'Túi Đồ',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .inventory,
+            CULTIVATION_BUTTON_EMOJIS.inventory,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -542,8 +581,7 @@ export function buildDashboardRows(
             'Hồ Sơ',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .profile,
+            CULTIVATION_BUTTON_EMOJIS.profile,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -560,8 +598,7 @@ export function buildDashboardRows(
             'Tiên Bảng',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .leaderboard,
+            CULTIVATION_BUTTON_EMOJIS.leaderboard,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -575,8 +612,7 @@ export function buildDashboardRows(
             'Luyện Đan',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .alchemy,
+            CULTIVATION_BUTTON_EMOJIS.alchemy,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -590,8 +626,7 @@ export function buildDashboardRows(
             'Luyện Khí',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .forge,
+            CULTIVATION_BUTTON_EMOJIS.forge,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -605,8 +640,7 @@ export function buildDashboardRows(
             'Pháp Khí',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .equipment,
+            CULTIVATION_BUTTON_EMOJIS.equipment,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -620,8 +654,7 @@ export function buildDashboardRows(
             'Công Pháp',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .technique,
+            CULTIVATION_BUTTON_EMOJIS.technique,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -638,8 +671,7 @@ export function buildDashboardRows(
             'Bí Bảo',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .treasure,
+            CULTIVATION_BUTTON_EMOJIS.treasure,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -653,8 +685,7 @@ export function buildDashboardRows(
             'Linh Thú',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .pet,
+            CULTIVATION_BUTTON_EMOJIS.pet,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -691,12 +722,6 @@ export function buildBackRow(
         ),
     );
 }
-
-/**
- * =========================================================
- * INVENTORY
- * =========================================================
- */
 
 export function buildInventoryRows(
   ownerId,
@@ -781,8 +806,7 @@ export function buildItemDetailRows(
             'Sử Dụng',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .inventory,
+            CULTIVATION_BUTTON_EMOJIS.use,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -796,8 +820,7 @@ export function buildItemDetailRows(
             'Quay lại Túi Đồ',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .inventory,
+            CULTIVATION_BUTTON_EMOJIS.inventory,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -820,8 +843,7 @@ export function buildUseItemResultRows(
             'Quay lại Túi Đồ',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .inventory,
+            CULTIVATION_BUTTON_EMOJIS.inventory,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -835,8 +857,7 @@ export function buildUseItemResultRows(
             'Quay lại Tiên Lộ',
           )
           .setEmoji(
-            CULTIVATION_BUTTON_EMOJIS
-              .inventory,
+            CULTIVATION_BUTTON_EMOJIS.inventory,
           )
           .setStyle(
             ButtonStyle.Secondary,
@@ -844,12 +865,6 @@ export function buildUseItemResultRows(
       ),
   ];
 }
-
-/**
- * =========================================================
- * TU LUYỆN
- * =========================================================
- */
 
 export function buildCultivateEmbed(
   result,
@@ -862,15 +877,15 @@ export function buildCultivateEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> ĐẠO TÂM CHƯA ỔN ĐỊNH',
+          'ĐẠO TÂM CHƯA ỔN ĐỊNH',
         )
         .setDescription(
           [
-            '<a:bang2:1546891483250954290> Linh khí trong kinh mạch vẫn chưa hoàn toàn ổn định.',
+            'Linh khí trong kinh mạch vẫn chưa hoàn toàn ổn định.',
             '',
             SEPARATOR,
             '',
-            `<a:chiikawag13:1541429102668554250> Đạo hữu cần chờ **${duration(
+            `${E.cultivation} Đạo hữu cần chờ **${duration(
               result.cooldownRemaining,
             )}** trước lần tu luyện tiếp theo.`,
           ].join(
@@ -888,15 +903,15 @@ export function buildCultivateEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> THỂ LỰC KHÔNG ĐỦ',
+          `${E.stamina} THỂ LỰC KHÔNG ĐỦ`,
         )
         .setDescription(
           [
-            '<a:bang2:1546891483250954290> Đạo hữu đã tiêu hao quá nhiều tinh lực.',
+            'Đạo hữu đã tiêu hao quá nhiều tinh lực.',
             '',
             SEPARATOR,
             '',
-            '<a:chiikawag13:1541429102668554250> Hiện tại chưa đủ Thể Lực để tiếp tục tu luyện.',
+            `${E.stamina} Hiện tại chưa đủ Thể Lực để tiếp tục tu luyện.`,
           ].join(
             '\n',
           ),
@@ -907,7 +922,7 @@ export function buildCultivateEmbed(
   const pillLine =
     result.cultivationPillBonus >
       0
-      ? `<a:trangtrig34:1547237010572582982> Tụ Khí Đan: **+${number(
+      ? `${E.pill} Tụ Khí Đan: **+${number(
           result.cultivationPillBonus,
         )} Tu Vi**`
       : null;
@@ -916,7 +931,7 @@ export function buildCultivateEmbed(
     result
       .equipmentCultivationBonus >
     0
-      ? `<a:trangtrig36:1547237577231302737> Thanh Phong Kiếm: **+${number(
+      ? `${E.sword} Thanh Phong Kiếm: **+${number(
           result.equipmentCultivationBonus,
         )} Tu Vi**`
       : null;
@@ -924,7 +939,7 @@ export function buildCultivateEmbed(
   const equipmentStoneLine =
     result.equipmentStoneBonus >
     0
-      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Bội: **+${number(
+      ? `${E.pendant} Tụ Linh Bội: **+${number(
           result.equipmentStoneBonus,
         )} Linh Thạch**`
       : null;
@@ -933,7 +948,7 @@ export function buildCultivateEmbed(
     result
       .techniqueCultivationBonus >
     0
-      ? `<a:trangtrig18:1546068102817775626> Thanh Vân Kiếm Quyết: **+${number(
+      ? `${E.technique} Thanh Vân Kiếm Quyết: **+${number(
           result.techniqueCultivationBonus,
         )} Tu Vi**`
       : null;
@@ -941,7 +956,7 @@ export function buildCultivateEmbed(
   const techniqueStoneLine =
     result.techniqueStoneBonus >
     0
-      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Chân Kinh: **+${number(
+      ? `${E.technique} Tụ Linh Chân Kinh: **+${number(
           result.techniqueStoneBonus,
         )} Linh Thạch**`
       : null;
@@ -949,7 +964,9 @@ export function buildCultivateEmbed(
   const petCultivationLine =
     result.petCultivationBonus >
     0
-      ? `${PET_EMOJI} Thanh Phong Linh Hồ: **+${number(
+      ? `${getPetEmoji(
+          'thanh_phong_linh_ho',
+        )} Thanh Phong Linh Hồ: **+${number(
           result.petCultivationBonus,
         )} Tu Vi**`
       : null;
@@ -965,13 +982,13 @@ export function buildCultivateEmbed(
           '',
           SEPARATOR,
           '',
-          `**Tu Vi**: ${signedNumber(
+          `${E.cultivation} **Tu Vi**: ${signedNumber(
             result.cultivationDelta,
           )}`,
-          `**Linh Thạch**: ${signedNumber(
+          `${E.spiritStone} **Linh Thạch**: ${signedNumber(
             result.stoneDelta,
           )}`,
-          `**Thể Lực**: -${result.staminaCost}`,
+          `${E.stamina} **Thể Lực**: -${result.staminaCost}`,
           equipmentCultivationLine,
           techniqueCultivationLine,
           petCultivationLine,
@@ -979,7 +996,7 @@ export function buildCultivateEmbed(
           techniqueStoneLine,
           pillLine,
           '',
-          `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+          `${E.realm} [**境界**] **${getRealmDisplay(
             result.profile,
           )}**`,
           `${progressBar(
@@ -1006,12 +1023,6 @@ export function buildCultivateEmbed(
   );
 }
 
-/**
- * =========================================================
- * THÁM HIỂM
- * =========================================================
- */
-
 export function buildAdventureEmbed(
   result,
 ) {
@@ -1023,15 +1034,15 @@ export function buildAdventureEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> HÀNH TRÌNH CHƯA THỂ TIẾP TỤC',
+          'HÀNH TRÌNH CHƯA THỂ TIẾP TỤC',
         )
         .setDescription(
           [
-            '<a:bang2:1546891483250954290> Đạo hữu vừa trải qua một chuyến thám hiểm, cần thời gian chỉnh đốn.',
+            'Đạo hữu vừa trải qua một chuyến thám hiểm, cần thời gian chỉnh đốn.',
             '',
             SEPARATOR,
             '',
-            `<a:chiikawag13:1541429102668554250> Đạo hữu cần chờ **${duration(
+            `${E.cultivation} Đạo hữu cần chờ **${duration(
               result.cooldownRemaining,
             )}** trước lần Thám Hiểm tiếp theo.`,
           ].join(
@@ -1045,10 +1056,10 @@ export function buildAdventureEmbed(
     result.talismanConsumed
       ? result.talismanId ===
         'tam_bao_phu'
-        ? '<a:trangtrig18:1546068102817775626> Tầm Bảo Phù: **Phù lực đã tiêu hao**'
+        ? `${E.talisman} Tầm Bảo Phù: **Phù lực đã tiêu hao**`
         : result.talismanId ===
           'tu_tai_phu'
-          ? `<a:trangtrig18:1546068102817775626> Tụ Tài Phù: **+${number(
+          ? `${E.talisman} Tụ Tài Phù: **+${number(
               result.talismanStoneBonus,
             )} Linh Thạch · Đã tiêu hao**`
           : null
@@ -1061,21 +1072,21 @@ export function buildAdventureEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> YÊU THÚ TẬP KÍCH',
+          'YÊU THÚ TẬP KÍCH',
         )
         .setDescription(
           [
-            `<a:catg10:1546031290803945594> ${result.event.text}`,
+            result.event.text,
             '',
             SEPARATOR,
             '',
-            `**Tu Vi**: ${signedNumber(
+            `${E.cultivation} **Tu Vi**: ${signedNumber(
               result.cultivationDelta,
             )}`,
-            '**Linh Thạch**: +0',
+            `${E.spiritStone} **Linh Thạch**: +0`,
             talismanLine,
             '',
-            `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+            `${E.realm} [**境界**] **${getRealmDisplay(
               result.profile,
             )}**`,
             `${progressBar(
@@ -1112,7 +1123,7 @@ export function buildAdventureEmbed(
   const equipmentStoneLine =
     result.equipmentStoneBonus >
     0
-      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Bội: **+${number(
+      ? `${E.pendant} Tụ Linh Bội: **+${number(
           result.equipmentStoneBonus,
         )} Linh Thạch**`
       : null;
@@ -1120,7 +1131,7 @@ export function buildAdventureEmbed(
   const techniqueStoneLine =
     result.techniqueStoneBonus >
     0
-      ? `<a:trangtrig18:1546068102817775626> Tụ Linh Chân Kinh: **+${number(
+      ? `${E.technique} Tụ Linh Chân Kinh: **+${number(
           result.techniqueStoneBonus,
         )} Linh Thạch**`
       : null;
@@ -1128,7 +1139,9 @@ export function buildAdventureEmbed(
   const petStoneLine =
     result.petStoneBonus >
     0
-      ? `${PET_EMOJI} Xích Viêm Hỏa Điểu: **+${number(
+      ? `${getPetEmoji(
+          'xich_viem_hoa_dieu',
+        )} Xích Viêm Hỏa Điểu: **+${number(
           result.petStoneBonus,
         )} Linh Thạch**`
       : null;
@@ -1137,7 +1150,7 @@ export function buildAdventureEmbed(
     result.event.type ===
       'great_fortune'
       ? result.event.title
-      : `<a:trangtrig2:1546040703375904801> ${result.location.name} <a:trangtrig3:1546040818261954610>`;
+      : result.location.name;
 
   return applyStyle(
     new EmbedBuilder()
@@ -1150,10 +1163,10 @@ export function buildAdventureEmbed(
           '',
           SEPARATOR,
           '',
-          `**Tu Vi**: ${signedNumber(
+          `${E.cultivation} **Tu Vi**: ${signedNumber(
             result.cultivationDelta,
           )}`,
-          `**Linh Thạch**: ${signedNumber(
+          `${E.spiritStone} **Linh Thạch**: ${signedNumber(
             result.stoneDelta,
           )}`,
           equipmentStoneLine,
@@ -1162,7 +1175,7 @@ export function buildAdventureEmbed(
           talismanLine,
           dropText,
           '',
-          `<a:trangtrig43:1547238351869059082> [**境界**] **${getRealmDisplay(
+          `${E.realm} [**境界**] **${getRealmDisplay(
             result.profile,
           )}**`,
           `${progressBar(
@@ -1188,12 +1201,6 @@ export function buildAdventureEmbed(
       ),
   );
 }
-
-/**
- * =========================================================
- * TÚI ĐỒ EMBED
- * =========================================================
- */
 
 export function buildInventoryEmbed(
   user,
@@ -1221,11 +1228,11 @@ export function buildInventoryEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> **TÚI ĐỒ TIÊN NHÂN** <a:trangtrig3:1546040818261954610>',
+        'TÚI ĐỒ TIÊN NHÂN',
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+          `${E.user} Đạo Hữu: <@${user.id}>`,
           '',
           SEPARATOR,
           '',
@@ -1237,7 +1244,7 @@ export function buildInventoryEmbed(
           '',
           SEPARATOR,
           '',
-          `<a:trangtrig45:1547239010190237819> Vật Phẩm Đã Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
+          `Vật Phẩm Đã Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
         ].join(
           '\n',
         ),
@@ -1259,7 +1266,7 @@ export function buildItemDetailEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> KHÔNG TÌM THẤY VẬT PHẨM',
+          'KHÔNG TÌM THẤY VẬT PHẨM',
         )
         .setDescription(
           'Vật phẩm này không còn tồn tại trong Túi Đồ.',
@@ -1308,7 +1315,7 @@ export function buildItemDetailEmbed(
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+          `${E.user} Đạo Hữu: <@${user.id}>`,
           '',
           `**Phẩm Chất**: ${item.rarity}`,
           `**Số Lượng**: ${quantity}`,
@@ -1336,11 +1343,11 @@ export function buildUseItemResultEmbed(
       return applyStyle(
         new EmbedBuilder()
           .setTitle(
-            '<a:angryg1:1541441195144773652> KHÔNG THỂ SỬ DỤNG',
+            `${E.stamina} KHÔNG THỂ SỬ DỤNG`,
           )
           .setDescription(
             [
-              '<a:bang2:1546891483250954290> Thể Lực của đạo hữu hiện đã viên mãn.',
+              'Thể Lực của đạo hữu hiện đã viên mãn.',
               '',
               SEPARATOR,
               '',
@@ -1359,11 +1366,11 @@ export function buildUseItemResultEmbed(
       return applyStyle(
         new EmbedBuilder()
           .setTitle(
-            '<a:angryg1:1541441195144773652> DƯỢC HIỆU VẪN CÒN',
+            `${E.pill} DƯỢC HIỆU VẪN CÒN`,
           )
           .setDescription(
             [
-              '<a:bang2:1546891483250954290> Dược lực của viên đan trước vẫn chưa được tiêu hao.',
+              'Dược lực của viên đan trước vẫn chưa được tiêu hao.',
               '',
               SEPARATOR,
               '',
@@ -1378,7 +1385,7 @@ export function buildUseItemResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> KHÔNG THỂ SỬ DỤNG',
+          `${E.pill} KHÔNG THỂ SỬ DỤNG`,
         )
         .setDescription(
           'Đạo hữu không còn vật phẩm này hoặc vật phẩm hiện chưa thể sử dụng.',
@@ -1393,7 +1400,7 @@ export function buildUseItemResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:trangtrig34:1547237010572582982> TỤ KHÍ ĐAN',
+          `${E.pill} TỤ KHÍ ĐAN`,
         )
         .setDescription(
           [
@@ -1401,10 +1408,10 @@ export function buildUseItemResultEmbed(
             '',
             SEPARATOR,
             '',
-            `<:trangtri1:1546093044535660644> Hiệu quả Tu Luyện kế tiếp: **+${percent(
+            `${E.cultivation} Hiệu quả Tu Luyện kế tiếp: **+${percent(
               result.bonus,
             )} Tu Vi**`,
-            `<a:trangtrig34:1547237010572582982> Còn lại: **${result.remaining}**`,
+            `${E.pill} Còn lại: **${result.remaining}**`,
             '',
             '*Dược lực sẽ tiêu hao sau lần Tu Luyện tiếp theo.*',
           ].join(
@@ -1421,7 +1428,7 @@ export function buildUseItemResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:trangtrig34:1547237010572582982> HỒI NGUYÊN ĐAN',
+          `${E.pill} HỒI NGUYÊN ĐAN`,
         )
         .setDescription(
           [
@@ -1429,8 +1436,8 @@ export function buildUseItemResultEmbed(
             '',
             SEPARATOR,
             '',
-            `<a:heartg4:1546068063500369940> Thể Lực: **${result.before} → ${result.after}**`,
-            `<a:trangtrig34:1547237010572582982> Còn lại: **${result.remaining}**`,
+            `${E.stamina} Thể Lực: **${result.before} → ${result.after}**`,
+            `${E.pill} Còn lại: **${result.remaining}**`,
             '',
             '*Khí huyết đã ổn định hơn.*',
           ].join(
@@ -1443,7 +1450,7 @@ export function buildUseItemResultEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig34:1547237010572582982> PHÁ CẢNH ĐAN',
+        `${E.pill} PHÁ CẢNH ĐAN`,
       )
       .setDescription(
         [
@@ -1451,10 +1458,10 @@ export function buildUseItemResultEmbed(
           '',
           SEPARATOR,
           '',
-          `<a:trangtrig19:1546068350030053406> Lần Đột Phá kế tiếp: **+${percent(
+          `${E.realm} Lần Đột Phá kế tiếp: **+${percent(
             result.bonus,
           )}**`,
-          `<a:trangtrig34:1547237010572582982> Còn lại: **${result.remaining}**`,
+          `${E.pill} Còn lại: **${result.remaining}**`,
           '',
           '*Dược lực sẽ tiêu hao sau lần Đột Phá tiếp theo.*',
         ].join(
@@ -1463,12 +1470,6 @@ export function buildUseItemResultEmbed(
       ),
   );
 }
-
-/**
- * =========================================================
- * ĐỘT PHÁ
- * =========================================================
- */
 
 export function buildBreakthroughEmbed(
   result,
@@ -1481,7 +1482,7 @@ export function buildBreakthroughEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:trangtrig2:1546040703375904801> ĐẠO TẬN CỬU TIÊU <a:trangtrig3:1546040818261954610>',
+          `${E.realm} ĐẠO TẬN CỬU TIÊU`,
         )
         .setDescription(
           'Đạo hữu đã đứng tại cảnh giới cao nhất hiện có của Tiên Lộ.',
@@ -1505,22 +1506,22 @@ export function buildBreakthroughEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:trangtrig45:1547239010190237819> BÌNH CẢNH CHƯA MỞ <a:trangtrig45:1547239010190237819>',
+          `${E.realm} BÌNH CẢNH CHƯA MỞ`,
         )
         .setDescription(
           [
-            `<a:trangtrig6:1546043036390260756> Cảnh giới hiện tại: **${getRealmDisplay(
+            `${E.realm} Cảnh Giới hiện tại: **${getRealmDisplay(
               result.profile,
             )}**`,
-            `<a:trangtrig6:1546043036390260756> Tu Vi: **${number(
+            `${E.cultivation} Tu Vi: **${number(
               result.profile
                 .cultivation,
             )}**`,
-            `<a:trangtrig6:1546043036390260756> Thiếu: **${number(
+            `${E.cultivation} Thiếu: **${number(
               missing,
             )}**`,
             '',
-            '<:chiikawa4:1541429063392956516> *Tiếp tục tu luyện để chạm tới bình cảnh.*',
+            '*Tiếp tục tu luyện để chạm tới bình cảnh.*',
           ].join(
             '\n',
           ),
@@ -1536,7 +1537,7 @@ export function buildBreakthroughEmbed(
   const pillLine =
     result.breakthroughPillBonus >
       0
-      ? `<a:trangtrig34:1547237010572582982> Phá Cảnh Đan: **+${percent(
+      ? `${E.pill} Phá Cảnh Đan: **+${percent(
           result.breakthroughPillBonus,
         )}**`
       : null;
@@ -1545,7 +1546,7 @@ export function buildBreakthroughEmbed(
     result
       .techniqueBreakthroughBonus >
     0
-      ? `<a:trangtrig18:1546068102817775626> Huyền Nguyên Tâm Pháp: **+${percent(
+      ? `${E.technique} Huyền Nguyên Tâm Pháp: **+${percent(
           result.techniqueBreakthroughBonus,
         )}**`
       : null;
@@ -1553,7 +1554,9 @@ export function buildBreakthroughEmbed(
   const petChanceLine =
     result.petBreakthroughBonus >
     0
-      ? `${PET_EMOJI} Thiên Lôi Bạch Hổ: **+${percent(
+      ? `${getPetEmoji(
+          'thien_loi_bach_ho',
+        )} Thiên Lôi Bạch Hổ: **+${percent(
           result.petBreakthroughBonus,
         )}**`
       : null;
@@ -1564,7 +1567,7 @@ export function buildBreakthroughEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:trangtrig2:1546040703375904801> PHÁ CẢNH THÀNH CÔNG <a:trangtrig3:1546040818261954610>',
+          `${E.realm} PHÁ CẢNH THÀNH CÔNG`,
         )
         .setDescription(
           [
@@ -1576,7 +1579,7 @@ export function buildBreakthroughEmbed(
             '↓',
             `**${result.newRealm}**`,
             '',
-            `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
+            `${E.realm} Tỷ Lệ Đột Phá: **${chance}%**`,
             techniqueLine,
             petChanceLine,
             pillLine,
@@ -1596,13 +1599,13 @@ export function buildBreakthroughEmbed(
 
   const protectionLine =
     result.talismanProtected
-      ? '<a:trangtrig18:1546068102817775626> Hộ Đạo Phù: **Bảo toàn toàn bộ Tu Vi · Đã tiêu hao**'
+      ? `${E.talisman} Hộ Đạo Phù: **Bảo toàn toàn bộ Tu Vi · Đã tiêu hao**`
       : null;
 
   const equipmentLossLine =
     result.equipmentLossSaved >
     0
-      ? `<a:trangtrig18:1546068102817775626> Huyền Thiết Hộ Phù: **Giảm ${number(
+      ? `${E.talisman} Huyền Thiết Hộ Phù: **Giảm ${number(
           result.equipmentLossSaved,
         )} Tu Vi hao tổn**`
       : null;
@@ -1610,7 +1613,9 @@ export function buildBreakthroughEmbed(
   const petLossLine =
     result.petLossSaved >
     0
-      ? `${PET_EMOJI} Huyền Giáp Linh Quy: **Giảm ${number(
+      ? `${getPetEmoji(
+          'huyen_giap_linh_quy',
+        )} Huyền Giáp Linh Quy: **Giảm ${number(
           result.petLossSaved,
         )} Tu Vi hao tổn**`
       : null;
@@ -1618,7 +1623,7 @@ export function buildBreakthroughEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:angryg1:1541441195144773652> ĐỘT PHÁ THẤT BẠI',
+        `${E.realm} ĐỘT PHÁ THẤT BẠI`,
       )
       .setDescription(
         [
@@ -1626,14 +1631,14 @@ export function buildBreakthroughEmbed(
           '',
           SEPARATOR,
           '',
-          `<a:trangtrig43:1547238351869059082> Cảnh Giới: **${result.oldRealm}**`,
-          `<:trangtri1:1546093044535660644> Tu Vi Hao Tổn: **-${number(
+          `${E.realm} Cảnh Giới: **${result.oldRealm}**`,
+          `${E.cultivation} Tu Vi Hao Tổn: **-${number(
             result.loss,
           )}**`,
           protectionLine,
           equipmentLossLine,
           petLossLine,
-          `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
+          `${E.realm} Tỷ Lệ Đột Phá: **${chance}%**`,
           techniqueLine,
           petChanceLine,
           pillLine,
@@ -1652,12 +1657,6 @@ export function buildBreakthroughEmbed(
       ),
   );
 }
-
-/**
- * =========================================================
- * HỒ SƠ
- * =========================================================
- */
 
 export function buildProfileEmbed(
   user,
@@ -1703,22 +1702,22 @@ export function buildProfileEmbed(
   const equipmentLine =
     equippedEquipment
       ? `${equippedEquipment.emoji} Pháp Khí: **${equippedEquipment.name}**`
-      : '<a:trangtrig18:1546068102817775626> Pháp Khí: **Chưa Trang Bị**';
+      : 'Pháp Khí: **Chưa Trang Bị**';
 
   const techniqueLine =
     activeTechnique
       ? `${activeTechnique.emoji} Công Pháp: **${activeTechnique.name}**`
-      : '<a:trangtrig18:1546068102817775626> Công Pháp: **Chưa Tu Luyện**';
+      : `${E.technique} Công Pháp: **Chưa Tu Luyện**`;
 
   const talismanLine =
     activeTalisman
-      ? `<a:trangtrig18:1546068102817775626> Phù Hiệu: **${activeTalisman.name}**`
-      : '<a:trangtrig18:1546068102817775626> Phù Hiệu: **Chưa Kích Hoạt**';
+      ? `${E.talisman} Phù Hiệu: **${activeTalisman.name}**`
+      : `${E.talisman} Phù Hiệu: **Chưa Kích Hoạt**`;
 
   const petLine =
     activePet
-      ? `${PET_EMOJI} Linh Thú: **${activePet.name}**`
-      : `${PET_EMOJI} Linh Thú: **Chưa Có**`;
+      ? `${activePet.emoji} Linh Thú: **${activePet.name}**`
+      : 'Linh Thú: **Chưa Có**';
 
   const techniqueBreakthroughBonus =
     activeTechnique
@@ -1751,45 +1750,45 @@ export function buildProfileEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> HỒ SƠ TIÊN NHÂN <a:trangtrig3:1546040818261954610>',
+        'HỒ SƠ TIÊN NHÂN',
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
-          `<a:trangtrig43:1547238351869059082> Cảnh Giới: **${getRealmDisplay(
+          `${E.user} Đạo Hữu: <@${user.id}>`,
+          `${E.realm} Cảnh Giới: **${getRealmDisplay(
             profile,
           )}**`,
-          `<a:trangtrig44:1547238495494348891> Linh Căn: **${profile.spiritRoot.name}**`,
-          `<a:trangtrig31:1546905996893626440> Phẩm Chất: **${profile.spiritRoot.rarity}**`,
+          `${E.spiritRoot} Linh Căn: **${profile.spiritRoot.name}**`,
+          `Phẩm Chất: **${profile.spiritRoot.rarity}**`,
           equipmentLine,
           techniqueLine,
           talismanLine,
           petLine,
           '',
-          `<:trangtri1:1546093044535660644> Tu Vi: **${number(
+          `${E.cultivation} Tu Vi: **${number(
             profile.cultivation,
           )} / ${number(
             required,
           )}**`,
-          `<a:trangtrig46:1547240249761996812> Linh Thạch: **${number(
+          `${E.spiritStone} Linh Thạch: **${number(
             profile.spiritStones,
           )}**`,
-          `<a:heartg4:1546068063500369940> Thể Lực: **${profile.stamina} / ${profile.maxStamina}**`,
-          `<a:trangtrig19:1546068350030053406> Tỷ Lệ Đột Phá: **${chance}%**`,
+          `${E.stamina} Thể Lực: **${profile.stamina} / ${profile.maxStamina}**`,
+          `${E.realm} Tỷ Lệ Đột Phá: **${chance}%**`,
           effects,
           '',
           SEPARATOR,
           '',
-          `<a:trangtrig45:1547239010190237819> Tu Luyện: **${profile.stats.cultivateCount || 0} lần**`,
-          `<a:trangtrig45:1547239010190237819> Kỳ Ngộ: **${profile.stats.fortunes || 0} lần**`,
-          `<a:trangtrig45:1547239010190237819> Thám Hiểm: **${profile.stats.adventureCount || 0} lần**`,
-          `<a:trangtrig45:1547239010190237819> Đại Cơ Duyên: **${profile.stats.greatFortunes || 0} lần**`,
-          `<a:trangtrig45:1547239010190237819> Vật Phẩm Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
-          `<a:trangtrig45:1547239010190237819> Công Pháp Lĩnh Ngộ: **${profile.stats.techniquesLearned || 0}**`,
-          `<a:trangtrig45:1547239010190237819> Phù Hiệu Kích Hoạt: **${profile.stats.talismansActivated || 0}**`,
-          `<a:trangtrig45:1547239010190237819> Linh Thú Thu Phục: **${profile.stats.petsCaptured || 0}**`,
-          `<a:trangtrig45:1547239010190237819> Đột Phá Thành Công: **${profile.stats.breakthroughSuccess || 0}**`,
-          `<a:trangtrig45:1547239010190237819> Đột Phá Thất Bại: **${profile.stats.breakthroughFail || 0}**`,
+          `Tu Luyện: **${profile.stats.cultivateCount || 0} lần**`,
+          `Kỳ Ngộ: **${profile.stats.fortunes || 0} lần**`,
+          `Thám Hiểm: **${profile.stats.adventureCount || 0} lần**`,
+          `Đại Cơ Duyên: **${profile.stats.greatFortunes || 0} lần**`,
+          `Vật Phẩm Tìm Thấy: **${profile.stats.itemsFound || 0}**`,
+          `Công Pháp Lĩnh Ngộ: **${profile.stats.techniquesLearned || 0}**`,
+          `Phù Hiệu Kích Hoạt: **${profile.stats.talismansActivated || 0}**`,
+          `Linh Thú Thu Phục: **${profile.stats.petsCaptured || 0}**`,
+          `Đột Phá Thành Công: **${profile.stats.breakthroughSuccess || 0}**`,
+          `Đột Phá Thất Bại: **${profile.stats.breakthroughFail || 0}**`,
         ]
           .filter(
             (
@@ -1803,12 +1802,6 @@ export function buildProfileEmbed(
       ),
   );
 }
-
-/**
- * =========================================================
- * TIÊN BẢNG
- * =========================================================
- */
 
 export function buildLeaderboardEmbed(
   entries,
@@ -1833,10 +1826,10 @@ export function buildLeaderboardEmbed(
           `<@${entry.userId}>`;
 
         return [
-          `<a:trangtrig32:1546906170994856026>${index + 1} · **${name}**`,
-          `<a:animeg3:1546040346717331477> **${getRealmDisplay(
+          `${E.moon} ${index + 1} · **${name}**`,
+          `${E.realm} **${getRealmDisplay(
             entry.profile,
-          )}** <a:trangtrig29:1546385117478527016> **${number(
+          )}** ${E.cultivation} **${number(
             entry.profile
               .cultivation,
           )}** Tu Vi`,
@@ -1849,14 +1842,14 @@ export function buildLeaderboardEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:animeg2:1546040159886114846> 𝓣𝓲𝓮̂𝓷 𝓑𝓪̉𝓷𝓰 <a:animeg2:1546040159886114846>',
+        '𝓣𝓲𝓮̂𝓷 𝓑𝓪̉𝓷𝓰',
       )
       .setDescription(
         lines.length > 0
           ? lines.join(
               '\n\n',
             )
-          : '<a:animeg3:1546040346717331477> Tiên Bảng hiện chưa lưu danh bất kỳ đạo hữu nào.',
+          : 'Tiên Bảng hiện chưa lưu danh bất kỳ đạo hữu nào.',
       ),
   );
 }
