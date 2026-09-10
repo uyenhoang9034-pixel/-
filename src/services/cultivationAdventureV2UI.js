@@ -1281,3 +1281,648 @@ export function buildAdventureV2ErrorRows(
       ),
   ];
 }
+/**
+ * =========================================================
+ * V2.9.2 · BIA ĐÁ / CỔ VĂN
+ * =========================================================
+ */
+
+export function buildAncientTabletEmbed() {
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '上古石碑 · THƯỢNG CỔ THẠCH BI',
+          ),
+
+          '',
+
+          `${EMOJI.tablet} *Một bia đá cổ xưa đứng lặng giữa tàn tích.*`,
+
+          '',
+
+          `${EMOJI.ancient} Những dòng cổ văn trên bề mặt dần phát sáng khi đạo hữu tới gần.`,
+
+          '',
+
+          `${EMOJI.light} Một luồng thần niệm cổ xưa truyền vào thức hải.`,
+
+          '',
+
+          '*Những đạo văn này dường như đang chờ người hữu duyên lĩnh ngộ...*',
+        ].join('\n'),
+      ),
+  );
+}
+
+export function buildAncientTabletRows(
+  ownerId,
+) {
+  return [
+    new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure_v2_comprehend`,
+          )
+          .setLabel(
+            'Tham ngộ cổ văn',
+          )
+          .setEmoji(
+            '1547494884250746931',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:dashboard`,
+          )
+          .setLabel(
+            'Rời đi',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+  ];
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · CỔNG ĐÁ
+ * =========================================================
+ */
+
+export function buildAncientGateEmbed() {
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '古门 · THƯỢNG CỔ THẠCH MÔN',
+          ),
+
+          '',
+
+          `${EMOJI.gate} *Một cánh cổng đá khổng lồ chắn ngang con đường phía trước.*`,
+
+          '',
+
+          `${EMOJI.ancient} Cổ văn chạy dọc theo khe cửa, tạo thành một lớp phong ấn đã tồn tại không biết bao nhiêu năm.`,
+
+          '',
+
+          `${EMOJI.light} Từ phía sau cánh cổng truyền ra từng đợt linh quang yếu ớt.`,
+
+          '',
+
+          `${EMOJI.danger} *Phá giải phong ấn có thể mở ra cơ duyên... nhưng cũng có thể đánh thức thứ đang ngủ bên trong.*`,
+        ].join('\n'),
+      ),
+  );
+}
+
+export function buildAncientGateRows(
+  ownerId,
+) {
+  return [
+    new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure_v2_gate_open`,
+          )
+          .setLabel(
+            'Phá giải phong ấn',
+          )
+          .setEmoji(
+            '1547491949945028669',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:dashboard`,
+          )
+          .setLabel(
+            'Rời đi',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+  ];
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · CỔNG ĐÁ THẤT BẠI
+ * =========================================================
+ */
+
+export function buildAncientGateFailedEmbed(
+  result,
+) {
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '禁制 · PHONG ẤN PHẢN PHỆ',
+          ),
+
+          '',
+
+          `${EMOJI.defeat} *Cổ văn trên cổng đá đột nhiên bùng sáng.*`,
+
+          '',
+
+          `${EMOJI.danger} Một luồng lực lượng cổ xưa phản chấn thẳng vào kinh mạch.`,
+
+          '',
+
+          `${EMOJI.cultivation} **Tu Vi tổn thất**`,
+          `-${number(
+            Math.abs(
+              result.cultivationDelta,
+            ),
+          )}`,
+
+          '',
+
+          '*Phong ấn vẫn chưa thể phá giải.*',
+        ].join('\n'),
+      ),
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · RƯƠNG CỔ XUẤT HIỆN
+ * =========================================================
+ */
+
+export function buildAncientChestEmbed() {
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '宝箱 · BẢO RƯƠNG',
+          ),
+
+          '',
+
+          `${EMOJI.gate} *Cổng đá chậm rãi mở ra, bụi thời gian rơi xuống từng lớp.*`,
+
+          '',
+
+          `${EMOJI.chest} Một chiếc rương cổ bị dây leo bao phủ nằm giữa gian thạch thất.`,
+
+          '',
+
+          `${EMOJI.light} Linh quang từ bên trong rương không ngừng dao động.`,
+
+          '',
+
+          `${EMOJI.danger} *Không ai biết bên dưới lớp bụi kia có ẩn giấu cấm chế hay không...*`,
+        ].join('\n'),
+      ),
+  );
+}
+
+export function buildAncientChestRows(
+  ownerId,
+) {
+  return [
+    new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure_v2_chest_open`,
+          )
+          .setLabel(
+            'Mở bảo rương',
+          )
+          .setEmoji(
+            '1547493008914653245',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure_v2_chest_inspect`,
+          )
+          .setLabel(
+            'Kiểm tra trước',
+          )
+          .setEmoji(
+            '1547495450385317928',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure_v2_chest_leave`,
+          )
+          .setLabel(
+            'Bỏ qua',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+  ];
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · KIỂM TRA RƯƠNG
+ * =========================================================
+ */
+
+export function buildAncientChestInspectEmbed(
+  result,
+) {
+  if (
+    result.trapped
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setDescription(
+          [
+            title(
+              '禁制 · PHÁT HIỆN CẤM CHẾ',
+            ),
+
+            '',
+
+            `${EMOJI.danger} *Thần thức vừa chạm tới chiếc rương, những đường trận văn ẩn giấu lập tức hiện lên.*`,
+
+            '',
+
+            `${EMOJI.chest} **Rương Cổ**`,
+
+            `${EMOJI.ancient} Một lớp cấm chế cổ xưa đang bảo vệ vật phẩm bên trong.`,
+
+            '',
+
+            '*Nếu muốn mở rương, đạo hữu cần phá giải cấm chế trước.*',
+          ].join('\n'),
+        ),
+    );
+  }
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '宝箱 · KIỂM TRA BẢO RƯƠNG',
+          ),
+
+          '',
+
+          `${EMOJI.light} *Thần thức quét qua từng đường vân trên chiếc rương.*`,
+
+          '',
+
+          `${EMOJI.victory} Không phát hiện cấm chế nguy hiểm.`,
+
+          '',
+
+          `${EMOJI.chest} **Có thể mở bảo rương an toàn.**`,
+        ].join('\n'),
+      ),
+  );
+}
+
+export function buildAncientChestInspectRows(
+  ownerId,
+  trapped,
+) {
+  if (
+    trapped
+  ) {
+    return [
+      new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId(
+              `tutien_action:${ownerId}:adventure_v2_chest_disarm`,
+            )
+            .setLabel(
+              'Phá giải cấm chế',
+            )
+            .setEmoji(
+              '1547494884250746931',
+            )
+            .setStyle(
+              ButtonStyle.Secondary,
+            ),
+
+          new ButtonBuilder()
+            .setCustomId(
+              `tutien_action:${ownerId}:adventure_v2_chest_leave`,
+            )
+            .setLabel(
+              'Bỏ qua',
+            )
+            .setStyle(
+              ButtonStyle.Secondary,
+            ),
+        ),
+    ];
+  }
+
+  return [
+    new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure_v2_chest_open`,
+          )
+          .setLabel(
+            'Mở bảo rương',
+          )
+          .setEmoji(
+            '1547493008914653245',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+
+        new ButtonBuilder()
+          .setCustomId(
+            `tutien_action:${ownerId}:adventure_v2_chest_leave`,
+          )
+          .setLabel(
+            'Bỏ qua',
+          )
+          .setStyle(
+            ButtonStyle.Secondary,
+          ),
+      ),
+  ];
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · GỠ CẤM CHẾ
+ * =========================================================
+ */
+
+export function buildChestDisarmEmbed(
+  result,
+) {
+  if (
+    result.success
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setDescription(
+          [
+            title(
+              '解禁 · CẤM CHẾ ĐÃ PHÁ',
+            ),
+
+            '',
+
+            `${EMOJI.ancient} *Từng đường cổ văn lần lượt mờ đi.*`,
+
+            '',
+
+            `${EMOJI.light} Linh quang bao quanh chiếc rương dần ổn định.`,
+
+            '',
+
+            `${EMOJI.victory} **Đã phá giải cấm chế thành công.**`,
+
+            '',
+
+            `${EMOJI.chest} Bảo rương hiện đã có thể mở.`,
+          ].join('\n'),
+        ),
+    );
+  }
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '禁制 · CẤM CHẾ BÙNG NỔ',
+          ),
+
+          '',
+
+          `${EMOJI.defeat} *Một nét cổ văn bị phá sai, toàn bộ trận pháp lập tức mất kiểm soát.*`,
+
+          '',
+
+          `${EMOJI.cultivation} **Tu Vi tổn thất**`,
+          `-${number(
+            Math.abs(
+              result.cultivationDelta,
+            ),
+          )}`,
+
+          '',
+
+          `${EMOJI.stamina} **Thể Lực**`,
+          `-${number(
+            Math.abs(
+              result.staminaDelta,
+            ),
+          )}`,
+        ].join('\n'),
+      ),
+  );
+}
+
+export function buildChestDisarmRows(
+  ownerId,
+  success,
+) {
+  if (
+    success
+  ) {
+    return [
+      new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId(
+              `tutien_action:${ownerId}:adventure_v2_chest_open`,
+            )
+            .setLabel(
+              'Mở bảo rương',
+            )
+            .setEmoji(
+              '1547493008914653245',
+            )
+            .setStyle(
+              ButtonStyle.Secondary,
+            ),
+
+          new ButtonBuilder()
+            .setCustomId(
+              `tutien_action:${ownerId}:adventure_v2_chest_leave`,
+            )
+            .setLabel(
+              'Bỏ qua',
+            )
+            .setStyle(
+              ButtonStyle.Secondary,
+            ),
+        ),
+    ];
+  }
+
+  return buildAdventureV2ResultRows(
+    ownerId,
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · MỞ RƯƠNG THÀNH CÔNG
+ * =========================================================
+ */
+
+export function buildAncientChestResultEmbed(
+  result,
+) {
+  if (
+    result.type ===
+    'chest_trap'
+  ) {
+    return applyStyle(
+      new EmbedBuilder()
+        .setDescription(
+          [
+            title(
+              '禁制 · CẤM CHẾ KÍCH HOẠT',
+            ),
+
+            '',
+
+            `${EMOJI.danger} *Ngay khi chạm vào bảo rương, trận văn bên dưới đột nhiên bùng sáng.*`,
+
+            '',
+
+            `${EMOJI.defeat} Linh lực hỗn loạn đánh thẳng vào kinh mạch.`,
+
+            '',
+
+            `${EMOJI.cultivation} **Tu Vi tổn thất**`,
+            `-${number(
+              Math.abs(
+                result.cultivationDelta,
+              ),
+            )}`,
+
+            '',
+
+            `${EMOJI.stamina} **Thể Lực**`,
+            `-${number(
+              Math.abs(
+                result.staminaDelta,
+              ),
+            )}`,
+          ].join('\n'),
+        ),
+    );
+  }
+
+  const dropLine =
+    buildDropLine(
+      result.droppedItem,
+    );
+
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '宝箱 · BẢO RƯƠNG ĐÃ MỞ',
+          ),
+
+          '',
+
+          `${EMOJI.light} *Linh quang bùng lên khi nắp rương chậm rãi mở ra.*`,
+
+          '',
+
+          `${EMOJI.chest} **Chiến lợi phẩm**`,
+
+          '',
+
+          `${EMOJI.cultivation} **Tu Vi**`,
+          `+${number(
+            result.cultivationDelta,
+          )}`,
+
+          '',
+
+          `${EMOJI.stone} **Linh Thạch**`,
+          `+${number(
+            result.stoneDelta,
+          )}`,
+
+          dropLine
+            ? [
+                '',
+                '**Vật phẩm**',
+                dropLine,
+              ].join('\n')
+            : null,
+
+          '',
+
+          `${EMOJI.victory} *Cơ duyên trong Thượng Cổ Di Tích đã thuộc về đạo hữu.*`,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      ),
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · BỎ QUA RƯƠNG
+ * =========================================================
+ */
+
+export function buildAncientChestLeaveEmbed() {
+  return applyStyle(
+    new EmbedBuilder()
+      .setDescription(
+        [
+          title(
+            '退 · RỜI KHỎI DI TÍCH',
+          ),
+
+          '',
+
+          `${EMOJI.danger} *Đạo hữu quan sát chiếc rương một lúc rồi quyết định không mạo hiểm.*`,
+
+          '',
+
+          'Biết tiến biết lui cũng là một phần của Tiên Đạo.',
+
+          '',
+
+          '**Không nhận được chiến lợi phẩm.**',
+        ].join('\n'),
+      ),
+  );
+}
