@@ -13,23 +13,6 @@ import {
 } from '../../services/cultivationService.js';
 
 import {
-  clearAdventureV2Session,
-  comprehendAncientTablet,
-  disarmAncientChest,
-  fightAdventureV2Monster,
-  getAdventureV2CombatInfo,
-  getAdventureV2Preview,
-  inspectAncientChest,
-  leaveAncientChest,
-  openAncientChest,
-  openAncientStoneGate,
-  resolveAdventureV2Choice,
-  retreatAdventureV2,
-  startAdventureV2,
-} from '../../services/cultivationAdventureV2.js';
-
-
-import {
   brewCultivationPill,
 } from '../../services/cultivationAlchemy.js';
 
@@ -62,42 +45,6 @@ import {
   buildUseItemResultEmbed,
   buildUseItemResultRows,
 } from '../../services/cultivationUI.js';
-
-import {
-  buildAdventureV2AssistEmbed,
-  buildAdventureV2AssistRows,
-  buildAdventureV2CombatResultEmbed,
-  buildAdventureV2ErrorEmbed,
-  buildAdventureV2ErrorRows,
-  buildAdventureV2LocationEmbed,
-  buildAdventureV2LocationRows,
-  buildAdventureV2MonsterEmbed,
-  buildAdventureV2MonsterRows,
-  buildAdventureV2PreviewEmbed,
-  buildAdventureV2PreviewRows,
-  buildAdventureV2ResultEmbed,
-  buildAdventureV2ResultRows,
-  buildAdventureV2RetreatEmbed,
-  buildAdventureV2RetreatRows,
-
-  buildAncientChestEmbed,
-  buildAncientChestInspectEmbed,
-  buildAncientChestInspectRows,
-  buildAncientChestLeaveEmbed,
-  buildAncientChestResultEmbed,
-  buildAncientChestRows,
-
-  buildAncientGateEmbed,
-  buildAncientGateFailedEmbed,
-  buildAncientGateRows,
-
-  buildAncientTabletEmbed,
-  buildAncientTabletRows,
-
-  buildChestDisarmEmbed,
-  buildChestDisarmRows,
-} from '../../services/cultivationAdventureV2UI.js';
-
 
 import {
   buildAlchemyEmbed,
@@ -196,27 +143,6 @@ async function enforceChannel(
   return true;
 }
 
-/**
- * =========================================================
- * THÁM HIỂM ERROR
- * =========================================================
- */
-
-function adventureError(
-  interaction,
-  ownerId,
-) {
-  return interaction.update({
-    embeds: [
-      buildAdventureV2ErrorEmbed(),
-    ],
-
-    components:
-      buildAdventureV2ErrorRows(
-        ownerId,
-      ),
-  });
-}
 
 /**
  * =========================================================
@@ -245,7 +171,101 @@ export default {
     ) {
       return;
     }
+    /**
+ * =====================================================
+ * LAZY LOAD · THÁM HIỂM V2.9
+ * =====================================================
+ *
+ * Không static-import Thám Hiểm ở đầu file.
+ * Nếu module Thám Hiểm lỗi thì các hệ thống
+ * Tu Luyện / Hồ Sơ / Túi Đồ... vẫn hoạt động.
+ */
 
+const isAdventureAction =
+  action === 'adventure' ||
+  action.startsWith(
+    'adventure_v2_',
+  ) ||
+  action.startsWith(
+    'secret_realm_',
+  );
+
+let adventureService = {};
+let adventureUI = {};
+
+if (isAdventureAction) {
+  adventureService =
+    await import(
+      '../../services/cultivationAdventureV2.js'
+    );
+
+  adventureUI =
+    await import(
+      '../../services/cultivationAdventureV2UI.js'
+    );
+}
+
+const {
+  clearAdventureV2Session,
+  comprehendAncientTablet,
+  disarmAncientChest,
+  fightAdventureV2Monster,
+  getAdventureV2CombatInfo,
+  getAdventureV2Preview,
+  inspectAncientChest,
+  leaveAncientChest,
+  openAncientChest,
+  openAncientStoneGate,
+  resolveAdventureV2Choice,
+  retreatAdventureV2,
+  startAdventureV2,
+} = adventureService;
+
+const {
+  buildAdventureV2AssistEmbed,
+  buildAdventureV2AssistRows,
+  buildAdventureV2CombatResultEmbed,
+  buildAdventureV2ErrorEmbed,
+  buildAdventureV2ErrorRows,
+  buildAdventureV2LocationEmbed,
+  buildAdventureV2LocationRows,
+  buildAdventureV2MonsterEmbed,
+  buildAdventureV2MonsterRows,
+  buildAdventureV2PreviewEmbed,
+  buildAdventureV2PreviewRows,
+  buildAdventureV2ResultEmbed,
+  buildAdventureV2ResultRows,
+  buildAdventureV2RetreatEmbed,
+  buildAdventureV2RetreatRows,
+
+  buildAncientChestEmbed,
+  buildAncientChestInspectEmbed,
+  buildAncientChestInspectRows,
+  buildAncientChestLeaveEmbed,
+  buildAncientChestResultEmbed,
+  buildAncientChestRows,
+
+  buildAncientGateEmbed,
+  buildAncientGateFailedEmbed,
+  buildAncientGateRows,
+
+  buildAncientTabletEmbed,
+  buildAncientTabletRows,
+
+  buildChestDisarmEmbed,
+  buildChestDisarmRows,
+} = adventureUI;
+const adventureError = () =>
+  interaction.update({
+    embeds: [
+      buildAdventureV2ErrorEmbed(),
+    ],
+
+    components:
+      buildAdventureV2ErrorRows(
+        ownerId,
+      ),
+  });
     /**
      * =====================================================
      * OWNER
@@ -479,10 +499,7 @@ export default {
       'adventure_v2_choice'
     ) {
       if (!extra) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       const result =
@@ -494,10 +511,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       /**
@@ -668,10 +682,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       return interaction.update({
@@ -712,10 +723,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       return interaction.update({
@@ -753,10 +761,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+        return adventureError();
       }
 
       return interaction.update({
@@ -791,10 +796,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+        return adventureError();
       }
 
       return interaction.update({
@@ -830,10 +832,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+      return adventureError();
       }
 
       return interaction.update({
@@ -868,10 +867,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+        return adventureError();
       }
 
       if (
@@ -926,10 +922,7 @@ export default {
         });
       }
 
-      return adventureError(
-        interaction,
-        ownerId,
-      );
+     return adventureError();
     }
 
     /**
@@ -950,10 +943,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+        return adventureError();
       }
 
       return interaction.update({
@@ -989,10 +979,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       return interaction.update({
@@ -1028,10 +1015,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       return interaction.update({
@@ -1066,10 +1050,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       return interaction.update({
@@ -1109,10 +1090,7 @@ export default {
   );
 
   if (!extra) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       const started =
@@ -1124,10 +1102,7 @@ export default {
         );
 
       if (!started.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       /**
@@ -1148,10 +1123,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+      return adventureError();
       }
 
       return interaction.update({
@@ -1202,10 +1174,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       return interaction.update({
@@ -1261,10 +1230,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+        return adventureError();
       }
 
       if (!result.success) {
@@ -1333,10 +1299,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       if (!result.success) {
@@ -1401,10 +1364,7 @@ export default {
         );
 
       if (!continued.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+       return adventureError();
       }
 
       const result =
@@ -1415,10 +1375,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+    return adventureError();
       }
 
       return interaction.update({
@@ -1466,10 +1423,7 @@ export default {
         );
 
       if (!result.ok) {
-        return adventureError(
-          interaction,
-          ownerId,
-        );
+      return adventureError();
       }
 
       return interaction.update({
