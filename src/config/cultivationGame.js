@@ -12,24 +12,130 @@ export const CULTIVATION_CONFIG = {
     image:
       'https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/Games/tutien.png',
 
-    buttonEmojiId:
-      '1546092641467506688',
+    /**
+     * =====================================================
+     * DISPLAY EMOJIS
+     * =====================================================
+     */
+
+    emojis: {
+      user:
+        '<:ttdaohuu:1547296747301376130>',
+
+      realm:
+        '<a:ttcanhgioi:1547448784924180500>',
+
+      spiritRoot:
+        '<a:ttlinhcan:1547448824497442917>',
+
+      cultivation:
+        '<a:tttuvi:1547448737377427550>',
+
+      spiritStone:
+        '<a:ttlinhthach:1547448522125869126>',
+
+      stamina:
+        '<a:tttheluc:1547448708537262090>',
+
+      talisman:
+        '<a:ttphu:1547448667630207086>',
+
+      sword:
+        '<a:ttkiem:1547448386771222619>',
+
+      pendant:
+        '<a:ttboi:1547448623946801152>',
+
+      pill:
+        '<a:ttdanduoc:1547449015224762399>',
+
+      swordManual:
+        '<a:ttkiempho:1547448592975790080>',
+
+      technique:
+        '<a:ttbikip:1547448442022797342>',
+
+      furnace:
+        '<a:ttlobatquai:1547448473882861659>',
+
+      moon:
+        '<a:tttrang:1547448866440347739>',
+
+      ore:
+        '<a:tthuyenthiet:1547448560818065498>',
+
+      herb:
+        '<a:ttlinhthao:1547464708318167122>',
+    },
+
+    /**
+     * =====================================================
+     * ITEM EMOJIS
+     * =====================================================
+     */
 
     itemEmojis: {
       herb:
-        '<a:trangtrig33:1546908181060526130>',
+        '<a:ttlinhthao:1547464708318167122>',
 
       pill:
-        '<a:trangtrig34:1547237010572582982>',
+        '<a:ttdanduoc:1547449015224762399>',
 
       ore:
-        '<a:trangtrig8:1546047024334503997>',
+        '<a:tthuyenthiet:1547448560818065498>',
 
       treasure:
-        '<a:trangtrig18:1546068102817775626>',
+        '<a:ttphu:1547448667630207086>',
 
-      received:
-        '<a:trangtrig9:1546047064952148089>',
+      technique:
+        '<a:ttkiempho:1547448592975790080>',
+    },
+
+    /**
+     * =====================================================
+     * BUTTON EMOJIS
+     * =====================================================
+     */
+
+    buttonEmojis: {
+      cultivate:
+        '1547297891167510568',
+
+      breakthrough:
+        '1547298327098425475',
+
+      adventure:
+        '1547299221974024342',
+
+      inventory:
+        '1547300335805141042',
+
+      profile:
+        '1547299990093828116',
+
+      leaderboard:
+        '1547301799273435177',
+
+      alchemy:
+        '1547301856688996552',
+
+      forge:
+        '1547303215639433247',
+
+      equipment:
+        '1547457114987962438',
+
+      technique:
+        '1547303808483205211',
+
+      treasure:
+        '1547304199161774100',
+
+      pet:
+        '1547305016694669503',
+
+      use:
+        '1547458192286421012',
     },
   },
 
@@ -50,11 +156,14 @@ export const CULTIVATION_CONFIG = {
     adventureCooldownMs:
       10 * 60 * 1000,
 
-    breakthroughBaseChance: 0.88,
+    breakthroughBaseChance:
+      0.88,
 
-    breakthroughMinChance: 0.55,
+    breakthroughMinChance:
+      0.55,
 
-    breakthroughFailureLossPercent: 0.10,
+    breakthroughFailureLossPercent:
+      0.10,
   },
 };
 
@@ -284,14 +393,16 @@ export const CULTIVATION_EVENTS = [
     weight: 70,
 
     title:
-      '<a:trangtrig2:1546040703375904801> TĨNH TÂM TU LUYỆN <a:trangtrig3:1546040818261954610>',
+      '<a:tttuvi:1547448737377427550> TĨNH TÂM TU LUYỆN',
 
     text:
       'Đạo hữu tĩnh tọa nhập định, vận chuyển công pháp một chu thiên.',
 
-    cultivationMultiplier: 1,
+    cultivationMultiplier:
+      1,
 
-    stoneMultiplier: 1,
+    stoneMultiplier:
+      1,
   },
 
   {
@@ -300,14 +411,16 @@ export const CULTIVATION_EVENTS = [
     weight: 18,
 
     title:
-      '<a:trangtrig2:1546040703375904801> KỲ NGỘ <a:trangtrig3:1546040818261954610>',
+      '<a:tttuvi:1547448737377427550> KỲ NGỘ',
 
     text:
       'Một luồng linh khí tinh thuần bất ngờ hội tụ quanh động phủ.',
 
-    cultivationMultiplier: 1.35,
+    cultivationMultiplier:
+      1.35,
 
-    stoneMultiplier: 1.25,
+    stoneMultiplier:
+      1.25,
   },
 
   {
@@ -316,14 +429,16 @@ export const CULTIVATION_EVENTS = [
     weight: 7,
 
     title:
-      '<a:trangtrig2:1546040703375904801> THIÊN ĐẠO CƠ DUYÊN <a:trangtrig3:1546040818261954610>',
+      '<a:ttcanhgioi:1547448784924180500> THIÊN ĐẠO CƠ DUYÊN',
 
     text:
       'Thiên địa sinh dị tượng, một tia tiên khí từ thiên ngoại giáng xuống.',
 
-    cultivationMultiplier: 2.25,
+    cultivationMultiplier:
+      2.25,
 
-    stoneMultiplier: 2,
+    stoneMultiplier:
+      2,
   },
 
   {
@@ -332,14 +447,16 @@ export const CULTIVATION_EVENTS = [
     weight: 5,
 
     title:
-      '<a:angryg1:1541441195144773652> TẨU HỎA NHẬP MA',
+      '<a:ttcanhgioi:1547448784924180500> TẨU HỎA NHẬP MA',
 
     text:
       'Linh khí nghịch chuyển, kinh mạch chấn động. May mắn đạo cơ chưa tổn hại.',
 
-    cultivationMultiplier: -0.35,
+    cultivationMultiplier:
+      -0.35,
 
-    stoneMultiplier: 0,
+    stoneMultiplier:
+      0,
   },
 ];
 
@@ -596,7 +713,7 @@ export const CULTIVATION_ADVENTURE_EVENTS = [
       8,
 
     title:
-      '<a:trangtrig2:1546040703375904801> ĐẠI CƠ DUYÊN <a:trangtrig3:1546040818261954610>',
+      '<a:ttcanhgioi:1547448784924180500> ĐẠI CƠ DUYÊN',
 
     text:
       'Trong khe đá, đạo hữu phát hiện một túi Linh Thạch cùng linh khí do tiền nhân để lại.',
