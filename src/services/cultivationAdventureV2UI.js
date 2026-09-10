@@ -13,21 +13,9 @@ import {
   getRealmDisplay,
 } from './cultivationService.js';
 
-import {
-  getActivePet,
-} from './cultivationPet.js';
-
-import {
-  getEquippedEquipment,
-} from './cultivationEquipment.js';
-
-import {
-  getActiveTechnique,
-} from './cultivationTechnique.js';
-
 /**
  * =========================================================
- * EMOJIS
+ * EMOJIS · DISPLAY
  * =========================================================
  */
 
@@ -123,48 +111,174 @@ const EMOJI = {
     '<a:ttlinhthao:1547464708318167122>',
 };
 
+/**
+ * =========================================================
+ * EMOJIS · BUTTON
+ * =========================================================
+ *
+ * Discord.js v14:
+ * Custom emoji cho ButtonBuilder phải dùng object { id }.
+ *
+ * KHÔNG truyền raw string ID trực tiếp vào .setEmoji().
+ */
+
+function customButtonEmoji(
+  id,
+) {
+  if (!id) {
+    return null;
+  }
+
+  if (
+    typeof id ===
+      'object' &&
+    id.id
+  ) {
+    return {
+      id:
+        String(
+          id.id,
+        ),
+    };
+  }
+
+  const value =
+    String(id);
+
+  const mentionMatch =
+    value.match(
+      /^<a?:[^:]+:(\d+)>$/,
+    );
+
+  if (
+    mentionMatch
+  ) {
+    return {
+      id:
+        mentionMatch[1],
+    };
+  }
+
+  if (
+    /^\d{17,20}$/.test(
+      value,
+    )
+  ) {
+    return {
+      id: value,
+    };
+  }
+
+  return {
+    name: value,
+  };
+}
+
+function setButtonEmoji(
+  button,
+  emoji,
+) {
+  const resolved =
+    customButtonEmoji(
+      emoji,
+    );
+
+  if (
+    resolved
+  ) {
+    button.setEmoji(
+      resolved,
+    );
+  }
+
+  return button;
+}
+
 const BUTTON_EMOJI = {
   spirit:
-    '1547485632971149442',
+    customButtonEmoji(
+      '1547485632971149442',
+    ),
 
   abyss:
-    '1547481470690660433',
+    customButtonEmoji(
+      '1547481470690660433',
+    ),
 
   monster:
-    '1547477368820469780',
+    customButtonEmoji(
+      '1547477368820469780',
+    ),
 
   combat:
-    '1547482030747680898',
+    customButtonEmoji(
+      '1547482030747680898',
+    ),
 
   mist:
-    '1547485663065014335',
+    customButtonEmoji(
+      '1547485663065014335',
+    ),
 
   thunder:
-    '1547489755724382249',
+    customButtonEmoji(
+      '1547489755724382249',
+    ),
 
   tablet:
-    '1547491781845717062',
+    customButtonEmoji(
+      '1547491781845717062',
+    ),
 
   gate:
-    '1547491949945028669',
+    customButtonEmoji(
+      '1547491949945028669',
+    ),
 
   flower:
-    '1547491636077142056',
+    customButtonEmoji(
+      '1547491636077142056',
+    ),
+
+  chest:
+    customButtonEmoji(
+      '1547493008914653245',
+    ),
 
   assist:
-    '1547493158923927602',
+    customButtonEmoji(
+      '1547493158923927602',
+    ),
+
+  victory:
+    customButtonEmoji(
+      '1547493833724403722',
+    ),
+
+  ancient:
+    customButtonEmoji(
+      '1547494884250746931',
+    ),
 
   danger:
-    '1547495450385317928',
+    customButtonEmoji(
+      '1547495450385317928',
+    ),
 
   pet:
-    '1547478815452954654',
+    customButtonEmoji(
+      '1547478815452954654',
+    ),
 
   ore:
-    '1547448560818065498',
+    customButtonEmoji(
+      '1547448560818065498',
+    ),
 
   herb:
-    '1547464708318167122',
+    customButtonEmoji(
+      '1547464708318167122',
+    ),
 };
 
 /**
@@ -219,7 +333,9 @@ function number(
     Math.max(
       0,
       Math.round(
-        Number(value) || 0,
+        Number(
+          value,
+        ) || 0,
       ),
     ),
   );
@@ -232,26 +348,34 @@ function duration(
     Math.max(
       0,
       Math.ceil(
-        ms / 1000,
+        (
+          Number(ms) ||
+          0
+        ) /
+          1000,
       ),
     );
 
   const minutes =
     Math.floor(
-      seconds / 60,
+      seconds /
+        60,
     );
 
   const remaining =
-    seconds % 60;
+    seconds %
+    60;
 
   if (
-    minutes <= 0
+    minutes <=
+    0
   ) {
     return `${remaining}s`;
   }
 
   if (
-    remaining <= 0
+    remaining <=
+    0
   ) {
     return `${minutes}m`;
   }
@@ -287,13 +411,28 @@ function getItemEmoji(
 function buildDropLine(
   droppedItem,
 ) {
-  if (!droppedItem) {
+  if (
+    !droppedItem
+  ) {
+    return null;
+  }
+
+  const item =
+    droppedItem
+      .item;
+
+  if (
+    !item
+  ) {
     return null;
   }
 
   return `${getItemEmoji(
     droppedItem,
-  )} **${droppedItem.item.name}** × **${droppedItem.quantity}**`;
+  )} **${item.name}** × **${number(
+    droppedItem.quantity ||
+      1,
+  )}**`;
 }
 
 function getDangerStars(
@@ -306,14 +445,18 @@ function getDangerStars(
         5,
         Number(
           danger,
-        ) || 1,
+        ) ||
+          1,
       ),
     );
 
   return (
-    '★'.repeat(amount) +
+    '★'.repeat(
+      amount,
+    ) +
     '☆'.repeat(
-      5 - amount,
+      5 -
+        amount,
     )
   );
 }
@@ -352,14 +495,16 @@ export function buildAdventureV2PreviewEmbed(
             `\`${duration(
               result.cooldownRemaining,
             )}\``,
-          ].join('\n'),
+          ].join(
+            '\n',
+          ),
         ),
     );
   }
 
-  const {
-    profile,
-  } = result;
+  const profile =
+    result.profile ||
+    {};
 
   const equipment =
     result.equipment;
@@ -397,7 +542,15 @@ export function buildAdventureV2PreviewEmbed(
           '',
 
           `${EMOJI.stamina} **Thể Lực**`,
-          `${profile.stamina}/${profile.maxStamina}`,
+          `${number(
+            profile.stamina,
+          )}/${number(
+            profile.maxStamina ||
+              CULTIVATION_CONFIG
+                .gameplay
+                ?.maxStamina ||
+              100,
+          )}`,
 
           '',
 
@@ -417,13 +570,15 @@ export function buildAdventureV2PreviewEmbed(
 
           `${EMOJI.pet} **Linh Thú**`,
           pet
-            ? `${pet.emoji} ${pet.name}`
+            ? `${pet.emoji || EMOJI.pet} ${pet.name}`
             : '*Chưa có Linh Thú xuất chiến*',
 
           '',
 
           '*Đạo hữu rời động phủ, bước vào con đường tìm kiếm cơ duyên...*',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -432,25 +587,30 @@ export function buildAdventureV2PreviewRows(
   ownerId,
   canStart = true,
 ) {
-  const row =
+  const startButton =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_start`,
+      )
+      .setLabel(
+        'Bắt đầu thám hiểm',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      )
+      .setDisabled(
+        !canStart,
+      );
+
+  setButtonEmoji(
+    startButton,
+    BUTTON_EMOJI.spirit,
+  );
+
+  return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_start`,
-          )
-          .setLabel(
-            'Bắt đầu thám hiểm',
-          )
-          .setEmoji(
-            BUTTON_EMOJI.spirit,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          )
-          .setDisabled(
-            !canStart,
-          ),
+        startButton,
 
         new ButtonBuilder()
           .setCustomId(
@@ -462,9 +622,8 @@ export function buildAdventureV2PreviewRows(
           .setStyle(
             ButtonStyle.Secondary,
           ),
-      );
-
-  return [row];
+      ),
+  ];
 }
 
 /**
@@ -497,9 +656,7 @@ export function buildAdventureV2LocationEmbed(
       '',
       `${EMOJI.monster} Con đường còn lại vang lên tiếng gầm trầm thấp của yêu thú.`,
     );
-  }
-
-  if (
+  } else if (
     location.id ===
     'u_minh_coc'
   ) {
@@ -510,9 +667,7 @@ export function buildAdventureV2LocationEmbed(
       '',
       `${EMOJI.abyss} Từ phía vực sâu truyền tới một luồng yêu khí lạnh lẽo.`,
     );
-  }
-
-  if (
+  } else if (
     location.id ===
     'xich_viem_dong'
   ) {
@@ -523,9 +678,7 @@ export function buildAdventureV2LocationEmbed(
       '',
       `${EMOJI.monster} Phía sâu trong hang động vang lên tiếng móng vuốt cào vào đá.`,
     );
-  }
-
-  if (
+  } else if (
     location.id ===
     'dao_hoa_coc'
   ) {
@@ -536,9 +689,7 @@ export function buildAdventureV2LocationEmbed(
       '',
       `${EMOJI.light} Xa xa, bên cổ đình thấp thoáng một bóng người áo trắng giữa linh quang nhàn nhạt.`,
     );
-  }
-
-  if (
+  } else if (
     location.id ===
     'loi_vuc'
   ) {
@@ -549,9 +700,7 @@ export function buildAdventureV2LocationEmbed(
       '',
       `${EMOJI.pet} Linh Thú của đạo hữu dường như cảm nhận được thứ gì đó phía trước.`,
     );
-  }
-
-  if (
+  } else if (
     location.id ===
     'thuong_co_di_tich'
   ) {
@@ -562,12 +711,18 @@ export function buildAdventureV2LocationEmbed(
       '',
       `${EMOJI.tablet} Bên cạnh là một bia đá phủ đầy cổ văn.`,
     );
+  } else {
+    lines.push(
+      `${EMOJI.moon} *${location.description || 'Một vùng đất xa lạ hiện ra trước mắt.'}*`,
+    );
   }
 
   return applyStyle(
     new EmbedBuilder()
       .setDescription(
-        lines.join('\n'),
+        lines.join(
+          '\n',
+        ),
       ),
   );
 }
@@ -581,9 +736,10 @@ export function buildAdventureV2LocationRows(
 
   for (
     const choice of
-    location.choices
+      location.choices ||
+    []
   ) {
-    row.addComponents(
+    const button =
       new ButtonBuilder()
         .setCustomId(
           `tutien_action:${ownerId}:adventure_v2_choice:${choice.id}`,
@@ -591,12 +747,17 @@ export function buildAdventureV2LocationRows(
         .setLabel(
           choice.label,
         )
-        .setEmoji(
-          choice.emoji,
-        )
         .setStyle(
           ButtonStyle.Secondary,
-        ),
+        );
+
+    setButtonEmoji(
+      button,
+      choice.emoji,
+    );
+
+    row.addComponents(
+      button,
     );
   }
 
@@ -613,7 +774,9 @@ export function buildAdventureV2LocationRows(
       ),
   );
 
-  return [row];
+  return [
+    row,
+  ];
 }
 
 /**
@@ -626,7 +789,8 @@ export function buildAdventureV2MonsterEmbed(
   result,
 ) {
   const monster =
-    result.monster;
+    result.monster ||
+    {};
 
   return applyStyle(
     new EmbedBuilder()
@@ -642,7 +806,7 @@ export function buildAdventureV2MonsterEmbed(
 
           '',
 
-          `${EMOJI.monster} **${monster.name}**`,
+          `${EMOJI.monster} **${monster.name || 'Yêu Thú'}**`,
 
           '',
 
@@ -654,7 +818,9 @@ export function buildAdventureV2MonsterEmbed(
           '',
 
           `${EMOJI.combat} *Một trận chiến dường như không thể tránh khỏi...*`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -662,50 +828,63 @@ export function buildAdventureV2MonsterEmbed(
 export function buildAdventureV2MonsterRows(
   ownerId,
 ) {
+  const fight =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_fight`,
+      )
+      .setLabel(
+        'Giao chiến',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  const assist =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_assist`,
+      )
+      .setLabel(
+        'Linh Thú trợ chiến',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  const retreat =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_retreat`,
+      )
+      .setLabel(
+        'Rút lui',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  setButtonEmoji(
+    fight,
+    BUTTON_EMOJI.combat,
+  );
+
+  setButtonEmoji(
+    assist,
+    BUTTON_EMOJI.assist,
+  );
+
+  setButtonEmoji(
+    retreat,
+    BUTTON_EMOJI.danger,
+  );
+
   return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_fight`,
-          )
-          .setLabel(
-            'Giao chiến',
-          )
-          .setEmoji(
-            BUTTON_EMOJI.combat,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
-
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_assist`,
-          )
-          .setLabel(
-            'Linh Thú trợ chiến',
-          )
-          .setEmoji(
-            BUTTON_EMOJI.assist,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
-
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_retreat`,
-          )
-          .setLabel(
-            'Rút lui',
-          )
-          .setEmoji(
-            BUTTON_EMOJI.danger,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
+        fight,
+        assist,
+        retreat,
       ),
   ];
 }
@@ -719,7 +898,9 @@ export function buildAdventureV2MonsterRows(
 export function buildAdventureV2AssistEmbed(
   result,
 ) {
-  if (!result.pet) {
+  if (
+    !result.pet
+  ) {
     return applyStyle(
       new EmbedBuilder()
         .setDescription(
@@ -735,7 +916,9 @@ export function buildAdventureV2AssistEmbed(
             '',
 
             'Đạo hữu chỉ có thể tự mình đối mặt với yêu thú.',
-          ].join('\n'),
+          ].join(
+            '\n',
+          ),
         ),
     );
   }
@@ -750,7 +933,7 @@ export function buildAdventureV2AssistEmbed(
 
           '',
 
-          `${result.pet.emoji} **${result.pet.name}**`,
+          `${result.pet.emoji || EMOJI.pet} **${result.pet.name}**`,
 
           '',
 
@@ -765,10 +948,17 @@ export function buildAdventureV2AssistEmbed(
 
           `${EMOJI.combat} **Tỷ lệ chiến thắng**`,
           `**${Math.round(
-            result.winChance *
+            (
+              Number(
+                result.winChance,
+              ) ||
+              0
+            ) *
               100,
           )}%**`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -777,39 +967,48 @@ export function buildAdventureV2AssistRows(
   ownerId,
   hasPet,
 ) {
+  const assistFight =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_fight_assist`,
+      )
+      .setLabel(
+        'Giao chiến',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      )
+      .setDisabled(
+        !hasPet,
+      );
+
+  const soloFight =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_fight`,
+      )
+      .setLabel(
+        'Tự mình giao chiến',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  setButtonEmoji(
+    assistFight,
+    BUTTON_EMOJI.combat,
+  );
+
+  setButtonEmoji(
+    soloFight,
+    BUTTON_EMOJI.combat,
+  );
+
   return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_fight_assist`,
-          )
-          .setLabel(
-            'Giao chiến',
-          )
-          .setEmoji(
-            BUTTON_EMOJI.combat,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          )
-          .setDisabled(
-            !hasPet,
-          ),
-
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_fight`,
-          )
-          .setLabel(
-            'Tự mình giao chiến',
-          )
-          .setEmoji(
-            BUTTON_EMOJI.combat,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
+        assistFight,
+        soloFight,
 
         new ButtonBuilder()
           .setCustomId(
@@ -837,58 +1036,65 @@ export function buildAdventureV2CombatResultEmbed(
   if (
     result.success
   ) {
+    const lines = [
+      title(
+        '胜利 · CHIẾN THẮNG',
+      ),
+
+      '',
+
+      `${EMOJI.victory} *Yêu khí tan biến, sơn lâm dần trở lại yên tĩnh.*`,
+
+      '',
+
+      `Đạo hữu đã đánh bại ${EMOJI.monster} **${result.monster?.name || 'Yêu Thú'}**.`,
+
+      '',
+
+      `${EMOJI.cultivation} **Tu Vi**`,
+      `+${number(
+        result.cultivationDelta,
+      )}`,
+
+      '',
+
+      `${EMOJI.stone} **Linh Thạch**`,
+      `+${number(
+        result.stoneDelta,
+      )}`,
+    ];
+
+    if (
+      result.petAssist &&
+      result.pet
+    ) {
+      lines.push(
+        '',
+        `${result.pet.emoji || EMOJI.pet} **${result.pet.name}** đã trợ chiến.`,
+      );
+    }
+
+    const dropLine =
+      buildDropLine(
+        result.droppedItem,
+      );
+
+    if (
+      dropLine
+    ) {
+      lines.push(
+        '',
+        `${EMOJI.victory} **Chiến lợi phẩm**`,
+        dropLine,
+      );
+    }
+
     return applyStyle(
       new EmbedBuilder()
         .setDescription(
-          [
-            title(
-              '胜利 · CHIẾN THẮNG',
-            ),
-
-            '',
-
-            `${EMOJI.victory} *Yêu khí tan biến, sơn lâm dần trở lại yên tĩnh.*`,
-
-            '',
-
-            `Đạo hữu đã đánh bại ${EMOJI.monster} **${result.monster.name}**.`,
-
-            '',
-
-            `${EMOJI.cultivation} **Tu Vi**`,
-            `+${number(
-              result.cultivationDelta,
-            )}`,
-
-            '',
-
-            `${EMOJI.stone} **Linh Thạch**`,
-            `+${number(
-              result.stoneDelta,
-            )}`,
-
-            result.petAssist &&
-            result.pet
-              ? [
-                  '',
-                  `${result.pet.emoji} **${result.pet.name}** đã trợ chiến.`,
-                ].join('\n')
-              : null,
-
-            buildDropLine(
-              result.droppedItem,
-            )
-              ? [
-                  '',
-                  `${EMOJI.victory} **Chiến lợi phẩm**`,
-                  buildDropLine(
-                    result.droppedItem,
-                  ),
-                ].join('\n')
-              : null,
-          ]
-            .filter(Boolean)
-            .join('\n'),
+          lines.join(
+            '\n',
+          ),
         ),
     );
   }
@@ -910,7 +1116,10 @@ export function buildAdventureV2CombatResultEmbed(
           `${EMOJI.cultivation} **Tu Vi tổn thất**`,
           `-${number(
             Math.abs(
-              result.cultivationDelta,
+              Number(
+                result.cultivationDelta,
+              ) ||
+                0,
             ),
           )}`,
 
@@ -919,14 +1128,19 @@ export function buildAdventureV2CombatResultEmbed(
           `${EMOJI.stamina} **Thể Lực**`,
           `-${number(
             Math.abs(
-              result.staminaDelta,
+              Number(
+                result.staminaDelta,
+              ) ||
+                0,
             ),
           )}`,
 
           '',
 
           '*May mắn đạo cơ chưa bị tổn hại.*',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -962,7 +1176,9 @@ export function buildAdventureV2RetreatEmbed(
             '',
 
             '**Không nhận được chiến lợi phẩm.**',
-          ].join('\n'),
+          ].join(
+            '\n',
+          ),
         ),
     );
   }
@@ -982,7 +1198,9 @@ export function buildAdventureV2RetreatEmbed(
           '',
 
           `${EMOJI.danger} Không thể tiếp tục rút lui.`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -991,7 +1209,9 @@ export function buildAdventureV2RetreatRows(
   ownerId,
   success,
 ) {
-  if (success) {
+  if (
+    success
+  ) {
     return [
       new ActionRowBuilder()
         .addComponents(
@@ -1009,22 +1229,27 @@ export function buildAdventureV2RetreatRows(
     ];
   }
 
+  const fight =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_fight`,
+      )
+      .setLabel(
+        'Giao chiến',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  setButtonEmoji(
+    fight,
+    BUTTON_EMOJI.combat,
+  );
+
   return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_fight`,
-          )
-          .setLabel(
-            'Giao chiến',
-          )
-          .setEmoji(
-            BUTTON_EMOJI.combat,
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
+        fight,
       ),
   ];
 }
@@ -1048,14 +1273,9 @@ export function buildAdventureV2ResultEmbed(
     result.type ===
     'spirit_fortune'
   ) {
-    heading =
-      '奇遇 · KỲ NGỘ';
-
     intro =
       `${EMOJI.spirit} *Thiên địa linh khí bất ngờ hội tụ quanh đạo hữu.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
     'black_mist'
   ) {
@@ -1064,9 +1284,7 @@ export function buildAdventureV2ResultEmbed(
 
     intro =
       `${EMOJI.mist} *Xuyên qua màn sương đen, đạo hữu phát hiện một vùng linh khí ẩn giấu.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
       'ore' ||
     result.type ===
@@ -1080,9 +1298,7 @@ export function buildAdventureV2ResultEmbed(
       'thunder_ore'
         ? `${EMOJI.thunder} *Thiên lôi vừa tan, lôi khoáng ẩn dưới mặt đất hoàn toàn hiện rõ.*`
         : `${EMOJI.ore} *Một luồng kim khí sắc bén phát ra từ sâu trong vách đá.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
     'herb'
   ) {
@@ -1091,9 +1307,7 @@ export function buildAdventureV2ResultEmbed(
 
     intro =
       `${EMOJI.flower} *Giữa rừng hoa đào, linh thảo hấp thu tinh hoa nhật nguyệt đang khẽ lay động.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
     'pavilion'
   ) {
@@ -1102,9 +1316,7 @@ export function buildAdventureV2ResultEmbed(
 
     intro =
       `${EMOJI.flower} *Bóng người áo trắng đã biến mất, chỉ còn một luồng đạo vận lưu lại trong cổ đình.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
     'ancient_gate'
   ) {
@@ -1113,9 +1325,7 @@ export function buildAdventureV2ResultEmbed(
 
     intro =
       `${EMOJI.gate} *Phong ấn tan biến, linh quang cổ xưa tràn ra từ phía sau cổng đá.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
     'insight_success'
   ) {
@@ -1124,9 +1334,7 @@ export function buildAdventureV2ResultEmbed(
 
     intro =
       `${EMOJI.ancient} *Cổ văn trên bia đá hóa thành thần niệm, dung nhập vào thức hải.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
     'insight_failed'
   ) {
@@ -1135,9 +1343,7 @@ export function buildAdventureV2ResultEmbed(
 
     intro =
       `${EMOJI.ancient} *Cổ văn quá huyền ảo, đạo hữu nhất thời chưa thể lĩnh ngộ.*`;
-  }
-
-  if (
+  } else if (
     result.type ===
     'pet_trail_empty'
   ) {
@@ -1159,7 +1365,9 @@ export function buildAdventureV2ResultEmbed(
   ];
 
   if (
-    result.cultivationDelta >
+    Number(
+      result.cultivationDelta,
+    ) >
     0
   ) {
     lines.push(
@@ -1172,7 +1380,9 @@ export function buildAdventureV2ResultEmbed(
   }
 
   if (
-    result.stoneDelta >
+    Number(
+      result.stoneDelta,
+    ) >
     0
   ) {
     lines.push(
@@ -1189,7 +1399,9 @@ export function buildAdventureV2ResultEmbed(
       result.droppedItem,
     );
 
-  if (dropLine) {
+  if (
+    dropLine
+  ) {
     lines.push(
       '',
       '**Nhận được**',
@@ -1210,7 +1422,9 @@ export function buildAdventureV2ResultEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setDescription(
-        lines.join('\n'),
+        lines.join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1257,7 +1471,9 @@ export function buildAdventureV2ErrorEmbed() {
           '',
 
           'Hãy quay lại Tiên Lộ và bắt đầu một chuyến Thám Hiểm mới.',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1281,6 +1497,7 @@ export function buildAdventureV2ErrorRows(
       ),
   ];
 }
+
 /**
  * =========================================================
  * V2.9.2 · BIA ĐÁ / CỔ VĂN
@@ -1311,7 +1528,9 @@ export function buildAncientTabletEmbed() {
           '',
 
           '*Những đạo văn này dường như đang chờ người hữu duyên lĩnh ngộ...*',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1319,22 +1538,27 @@ export function buildAncientTabletEmbed() {
 export function buildAncientTabletRows(
   ownerId,
 ) {
+  const comprehend =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_comprehend`,
+      )
+      .setLabel(
+        'Tham ngộ cổ văn',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  setButtonEmoji(
+    comprehend,
+    BUTTON_EMOJI.ancient,
+  );
+
   return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_comprehend`,
-          )
-          .setLabel(
-            'Tham ngộ cổ văn',
-          )
-          .setEmoji(
-            '1547494884250746931',
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
+        comprehend,
 
         new ButtonBuilder()
           .setCustomId(
@@ -1380,7 +1604,9 @@ export function buildAncientGateEmbed() {
           '',
 
           `${EMOJI.danger} *Phá giải phong ấn có thể mở ra cơ duyên... nhưng cũng có thể đánh thức thứ đang ngủ bên trong.*`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1388,22 +1614,27 @@ export function buildAncientGateEmbed() {
 export function buildAncientGateRows(
   ownerId,
 ) {
+  const open =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_gate_open`,
+      )
+      .setLabel(
+        'Phá giải phong ấn',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  setButtonEmoji(
+    open,
+    BUTTON_EMOJI.gate,
+  );
+
   return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_gate_open`,
-          )
-          .setLabel(
-            'Phá giải phong ấn',
-          )
-          .setEmoji(
-            '1547491949945028669',
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
+        open,
 
         new ButtonBuilder()
           .setCustomId(
@@ -1418,12 +1649,6 @@ export function buildAncientGateRows(
       ),
   ];
 }
-
-/**
- * =========================================================
- * V2.9.2 · CỔNG ĐÁ THẤT BẠI
- * =========================================================
- */
 
 export function buildAncientGateFailedEmbed(
   result,
@@ -1449,21 +1674,26 @@ export function buildAncientGateFailedEmbed(
           `${EMOJI.cultivation} **Tu Vi tổn thất**`,
           `-${number(
             Math.abs(
-              result.cultivationDelta,
+              Number(
+                result.cultivationDelta,
+              ) ||
+                0,
             ),
           )}`,
 
           '',
 
           '*Phong ấn vẫn chưa thể phá giải.*',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
 
 /**
  * =========================================================
- * V2.9.2 · RƯƠNG CỔ XUẤT HIỆN
+ * V2.9.2 · RƯƠNG CỔ
  * =========================================================
  */
 
@@ -1491,7 +1721,9 @@ export function buildAncientChestEmbed() {
           '',
 
           `${EMOJI.danger} *Không ai biết bên dưới lớp bụi kia có ẩn giấu cấm chế hay không...*`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1499,36 +1731,45 @@ export function buildAncientChestEmbed() {
 export function buildAncientChestRows(
   ownerId,
 ) {
+  const open =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_chest_open`,
+      )
+      .setLabel(
+        'Mở bảo rương',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  const inspect =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_chest_inspect`,
+      )
+      .setLabel(
+        'Kiểm tra trước',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  setButtonEmoji(
+    open,
+    BUTTON_EMOJI.chest,
+  );
+
+  setButtonEmoji(
+    inspect,
+    BUTTON_EMOJI.danger,
+  );
+
   return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_chest_open`,
-          )
-          .setLabel(
-            'Mở bảo rương',
-          )
-          .setEmoji(
-            '1547493008914653245',
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
-
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_chest_inspect`,
-          )
-          .setLabel(
-            'Kiểm tra trước',
-          )
-          .setEmoji(
-            '1547495450385317928',
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
+        open,
+        inspect,
 
         new ButtonBuilder()
           .setCustomId(
@@ -1543,12 +1784,6 @@ export function buildAncientChestRows(
       ),
   ];
 }
-
-/**
- * =========================================================
- * V2.9.2 · KIỂM TRA RƯƠNG
- * =========================================================
- */
 
 export function buildAncientChestInspectEmbed(
   result,
@@ -1577,7 +1812,9 @@ export function buildAncientChestInspectEmbed(
             '',
 
             '*Nếu muốn mở rương, đạo hữu cần phá giải cấm chế trước.*',
-          ].join('\n'),
+          ].join(
+            '\n',
+          ),
         ),
     );
   }
@@ -1601,7 +1838,9 @@ export function buildAncientChestInspectEmbed(
           '',
 
           `${EMOJI.chest} **Có thể mở bảo rương an toàn.**`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1613,22 +1852,27 @@ export function buildAncientChestInspectRows(
   if (
     trapped
   ) {
+    const disarm =
+      new ButtonBuilder()
+        .setCustomId(
+          `tutien_action:${ownerId}:adventure_v2_chest_disarm`,
+        )
+        .setLabel(
+          'Phá giải cấm chế',
+        )
+        .setStyle(
+          ButtonStyle.Secondary,
+        );
+
+    setButtonEmoji(
+      disarm,
+      BUTTON_EMOJI.ancient,
+    );
+
     return [
       new ActionRowBuilder()
         .addComponents(
-          new ButtonBuilder()
-            .setCustomId(
-              `tutien_action:${ownerId}:adventure_v2_chest_disarm`,
-            )
-            .setLabel(
-              'Phá giải cấm chế',
-            )
-            .setEmoji(
-              '1547494884250746931',
-            )
-            .setStyle(
-              ButtonStyle.Secondary,
-            ),
+          disarm,
 
           new ButtonBuilder()
             .setCustomId(
@@ -1644,22 +1888,27 @@ export function buildAncientChestInspectRows(
     ];
   }
 
+  const open =
+    new ButtonBuilder()
+      .setCustomId(
+        `tutien_action:${ownerId}:adventure_v2_chest_open`,
+      )
+      .setLabel(
+        'Mở bảo rương',
+      )
+      .setStyle(
+        ButtonStyle.Secondary,
+      );
+
+  setButtonEmoji(
+    open,
+    BUTTON_EMOJI.chest,
+  );
+
   return [
     new ActionRowBuilder()
       .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            `tutien_action:${ownerId}:adventure_v2_chest_open`,
-          )
-          .setLabel(
-            'Mở bảo rương',
-          )
-          .setEmoji(
-            '1547493008914653245',
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          ),
+        open,
 
         new ButtonBuilder()
           .setCustomId(
@@ -1710,7 +1959,9 @@ export function buildChestDisarmEmbed(
             '',
 
             `${EMOJI.chest} Bảo rương hiện đã có thể mở.`,
-          ].join('\n'),
+          ].join(
+            '\n',
+          ),
         ),
     );
   }
@@ -1732,7 +1983,10 @@ export function buildChestDisarmEmbed(
           `${EMOJI.cultivation} **Tu Vi tổn thất**`,
           `-${number(
             Math.abs(
-              result.cultivationDelta,
+              Number(
+                result.cultivationDelta,
+              ) ||
+                0,
             ),
           )}`,
 
@@ -1741,10 +1995,15 @@ export function buildChestDisarmEmbed(
           `${EMOJI.stamina} **Thể Lực**`,
           `-${number(
             Math.abs(
-              result.staminaDelta,
+              Number(
+                result.staminaDelta,
+              ) ||
+                0,
             ),
           )}`,
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1756,22 +2015,27 @@ export function buildChestDisarmRows(
   if (
     success
   ) {
+    const open =
+      new ButtonBuilder()
+        .setCustomId(
+          `tutien_action:${ownerId}:adventure_v2_chest_open`,
+        )
+        .setLabel(
+          'Mở bảo rương',
+        )
+        .setStyle(
+          ButtonStyle.Secondary,
+        );
+
+    setButtonEmoji(
+      open,
+      BUTTON_EMOJI.chest,
+    );
+
     return [
       new ActionRowBuilder()
         .addComponents(
-          new ButtonBuilder()
-            .setCustomId(
-              `tutien_action:${ownerId}:adventure_v2_chest_open`,
-            )
-            .setLabel(
-              'Mở bảo rương',
-            )
-            .setEmoji(
-              '1547493008914653245',
-            )
-            .setStyle(
-              ButtonStyle.Secondary,
-            ),
+          open,
 
           new ButtonBuilder()
             .setCustomId(
@@ -1794,7 +2058,7 @@ export function buildChestDisarmRows(
 
 /**
  * =========================================================
- * V2.9.2 · MỞ RƯƠNG THÀNH CÔNG
+ * V2.9.2 · MỞ RƯƠNG
  * =========================================================
  */
 
@@ -1826,7 +2090,10 @@ export function buildAncientChestResultEmbed(
             `${EMOJI.cultivation} **Tu Vi tổn thất**`,
             `-${number(
               Math.abs(
-                result.cultivationDelta,
+                Number(
+                  result.cultivationDelta,
+                ) ||
+                  0,
               ),
             )}`,
 
@@ -1835,10 +2102,15 @@ export function buildAncientChestResultEmbed(
             `${EMOJI.stamina} **Thể Lực**`,
             `-${number(
               Math.abs(
-                result.staminaDelta,
+                Number(
+                  result.staminaDelta,
+                ) ||
+                  0,
               ),
             )}`,
-          ].join('\n'),
+          ].join(
+            '\n',
+          ),
         ),
     );
   }
@@ -1848,50 +2120,55 @@ export function buildAncientChestResultEmbed(
       result.droppedItem,
     );
 
+  const lines = [
+    title(
+      '宝箱 · BẢO RƯƠNG ĐÃ MỞ',
+    ),
+
+    '',
+
+    `${EMOJI.light} *Linh quang bùng lên khi nắp rương chậm rãi mở ra.*`,
+
+    '',
+
+    `${EMOJI.chest} **Chiến lợi phẩm**`,
+
+    '',
+
+    `${EMOJI.cultivation} **Tu Vi**`,
+    `+${number(
+      result.cultivationDelta,
+    )}`,
+
+    '',
+
+    `${EMOJI.stone} **Linh Thạch**`,
+    `+${number(
+      result.stoneDelta,
+    )}`,
+  ];
+
+  if (
+    dropLine
+  ) {
+    lines.push(
+      '',
+      '**Vật phẩm**',
+      dropLine,
+    );
+  }
+
+  lines.push(
+    '',
+    `${EMOJI.victory} *Cơ duyên trong Thượng Cổ Di Tích đã thuộc về đạo hữu.*`,
+  );
+
   return applyStyle(
     new EmbedBuilder()
       .setDescription(
-        [
-          title(
-            '宝箱 · BẢO RƯƠNG ĐÃ MỞ',
-          ),
-
-          '',
-
-          `${EMOJI.light} *Linh quang bùng lên khi nắp rương chậm rãi mở ra.*`,
-
-          '',
-
-          `${EMOJI.chest} **Chiến lợi phẩm**`,
-
-          '',
-
-          `${EMOJI.cultivation} **Tu Vi**`,
-          `+${number(
-            result.cultivationDelta,
-          )}`,
-
-          '',
-
-          `${EMOJI.stone} **Linh Thạch**`,
-          `+${number(
-            result.stoneDelta,
-          )}`,
-
-          dropLine
-            ? [
-                '',
-                '**Vật phẩm**',
-                dropLine,
-              ].join('\n')
-            : null,
-
-          '',
-
-          `${EMOJI.victory} *Cơ duyên trong Thượng Cổ Di Tích đã thuộc về đạo hữu.*`,
-        ]
-          .filter(Boolean)
-          .join('\n'),
+        lines.join(
+          '\n',
+        ),
       ),
   );
 }
@@ -1922,7 +2199,9 @@ export function buildAncientChestLeaveEmbed() {
           '',
 
           '**Không nhận được chiến lợi phẩm.**',
-        ].join('\n'),
+        ].join(
+          '\n',
+        ),
       ),
   );
 }
