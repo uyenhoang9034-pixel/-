@@ -171,6 +171,13 @@ export default {
                 value:
                   'heavenly_fortune',
               },
+              {
+  name:
+    '🐾 Linh Thú Hiện Thế',
+
+  value:
+    'pet',
+},
             ),
       ),
 
@@ -408,6 +415,97 @@ export default {
       });
     }
 
+    /**
+ * =====================================================
+ * PET ENCOUNTER
+ * =====================================================
+ */
+
+if (
+  event ===
+  'pet'
+) {
+  /**
+   * Ép session thẳng vào Lôi Vực.
+   */
+  await clearAdventureV2Session(
+    client,
+    guildId,
+    userId,
+  );
+
+  const now =
+    Date.now();
+
+  const session = {
+    version:
+      1,
+
+    guildId,
+    userId,
+
+    locationId:
+      'loi_vuc',
+
+    state:
+      'location',
+
+    monster:
+      null,
+
+    createdAt:
+      now,
+
+    updatedAt:
+      now,
+  };
+
+  await client.db.set(
+    `games:cultivation:adventureV2:${guildId}:${userId}`,
+    session,
+  );
+
+  const {
+    startAdventurePetEncounter,
+  } = await import(
+    '../../services/cultivationAdventureV295.js'
+  );
+
+  const {
+    buildAdventurePetUnknownEmbed,
+    buildAdventurePetUnknownRows,
+  } = await import(
+    '../../services/cultivationAdventureV295UI.js'
+  );
+
+  const result =
+    await startAdventurePetEncounter(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.reply({
+      content:
+        `❌ Không thể tạo Linh Thú test: \`${result.reason || 'unknown'}\``,
+
+      flags:
+        MessageFlags.Ephemeral,
+    });
+  }
+
+  return interaction.reply({
+    embeds: [
+      buildAdventurePetUnknownEmbed(),
+    ],
+
+    components:
+      buildAdventurePetUnknownRows(
+        userId,
+      ),
+  });
+}
     /**
      * =====================================================
      * UNKNOWN
