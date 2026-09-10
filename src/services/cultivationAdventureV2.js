@@ -1416,217 +1416,67 @@ export async function resolveAdventureV2Choice(
         };
       }
 
-      /**
-       * ===============================================
-       * DI TÍCH · CỔ VĂN
-       * ===============================================
-       */
+     /**
+ * ===============================================
+ * DI TÍCH · BIA ĐÁ
+ * ===============================================
+ */
 
-      if (
-        choiceId ===
-        'stone_tablet'
-      ) {
-        const success =
-          Math.random() <
-          0.72;
+if (
+  choiceId ===
+  'stone_tablet'
+) {
+  session.state =
+    'stone_tablet';
 
-        if (success) {
-          const cultivation =
-            applyCultivationReward(
-              profile,
-              randomInt(
-                150,
-                270,
-              ),
-            );
+  session.updatedAt =
+    Date.now();
 
-          profile.stats.fortunes =
-            Math.max(
-              0,
-              Number(
-                profile.stats
-                  ?.fortunes,
-              ) || 0,
-            ) + 1;
+  await saveSession(
+    client,
+    session,
+  );
 
-          const saved =
-            await finishAdventure(
-              client,
-              profile,
-            );
+  return {
+    ok: true,
 
-          await clearAdventureV2Session(
-            client,
-            guildId,
-            userId,
-          );
+    type:
+      'stone_tablet',
 
-          return {
-            ok: true,
-            type:
-              'insight_success',
+    location,
+  };
+}
 
-            location,
+/**
+ * ===============================================
+ * DI TÍCH · CỔNG ĐÁ
+ * ===============================================
+ */
 
-            cultivationDelta:
-              cultivation,
+if (
+  choiceId ===
+  'stone_gate'
+) {
+  session.state =
+    'stone_gate';
 
-            stoneDelta:
-              0,
+  session.updatedAt =
+    Date.now();
 
-            profile:
-              saved,
+  await saveSession(
+    client,
+    session,
+  );
 
-            required:
-              getCultivationRequired(
-                saved,
-              ),
-          };
-        }
+  return {
+    ok: true,
 
-        const saved =
-          await finishAdventure(
-            client,
-            profile,
-          );
+    type:
+      'stone_gate',
 
-        await clearAdventureV2Session(
-          client,
-          guildId,
-          userId,
-        );
-
-        return {
-          ok: true,
-          type:
-            'insight_failed',
-
-          location,
-
-          cultivationDelta:
-            0,
-
-          stoneDelta:
-            0,
-
-          profile:
-            saved,
-
-          required:
-            getCultivationRequired(
-              saved,
-            ),
-        };
-      }
-
-      /**
-       * ===============================================
-       * CỔNG ĐÁ
-       * ===============================================
-       */
-
-      if (
-        choiceId ===
-        'stone_gate'
-      ) {
-        /**
-         * 35% gặp Yêu Thú canh cổng.
-         */
-        if (
-          Math.random() <
-          0.35
-        ) {
-          return createMonsterEncounter(
-            client,
-            session,
-            location,
-          );
-        }
-
-        const stones =
-          applyStoneReward(
-            profile,
-            randomInt(
-              70,
-              140,
-            ),
-          );
-
-        let droppedItem =
-          null;
-
-        const roll =
-          Math.random();
-
-        if (
-          roll <
-          0.25
-        ) {
-          droppedItem =
-            giveItem(
-              profile,
-              'vo_danh_kiem_pho',
-              1,
-            );
-        } else if (
-          roll <
-          0.60
-        ) {
-          droppedItem =
-            giveItem(
-              profile,
-              'huyen_thiet',
-              randomInt(
-                1,
-                2,
-              ),
-            );
-        } else {
-          droppedItem =
-            giveItem(
-              profile,
-              'tu_khi_dan',
-              1,
-            );
-        }
-
-        const saved =
-          await finishAdventure(
-            client,
-            profile,
-          );
-
-        await clearAdventureV2Session(
-          client,
-          guildId,
-          userId,
-        );
-
-        return {
-          ok: true,
-          type:
-            'ancient_gate',
-
-          location,
-
-          cultivationDelta:
-            0,
-
-          stoneDelta:
-            stones,
-
-          droppedItem,
-
-          profile:
-            saved,
-
-          required:
-            getCultivationRequired(
-              saved,
-            ),
-        };
-      }
-
+    location,
+  };
+}
       /**
        * ===============================================
        * TẤT CẢ HƯỚNG NGUY HIỂM
@@ -2155,6 +2005,919 @@ export async function retreatAdventureV2(
           'retreat',
 
         success: true,
+
+        profile:
+          saved,
+      };
+    },
+  );
+}
+/**
+ * =========================================================
+ * V2.9.2 · THƯỢNG CỔ BIA ĐÁ
+ * =========================================================
+ */
+
+export async function comprehendAncientTablet(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const session =
+        await getAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (
+        !session ||
+        session.state !==
+          'stone_tablet'
+      ) {
+        return {
+          ok: false,
+          reason:
+            'session_expired',
+        };
+      }
+
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      /**
+       * 72% tham ngộ thành công.
+       */
+      const success =
+        Math.random() <
+        0.72;
+
+      if (!success) {
+        const saved =
+          await finishAdventure(
+            client,
+            profile,
+          );
+
+        await clearAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+        return {
+          ok: true,
+
+          type:
+            'insight_failed',
+
+          success: false,
+
+          cultivationDelta:
+            0,
+
+          stoneDelta:
+            0,
+
+          profile:
+            saved,
+
+          required:
+            getCultivationRequired(
+              saved,
+            ),
+        };
+      }
+
+      const cultivation =
+        applyCultivationReward(
+          profile,
+          randomInt(
+            150,
+            270,
+          ),
+        );
+
+      profile.stats.fortunes =
+        Math.max(
+          0,
+          Number(
+            profile.stats
+              ?.fortunes,
+          ) || 0,
+        ) + 1;
+
+      /**
+       * Một ít tỷ lệ lĩnh được
+       * Vô Danh Kiếm Phổ.
+       */
+      let droppedItem =
+        null;
+
+      if (
+        Math.random() <
+        0.12
+      ) {
+        droppedItem =
+          giveItem(
+            profile,
+            'vo_danh_kiem_pho',
+            1,
+          );
+      }
+
+      const saved =
+        await finishAdventure(
+          client,
+          profile,
+        );
+
+      await clearAdventureV2Session(
+        client,
+        guildId,
+        userId,
+      );
+
+      return {
+        ok: true,
+
+        type:
+          'insight_success',
+
+        success: true,
+
+        cultivationDelta:
+          cultivation,
+
+        stoneDelta:
+          0,
+
+        droppedItem,
+
+        profile:
+          saved,
+
+        required:
+          getCultivationRequired(
+            saved,
+          ),
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · PHÁ GIẢI CỔNG ĐÁ
+ * =========================================================
+ */
+
+export async function openAncientStoneGate(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const session =
+        await getAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (
+        !session ||
+        session.state !==
+          'stone_gate'
+      ) {
+        return {
+          ok: false,
+          reason:
+            'session_expired',
+        };
+      }
+
+      /**
+       * 75% mở phong ấn.
+       */
+      const opened =
+        Math.random() <
+        0.75;
+
+      /**
+       * ===============================================
+       * PHÁ GIẢI THẤT BẠI
+       * ===============================================
+       */
+
+      if (!opened) {
+        /**
+         * 45% đánh thức yêu thú
+         * đang canh giữ di tích.
+         */
+        if (
+          Math.random() <
+          0.45
+        ) {
+          const location =
+            getLocation(
+              session.locationId,
+            );
+
+          return createMonsterEncounter(
+            client,
+            session,
+            location,
+          );
+        }
+
+        const profile =
+          await getCultivationProfile(
+            client,
+            guildId,
+            userId,
+          );
+
+        const cultivationLoss =
+          Math.min(
+            profile.cultivation,
+
+            randomInt(
+              30,
+              80,
+            ),
+          );
+
+        profile.cultivation =
+          Math.max(
+            0,
+
+            profile.cultivation -
+              cultivationLoss,
+          );
+
+        const saved =
+          await finishAdventure(
+            client,
+            profile,
+          );
+
+        await clearAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+        return {
+          ok: true,
+
+          type:
+            'gate_failed',
+
+          success: false,
+
+          cultivationDelta:
+            -cultivationLoss,
+
+          profile:
+            saved,
+
+          required:
+            getCultivationRequired(
+              saved,
+            ),
+        };
+      }
+
+      /**
+       * ===============================================
+       * CỔNG ĐÁ ĐÃ MỞ
+       * ===============================================
+       */
+
+      session.state =
+        'ancient_chest';
+
+      /**
+       * Cấm chế được roll NGAY từ lúc
+       * rương xuất hiện.
+       *
+       * Như vậy người chơi không thể
+       * spam nút để reroll bẫy.
+       */
+      session.chest = {
+        trapped:
+          Math.random() <
+          0.28,
+
+        inspected:
+          false,
+
+        createdAt:
+          Date.now(),
+      };
+
+      session.updatedAt =
+        Date.now();
+
+      await saveSession(
+        client,
+        session,
+      );
+
+      return {
+        ok: true,
+
+        type:
+          'ancient_chest',
+
+        success: true,
+
+        chest:
+          session.chest,
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · KIỂM TRA RƯƠNG
+ * =========================================================
+ */
+
+export async function inspectAncientChest(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const session =
+        await getAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (
+        !session ||
+        session.state !==
+          'ancient_chest' ||
+        !session.chest
+      ) {
+        return {
+          ok: false,
+          reason:
+            'session_expired',
+        };
+      }
+
+      session.chest.inspected =
+        true;
+
+      session.updatedAt =
+        Date.now();
+
+      await saveSession(
+        client,
+        session,
+      );
+
+      return {
+        ok: true,
+
+        type:
+          'chest_inspected',
+
+        trapped:
+          Boolean(
+            session.chest
+              .trapped,
+          ),
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · MỞ RƯƠNG
+ * =========================================================
+ */
+
+export async function openAncientChest(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const session =
+        await getAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (
+        !session ||
+        session.state !==
+          'ancient_chest' ||
+        !session.chest
+      ) {
+        return {
+          ok: false,
+          reason:
+            'session_expired',
+        };
+      }
+
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      /**
+       * ===============================================
+       * RƯƠNG CÓ CẤM CHẾ
+       * ===============================================
+       *
+       * Nếu người chơi đã kiểm tra
+       * và biết có cấm chế thì
+       * open button sẽ không được
+       * UI cho bấm nữa.
+       *
+       * Branch này chủ yếu chống
+       * interaction cũ / spam.
+       */
+
+      if (
+        session.chest.trapped
+      ) {
+        const cultivationLoss =
+          Math.min(
+            profile.cultivation,
+
+            randomInt(
+              45,
+              100,
+            ),
+          );
+
+        const staminaLoss =
+          Math.min(
+            profile.stamina,
+
+            randomInt(
+              5,
+              12,
+            ),
+          );
+
+        profile.cultivation =
+          Math.max(
+            0,
+
+            profile.cultivation -
+              cultivationLoss,
+          );
+
+        profile.stamina =
+          Math.max(
+            0,
+
+            profile.stamina -
+              staminaLoss,
+          );
+
+        const saved =
+          await finishAdventure(
+            client,
+            profile,
+          );
+
+        await clearAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+        return {
+          ok: true,
+
+          type:
+            'chest_trap',
+
+          success: false,
+
+          cultivationDelta:
+            -cultivationLoss,
+
+          staminaDelta:
+            -staminaLoss,
+
+          profile:
+            saved,
+
+          required:
+            getCultivationRequired(
+              saved,
+            ),
+        };
+      }
+
+      /**
+       * ===============================================
+       * RƯƠNG AN TOÀN
+       * ===============================================
+       */
+
+      const stones =
+        applyStoneReward(
+          profile,
+
+          randomInt(
+            80,
+            170,
+          ),
+        );
+
+      const cultivation =
+        applyCultivationReward(
+          profile,
+
+          randomInt(
+            70,
+            150,
+          ),
+        );
+
+      /**
+       * Loot rương cổ.
+       */
+
+      const lootRoll =
+        Math.random();
+
+      let droppedItem =
+        null;
+
+      if (
+        lootRoll <
+        0.08
+      ) {
+        /**
+         * 8% Kiếm Phổ.
+         */
+        droppedItem =
+          giveItem(
+            profile,
+            'vo_danh_kiem_pho',
+            1,
+          );
+      } else if (
+        lootRoll <
+        0.30
+      ) {
+        /**
+         * 22% Đan.
+         */
+        droppedItem =
+          giveItem(
+            profile,
+            'tu_khi_dan',
+            1,
+          );
+      } else if (
+        lootRoll <
+        0.65
+      ) {
+        /**
+         * 35% Huyền Thiết.
+         */
+        droppedItem =
+          giveItem(
+            profile,
+            'huyen_thiet',
+
+            randomInt(
+              1,
+              2,
+            ),
+          );
+      } else {
+        /**
+         * 35% Linh Thảo.
+         */
+        droppedItem =
+          giveItem(
+            profile,
+            'thien_linh_thao',
+
+            randomInt(
+              1,
+              2,
+            ),
+          );
+      }
+
+      profile.stats.fortunes =
+        Math.max(
+          0,
+
+          Number(
+            profile.stats
+              ?.fortunes,
+          ) || 0,
+        ) + 1;
+
+      const saved =
+        await finishAdventure(
+          client,
+          profile,
+        );
+
+      await clearAdventureV2Session(
+        client,
+        guildId,
+        userId,
+      );
+
+      return {
+        ok: true,
+
+        type:
+          'chest_opened',
+
+        success: true,
+
+        cultivationDelta:
+          cultivation,
+
+        stoneDelta:
+          stones,
+
+        droppedItem,
+
+        profile:
+          saved,
+
+        required:
+          getCultivationRequired(
+            saved,
+          ),
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · GỠ CẤM CHẾ RƯƠNG
+ * =========================================================
+ */
+
+export async function disarmAncientChest(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const session =
+        await getAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (
+        !session ||
+        session.state !==
+          'ancient_chest' ||
+        !session.chest ||
+        !session.chest.trapped
+      ) {
+        return {
+          ok: false,
+          reason:
+            'session_expired',
+        };
+      }
+
+      /**
+       * 75% gỡ cấm chế thành công.
+       */
+      const success =
+        Math.random() <
+        0.75;
+
+      if (success) {
+        session.chest.trapped =
+          false;
+
+        session.chest.disarmed =
+          true;
+
+        session.updatedAt =
+          Date.now();
+
+        await saveSession(
+          client,
+          session,
+        );
+
+        return {
+          ok: true,
+
+          type:
+            'chest_disarmed',
+
+          success: true,
+        };
+      }
+
+      /**
+       * Gỡ thất bại → cấm chế nổ.
+       */
+
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      const cultivationLoss =
+        Math.min(
+          profile.cultivation,
+
+          randomInt(
+            35,
+            85,
+          ),
+        );
+
+      const staminaLoss =
+        Math.min(
+          profile.stamina,
+
+          randomInt(
+            4,
+            10,
+          ),
+        );
+
+      profile.cultivation =
+        Math.max(
+          0,
+
+          profile.cultivation -
+            cultivationLoss,
+        );
+
+      profile.stamina =
+        Math.max(
+          0,
+
+          profile.stamina -
+            staminaLoss,
+        );
+
+      const saved =
+        await finishAdventure(
+          client,
+          profile,
+        );
+
+      await clearAdventureV2Session(
+        client,
+        guildId,
+        userId,
+      );
+
+      return {
+        ok: true,
+
+        type:
+          'chest_disarm_failed',
+
+        success: false,
+
+        cultivationDelta:
+          -cultivationLoss,
+
+        staminaDelta:
+          -staminaLoss,
+
+        profile:
+          saved,
+
+        required:
+          getCultivationRequired(
+            saved,
+          ),
+      };
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * V2.9.2 · BỎ QUA RƯƠNG
+ * =========================================================
+ */
+
+export async function leaveAncientChest(
+  client,
+  guildId,
+  userId,
+) {
+  const lockKey =
+    `cultivation:${guildId}:${userId}`;
+
+  return Mutex.runExclusive(
+    lockKey,
+
+    async () => {
+      const session =
+        await getAdventureV2Session(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (
+        !session ||
+        session.state !==
+          'ancient_chest'
+      ) {
+        return {
+          ok: false,
+          reason:
+            'session_expired',
+        };
+      }
+
+      const profile =
+        await getCultivationProfile(
+          client,
+          guildId,
+          userId,
+        );
+
+      const saved =
+        await finishAdventure(
+          client,
+          profile,
+        );
+
+      await clearAdventureV2Session(
+        client,
+        guildId,
+        userId,
+      );
+
+      return {
+        ok: true,
+
+        type:
+          'chest_left',
 
         profile:
           saved,
