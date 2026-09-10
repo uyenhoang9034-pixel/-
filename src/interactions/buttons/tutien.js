@@ -28,14 +28,6 @@ import {
   startAdventureV2,
 } from '../../services/cultivationAdventureV2.js';
 
-import {
-  continueSecretRealm,
-  enterSecretRealmFloor,
-  fightSecretRealmMonster,
-  getSecretRealmCombatInfo,
-  leaveSecretRealm,
-  startSecretRealm,
-} from '../../services/cultivationSecretRealm.js';
 
 import {
   brewCultivationPill,
@@ -106,19 +98,6 @@ import {
   buildChestDisarmRows,
 } from '../../services/cultivationAdventureV2UI.js';
 
-import {
-  buildSecretRealmAssistEmbed,
-  buildSecretRealmAssistRows,
-  buildSecretRealmBackRows,
-  buildSecretRealmDiscoverEmbed,
-  buildSecretRealmDiscoverRows,
-  buildSecretRealmExitEmbed,
-  buildSecretRealmFailEmbed,
-  buildSecretRealmFloorEmbed,
-  buildSecretRealmFloorRows,
-  buildSecretRealmWinEmbed,
-  buildSecretRealmWinRows,
-} from '../../services/cultivationSecretRealmUI.js';
 
 import {
   buildAlchemyEmbed,
@@ -597,25 +576,32 @@ export default {
        * ===============================================
        */
 
-      if (
-        result.type ===
-          'secret_realm' &&
-        result.secretRealm
-      ) {
-        return interaction.update({
-          embeds: [
-            buildSecretRealmDiscoverEmbed(
-              result.secretRealm,
-            ),
-          ],
+    if (
+  result.type ===
+    'secret_realm' &&
+  result.secretRealm
+) {
+  const {
+    buildSecretRealmDiscoverEmbed,
+    buildSecretRealmDiscoverRows,
+  } = await import(
+    '../../services/cultivationSecretRealmUI.js'
+  );
 
-          components:
-            buildSecretRealmDiscoverRows(
-              ownerId,
-              result.secretRealm.id,
-            ),
-        });
-      }
+  return interaction.update({
+    embeds: [
+      buildSecretRealmDiscoverEmbed(
+        result.secretRealm,
+      ),
+    ],
+
+    components:
+      buildSecretRealmDiscoverRows(
+        ownerId,
+        result.secretRealm.id,
+      ),
+  });
+}
 
       /**
        * ===============================================
@@ -1105,10 +1091,24 @@ export default {
      */
 
     if (
-      action ===
-      'secret_realm_enter'
-    ) {
-      if (!extra) {
+  action ===
+  'secret_realm_enter'
+) {
+  const {
+    startSecretRealm,
+    enterSecretRealmFloor,
+  } = await import(
+    '../../services/cultivationSecretRealm.js'
+  );
+
+  const {
+    buildSecretRealmFloorEmbed,
+    buildSecretRealmFloorRows,
+  } = await import(
+    '../../services/cultivationSecretRealmUI.js'
+  );
+
+  if (!extra) {
         return adventureError(
           interaction,
           ownerId,
@@ -1174,11 +1174,24 @@ export default {
      * =====================================================
      */
 
-    if (
-      action ===
-      'secret_realm_assist'
-    ) {
-      const result =
+   if (
+  action ===
+  'secret_realm_assist'
+) {
+  const {
+    getSecretRealmCombatInfo,
+  } = await import(
+    '../../services/cultivationSecretRealm.js'
+  );
+
+  const {
+    buildSecretRealmAssistEmbed,
+    buildSecretRealmAssistRows,
+  } = await import(
+    '../../services/cultivationSecretRealmUI.js'
+  );
+
+  const result =
         await getSecretRealmCombatInfo(
           client,
           guildId,
@@ -1218,12 +1231,27 @@ export default {
      * =====================================================
      */
 
-    if (
-      action ===
-      'secret_realm_fight'
-    ) {
-      const result =
-        await fightSecretRealmMonster(
+   if (
+  action ===
+  'secret_realm_fight'
+) {
+  const {
+    fightSecretRealmMonster,
+  } = await import(
+    '../../services/cultivationSecretRealm.js'
+  );
+
+  const {
+    buildSecretRealmFailEmbed,
+    buildSecretRealmBackRows,
+    buildSecretRealmWinEmbed,
+    buildSecretRealmWinRows,
+  } = await import(
+    '../../services/cultivationSecretRealmUI.js'
+  );
+
+  const result =
+    await fightSecretRealmMonster(
           client,
           guildId,
           userId,
@@ -1275,12 +1303,27 @@ export default {
      * =====================================================
      */
 
-    if (
-      action ===
-      'secret_realm_fight_assist'
-    ) {
-      const result =
-        await fightSecretRealmMonster(
+  if (
+  action ===
+  'secret_realm_fight_assist'
+) {
+  const {
+    fightSecretRealmMonster,
+  } = await import(
+    '../../services/cultivationSecretRealm.js'
+  );
+
+  const {
+    buildSecretRealmFailEmbed,
+    buildSecretRealmBackRows,
+    buildSecretRealmWinEmbed,
+    buildSecretRealmWinRows,
+  } = await import(
+    '../../services/cultivationSecretRealmUI.js'
+  );
+
+  const result =
+    await fightSecretRealmMonster(
           client,
           guildId,
           userId,
@@ -1332,11 +1375,25 @@ export default {
      * =====================================================
      */
 
-    if (
-      action ===
-      'secret_realm_continue'
-    ) {
-      const continued =
+   if (
+  action ===
+  'secret_realm_continue'
+) {
+  const {
+    continueSecretRealm,
+    enterSecretRealmFloor,
+  } = await import(
+    '../../services/cultivationSecretRealm.js'
+  );
+
+  const {
+    buildSecretRealmFloorEmbed,
+    buildSecretRealmFloorRows,
+  } = await import(
+    '../../services/cultivationSecretRealmUI.js'
+  );
+
+  const continued =
         await continueSecretRealm(
           client,
           guildId,
@@ -1384,11 +1441,24 @@ export default {
      * =====================================================
      */
 
-    if (
-      action ===
-      'secret_realm_leave'
-    ) {
-      const result =
+   if (
+  action ===
+  'secret_realm_leave'
+) {
+  const {
+    leaveSecretRealm,
+  } = await import(
+    '../../services/cultivationSecretRealm.js'
+  );
+
+  const {
+    buildSecretRealmExitEmbed,
+    buildSecretRealmBackRows,
+  } = await import(
+    '../../services/cultivationSecretRealmUI.js'
+  );
+
+  const result =
         await leaveSecretRealm(
           client,
           guildId,
