@@ -23,8 +23,29 @@ const SEPARATOR =
 
 const TECHNIQUE_BUTTON_EMOJI = {
   id:
-    '1546070442169864193',
+    CULTIVATION_CONFIG
+      .ui
+      .buttonEmojis
+      .technique,
 };
+
+const USER_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .user;
+
+const TECHNIQUE_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .technique;
+
+const SWORD_MANUAL_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .swordManual;
 
 function applyStyle(
   embed,
@@ -97,25 +118,25 @@ export function buildTechniqueEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> CÔNG PHÁP · 功法 <a:trangtrig3:1546040818261954610>',
+        `${TECHNIQUE_EMOJI} CÔNG PHÁP · 功法`,
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+          `${USER_EMOJI} Đạo Hữu: <@${user.id}>`,
           '',
           SEPARATOR,
           '',
-          '<a:trangtrig18:1546068102817775626> **Công Pháp Đang Tu**',
+          `${TECHNIQUE_EMOJI} **Công Pháp Đang Tu**`,
           active
             ? `${active.emoji} **${active.name}**\n└ ${active.effect}`
             : '**Chưa Tu Luyện**',
           '',
-          '<a:trangtrig18:1546068102817775626> **Bí Tịch Hiện Có**',
+          `${SWORD_MANUAL_EMOJI} **Bí Tịch Hiện Có**`,
           `Vô Danh Kiếm Phổ: **${material}**`,
           '',
           SEPARATOR,
           '',
-          '<a:trangtrig18:1546068102817775626> **Công Pháp Đã Lĩnh Ngộ**',
+          `${TECHNIQUE_EMOJI} **Công Pháp Đã Lĩnh Ngộ**`,
           learnedText,
           '',
           '*Vạn pháp quy nhất, đạo tại tâm sinh.*',
@@ -257,7 +278,7 @@ export function buildTechniqueConfirmEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          'KHÔNG TÌM THẤY CÔNG PHÁP',
+          `${TECHNIQUE_EMOJI} KHÔNG TÌM THẤY CÔNG PHÁP`,
         ),
     );
   }
@@ -274,12 +295,12 @@ export function buildTechniqueConfirmEmbed(
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+          `${USER_EMOJI} Đạo Hữu: <@${user.id}>`,
           '',
           '**Hiệu Quả**',
           `**${technique.effect}**`,
           '',
-          '<a:trangtrig18:1546068102817775626> **Cần**',
+          `${SWORD_MANUAL_EMOJI} **Cần**`,
           'Vô Danh Kiếm Phổ: **1**',
           `Hiện Có: **${material}**`,
           '',
@@ -342,16 +363,16 @@ export function buildTechniqueLearnResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> BÍ TỊCH KHÔNG ĐỦ',
+          `${SWORD_MANUAL_EMOJI} BÍ TỊCH KHÔNG ĐỦ`,
         )
         .setDescription(
           [
-            '<a:bang2:1546891483250954290> Đạo hữu chưa có đủ bí tịch để lĩnh ngộ Công Pháp này.',
+            'Đạo hữu chưa có đủ bí tịch để lĩnh ngộ Công Pháp này.',
             '',
             SEPARATOR,
             '',
-            '<a:trangtrig18:1546068102817775626> Cần: **Vô Danh Kiếm Phổ ×1**',
-            `<a:trangtrig18:1546068102817775626> Hiện Có: **${result.available}**`,
+            `${SWORD_MANUAL_EMOJI} Cần: **Vô Danh Kiếm Phổ ×1**`,
+            `${SWORD_MANUAL_EMOJI} Hiện Có: **${result.available}**`,
           ].join(
             '\n',
           ),
@@ -367,7 +388,7 @@ export function buildTechniqueLearnResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> ĐÃ LĨNH NGỘ',
+          `${TECHNIQUE_EMOJI} ĐÃ LĨNH NGỘ`,
         )
         .setDescription(
           `Đạo hữu đã lĩnh ngộ **${result.technique.name}**.`,
@@ -379,7 +400,7 @@ export function buildTechniqueLearnResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> LĨNH NGỘ THẤT BẠI',
+          `${TECHNIQUE_EMOJI} LĨNH NGỘ THẤT BẠI`,
         )
         .setDescription(
           'Không thể lĩnh ngộ Công Pháp này.',
@@ -390,7 +411,7 @@ export function buildTechniqueLearnResultEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> CÔNG PHÁP LĨNH NGỘ <a:trangtrig3:1546040818261954610>',
+        `${TECHNIQUE_EMOJI} CÔNG PHÁP LĨNH NGỘ`,
       )
       .setDescription(
         [
@@ -398,14 +419,14 @@ export function buildTechniqueLearnResultEmbed(
           '',
           SEPARATOR,
           '',
-          `<a:hamsterg2:1546057566209974292> Lĩnh Ngộ: **${result.technique.name}**`,
-          '<a:trangtrig18:1546068102817775626> Vô Danh Kiếm Phổ: **-1**',
+          `${TECHNIQUE_EMOJI} Lĩnh Ngộ: **${result.technique.name}**`,
+          `${SWORD_MANUAL_EMOJI} Vô Danh Kiếm Phổ: **-1**`,
           '',
           '**Hiệu Quả**',
           result.technique.effect,
           '',
           result.autoActivated
-            ? '<a:trangtrig18:1546068102817775626> Công Pháp đã được **tự động kích hoạt**.'
+            ? `${TECHNIQUE_EMOJI} Công Pháp đã được **tự động kích hoạt**.`
             : null,
           '',
           `*${result.technique.description}*`,
@@ -430,7 +451,7 @@ export function buildTechniqueActivateResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> KHÔNG THỂ TU LUYỆN',
+          `${TECHNIQUE_EMOJI} KHÔNG THỂ TU LUYỆN`,
         )
         .setDescription(
           'Đạo hữu chưa lĩnh ngộ Công Pháp này.',
@@ -441,7 +462,7 @@ export function buildTechniqueActivateResultEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> CÔNG PHÁP VẬN CHUYỂN <a:trangtrig3:1546040818261954610>',
+        `${TECHNIQUE_EMOJI} CÔNG PHÁP VẬN CHUYỂN`,
       )
       .setDescription(
         [
