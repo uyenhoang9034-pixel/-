@@ -194,17 +194,41 @@ let adventureService = {};
 let adventureUI = {};
 
 if (isAdventureAction) {
-  adventureService =
-    await import(
-      '../../services/cultivationAdventureV2.js'
+  try {
+    adventureService =
+      await import(
+        '../../services/cultivationAdventureV2.js'
+      );
+
+    adventureUI =
+      await import(
+        '../../services/cultivationAdventureV2UI.js'
+      );
+  } catch (error) {
+    const message =
+      String(
+        error?.stack ||
+        error?.message ||
+        error ||
+        'Unknown import error',
+      ).slice(
+        0,
+        1800,
+      );
+
+    console.error(
+      '[TU TIEN V2.9 IMPORT ERROR]',
+      error,
     );
 
-  adventureUI =
-    await import(
-      '../../services/cultivationAdventureV2UI.js'
-    );
+    return interaction.reply({
+      content:
+        `❌ **Lỗi tải Thám Hiểm V2.9:**\n\`\`\`js\n${message}\n\`\`\``,
+      flags:
+        MessageFlags.Ephemeral,
+    });
+  }
 }
-
 const {
   clearAdventureV2Session,
   comprehendAncientTablet,
