@@ -27,6 +27,14 @@ import {
   retreatAdventureV2,
   startAdventureV2,
 } from '../../services/cultivationAdventureV2.js';
+import {
+  continueSecretRealm,
+  enterSecretRealmFloor,
+  fightSecretRealmMonster,
+  getSecretRealmCombatInfo,
+  leaveSecretRealm,
+  startSecretRealm,
+} from '../../services/cultivationSecretRealm.js';
 
 import {
   brewCultivationPill,
@@ -95,6 +103,19 @@ import {
   buildChestDisarmEmbed,
   buildChestDisarmRows,
 } from '../../services/cultivationAdventureV2UI.js';
+import {
+  buildSecretRealmAssistEmbed,
+  buildSecretRealmAssistRows,
+  buildSecretRealmBackRows,
+  buildSecretRealmDiscoverEmbed,
+  buildSecretRealmDiscoverRows,
+  buildSecretRealmExitEmbed,
+  buildSecretRealmFailEmbed,
+  buildSecretRealmFloorEmbed,
+  buildSecretRealmFloorRows,
+  buildSecretRealmWinEmbed,
+  buildSecretRealmWinRows,
+} from '../../services/cultivationSecretRealmUI.js';
 
 import {
   buildAlchemyEmbed,
@@ -552,6 +573,31 @@ if (
     components:
       buildAncientGateRows(
         ownerId,
+      ),
+  });
+}
+  /**
+ * ===============================================
+ * V2.9.3 · BÍ CẢNH HIỆN THẾ
+ * ===============================================
+ */
+
+if (
+  result.type ===
+    'secret_realm' &&
+  result.secretRealm
+) {
+  return interaction.update({
+    embeds: [
+      buildSecretRealmDiscoverEmbed(
+        result.secretRealm,
+      ),
+    ],
+
+    components:
+      buildSecretRealmDiscoverRows(
+        ownerId,
+        result.secretRealm.id,
       ),
   });
 }
