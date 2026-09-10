@@ -579,7 +579,96 @@ const adventureError = () =>
       if (!result.ok) {
         return adventureError();
       }
+/**
+ * ===============================================
+ * V2.9.5 · LINH THÚ CHƯA LỘ DIỆN
+ * ===============================================
+ */
 
+if (
+  result.type ===
+  'pet_encounter_unknown'
+) {
+  const {
+    buildAdventurePetUnknownEmbed,
+    buildAdventurePetUnknownRows,
+  } = await import(
+    '../../services/cultivationAdventureV295UI.js'
+  );
+
+  return interaction.update({
+    embeds: [
+      buildAdventurePetUnknownEmbed(),
+    ],
+
+    components:
+      buildAdventurePetUnknownRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * ===============================================
+ * V2.9.5 · PHÁP KHÍ CỘNG MINH
+ * ===============================================
+ */
+
+if (
+  result.type ===
+  'equipment_resonance'
+) {
+  const {
+    buildEquipmentResonanceEmbed,
+    buildAdventureV295BackRows,
+  } = await import(
+    '../../services/cultivationAdventureV295UI.js'
+  );
+
+  return interaction.update({
+    embeds: [
+      buildEquipmentResonanceEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventureV295BackRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * ===============================================
+ * V2.9.5 · CÔNG PHÁP CỘNG MINH
+ * ===============================================
+ */
+
+if (
+  result.type ===
+  'technique_resonance'
+) {
+  const {
+    buildTechniqueResonanceEmbed,
+    buildAdventureV295BackRows,
+  } = await import(
+    '../../services/cultivationAdventureV295UI.js'
+  );
+
+  return interaction.update({
+    embeds: [
+      buildTechniqueResonanceEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventureV295BackRows(
+        ownerId,
+      ),
+  });
+}
       /**
        * ===============================================
        * V2.9.4 · THƯƠNG NHÂN THẦN BÍ
@@ -916,6 +1005,155 @@ const adventureError = () =>
       });
     }
 
+    /**
+ * =====================================================
+ * V2.9.5 · LINH THÚ · REVEAL
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_pet_reveal'
+) {
+  const {
+    revealAdventurePet,
+  } = await import(
+    '../../services/cultivationAdventureV295.js'
+  );
+
+  const {
+    buildAdventurePetRevealEmbed,
+    buildAdventurePetRevealRows,
+  } = await import(
+    '../../services/cultivationAdventureV295UI.js'
+  );
+
+  const result =
+    await revealAdventurePet(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return adventureError();
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAdventurePetRevealEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventurePetRevealRows(
+        ownerId,
+        result.pet,
+      ),
+  });
+}
+    /**
+ * =====================================================
+ * V2.9.5 · LINH THÚ · BỎ QUA
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_pet_leave'
+) {
+  const {
+    leaveAdventurePetEncounter,
+  } = await import(
+    '../../services/cultivationAdventureV295.js'
+  );
+
+  const {
+    buildAdventurePetLeaveEmbed,
+    buildAdventureV295BackRows,
+  } = await import(
+    '../../services/cultivationAdventureV295UI.js'
+  );
+
+  const result =
+    await leaveAdventurePetEncounter(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return adventureError();
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAdventurePetLeaveEmbed(),
+    ],
+
+    components:
+      buildAdventureV295BackRows(
+        ownerId,
+      ),
+  });
+}
+    /**
+ * =====================================================
+ * V2.9.5 · LINH THÚ · THU PHỤC
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_pet_capture'
+) {
+  if (!extra) {
+    return adventureError();
+  }
+
+  /**
+   * Capture service hiện tại giữ Mutex riêng,
+   * vì handler này không nằm trong
+   * resolveAdventureV2Choice lock nên dùng an toàn.
+   */
+  const captureResult =
+    await captureCultivationPet(
+      client,
+      guildId,
+      userId,
+      extra,
+    );
+
+  const {
+    finishAdventurePetEncounter,
+  } = await import(
+    '../../services/cultivationAdventureV295.js'
+  );
+
+  /**
+   * Dù thành công hay thất bại,
+   * encounter đã kết thúc.
+   */
+  await finishAdventurePetEncounter(
+    client,
+    guildId,
+    userId,
+  );
+
+  return interaction.update({
+    embeds: [
+      buildPetCaptureResultEmbed(
+        captureResult,
+      ),
+    ],
+
+    components:
+      buildPetResultRows(
+        ownerId,
+      ),
+  });
+}
     /**
      * =====================================================
      * THÁM HIỂM · LINH THÚ TRỢ CHIẾN
