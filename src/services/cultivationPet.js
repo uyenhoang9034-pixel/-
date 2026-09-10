@@ -7,13 +7,6 @@ import {
   Mutex,
 } from '../utils/mutex.js';
 
-/**
- * =========================================================
- * LINH THÚ · 灵兽
- * V2.8
- * =========================================================
- */
-
 export const CULTIVATION_PETS = {
   thanh_phong_linh_ho: {
     id:
@@ -21,6 +14,9 @@ export const CULTIVATION_PETS = {
 
     name:
       'Thanh Phong Linh Hồ',
+
+    emoji:
+      '<:ttlinhthuthanhphonglinhho:1547460151189962823>',
 
     rarity:
       'Hiếm',
@@ -51,6 +47,9 @@ export const CULTIVATION_PETS = {
     name:
       'Xích Viêm Hỏa Điểu',
 
+    emoji:
+      '<:ttxichviemhoadieum:1547460192122314803>',
+
     rarity:
       'Hiếm',
 
@@ -79,6 +78,9 @@ export const CULTIVATION_PETS = {
 
     name:
       'Huyền Giáp Linh Quy',
+
+    emoji:
+      '<:tthuyengiaplinhquy:1547460356371259452>',
 
     rarity:
       'Cực Hiếm',
@@ -109,6 +111,9 @@ export const CULTIVATION_PETS = {
     name:
       'Thiên Lôi Bạch Hổ',
 
+    emoji:
+      '<:ttthienloibachho:1547460329972170772>',
+
     rarity:
       'Cực Hiếm',
 
@@ -131,15 +136,6 @@ export const CULTIVATION_PETS = {
       9,
   },
 };
-
-export const PET_EMOJI =
-  '<a:catg10:1546031290803945594>';
-
-/**
- * =========================================================
- * HELPERS
- * =========================================================
- */
 
 export function getCultivationPet(
   petId,
@@ -179,7 +175,8 @@ export function ensurePetData(
       profile.pets.owned,
     )
   ) {
-    profile.pets.owned = {};
+    profile.pets.owned =
+      {};
   }
 
   if (
@@ -192,12 +189,6 @@ export function ensurePetData(
 
   return profile;
 }
-
-/**
- * =========================================================
- * OWNED PETS
- * =========================================================
- */
 
 export function getOwnedPets(
   profile,
@@ -244,12 +235,6 @@ export function ownsPet(
     ] === true
   );
 }
-
-/**
- * =========================================================
- * ACTIVE PET
- * =========================================================
- */
 
 export function getActivePet(
   profile,
@@ -301,12 +286,6 @@ export function getPetEffectValue(
   );
 }
 
-/**
- * =========================================================
- * RANDOM ENCOUNTER
- * =========================================================
- */
-
 export function rollPetEncounter(
   chance = 0.10,
 ) {
@@ -338,7 +317,9 @@ export function rollPetEncounter(
   if (
     totalWeight <= 0
   ) {
-    return pets[0] || null;
+    return (
+      pets[0] || null
+    );
   }
 
   let roll =
@@ -367,12 +348,6 @@ export function rollPetEncounter(
   );
 }
 
-/**
- * =========================================================
- * CAPTURE PET
- * =========================================================
- */
-
 export async function captureCultivationPet(
   client,
   guildId,
@@ -394,7 +369,6 @@ export async function captureCultivationPet(
       if (!pet) {
         return {
           ok: false,
-
           reason:
             'invalid_pet',
         };
@@ -411,10 +385,6 @@ export async function captureCultivationPet(
         profile,
       );
 
-      /**
-       * Đã sở hữu rồi.
-       */
-
       if (
         ownsPet(
           profile,
@@ -423,12 +393,9 @@ export async function captureCultivationPet(
       ) {
         return {
           ok: false,
-
           reason:
             'already_owned',
-
           pet,
-
           profile,
         };
       }
@@ -437,35 +404,19 @@ export async function captureCultivationPet(
         Math.random() <=
         pet.captureChance;
 
-      /**
-       * Thu phục thất bại.
-       */
-
       if (!success) {
         return {
           ok: false,
-
           reason:
             'capture_failed',
-
           pet,
-
           profile,
         };
       }
 
-      /**
-       * Thu phục thành công.
-       */
-
       profile.pets.owned[
         petId
       ] = true;
-
-      /**
-       * Con đầu tiên tự động
-       * trở thành Linh Thú Đồng Hành.
-       */
 
       if (
         !profile.pets.active
@@ -500,7 +451,6 @@ export async function captureCultivationPet(
 
       return {
         ok: true,
-
         pet,
 
         profile:
@@ -513,12 +463,6 @@ export async function captureCultivationPet(
     },
   );
 }
-
-/**
- * =========================================================
- * SET ACTIVE PET
- * =========================================================
- */
 
 export async function setActiveCultivationPet(
   client,
@@ -541,7 +485,6 @@ export async function setActiveCultivationPet(
       if (!pet) {
         return {
           ok: false,
-
           reason:
             'invalid_pet',
         };
@@ -566,12 +509,9 @@ export async function setActiveCultivationPet(
       ) {
         return {
           ok: false,
-
           reason:
             'not_owned',
-
           pet,
-
           profile,
         };
       }
@@ -587,7 +527,6 @@ export async function setActiveCultivationPet(
 
       return {
         ok: true,
-
         pet,
 
         profile:
