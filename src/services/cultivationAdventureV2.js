@@ -28,9 +28,6 @@ import {
 import {
   Mutex,
 } from '../utils/mutex.js';
-import {
-  rollSecretRealm,
-} from './cultivationSecretRealm.js';
 
 /**
  * =========================================================
@@ -1494,11 +1491,17 @@ if (
    * 35% phát hiện Bí Cảnh.
    */
   if (
-    Math.random() <
-    0.35
-  ) {
-    const secretRealm =
-      rollSecretRealm();
+  Math.random() <
+  0.35
+) {
+  const {
+    rollSecretRealm,
+  } = await import(
+    './cultivationSecretRealm.js'
+  );
+
+  const secretRealm =
+    rollSecretRealm();
 
     session.state =
       'secret_realm_found';
