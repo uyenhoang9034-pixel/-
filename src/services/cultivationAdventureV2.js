@@ -1558,6 +1558,21 @@ if (
 }
 
 /**
+ * Không còn nhánh nào hợp lệ.
+ * Bình thường sẽ không chạy tới đây vì validChoice
+ * đã được kiểm tra ở phía trên.
+ */
+return {
+  ok: false,
+  reason:
+    'invalid_choice',
+};
+
+    },
+  );
+}
+
+/**
  * =========================================================
  * CREATE MONSTER
  * =========================================================
