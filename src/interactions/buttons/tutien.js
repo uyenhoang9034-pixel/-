@@ -1,18 +1,17 @@
-import {
-  MessageFlags,
-} from 'discord.js';
+import { MessageFlags } from 'discord.js';
 
 import {
   CULTIVATION_CONFIG,
 } from '../../config/cultivationGame.js';
 
 import {
-breakthrough,
+  breakthrough,
   cultivate,
   getCultivationLeaderboard,
   getCultivationProfile,
   useCultivationItem,
 } from '../../services/cultivationService.js';
+
 import {
   clearAdventureV2Session,
   comprehendAncientTablet,
@@ -28,6 +27,7 @@ import {
   retreatAdventureV2,
   startAdventureV2,
 } from '../../services/cultivationAdventureV2.js';
+
 import {
   continueSecretRealm,
   enterSecretRealmFloor,
@@ -70,6 +70,7 @@ import {
   buildUseItemResultEmbed,
   buildUseItemResultRows,
 } from '../../services/cultivationUI.js';
+
 import {
   buildAdventureV2AssistEmbed,
   buildAdventureV2AssistRows,
@@ -104,6 +105,7 @@ import {
   buildChestDisarmEmbed,
   buildChestDisarmRows,
 } from '../../services/cultivationAdventureV2UI.js';
+
 import {
   buildSecretRealmAssistEmbed,
   buildSecretRealmAssistRows,
@@ -213,6 +215,28 @@ async function enforceChannel(
   }
 
   return true;
+}
+
+/**
+ * =========================================================
+ * THÁM HIỂM ERROR
+ * =========================================================
+ */
+
+function adventureError(
+  interaction,
+  ownerId,
+) {
+  return interaction.update({
+    embeds: [
+      buildAdventureV2ErrorEmbed(),
+    ],
+
+    components:
+      buildAdventureV2ErrorRows(
+        ownerId,
+      ),
+  });
 }
 
 /**
@@ -376,1157 +400,1022 @@ export default {
       });
     }
 
-  /**
- * =====================================================
- * THÁM HIỂM · V2.9
- * =====================================================
- */
+    /**
+     * =====================================================
+     * THÁM HIỂM · V2.9
+     * =====================================================
+     */
 
-if (
-  action ===
-  'adventure'
-) {
-  const result =
-    await getAdventureV2Preview(
-      client,
-      guildId,
-      userId,
-    );
+    if (
+      action ===
+      'adventure'
+    ) {
+      const result =
+        await getAdventureV2Preview(
+          client,
+          guildId,
+          userId,
+        );
 
-  return interaction.update({
-    embeds: [
-      buildAdventureV2PreviewEmbed(
-        interaction.user,
-        result,
-      ),
-    ],
+      return interaction.update({
+        embeds: [
+          buildAdventureV2PreviewEmbed(
+            interaction.user,
+            result,
+          ),
+        ],
 
-    components:
-      buildAdventureV2PreviewRows(
+        components:
+          buildAdventureV2PreviewRows(
+            ownerId,
+            result.ok,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * THÁM HIỂM · BẮT ĐẦU
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_start'
+    ) {
+      const result =
+        await startAdventureV2(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!result.ok) {
+        const preview =
+          await getAdventureV2Preview(
+            client,
+            guildId,
+            userId,
+          );
+
+        return interaction.update({
+          embeds: [
+            buildAdventureV2PreviewEmbed(
+              interaction.user,
+              preview,
+            ),
+          ],
+
+          components:
+            buildAdventureV2PreviewRows(
+              ownerId,
+              false,
+            ),
+        });
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAdventureV2LocationEmbed(
+            result.location,
+          ),
+        ],
+
+        components:
+          buildAdventureV2LocationRows(
+            ownerId,
+            result.location,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * THÁM HIỂM · CHỌN HƯỚNG
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_choice'
+    ) {
+      if (!extra) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      const result =
+        await resolveAdventureV2Choice(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      /**
+       * ===============================================
+       * LINH THÚ HIỆN THẾ
+       * ===============================================
+       */
+
+      if (
+        result.type ===
+          'pet_encounter' &&
+        result.petEncounter
+      ) {
+        return interaction.update({
+          embeds: [
+            buildPetEncounterEmbed(
+              result.petEncounter,
+            ),
+          ],
+
+          components:
+            buildPetEncounterRows(
+              ownerId,
+              result.petEncounter,
+            ),
+        });
+      }
+
+      /**
+       * ===============================================
+       * BIA ĐÁ / CỔ VĂN
+       * ===============================================
+       */
+
+      if (
+        result.type ===
+        'stone_tablet'
+      ) {
+        return interaction.update({
+          embeds: [
+            buildAncientTabletEmbed(),
+          ],
+
+          components:
+            buildAncientTabletRows(
+              ownerId,
+            ),
+        });
+      }
+
+      /**
+       * ===============================================
+       * CỔNG ĐÁ
+       * ===============================================
+       */
+
+      if (
+        result.type ===
+        'stone_gate'
+      ) {
+        return interaction.update({
+          embeds: [
+            buildAncientGateEmbed(),
+          ],
+
+          components:
+            buildAncientGateRows(
+              ownerId,
+            ),
+        });
+      }
+
+      /**
+       * ===============================================
+       * V2.9.3 · BÍ CẢNH HIỆN THẾ
+       * ===============================================
+       */
+
+      if (
+        result.type ===
+          'secret_realm' &&
+        result.secretRealm
+      ) {
+        return interaction.update({
+          embeds: [
+            buildSecretRealmDiscoverEmbed(
+              result.secretRealm,
+            ),
+          ],
+
+          components:
+            buildSecretRealmDiscoverRows(
+              ownerId,
+              result.secretRealm.id,
+            ),
+        });
+      }
+
+      /**
+       * ===============================================
+       * YÊU THÚ
+       * ===============================================
+       */
+
+      if (
+        result.type ===
+        'monster'
+      ) {
+        return interaction.update({
+          embeds: [
+            buildAdventureV2MonsterEmbed(
+              result,
+            ),
+          ],
+
+          components:
+            buildAdventureV2MonsterRows(
+              ownerId,
+            ),
+        });
+      }
+
+      /**
+       * ===============================================
+       * KẾT QUẢ THƯỜNG
+       * ===============================================
+       */
+
+      return interaction.update({
+        embeds: [
+          buildAdventureV2ResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAdventureV2ResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * THÁM HIỂM · LINH THÚ TRỢ CHIẾN
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_assist'
+    ) {
+      const result =
+        await getAdventureV2CombatInfo(
+          client,
+          guildId,
+          userId,
+          {
+            petAssist: true,
+          },
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAdventureV2AssistEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAdventureV2AssistRows(
+            ownerId,
+            Boolean(
+              result.pet,
+            ),
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * THÁM HIỂM · GIAO CHIẾN
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_fight'
+    ) {
+      const result =
+        await fightAdventureV2Monster(
+          client,
+          guildId,
+          userId,
+          {
+            petAssist: false,
+          },
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAdventureV2CombatResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAdventureV2ResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * THÁM HIỂM · TRỢ CHIẾN + GIAO CHIẾN
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_fight_assist'
+    ) {
+      const result =
+        await fightAdventureV2Monster(
+          client,
+          guildId,
+          userId,
+          {
+            petAssist: true,
+          },
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAdventureV2CombatResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAdventureV2ResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * THÁM HIỂM · RÚT LUI
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_retreat'
+    ) {
+      const result =
+        await retreatAdventureV2(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAdventureV2RetreatEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAdventureV2RetreatRows(
+            ownerId,
+            result.success,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.2 · THAM NGỘ CỔ VĂN
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_comprehend'
+    ) {
+      const result =
+        await comprehendAncientTablet(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAdventureV2ResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAdventureV2ResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.2 · PHÁ GIẢI CỔNG ĐÁ
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_gate_open'
+    ) {
+      const result =
+        await openAncientStoneGate(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      if (
+        result.type ===
+        'monster'
+      ) {
+        return interaction.update({
+          embeds: [
+            buildAdventureV2MonsterEmbed(
+              result,
+            ),
+          ],
+
+          components:
+            buildAdventureV2MonsterRows(
+              ownerId,
+            ),
+        });
+      }
+
+      if (
+        result.type ===
+        'gate_failed'
+      ) {
+        return interaction.update({
+          embeds: [
+            buildAncientGateFailedEmbed(
+              result,
+            ),
+          ],
+
+          components:
+            buildAdventureV2ResultRows(
+              ownerId,
+            ),
+        });
+      }
+
+      if (
+        result.type ===
+        'ancient_chest'
+      ) {
+        return interaction.update({
+          embeds: [
+            buildAncientChestEmbed(),
+          ],
+
+          components:
+            buildAncientChestRows(
+              ownerId,
+            ),
+        });
+      }
+
+      return adventureError(
+        interaction,
         ownerId,
-        result.ok,
-      ),
-  });
-}
+      );
+    }
 
-/**
- * =====================================================
- * THÁM HIỂM · BẮT ĐẦU
- * =====================================================
- */
+    /**
+     * =====================================================
+     * V2.9.2 · KIỂM TRA RƯƠNG
+     * =====================================================
+     */
 
-if (
-  action ===
-  'adventure_v2_start'
-) {
-  const result =
-    await startAdventureV2(
-      client,
-      guildId,
-      userId,
-    );
+    if (
+      action ===
+      'adventure_v2_chest_inspect'
+    ) {
+      const result =
+        await inspectAncientChest(
+          client,
+          guildId,
+          userId,
+        );
 
-  if (!result.ok) {
-    const preview =
-      await getAdventureV2Preview(
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAncientChestInspectEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAncientChestInspectRows(
+            ownerId,
+            result.trapped,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.2 · PHÁ GIẢI CẤM CHẾ RƯƠNG
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_chest_disarm'
+    ) {
+      const result =
+        await disarmAncientChest(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildChestDisarmEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildChestDisarmRows(
+            ownerId,
+            result.success,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.2 · MỞ RƯƠNG
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_chest_open'
+    ) {
+      const result =
+        await openAncientChest(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAncientChestResultEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildAdventureV2ResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.2 · BỎ QUA RƯƠNG
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'adventure_v2_chest_leave'
+    ) {
+      const result =
+        await leaveAncientChest(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      return interaction.update({
+        embeds: [
+          buildAncientChestLeaveEmbed(),
+        ],
+
+        components:
+          buildAdventureV2ResultRows(
+            ownerId,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.3 · TIẾN VÀO BÍ CẢNH
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'secret_realm_enter'
+    ) {
+      if (!extra) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      const started =
+        await startSecretRealm(
+          client,
+          guildId,
+          userId,
+          extra,
+        );
+
+      if (!started.ok) {
+        return adventureError(
+          interaction,
+          ownerId,
+        );
+      }
+
+      /**
+       * Chuyển từ session Thám Hiểm
+       * sang session Bí Cảnh.
+       */
+      await clearAdventureV2Session(
         client,
         guildId,
         userId,
       );
 
-    return interaction.update({
-      embeds: [
-        buildAdventureV2PreviewEmbed(
-          interaction.user,
-          preview,
-        ),
-      ],
+      const result =
+        await enterSecretRealmFloor(
+          client,
+          guildId,
+          userId,
+        );
 
-      components:
-        buildAdventureV2PreviewRows(
+      if (!result.ok) {
+        return adventureError(
+          interaction,
           ownerId,
-          false,
-        ),
-    });
-  }
+        );
+      }
 
-  return interaction.update({
-    embeds: [
-      buildAdventureV2LocationEmbed(
-        result.location,
-      ),
-    ],
+      return interaction.update({
+        embeds: [
+          buildSecretRealmFloorEmbed(
+            result,
+          ),
+        ],
 
-    components:
-      buildAdventureV2LocationRows(
-        ownerId,
-        result.location,
-      ),
-  });
-}
+        components:
+          buildSecretRealmFloorRows(
+            ownerId,
+          ),
+      });
+    }
 
-/**
- * =====================================================
- * THÁM HIỂM · CHỌN HƯỚNG
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_choice'
-) {
-  if (!extra) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  const result =
-    await resolveAdventureV2Choice(
-      client,
-      guildId,
-      userId,
-      extra,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  /**
-   * ===============================================
-   * LINH THÚ HIỆN THẾ
-   * ===============================================
-   */
-
-  if (
-    result.type ===
-      'pet_encounter' &&
-    result.petEncounter
-  ) {
-    return interaction.update({
-      embeds: [
-        buildPetEncounterEmbed(
-          result.petEncounter,
-        ),
-      ],
-
-      components:
-        buildPetEncounterRows(
-          ownerId,
-          result.petEncounter,
-        ),
-    });
-  }
-/**
- * ===============================================
- * BIA ĐÁ / CỔ VĂN
- * ===============================================
- */
-
-if (
-  result.type ===
-  'stone_tablet'
-) {
-  return interaction.update({
-    embeds: [
-      buildAncientTabletEmbed(),
-    ],
-
-    components:
-      buildAncientTabletRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * ===============================================
- * CỔNG ĐÁ
- * ===============================================
- */
-
-if (
-  result.type ===
-  'stone_gate'
-) {
-  return interaction.update({
-    embeds: [
-      buildAncientGateEmbed(),
-    ],
-
-    components:
-      buildAncientGateRows(
-        ownerId,
-      ),
-  });
-}
-  /**
- * ===============================================
- * V2.9.3 · BÍ CẢNH HIỆN THẾ
- * ===============================================
- */
-
-if (
-  result.type ===
-    'secret_realm' &&
-  result.secretRealm
-) {
-  return interaction.update({
-    embeds: [
-      buildSecretRealmDiscoverEmbed(
-        result.secretRealm,
-      ),
-    ],
-
-    components:
-      buildSecretRealmDiscoverRows(
-        ownerId,
-        result.secretRealm.id,
-      ),
-  });
-}
-  /**
-   * ===============================================
-   * YÊU THÚ
-   * ===============================================
-   */
-
-  if (
-    result.type ===
-    'monster'
-  ) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2MonsterEmbed(
-          result,
-        ),
-      ],
-
-      components:
-        buildAdventureV2MonsterRows(
-          ownerId,
-        ),
-    });
-  }
-
-  /**
-   * ===============================================
-   * KẾT QUẢ THƯỜNG
-   * ===============================================
-   */
-
-  return interaction.update({
-    embeds: [
-      buildAdventureV2ResultEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildAdventureV2ResultRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * THÁM HIỂM · LINH THÚ TRỢ CHIẾN
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_assist'
-) {
-  const result =
-    await getAdventureV2CombatInfo(
-      client,
-      guildId,
-      userId,
-      {
-        petAssist: true,
-      },
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAdventureV2AssistEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildAdventureV2AssistRows(
-        ownerId,
-        Boolean(
-          result.pet,
-        ),
-      ),
-  });
-}
-
-/**
- * =====================================================
- * THÁM HIỂM · GIAO CHIẾN
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_fight'
-) {
-  const result =
-    await fightAdventureV2Monster(
-      client,
-      guildId,
-      userId,
-      {
-        petAssist: false,
-      },
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAdventureV2CombatResultEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildAdventureV2ResultRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * THÁM HIỂM · LINH THÚ TRỢ CHIẾN + GIAO CHIẾN
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_fight_assist'
-) {
-  const result =
-    await fightAdventureV2Monster(
-      client,
-      guildId,
-      userId,
-      {
-        petAssist: true,
-      },
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAdventureV2CombatResultEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildAdventureV2ResultRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * THÁM HIỂM · RÚT LUI
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_retreat'
-) {
-  const result =
-    await retreatAdventureV2(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAdventureV2RetreatEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildAdventureV2RetreatRows(
-        ownerId,
-        result.success,
-      ),
-  });
-}
     /**
- * =====================================================
- * V2.9.2 · THAM NGỘ CỔ VĂN
- * =====================================================
- */
+     * =====================================================
+     * V2.9.3 · LINH THÚ TRỢ CHIẾN
+     * =====================================================
+     */
 
-if (
-  action ===
-  'adventure_v2_comprehend'
-) {
-  const result =
-    await comprehendAncientTablet(
-      client,
-      guildId,
-      userId,
-    );
+    if (
+      action ===
+      'secret_realm_assist'
+    ) {
+      const result =
+        await getSecretRealmCombatInfo(
+          client,
+          guildId,
+          userId,
+          {
+            petAssist: true,
+          },
+        );
 
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
+      if (!result.ok) {
+        return adventureError(
+          interaction,
           ownerId,
-        ),
-    });
-  }
+        );
+      }
 
-  return interaction.update({
-    embeds: [
-      buildAdventureV2ResultEmbed(
-        result,
-      ),
-    ],
+      return interaction.update({
+        embeds: [
+          buildSecretRealmAssistEmbed(
+            result,
+          ),
+        ],
 
-    components:
-      buildAdventureV2ResultRows(
-        ownerId,
-      ),
-  });
-}
+        components:
+          buildSecretRealmAssistRows(
+            ownerId,
+            Boolean(
+              result.pet,
+            ),
+          ),
+      });
+    }
 
-/**
- * =====================================================
- * V2.9.2 · PHÁ GIẢI CỔNG ĐÁ
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_gate_open'
-) {
-  const result =
-    await openAncientStoneGate(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  /**
-   * Phá phong ấn làm
-   * Yêu Thú thức tỉnh.
-   */
-
-  if (
-    result.type ===
-    'monster'
-  ) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2MonsterEmbed(
-          result,
-        ),
-      ],
-
-      components:
-        buildAdventureV2MonsterRows(
-          ownerId,
-        ),
-    });
-  }
-
-  /**
-   * Phản phệ.
-   */
-
-  if (
-    result.type ===
-    'gate_failed'
-  ) {
-    return interaction.update({
-      embeds: [
-        buildAncientGateFailedEmbed(
-          result,
-        ),
-      ],
-
-      components:
-        buildAdventureV2ResultRows(
-          ownerId,
-        ),
-    });
-  }
-
-  /**
-   * Cổng mở →
-   * Rương Cổ xuất hiện.
-   */
-
-  if (
-    result.type ===
-    'ancient_chest'
-  ) {
-    return interaction.update({
-      embeds: [
-        buildAncientChestEmbed(),
-      ],
-
-      components:
-        buildAncientChestRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAdventureV2ErrorEmbed(),
-    ],
-
-    components:
-      buildAdventureV2ErrorRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.2 · KIỂM TRA RƯƠNG
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_chest_inspect'
-) {
-  const result =
-    await inspectAncientChest(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAncientChestInspectEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildAncientChestInspectRows(
-        ownerId,
-        result.trapped,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.2 · PHÁ GIẢI CẤM CHẾ RƯƠNG
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_chest_disarm'
-) {
-  const result =
-    await disarmAncientChest(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildChestDisarmEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildChestDisarmRows(
-        ownerId,
-        result.success,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.2 · MỞ RƯƠNG
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_chest_open'
-) {
-  const result =
-    await openAncientChest(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAncientChestResultEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildAdventureV2ResultRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.2 · BỎ QUA RƯƠNG
- * =====================================================
- */
-
-if (
-  action ===
-  'adventure_v2_chest_leave'
-) {
-  const result =
-    await leaveAncientChest(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildAncientChestLeaveEmbed(),
-    ],
-
-    components:
-      buildAdventureV2ResultRows(
-        ownerId,
-      ),
-  });
-}
     /**
- * =====================================================
- * V2.9.3 · TIẾN VÀO BÍ CẢNH
- * =====================================================
- */
+     * =====================================================
+     * V2.9.3 · GIAO CHIẾN
+     * =====================================================
+     */
 
-if (
-  action ===
-  'secret_realm_enter'
-) {
-  if (!extra) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
+    if (
+      action ===
+      'secret_realm_fight'
+    ) {
+      const result =
+        await fightSecretRealmMonster(
+          client,
+          guildId,
+          userId,
+          {
+            petAssist: false,
+          },
+        );
 
-      components:
-        buildAdventureV2ErrorRows(
+      if (!result.ok) {
+        return adventureError(
+          interaction,
           ownerId,
-        ),
-    });
-  }
+        );
+      }
 
-  const started =
-    await startSecretRealm(
-      client,
-      guildId,
-      userId,
-      extra,
-    );
+      if (!result.success) {
+        return interaction.update({
+          embeds: [
+            buildSecretRealmFailEmbed(
+              result,
+            ),
+          ],
 
-  if (!started.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
+          components:
+            buildSecretRealmBackRows(
+              ownerId,
+            ),
+        });
+      }
 
-      components:
-        buildAdventureV2ErrorRows(
+      return interaction.update({
+        embeds: [
+          buildSecretRealmWinEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildSecretRealmWinRows(
+            ownerId,
+            result.completed,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.3 · TRỢ CHIẾN + GIAO CHIẾN
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'secret_realm_fight_assist'
+    ) {
+      const result =
+        await fightSecretRealmMonster(
+          client,
+          guildId,
+          userId,
+          {
+            petAssist: true,
+          },
+        );
+
+      if (!result.ok) {
+        return adventureError(
+          interaction,
           ownerId,
-        ),
-    });
-  }
-  await clearAdventureV2Session(
-  client,
-  guildId,
-  userId,
-);
+        );
+      }
 
-  const result =
-    await enterSecretRealmFloor(
-      client,
-      guildId,
-      userId,
-    );
+      if (!result.success) {
+        return interaction.update({
+          embeds: [
+            buildSecretRealmFailEmbed(
+              result,
+            ),
+          ],
 
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
+          components:
+            buildSecretRealmBackRows(
+              ownerId,
+            ),
+        });
+      }
 
-      components:
-        buildAdventureV2ErrorRows(
+      return interaction.update({
+        embeds: [
+          buildSecretRealmWinEmbed(
+            result,
+          ),
+        ],
+
+        components:
+          buildSecretRealmWinRows(
+            ownerId,
+            result.completed,
+          ),
+      });
+    }
+
+    /**
+     * =====================================================
+     * V2.9.3 · ĐI TẦNG TIẾP
+     * =====================================================
+     */
+
+    if (
+      action ===
+      'secret_realm_continue'
+    ) {
+      const continued =
+        await continueSecretRealm(
+          client,
+          guildId,
+          userId,
+        );
+
+      if (!continued.ok) {
+        return adventureError(
+          interaction,
           ownerId,
-        ),
-    });
-  }
+        );
+      }
 
-  return interaction.update({
-    embeds: [
-      buildSecretRealmFloorEmbed(
-        result,
-      ),
-    ],
+      const result =
+        await enterSecretRealmFloor(
+          client,
+          guildId,
+          userId,
+        );
 
-    components:
-      buildSecretRealmFloorRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.3 · LINH THÚ TRỢ CHIẾN
- * =====================================================
- */
-
-if (
-  action ===
-  'secret_realm_assist'
-) {
-  const result =
-    await getSecretRealmCombatInfo(
-      client,
-      guildId,
-      userId,
-      {
-        petAssist: true,
-      },
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
+      if (!result.ok) {
+        return adventureError(
+          interaction,
           ownerId,
-        ),
-    });
-  }
+        );
+      }
 
-  return interaction.update({
-    embeds: [
-      buildSecretRealmAssistEmbed(
-        result,
-      ),
-    ],
+      return interaction.update({
+        embeds: [
+          buildSecretRealmFloorEmbed(
+            result,
+          ),
+        ],
 
-    components:
-      buildSecretRealmAssistRows(
-        ownerId,
-        Boolean(
-          result.pet,
-        ),
-      ),
-  });
-}
+        components:
+          buildSecretRealmFloorRows(
+            ownerId,
+          ),
+      });
+    }
 
-/**
- * =====================================================
- * V2.9.3 · GIAO CHIẾN
- * =====================================================
- */
+    /**
+     * =====================================================
+     * V2.9.3 · RỜI BÍ CẢNH
+     * =====================================================
+     */
 
-if (
-  action ===
-  'secret_realm_fight'
-) {
-  const result =
-    await fightSecretRealmMonster(
-      client,
-      guildId,
-      userId,
-      {
-        petAssist: false,
-      },
-    );
+    if (
+      action ===
+      'secret_realm_leave'
+    ) {
+      const result =
+        await leaveSecretRealm(
+          client,
+          guildId,
+          userId,
+        );
 
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
+      if (!result.ok) {
+        return adventureError(
+          interaction,
           ownerId,
-        ),
-    });
-  }
+        );
+      }
 
-  if (!result.success) {
-    return interaction.update({
-      embeds: [
-        buildSecretRealmFailEmbed(
-          result,
-        ),
-      ],
+      return interaction.update({
+        embeds: [
+          buildSecretRealmExitEmbed(
+            result,
+          ),
+        ],
 
-      components:
-        buildSecretRealmBackRows(
-          ownerId,
-        ),
-    });
-  }
+        components:
+          buildSecretRealmBackRows(
+            ownerId,
+          ),
+      });
+    }
 
-  return interaction.update({
-    embeds: [
-      buildSecretRealmWinEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildSecretRealmWinRows(
-        ownerId,
-        result.completed,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.3 · LINH THÚ TRỢ CHIẾN + GIAO CHIẾN
- * =====================================================
- */
-
-if (
-  action ===
-  'secret_realm_fight_assist'
-) {
-  const result =
-    await fightSecretRealmMonster(
-      client,
-      guildId,
-      userId,
-      {
-        petAssist: true,
-      },
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  if (!result.success) {
-    return interaction.update({
-      embeds: [
-        buildSecretRealmFailEmbed(
-          result,
-        ),
-      ],
-
-      components:
-        buildSecretRealmBackRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildSecretRealmWinEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildSecretRealmWinRows(
-        ownerId,
-        result.completed,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.3 · ĐI TẦNG TIẾP THEO
- * =====================================================
- */
-
-if (
-  action ===
-  'secret_realm_continue'
-) {
-  const continued =
-    await continueSecretRealm(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!continued.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  const result =
-    await enterSecretRealmFloor(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildSecretRealmFloorEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildSecretRealmFloorRows(
-        ownerId,
-      ),
-  });
-}
-
-/**
- * =====================================================
- * V2.9.3 · RỜI BÍ CẢNH / THU CHIẾN LỢI PHẨM
- * =====================================================
- */
-
-if (
-  action ===
-  'secret_realm_leave'
-) {
-  const result =
-    await leaveSecretRealm(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.update({
-      embeds: [
-        buildAdventureV2ErrorEmbed(),
-      ],
-
-      components:
-        buildAdventureV2ErrorRows(
-          ownerId,
-        ),
-    });
-  }
-
-  return interaction.update({
-    embeds: [
-      buildSecretRealmExitEmbed(
-        result,
-      ),
-    ],
-
-    components:
-      buildSecretRealmBackRows(
-        ownerId,
-      ),
-  });
-}
     /**
      * =====================================================
      * TÚI ĐỒ
