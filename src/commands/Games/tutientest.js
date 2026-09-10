@@ -8,10 +8,13 @@ import {
 } from '../../config/cultivationGame.js';
 
 import {
-  startAdventureV2,
-  resolveAdventureV2Choice,
   clearAdventureV2Session,
 } from '../../services/cultivationAdventureV2.js';
+
+import {
+  startAdventureMerchant,
+  resolveHeavenlyFortune,
+} from '../../services/cultivationAdventureV294.js';
 
 import {
   buildAdventureMerchantEmbed,
@@ -25,164 +28,99 @@ import {
  * TU TIÊN TEST · GM COMMAND
  * =========================================================
  *
- * Lệnh admin dùng để ép event Thám Hiểm.
+ * Ép thẳng event để test.
  *
- * Hiện hỗ trợ:
- * - Thương Nhân Thần Bí
- * - Thiên Đạo Cơ Duyên
+ * KHÔNG:
+ * - roll map
+ * - chờ random Đào Hoa Cốc
+ * - kiểm tra cooldown trước khi tạo event
  *
- * Event test chạy SERVICE + UI THẬT.
+ * CÓ:
+ * - dùng service event thật
+ * - dùng UI thật
+ * - button Merchant thật
+ * - mua/rời Merchant thật
+ * - reward Heavenly Fortune thật
  */
 
 const TUTIEN_ADMIN_ROLE_ID =
   '1541303749916754001';
 
-/**
- * =========================================================
- * TEST LOCATION
- * =========================================================
- *
- * Merchant / Heavenly Fortune chỉ xuất hiện
- * ở nhánh pavilion của Đào Hoa Cốc.
- */
-
-const TEST_LOCATION_ID =
-  'dao_hoa_coc';
-
-const TEST_CHOICE_ID =
-  'pavilion';
+const ADVENTURE_SESSION_PREFIX =
+  'games:cultivation:adventureV2:';
 
 /**
  * =========================================================
- * FORCE RANDOM HELPER
+ * SESSION KEY
  * =========================================================
- *
- * resolveAdventureV2Choice() gọi
- * rollPavilionSpecialEvent() -> Math.random().
- *
- * merchant:
- *   roll < 0.30
- *
- * heavenly_fortune:
- *   0.30 <= roll < 0.38
- *
- * Ta tạm override Math.random CHỈ trong lúc
- * resolve event rồi lập tức restore.
  */
 
-async function withForcedRandom(
-  value,
-  task,
+function getAdventureSessionKey(
+  guildId,
+  userId,
 ) {
-  const originalRandom =
-    Math.random;
-
-  try {
-    Math.random =
-      () => value;
-
-    return await task();
-  } finally {
-    Math.random =
-      originalRandom;
-  }
+  return `${ADVENTURE_SESSION_PREFIX}${guildId}:${userId}`;
 }
 
 /**
  * =========================================================
- * FORCE LOCATION
+ * CREATE FORCED ĐÀO HOA CỐC SESSION
  * =========================================================
- *
- * startAdventureV2() chọn location random.
- *
- * Để không phải sửa service production,
- * command sẽ gọi startAdventureV2 nhiều lần
- * sau khi clear session cho tới khi gặp đúng
- * Đào Hoa Cốc.
- *
- * Tuy nhiên cách đó không ổn vì startAdventureV2
- * có thể liên quan state.
- *
- * Vì vậy command dùng Math.random để ép location.
  */
 
-async function createTestAdventure(
+async function createForcedPavilionSession(
   client,
   guildId,
   userId,
 ) {
+  /**
+   * Dọn session cũ trước.
+   */
   await clearAdventureV2Session(
     client,
     guildId,
     userId,
   );
+
+  const now =
+    Date.now();
 
   /**
-   * Thử các random value cố định để tìm Đào Hoa Cốc.
-   *
-   * Nếu cấu trúc location thay đổi sau này,
-   * fallback sẽ thử nhiều vùng random khác nhau.
+   * Đây chính là format session
+   * cultivationAdventureV2 đang sử dụng.
    */
-  const values = [
-    0.50,
-    0.55,
-    0.60,
-    0.65,
-    0.70,
-    0.75,
-    0.80,
-    0.85,
-    0.90,
-    0.95,
-    0.40,
-    0.30,
-    0.20,
-    0.10,
-  ];
+  const session = {
+    version:
+      1,
 
-  for (
-    const value of
-      values
-  ) {
-    await clearAdventureV2Session(
-      client,
-      guildId,
-      userId,
-    );
-
-    const result =
-      await withForcedRandom(
-        value,
-
-        () =>
-          startAdventureV2(
-            client,
-            guildId,
-            userId,
-          ),
-      );
-
-    if (
-      result?.ok &&
-      result.location?.id ===
-        TEST_LOCATION_ID
-    ) {
-      return result;
-    }
-  }
-
-  await clearAdventureV2Session(
-    client,
     guildId,
     userId,
+
+    locationId:
+      'dao_hoa_coc',
+
+    state:
+      'location',
+
+    monster:
+      null,
+
+    createdAt:
+      now,
+
+    updatedAt:
+      now,
+  };
+
+  await client.db.set(
+    getAdventureSessionKey(
+      guildId,
+      userId,
+    ),
+    session,
   );
 
-  return {
-    ok: false,
-
-    reason:
-      'cannot_force_location',
-  };
+  return session;
 }
 
 /**
@@ -210,7 +148,7 @@ export default {
             )
 
             .setDescription(
-              'Chọn event muốn ép xuất hiện.',
+              'Chọn event muốn test.',
             )
 
             .setRequired(
@@ -309,7 +247,7 @@ export default {
 
     /**
      * =====================================================
-     * CHANNEL
+     * CHANNEL CHECK
      * =====================================================
      */
 
@@ -336,28 +274,14 @@ export default {
           true,
         );
 
-    /**
-     * =====================================================
-     * PREPARE TEST SESSION
-     * =====================================================
-     */
+    const client =
+      interaction.client;
 
-    const adventure =
-      await createTestAdventure(
-        interaction.client,
-        interaction.guildId,
-        interaction.user.id,
-      );
+    const guildId =
+      interaction.guildId;
 
-    if (!adventure.ok) {
-      return interaction.reply({
-        content:
-          '❌ Không thể tạo phiên Đào Hoa Cốc để test. Báo mình để mình cập nhật test helper.',
-
-        flags:
-          MessageFlags.Ephemeral,
-      });
-    }
+    const userId =
+      interaction.user.id;
 
     /**
      * =====================================================
@@ -370,36 +294,38 @@ export default {
       'merchant'
     ) {
       /**
-       * 0.10 chắc chắn nằm trong:
-       * roll < 0.30
+       * Ép session thẳng vào:
+       *
+       * Đào Hoa Cốc
+       * -> state location
+       * -> pavilion
+       */
+      await createForcedPavilionSession(
+        client,
+        guildId,
+        userId,
+      );
+
+      /**
+       * Gọi service Merchant thật.
        */
       const result =
-        await withForcedRandom(
-          0.10,
-
-          () =>
-            resolveAdventureV2Choice(
-              interaction.client,
-              interaction.guildId,
-              interaction.user.id,
-              TEST_CHOICE_ID,
-            ),
+        await startAdventureMerchant(
+          client,
+          guildId,
+          userId,
         );
 
-      if (
-        !result?.ok ||
-        result.type !==
-          'merchant'
-      ) {
+      if (!result.ok) {
         await clearAdventureV2Session(
-          interaction.client,
-          interaction.guildId,
-          interaction.user.id,
+          client,
+          guildId,
+          userId,
         );
 
         return interaction.reply({
           content:
-            `❌ Test Merchant thất bại. Kết quả nhận được: \`${result?.type || result?.reason || 'unknown'}\``,
+            `❌ Không thể tạo Merchant test: \`${result.reason || 'unknown'}\``,
 
           flags:
             MessageFlags.Ephemeral,
@@ -415,7 +341,7 @@ export default {
 
         components:
           buildAdventureMerchantRows(
-            interaction.user.id,
+            userId,
             result.stock,
           ),
       });
@@ -432,40 +358,36 @@ export default {
       'heavenly_fortune'
     ) {
       /**
-       * 0.34:
+       * Ép session Đào Hoa Cốc.
+       */
+      await createForcedPavilionSession(
+        client,
+        guildId,
+        userId,
+      );
+
+      /**
+       * Gọi Thiên Đạo Cơ Duyên thật.
        *
-       * không < 0.30
-       * nhưng < 0.38
-       *
-       * => Heavenly Fortune.
+       * Không cần random vì gọi trực tiếp service.
        */
       const result =
-        await withForcedRandom(
-          0.34,
-
-          () =>
-            resolveAdventureV2Choice(
-              interaction.client,
-              interaction.guildId,
-              interaction.user.id,
-              TEST_CHOICE_ID,
-            ),
+        await resolveHeavenlyFortune(
+          client,
+          guildId,
+          userId,
         );
 
-      if (
-        !result?.ok ||
-        result.type !==
-          'heavenly_fortune'
-      ) {
+      if (!result.ok) {
         await clearAdventureV2Session(
-          interaction.client,
-          interaction.guildId,
-          interaction.user.id,
+          client,
+          guildId,
+          userId,
         );
 
         return interaction.reply({
           content:
-            `❌ Test Thiên Đạo Cơ Duyên thất bại. Kết quả nhận được: \`${result?.type || result?.reason || 'unknown'}\``,
+            `❌ Không thể tạo Thiên Đạo Cơ Duyên test: \`${result.reason || 'unknown'}\``,
 
           flags:
             MessageFlags.Ephemeral,
@@ -481,7 +403,7 @@ export default {
 
         components:
           buildAdventureV294BackRows(
-            interaction.user.id,
+            userId,
           ),
       });
     }
@@ -491,12 +413,6 @@ export default {
      * UNKNOWN
      * =====================================================
      */
-
-    await clearAdventureV2Session(
-      interaction.client,
-      interaction.guildId,
-      interaction.user.id,
-    );
 
     return interaction.reply({
       content:
