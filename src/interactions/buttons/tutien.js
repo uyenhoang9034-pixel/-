@@ -581,6 +581,188 @@ const adventureError = () =>
       }
 
       /**
+ * ===============================================
+ * V2.9.4 · THƯƠNG NHÂN THẦN BÍ
+ * ===============================================
+ */
+
+if (
+  result.type ===
+  'merchant'
+) {
+  const {
+    buildAdventureMerchantEmbed,
+    buildAdventureMerchantRows,
+  } = await import(
+    '../../services/cultivationAdventureV294UI.js'
+  );
+
+  return interaction.update({
+    embeds: [
+      buildAdventureMerchantEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventureMerchantRows(
+        ownerId,
+        result.stock,
+      ),
+  });
+}
+
+/**
+ * ===============================================
+ * V2.9.4 · THIÊN ĐẠO CƠ DUYÊN
+ * ===============================================
+ */
+
+if (
+  result.type ===
+  'heavenly_fortune'
+) {
+  const {
+    buildHeavenlyFortuneEmbed,
+    buildAdventureV294BackRows,
+  } = await import(
+    '../../services/cultivationAdventureV294UI.js'
+  );
+
+  return interaction.update({
+    embeds: [
+      buildHeavenlyFortuneEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventureV294BackRows(
+        ownerId,
+      ),
+  });
+}
+      /**
+ * =====================================================
+ * V2.9.4 · THƯƠNG NHÂN · MUA
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_merchant_buy'
+) {
+  if (!extra) {
+    return adventureError();
+  }
+
+  const {
+    buyAdventureMerchantItem,
+  } = await import(
+    '../../services/cultivationAdventureV294.js'
+  );
+
+  const {
+    buildAdventureMerchantPurchaseEmbed,
+    buildAdventureMerchantInsufficientEmbed,
+    buildAdventureMerchantRows,
+    buildAdventureV294BackRows,
+  } = await import(
+    '../../services/cultivationAdventureV294UI.js'
+  );
+
+  const result =
+    await buyAdventureMerchantItem(
+      client,
+      guildId,
+      userId,
+      extra,
+    );
+
+  if (
+    !result.ok &&
+    result.reason ===
+      'not_enough_stones'
+  ) {
+    return interaction.update({
+      embeds: [
+        buildAdventureMerchantInsufficientEmbed(
+          result,
+        ),
+      ],
+
+      components:
+        buildAdventureMerchantRows(
+          ownerId,
+          result.stock,
+        ),
+    });
+  }
+
+  if (!result.ok) {
+    return adventureError();
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAdventureMerchantPurchaseEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventureV294BackRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.4 · THƯƠNG NHÂN · RỜI ĐI
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_merchant_leave'
+) {
+  const {
+    leaveAdventureMerchant,
+  } = await import(
+    '../../services/cultivationAdventureV294.js'
+  );
+
+  const {
+    buildAdventureMerchantLeaveEmbed,
+    buildAdventureV294BackRows,
+  } = await import(
+    '../../services/cultivationAdventureV294UI.js'
+  );
+
+  const result =
+    await leaveAdventureMerchant(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return adventureError();
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAdventureMerchantLeaveEmbed(),
+    ],
+
+    components:
+      buildAdventureV294BackRows(
+        ownerId,
+      ),
+  });
+}
+      /**
        * ===============================================
        * LINH THÚ HIỆN THẾ
        * ===============================================
