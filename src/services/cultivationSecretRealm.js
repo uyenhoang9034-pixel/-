@@ -117,7 +117,7 @@ const SECRET_MONSTERS = [
 
   {
     id:
-      'huyen_am_doc_hạt',
+      'huyen_am_doc_hat',
 
     name:
       'Huyền Âm Độc Hạt',
