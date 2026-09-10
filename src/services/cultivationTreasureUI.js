@@ -22,26 +22,49 @@ const SEPARATOR =
 
 const TREASURE_BUTTON_EMOJI = {
   id:
-    '1546070834471239730',
+    CULTIVATION_CONFIG
+      .ui
+      .buttonEmojis
+      .treasure,
 };
+
+const USER_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .user;
+
+const TALISMAN_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .talisman;
 
 function applyStyle(
   embed,
 ) {
   embed.setColor(
-    CULTIVATION_CONFIG.ui.color,
+    CULTIVATION_CONFIG
+      .ui
+      .color,
   );
 
   embed.setFooter({
     text:
-      CULTIVATION_CONFIG.ui.footer,
+      CULTIVATION_CONFIG
+        .ui
+        .footer,
   });
 
   if (
-    CULTIVATION_CONFIG.ui.image
+    CULTIVATION_CONFIG
+      .ui
+      .image
   ) {
     embed.setImage(
-      CULTIVATION_CONFIG.ui.image,
+      CULTIVATION_CONFIG
+        .ui
+        .image,
     );
   }
 
@@ -65,18 +88,18 @@ export function buildTreasureEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> BÍ BẢO · 秘宝 <a:trangtrig3:1546040818261954610>',
+        `${TALISMAN_EMOJI} BÍ BẢO · 秘宝`,
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+          `${USER_EMOJI} Đạo Hữu: <@${user.id}>`,
           '',
           SEPARATOR,
           '',
-          '<a:trangtrig18:1546068102817775626> **Bí Bảo Hiện Có**',
+          `${TALISMAN_EMOJI} **Bí Bảo Hiện Có**`,
           `Thượng Cổ Phù: **${quantity}**`,
           '',
-          '<a:trangtrig18:1546068102817775626> **Phù Hiệu Đang Kích Hoạt**',
+          `${TALISMAN_EMOJI} **Phù Hiệu Đang Kích Hoạt**`,
           active
             ? `**${active.name}**\n${active.effect}`
             : '**Chưa Có**',
@@ -179,7 +202,7 @@ export function buildTalismanConfirmEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> KHÔNG TÌM THẤY PHÙ HIỆU',
+          `${TALISMAN_EMOJI} KHÔNG TÌM THẤY PHÙ HIỆU`,
         ),
     );
   }
@@ -192,16 +215,16 @@ export function buildTalismanConfirmEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        `<a:trangtrig18:1546068102817775626> ${talisman.name.toUpperCase()}`,
+        `${TALISMAN_EMOJI} ${talisman.name.toUpperCase()}`,
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> Đạo Hữu: <@${user.id}>`,
+          `${USER_EMOJI} Đạo Hữu: <@${user.id}>`,
           '',
           '**Hiệu Quả**',
           `**${talisman.effect}**`,
           '',
-          '<a:trangtrig18:1546068102817775626> **Cần**',
+          `${TALISMAN_EMOJI} **Cần**`,
           'Thượng Cổ Phù: **1**',
           `Hiện Có: **${quantity}**`,
           '',
@@ -264,11 +287,11 @@ export function buildTalismanResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> PHÙ LỰC CHƯA TIÊU TÁN',
+          `${TALISMAN_EMOJI} PHÙ LỰC CHƯA TIÊU TÁN`,
         )
         .setDescription(
           [
-            `<a:bang2:1546891483250954290> **${result.activeTalisman.name}** vẫn đang được kích hoạt.`,
+            `${TALISMAN_EMOJI} **${result.activeTalisman.name}** vẫn đang được kích hoạt.`,
             '',
             SEPARATOR,
             '',
@@ -292,16 +315,16 @@ export function buildTalismanResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> KHÔNG ĐỦ THƯỢNG CỔ PHÙ',
+          `${TALISMAN_EMOJI} KHÔNG ĐỦ THƯỢNG CỔ PHÙ`,
         )
         .setDescription(
           [
-            '<a:bang2:1546891483250954290> Đạo hữu hiện không có đủ Thượng Cổ Phù.',
+            'Đạo hữu hiện không có đủ Thượng Cổ Phù.',
             '',
             SEPARATOR,
             '',
-            '<a:trangtrig18:1546068102817775626> Cần: **1**',
-            `<a:trangtrig18:1546068102817775626> Hiện Có: **${result.available}**`,
+            `${TALISMAN_EMOJI} Cần: **1**`,
+            `${TALISMAN_EMOJI} Hiện Có: **${result.available}**`,
           ].join(
             '\n',
           ),
@@ -313,7 +336,7 @@ export function buildTalismanResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> KHÔNG THỂ KÍCH HOẠT',
+          `${TALISMAN_EMOJI} KHÔNG THỂ KÍCH HOẠT`,
         )
         .setDescription(
           'Thượng Cổ Phù không thể kích hoạt vào lúc này.',
@@ -324,7 +347,7 @@ export function buildTalismanResultEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> CỔ PHÙ KÍCH HOẠT <a:trangtrig3:1546040818261954610>',
+        `${TALISMAN_EMOJI} CỔ PHÙ KÍCH HOẠT`,
       )
       .setDescription(
         [
@@ -332,8 +355,8 @@ export function buildTalismanResultEmbed(
           '',
           SEPARATOR,
           '',
-          `<a:hamsterg2:1546057566209974292> Kích Hoạt: **${result.talisman.name}**`,
-          '<a:trangtrig18:1546068102817775626> Thượng Cổ Phù: **-1**',
+          `${TALISMAN_EMOJI} Kích Hoạt: **${result.talisman.name}**`,
+          `${TALISMAN_EMOJI} Thượng Cổ Phù: **-1**`,
           '',
           '**Hiệu Quả**',
           result.talisman.effect,
