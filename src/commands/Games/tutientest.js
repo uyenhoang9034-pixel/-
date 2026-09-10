@@ -23,24 +23,25 @@ import {
   buildAdventureV294BackRows,
 } from '../../services/cultivationAdventureV294UI.js';
 
+import {
+  buildAdventurePetUnknownEmbed,
+  buildAdventurePetUnknownRows,
+} from '../../services/cultivationAdventureV295UI.js';
+
 /**
  * =========================================================
  * TU TIÊN TEST · GM COMMAND
  * =========================================================
  *
- * Ép thẳng event để test.
+ * Dùng để ép event Thám Hiểm phục vụ test.
  *
- * KHÔNG:
- * - roll map
- * - chờ random Đào Hoa Cốc
- * - kiểm tra cooldown trước khi tạo event
+ * Không cần:
+ * - random map
+ * - random event
+ * - chờ cooldown
+ * - xóa Linh Thú đang sở hữu
  *
- * CÓ:
- * - dùng service event thật
- * - dùng UI thật
- * - button Merchant thật
- * - mua/rời Merchant thật
- * - reward Heavenly Fortune thật
+ * Gameplay bình thường không bị ảnh hưởng.
  */
 
 const TUTIEN_ADMIN_ROLE_ID =
@@ -51,7 +52,49 @@ const ADVENTURE_SESSION_PREFIX =
 
 /**
  * =========================================================
- * SESSION KEY
+ * PET IDS
+ * =========================================================
+ *
+ * Phải trùng ID trong cultivationPet.js.
+ */
+
+const TEST_PETS = {
+  pet_thanh_phong_linh_ho: {
+    id:
+      'pet_thanh_phong_linh_ho',
+
+    label:
+      'Thanh Phong Linh Hồ',
+  },
+
+  pet_xich_viem_hoa_dieu: {
+    id:
+      'pet_xich_viem_hoa_dieu',
+
+    label:
+      'Xích Viêm Hỏa Điểu',
+  },
+
+  pet_huyen_giap_linh_quy: {
+    id:
+      'pet_huyen_giap_linh_quy',
+
+    label:
+      'Huyền Giáp Linh Quy',
+  },
+
+  pet_thien_loi_bach_ho: {
+    id:
+      'pet_thien_loi_bach_ho',
+
+    label:
+      'Thiên Lôi Bạch Hổ',
+  },
+};
+
+/**
+ * =========================================================
+ * SESSION HELPERS
  * =========================================================
  */
 
@@ -62,45 +105,21 @@ function getAdventureSessionKey(
   return `${ADVENTURE_SESSION_PREFIX}${guildId}:${userId}`;
 }
 
-/**
- * =========================================================
- * CREATE FORCED ĐÀO HOA CỐC SESSION
- * =========================================================
- */
-
-async function createForcedPavilionSession(
+async function setAdventureSession(
   client,
   guildId,
   userId,
+  data,
 ) {
-  /**
-   * Dọn session cũ trước.
-   */
-  await clearAdventureV2Session(
-    client,
-    guildId,
-    userId,
-  );
-
   const now =
     Date.now();
 
-  /**
-   * Đây chính là format session
-   * cultivationAdventureV2 đang sử dụng.
-   */
   const session = {
     version:
       1,
 
     guildId,
     userId,
-
-    locationId:
-      'dao_hoa_coc',
-
-    state:
-      'location',
 
     monster:
       null,
@@ -110,6 +129,8 @@ async function createForcedPavilionSession(
 
     updatedAt:
       now,
+
+    ...data,
   };
 
   await client.db.set(
@@ -121,6 +142,90 @@ async function createForcedPavilionSession(
   );
 
   return session;
+}
+
+/**
+ * =========================================================
+ * FORCED PAVILION
+ * =========================================================
+ */
+
+async function createForcedPavilionSession(
+  client,
+  guildId,
+  userId,
+) {
+  await clearAdventureV2Session(
+    client,
+    guildId,
+    userId,
+  );
+
+  return setAdventureSession(
+    client,
+    guildId,
+    userId,
+    {
+      locationId:
+        'dao_hoa_coc',
+
+      state:
+        'location',
+    },
+  );
+}
+
+/**
+ * =========================================================
+ * FORCED PET
+ * =========================================================
+ *
+ * Không gọi startAdventurePetEncounter().
+ *
+ * Lý do:
+ * startAdventurePetEncounter() cố tình loại những pet
+ * người chơi đã sở hữu.
+ *
+ * GM test cần bỏ qua điều đó.
+ */
+
+async function createForcedPetSession(
+  client,
+  guildId,
+  userId,
+  petId,
+) {
+  await clearAdventureV2Session(
+    client,
+    guildId,
+    userId,
+  );
+
+  return setAdventureSession(
+    client,
+    guildId,
+    userId,
+    {
+      locationId:
+        'loi_vuc',
+
+      state:
+        'pet_encounter',
+
+      petEncounter: {
+        petId,
+
+        revealed:
+          false,
+
+        testMode:
+          true,
+
+        createdAt:
+          Date.now(),
+      },
+    },
+  );
 }
 
 /**
@@ -158,7 +263,7 @@ export default {
             .addChoices(
               {
                 name:
-                  '🛒 Thương Nhân Thần Bí',
+                  'Thương Nhân Thần Bí',
 
                 value:
                   'merchant',
@@ -166,18 +271,43 @@ export default {
 
               {
                 name:
-                  '✨ Thiên Đạo Cơ Duyên',
+                  'Thiên Đạo Cơ Duyên',
 
                 value:
                   'heavenly_fortune',
               },
-              {
-  name:
-    '🐾 Linh Thú Hiện Thế',
 
-  value:
-    'pet',
-},
+              {
+                name:
+                  'Thanh Phong Linh Hồ',
+
+                value:
+                  'pet_thanh_phong_linh_ho',
+              },
+
+              {
+                name:
+                  'Xích Viêm Hỏa Điểu',
+
+                value:
+                  'pet_xich_viem_hoa_dieu',
+              },
+
+              {
+                name:
+                  'Huyền Giáp Linh Quy',
+
+                value:
+                  'pet_huyen_giap_linh_quy',
+              },
+
+              {
+                name:
+                  'Thiên Lôi Bạch Hổ',
+
+                value:
+                  'pet_thien_loi_bach_ho',
+              },
             ),
       ),
 
@@ -226,7 +356,7 @@ export default {
     if (!hasAdminRole) {
       return interaction.reply({
         content:
-          '<a:angryg1:1541441195144773652> Bạn không có quyền sử dụng lệnh test Tiên Lộ.',
+          'Bạn không có quyền sử dụng lệnh test Tiên Lộ.',
 
         flags:
           MessageFlags.Ephemeral,
@@ -300,22 +430,12 @@ export default {
       event ===
       'merchant'
     ) {
-      /**
-       * Ép session thẳng vào:
-       *
-       * Đào Hoa Cốc
-       * -> state location
-       * -> pavilion
-       */
       await createForcedPavilionSession(
         client,
         guildId,
         userId,
       );
 
-      /**
-       * Gọi service Merchant thật.
-       */
       const result =
         await startAdventureMerchant(
           client,
@@ -364,20 +484,12 @@ export default {
       event ===
       'heavenly_fortune'
     ) {
-      /**
-       * Ép session Đào Hoa Cốc.
-       */
       await createForcedPavilionSession(
         client,
         guildId,
         userId,
       );
 
-      /**
-       * Gọi Thiên Đạo Cơ Duyên thật.
-       *
-       * Không cần random vì gọi trực tiếp service.
-       */
       const result =
         await resolveHeavenlyFortune(
           client,
@@ -416,96 +528,39 @@ export default {
     }
 
     /**
- * =====================================================
- * PET ENCOUNTER
- * =====================================================
- */
+     * =====================================================
+     * V2.9.5 · FORCED PET ENCOUNTER
+     * =====================================================
+     */
 
-if (
-  event ===
-  'pet'
-) {
-  /**
-   * Ép session thẳng vào Lôi Vực.
-   */
-  await clearAdventureV2Session(
-    client,
-    guildId,
-    userId,
-  );
+    const testPet =
+      TEST_PETS[event];
 
-  const now =
-    Date.now();
-
-  const session = {
-    version:
-      1,
-
-    guildId,
-    userId,
-
-    locationId:
-      'loi_vuc',
-
-    state:
-      'location',
-
-    monster:
-      null,
-
-    createdAt:
-      now,
-
-    updatedAt:
-      now,
-  };
-
-  await client.db.set(
-    `games:cultivation:adventureV2:${guildId}:${userId}`,
-    session,
-  );
-
-  const {
-    startAdventurePetEncounter,
-  } = await import(
-    '../../services/cultivationAdventureV295.js'
-  );
-
-  const {
-    buildAdventurePetUnknownEmbed,
-    buildAdventurePetUnknownRows,
-  } = await import(
-    '../../services/cultivationAdventureV295UI.js'
-  );
-
-  const result =
-    await startAdventurePetEncounter(
-      client,
-      guildId,
-      userId,
-    );
-
-  if (!result.ok) {
-    return interaction.reply({
-      content:
-        `❌ Không thể tạo Linh Thú test: \`${result.reason || 'unknown'}\``,
-
-      flags:
-        MessageFlags.Ephemeral,
-    });
-  }
-
-  return interaction.reply({
-    embeds: [
-      buildAdventurePetUnknownEmbed(),
-    ],
-
-    components:
-      buildAdventurePetUnknownRows(
+    if (testPet) {
+      /**
+       * Tạo thẳng encounter.
+       *
+       * Không kiểm tra ownedPets.
+       */
+      await createForcedPetSession(
+        client,
+        guildId,
         userId,
-      ),
-  });
-}
+        testPet.id,
+      );
+
+      return interaction.reply({
+        embeds: [
+          buildAdventurePetUnknownEmbed(),
+        ],
+
+        components:
+          buildAdventurePetUnknownRows(
+            userId,
+          ),
+      });
+    }
+
     /**
      * =====================================================
      * UNKNOWN
