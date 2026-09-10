@@ -14,9 +14,15 @@ breakthrough,
   useCultivationItem,
 } from '../../services/cultivationService.js';
 import {
+  comprehendAncientTablet,
+  disarmAncientChest,
   fightAdventureV2Monster,
   getAdventureV2CombatInfo,
   getAdventureV2Preview,
+  inspectAncientChest,
+  leaveAncientChest,
+  openAncientChest,
+  openAncientStoneGate,
   resolveAdventureV2Choice,
   retreatAdventureV2,
   startAdventureV2,
@@ -71,6 +77,23 @@ import {
   buildAdventureV2ResultRows,
   buildAdventureV2RetreatEmbed,
   buildAdventureV2RetreatRows,
+
+  buildAncientChestEmbed,
+  buildAncientChestInspectEmbed,
+  buildAncientChestInspectRows,
+  buildAncientChestLeaveEmbed,
+  buildAncientChestResultEmbed,
+  buildAncientChestRows,
+
+  buildAncientGateEmbed,
+  buildAncientGateFailedEmbed,
+  buildAncientGateRows,
+
+  buildAncientTabletEmbed,
+  buildAncientTabletRows,
+
+  buildChestDisarmEmbed,
+  buildChestDisarmRows,
 } from '../../services/cultivationAdventureV2UI.js';
 
 import {
@@ -489,7 +512,49 @@ if (
         ),
     });
   }
+/**
+ * ===============================================
+ * BIA ĐÁ / CỔ VĂN
+ * ===============================================
+ */
 
+if (
+  result.type ===
+  'stone_tablet'
+) {
+  return interaction.update({
+    embeds: [
+      buildAncientTabletEmbed(),
+    ],
+
+    components:
+      buildAncientTabletRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * ===============================================
+ * CỔNG ĐÁ
+ * ===============================================
+ */
+
+if (
+  result.type ===
+  'stone_gate'
+) {
+  return interaction.update({
+    embeds: [
+      buildAncientGateEmbed(),
+    ],
+
+    components:
+      buildAncientGateRows(
+        ownerId,
+      ),
+  });
+}
   /**
    * ===============================================
    * YÊU THÚ
@@ -719,6 +784,333 @@ if (
       buildAdventureV2RetreatRows(
         ownerId,
         result.success,
+      ),
+  });
+}
+    /**
+ * =====================================================
+ * V2.9.2 · THAM NGỘ CỔ VĂN
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_comprehend'
+) {
+  const result =
+    await comprehendAncientTablet(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAdventureV2ResultEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventureV2ResultRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.2 · PHÁ GIẢI CỔNG ĐÁ
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_gate_open'
+) {
+  const result =
+    await openAncientStoneGate(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  /**
+   * Phá phong ấn làm
+   * Yêu Thú thức tỉnh.
+   */
+
+  if (
+    result.type ===
+    'monster'
+  ) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2MonsterEmbed(
+          result,
+        ),
+      ],
+
+      components:
+        buildAdventureV2MonsterRows(
+          ownerId,
+        ),
+    });
+  }
+
+  /**
+   * Phản phệ.
+   */
+
+  if (
+    result.type ===
+    'gate_failed'
+  ) {
+    return interaction.update({
+      embeds: [
+        buildAncientGateFailedEmbed(
+          result,
+        ),
+      ],
+
+      components:
+        buildAdventureV2ResultRows(
+          ownerId,
+        ),
+    });
+  }
+
+  /**
+   * Cổng mở →
+   * Rương Cổ xuất hiện.
+   */
+
+  if (
+    result.type ===
+    'ancient_chest'
+  ) {
+    return interaction.update({
+      embeds: [
+        buildAncientChestEmbed(),
+      ],
+
+      components:
+        buildAncientChestRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAdventureV2ErrorEmbed(),
+    ],
+
+    components:
+      buildAdventureV2ErrorRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.2 · KIỂM TRA RƯƠNG
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_chest_inspect'
+) {
+  const result =
+    await inspectAncientChest(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAncientChestInspectEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAncientChestInspectRows(
+        ownerId,
+        result.trapped,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.2 · PHÁ GIẢI CẤM CHẾ RƯƠNG
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_chest_disarm'
+) {
+  const result =
+    await disarmAncientChest(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildChestDisarmEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildChestDisarmRows(
+        ownerId,
+        result.success,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.2 · MỞ RƯƠNG
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_chest_open'
+) {
+  const result =
+    await openAncientChest(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAncientChestResultEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildAdventureV2ResultRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.2 · BỎ QUA RƯƠNG
+ * =====================================================
+ */
+
+if (
+  action ===
+  'adventure_v2_chest_leave'
+) {
+  const result =
+    await leaveAncientChest(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildAncientChestLeaveEmbed(),
+    ],
+
+    components:
+      buildAdventureV2ResultRows(
+        ownerId,
       ),
   });
 }
