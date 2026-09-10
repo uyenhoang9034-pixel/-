@@ -14,6 +14,7 @@ breakthrough,
   useCultivationItem,
 } from '../../services/cultivationService.js';
 import {
+  clearAdventureV2Session,
   comprehendAncientTablet,
   disarmAncientChest,
   fightAdventureV2Monster,
@@ -1203,6 +1204,11 @@ if (
         ),
     });
   }
+  await clearAdventureV2Session(
+  client,
+  guildId,
+  userId,
+);
 
   const result =
     await enterSecretRealmFloor(
