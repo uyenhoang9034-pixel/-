@@ -1842,7 +1842,7 @@ export function buildLeaderboardEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '𝓣𝓲𝓮̂𝓷 𝓑𝓪̉𝓷𝓰',
+        '<a:trangtrig2:1546040703375904801> 𝓣𝓲𝓮̂𝓷 𝓑𝓪̉𝓷𝓰 <a:trangtrig3:1546040818261954610>',
       )
       .setDescription(
         lines.length > 0
