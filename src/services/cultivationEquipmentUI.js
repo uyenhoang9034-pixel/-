@@ -23,13 +23,37 @@ const SEPARATOR =
 
 const FORGE_BUTTON_EMOJI = {
   id:
-    '1546086548632506459',
+    CULTIVATION_CONFIG
+      .ui
+      .buttonEmojis
+      .forge,
 };
 
 const EQUIPMENT_BUTTON_EMOJI = {
   id:
-    '1546071877586391121',
+    CULTIVATION_CONFIG
+      .ui
+      .buttonEmojis
+      .equipment,
 };
+
+const USER_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .user;
+
+const ORE_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .ore;
+
+const FURNACE_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .furnace;
 
 function styleEmbed(
   embed,
@@ -81,10 +105,10 @@ export function buildForgeEmbed(
         ) => [
           `${item.emoji} **${item.name}**`,
           `Cần: **${item.ingredientAmount} Huyền Thiết**`,
-          `Tỷ lệ thành công: **${percent(
+          `Tỷ Lệ Thành Công: **${percent(
             item.successChance,
           )}**`,
-          `Hiệu quả: **${item.effect}**`,
+          `Hiệu Quả: **${item.effect}**`,
         ].join(
           '\n',
         ),
@@ -96,18 +120,18 @@ export function buildForgeEmbed(
   return styleEmbed(
     new EmbedBuilder()
       .setTitle(
-        'LUYỆN KHÍ PHƯỜNG · 炼器',
+        `${FURNACE_EMOJI} LUYỆN KHÍ PHƯỜNG · 炼器`,
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> **Đạo Hữu**: <@${user.id}>`,
+          `${USER_EMOJI} **Đạo Hữu**: <@${user.id}>`,
           '',
           SEPARATOR,
           '',
-          '<a:trangtrig8:1546047024334503997> **Khoáng Vật Hiện Có**',
+          `${ORE_EMOJI} **Khoáng Vật Hiện Có**`,
           `Huyền Thiết: **${ore}**`,
           '',
-          '<a:trangtrig18:1546068102817775626> **Pháp Khí Có Thể Luyện**',
+          '**Pháp Khí Có Thể Luyện**',
           '',
           equipmentLines,
         ].join(
@@ -217,16 +241,16 @@ export function buildForgeConfirmEmbed(
   return styleEmbed(
     new EmbedBuilder()
       .setTitle(
-        `LUYỆN ${equipment.name.toUpperCase()}`,
+        `${FURNACE_EMOJI} LUYỆN ${equipment.name.toUpperCase()}`,
       )
       .setDescription(
         [
           `${equipment.emoji} **${equipment.name}**`,
           '',
-          `<a:trangtrig8:1546047024334503997> **Huyền Thiết**: ${ore}`,
-          `<a:trangtrig8:1546047024334503997> **Cần**: ${equipment.ingredientAmount}`,
+          `${ORE_EMOJI} **Huyền Thiết**: ${ore}`,
+          `${ORE_EMOJI} **Cần**: ${equipment.ingredientAmount}`,
           '',
-          `<a:trangtrig19:1546068350030053406> **Tỷ Lệ Thành Công**: ${percent(
+          `**Tỷ Lệ Thành Công**: ${percent(
             equipment.successChance,
           )}`,
           '',
@@ -292,18 +316,18 @@ export function buildForgeResultEmbed(
     return styleEmbed(
       new EmbedBuilder()
         .setTitle(
-          'HUYỀN THIẾT KHÔNG ĐỦ',
+          `${FURNACE_EMOJI} HUYỀN THIẾT KHÔNG ĐỦ`,
         )
         .setDescription(
           [
-            '<a:angryg1:1541441195144773652> **KHÔNG THỂ KHAI LÒ**',
+            '**KHÔNG THỂ KHAI LÒ**',
             '',
-            '<a:bang2:1546891483250954290> Khoáng vật hiện có chưa đủ để luyện chế pháp khí.',
+            'Khoáng vật hiện có chưa đủ để luyện chế pháp khí.',
             '',
             SEPARATOR,
             '',
-            `<a:trangtrig8:1546047024334503997> **Hiện Có**: ${result.available}`,
-            `<a:trangtrig8:1546047024334503997> **Cần**: ${result.equipment.ingredientAmount}`,
+            `${ORE_EMOJI} **Hiện Có**: ${result.available}`,
+            `${ORE_EMOJI} **Cần**: ${result.equipment.ingredientAmount}`,
           ].join(
             '\n',
           ),
@@ -315,10 +339,10 @@ export function buildForgeResultEmbed(
     return styleEmbed(
       new EmbedBuilder()
         .setTitle(
-          'LUYỆN KHÍ KHÔNG THÀNH',
+          `${FURNACE_EMOJI} LUYỆN KHÍ KHÔNG THÀNH`,
         )
         .setDescription(
-          '<a:angryg1:1541441195144773652> Không thể tiến hành luyện khí.',
+          'Không thể tiến hành luyện khí.',
         ),
     );
   }
@@ -329,18 +353,16 @@ export function buildForgeResultEmbed(
     return styleEmbed(
       new EmbedBuilder()
         .setTitle(
-          'PHÁP KHÍ THÀNH HÌNH',
+          `${FURNACE_EMOJI} PHÁP KHÍ THÀNH HÌNH`,
         )
         .setDescription(
           [
-            '<a:trangtrig2:1546040703375904801> **PHÁP KHÍ THÀNH HÌNH** <a:trangtrig3:1546040818261954610>',
-            '',
             'Huyền thiết dưới linh hỏa dần ngưng tụ, pháp khí khẽ ngân trong động phủ.',
             '',
             SEPARATOR,
             '',
-            `<a:hamsterg2:1546057566209974292> **Nhận Được**: ${result.equipment.name}`,
-            `<a:trangtrig8:1546047024334503997> **Huyền Thiết**: -${result.consumed}`,
+            `${result.equipment.emoji} **Nhận Được**: ${result.equipment.name}`,
+            `${ORE_EMOJI} **Huyền Thiết**: -${result.consumed}`,
             '',
             `${result.equipment.emoji} **Hiệu Quả**`,
             result.equipment.effect,
@@ -356,17 +378,15 @@ export function buildForgeResultEmbed(
   return styleEmbed(
     new EmbedBuilder()
       .setTitle(
-        'LUYỆN KHÍ THẤT BẠI',
+        `${FURNACE_EMOJI} LUYỆN KHÍ THẤT BẠI`,
       )
       .setDescription(
         [
-          '<a:angryg1:1541441195144773652> **LUYỆN KHÍ THẤT BẠI**',
-          '',
-          '<a:bang2:1546891483250954290> Linh hỏa mất khống chế, huyền thiết vỡ vụn thành phế liệu.',
+          'Linh hỏa mất khống chế, huyền thiết vỡ vụn thành phế liệu.',
           '',
           SEPARATOR,
           '',
-          `<a:trangtrig8:1546047024334503997> **Huyền Thiết**: -${result.consumed}`,
+          `${ORE_EMOJI} **Huyền Thiết**: -${result.consumed}`,
           '',
           '*Luyện khí chi đạo, thất bại cũng là một lần lĩnh ngộ.*',
         ].join(
@@ -480,16 +500,16 @@ export function buildEquipmentEmbed(
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> **Đạo Hữu**: <@${user.id}>`,
+          `${USER_EMOJI} **Đạo Hữu**: <@${user.id}>`,
           '',
-          '<a:trangtrig18:1546068102817775626> **Pháp Khí Đang Trang Bị**',
+          '**Pháp Khí Đang Trang Bị**',
           equipped
             ? `${equipped.emoji} **${equipped.name}**`
             : '**Chưa Trang Bị**',
           '',
           SEPARATOR,
           '',
-          '<a:trangtrig18:1546068102817775626> **Pháp Khí Sở Hữu**',
+          '**Pháp Khí Sở Hữu**',
           ownedText,
         ].join(
           '\n',
@@ -591,7 +611,7 @@ export function buildEquipResultEmbed(
           'KHÔNG THỂ TRANG BỊ',
         )
         .setDescription(
-          '<a:angryg1:1541441195144773652> Đạo hữu chưa sở hữu Pháp Khí này.',
+          'Đạo hữu chưa sở hữu Pháp Khí này.',
         ),
     );
   }
@@ -603,8 +623,6 @@ export function buildEquipResultEmbed(
       )
       .setDescription(
         [
-          '<a:trangtrig2:1546040703375904801> **PHÁP KHÍ NHẬN CHỦ** <a:trangtrig3:1546040818261954610>',
-          '',
           `${result.equipment.emoji} Đã trang bị **${result.equipment.name}**`,
           '',
           SEPARATOR,
