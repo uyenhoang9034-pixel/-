@@ -14,34 +14,58 @@ import {
   getActivePet,
   getCultivationPet,
   getOwnedPets,
-  PET_EMOJI,
 } from './cultivationPet.js';
 
 const SEPARATOR =
   '꒷꒦︶꒷꒦︶ ๋ ࣭ ⭑꒷꒦';
 
+const USER_EMOJI =
+  CULTIVATION_CONFIG
+    .ui
+    .emojis
+    .user;
+
 const PET_BUTTON_EMOJI = {
   id:
-    '1546070976964333741',
+    CULTIVATION_CONFIG
+      .ui
+      .buttonEmojis
+      .pet,
+};
+
+const ADVENTURE_BUTTON_EMOJI = {
+  id:
+    CULTIVATION_CONFIG
+      .ui
+      .buttonEmojis
+      .adventure,
 };
 
 function applyStyle(
   embed,
 ) {
   embed.setColor(
-    CULTIVATION_CONFIG.ui.color,
+    CULTIVATION_CONFIG
+      .ui
+      .color,
   );
 
   embed.setFooter({
     text:
-      CULTIVATION_CONFIG.ui.footer,
+      CULTIVATION_CONFIG
+        .ui
+        .footer,
   });
 
   if (
-    CULTIVATION_CONFIG.ui.image
+    CULTIVATION_CONFIG
+      .ui
+      .image
   ) {
     embed.setImage(
-      CULTIVATION_CONFIG.ui.image,
+      CULTIVATION_CONFIG
+        .ui
+        .image,
     );
   }
 
@@ -82,7 +106,7 @@ export function buildPetEmbed(
                   : '';
 
               return [
-                `${PET_EMOJI} **${pet.name}**${mark}`,
+                `${pet.emoji} **${pet.name}**${mark}`,
                 `Phẩm Chất: **${pet.rarity}**`,
                 `Hiệu Quả: **${pet.effect}**`,
               ].join(
@@ -98,21 +122,22 @@ export function buildPetEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> LINH THÚ · 灵兽 <a:trangtrig3:1546040818261954610>',
+        'LINH THÚ · 灵兽',
       )
       .setDescription(
         [
-          `<a:catg11:1546058047393239151> **Đạo Hữu**: <@${user.id}>`,
+          `${USER_EMOJI} **Đạo Hữu**: <@${user.id}>`,
           '',
           SEPARATOR,
           '',
-          `${PET_EMOJI} **Linh Thú Đồng Hành**`,
+          active
+            ? `${active.emoji} **Linh Thú Đồng Hành**`
+            : '**Linh Thú Đồng Hành**',
           active
             ? `**${active.name}**`
             : '**Chưa Có**',
           '',
-          `${PET_EMOJI} **Linh Thú Đã Thu Phục**`,
-          `**${owned.length}**`,
+          `**Linh Thú Đã Thu Phục**: ${owned.length}`,
           '',
           SEPARATOR,
           '',
@@ -210,7 +235,7 @@ export function buildPetRows(
 
 /**
  * =========================================================
- * ENCOUNTER
+ * LINH THÚ HIỆN THẾ
  * =========================================================
  */
 
@@ -237,7 +262,7 @@ export function buildPetEncounterEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> LINH THÚ HIỆN THẾ <a:trangtrig3:1546040818261954610>',
+        'LINH THÚ HIỆN THẾ',
       )
       .setDescription(
         [
@@ -245,8 +270,9 @@ export function buildPetEncounterEmbed(
           '',
           SEPARATOR,
           '',
-          `${PET_EMOJI} Linh Thú: **${pet.name}**`,
+          `${pet.emoji} Linh Thú: **${pet.name}**`,
           `Phẩm Chất: **${pet.rarity}**`,
+          `Hiệu Quả: **${pet.effect}**`,
           '',
           `Tỷ Lệ Thu Phục: **${Math.round(
             pet.captureChance *
@@ -287,10 +313,9 @@ export function buildPetEncounterRows(
           .setLabel(
             'Bỏ Qua',
           )
-          .setEmoji({
-            id:
-              '1546072124270055464',
-          })
+          .setEmoji(
+            ADVENTURE_BUTTON_EMOJI,
+          )
           .setStyle(
             ButtonStyle.Secondary,
           ),
@@ -300,7 +325,7 @@ export function buildPetEncounterRows(
 
 /**
  * =========================================================
- * CAPTURE RESULT
+ * THU PHỤC RESULT
  * =========================================================
  */
 
@@ -318,11 +343,11 @@ export function buildPetCaptureResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          `${PET_EMOJI} LINH THÚ ĐÃ NHẬN CHỦ`,
+          'LINH THÚ ĐÃ NHẬN CHỦ',
         )
         .setDescription(
           [
-            `**${pet.name}** đã có duyên với đạo hữu từ trước.`,
+            `${pet.emoji} **${pet.name}** đã có duyên với đạo hữu từ trước.`,
             '',
             '*Linh thú khẽ cọ đầu vào tay đạo hữu, dường như vẫn còn nhớ khí tức quen thuộc.*',
           ].join(
@@ -338,7 +363,7 @@ export function buildPetCaptureResultEmbed(
     return applyStyle(
       new EmbedBuilder()
         .setTitle(
-          '<a:angryg1:1541441195144773652> LINH THÚ RỜI ĐI',
+          'LINH THÚ RỜI ĐI',
         )
         .setDescription(
           [
@@ -346,7 +371,9 @@ export function buildPetCaptureResultEmbed(
             '',
             SEPARATOR,
             '',
-            `${PET_EMOJI} **${pet?.name || 'Linh Thú'}**`,
+            pet
+              ? `${pet.emoji} **${pet.name}**`
+              : '**Linh Thú**',
             'Thu Phục: **Thất Bại**',
             '',
             '*Hữu duyên, ngày sau ắt sẽ gặp lại.*',
@@ -360,7 +387,7 @@ export function buildPetCaptureResultEmbed(
   return applyStyle(
     new EmbedBuilder()
       .setTitle(
-        '<a:trangtrig2:1546040703375904801> LINH THÚ NHẬN CHỦ <a:trangtrig3:1546040818261954610>',
+        'LINH THÚ NHẬN CHỦ',
       )
       .setDescription(
         [
@@ -368,14 +395,18 @@ export function buildPetCaptureResultEmbed(
           '',
           SEPARATOR,
           '',
-          `${PET_EMOJI} Thu Phục: **${pet.name}**`,
+          `${pet.emoji} Thu Phục: **${pet.name}**`,
           `Phẩm Chất: **${pet.rarity}**`,
           '',
           '**Hiệu Quả**',
           `**${pet.effect}**`,
           '',
           result.autoEquipped
-            ? `${PET_EMOJI} Đã tự động trở thành **Linh Thú Đồng Hành**.`
+            ? `${pet.emoji} **Linh Thú Đồng Hành**: ${pet.name}`
+            : null,
+          '',
+          result.autoEquipped
+            ? '*Linh thú đầu tiên sẽ tự động trở thành đồng hành.*'
             : null,
         ]
           .filter(
