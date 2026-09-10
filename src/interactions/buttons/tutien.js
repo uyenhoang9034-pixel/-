@@ -1161,6 +1161,367 @@ if (
   });
 }
     /**
+ * =====================================================
+ * V2.9.3 · TIẾN VÀO BÍ CẢNH
+ * =====================================================
+ */
+
+if (
+  action ===
+  'secret_realm_enter'
+) {
+  if (!extra) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  const started =
+    await startSecretRealm(
+      client,
+      guildId,
+      userId,
+      extra,
+    );
+
+  if (!started.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  const result =
+    await enterSecretRealmFloor(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildSecretRealmFloorEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildSecretRealmFloorRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.3 · LINH THÚ TRỢ CHIẾN
+ * =====================================================
+ */
+
+if (
+  action ===
+  'secret_realm_assist'
+) {
+  const result =
+    await getSecretRealmCombatInfo(
+      client,
+      guildId,
+      userId,
+      {
+        petAssist: true,
+      },
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildSecretRealmAssistEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildSecretRealmAssistRows(
+        ownerId,
+        Boolean(
+          result.pet,
+        ),
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.3 · GIAO CHIẾN
+ * =====================================================
+ */
+
+if (
+  action ===
+  'secret_realm_fight'
+) {
+  const result =
+    await fightSecretRealmMonster(
+      client,
+      guildId,
+      userId,
+      {
+        petAssist: false,
+      },
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  if (!result.success) {
+    return interaction.update({
+      embeds: [
+        buildSecretRealmFailEmbed(
+          result,
+        ),
+      ],
+
+      components:
+        buildSecretRealmBackRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildSecretRealmWinEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildSecretRealmWinRows(
+        ownerId,
+        result.completed,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.3 · LINH THÚ TRỢ CHIẾN + GIAO CHIẾN
+ * =====================================================
+ */
+
+if (
+  action ===
+  'secret_realm_fight_assist'
+) {
+  const result =
+    await fightSecretRealmMonster(
+      client,
+      guildId,
+      userId,
+      {
+        petAssist: true,
+      },
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  if (!result.success) {
+    return interaction.update({
+      embeds: [
+        buildSecretRealmFailEmbed(
+          result,
+        ),
+      ],
+
+      components:
+        buildSecretRealmBackRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildSecretRealmWinEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildSecretRealmWinRows(
+        ownerId,
+        result.completed,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.3 · ĐI TẦNG TIẾP THEO
+ * =====================================================
+ */
+
+if (
+  action ===
+  'secret_realm_continue'
+) {
+  const continued =
+    await continueSecretRealm(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!continued.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  const result =
+    await enterSecretRealmFloor(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildSecretRealmFloorEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildSecretRealmFloorRows(
+        ownerId,
+      ),
+  });
+}
+
+/**
+ * =====================================================
+ * V2.9.3 · RỜI BÍ CẢNH / THU CHIẾN LỢI PHẨM
+ * =====================================================
+ */
+
+if (
+  action ===
+  'secret_realm_leave'
+) {
+  const result =
+    await leaveSecretRealm(
+      client,
+      guildId,
+      userId,
+    );
+
+  if (!result.ok) {
+    return interaction.update({
+      embeds: [
+        buildAdventureV2ErrorEmbed(),
+      ],
+
+      components:
+        buildAdventureV2ErrorRows(
+          ownerId,
+        ),
+    });
+  }
+
+  return interaction.update({
+    embeds: [
+      buildSecretRealmExitEmbed(
+        result,
+      ),
+    ],
+
+    components:
+      buildSecretRealmBackRows(
+        ownerId,
+      ),
+  });
+}
+    /**
      * =====================================================
      * TÚI ĐỒ
      * =====================================================
