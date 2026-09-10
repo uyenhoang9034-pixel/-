@@ -61,7 +61,7 @@ const ADVENTURE_SESSION_PREFIX =
 const TEST_PETS = {
   pet_thanh_phong_linh_ho: {
     id:
-      'pet_thanh_phong_linh_ho',
+      'thanh_phong_linh_ho',
 
     label:
       'Thanh Phong Linh Hồ',
@@ -69,7 +69,7 @@ const TEST_PETS = {
 
   pet_xich_viem_hoa_dieu: {
     id:
-      'pet_xich_viem_hoa_dieu',
+      'xich_viem_hoa_dieu',
 
     label:
       'Xích Viêm Hỏa Điểu',
@@ -77,7 +77,7 @@ const TEST_PETS = {
 
   pet_huyen_giap_linh_quy: {
     id:
-      'pet_huyen_giap_linh_quy',
+      'huyen_giap_linh_quy',
 
     label:
       'Huyền Giáp Linh Quy',
@@ -85,7 +85,7 @@ const TEST_PETS = {
 
   pet_thien_loi_bach_ho: {
     id:
-      'pet_thien_loi_bach_ho',
+      'thien_loi_bach_ho',
 
     label:
       'Thiên Lôi Bạch Hổ',
