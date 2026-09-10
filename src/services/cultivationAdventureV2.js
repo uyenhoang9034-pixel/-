@@ -28,6 +28,9 @@ import {
 import {
   Mutex,
 } from '../utils/mutex.js';
+import {
+  rollSecretRealm,
+} from './cultivationSecretRealm.js';
 
 /**
  * =========================================================
@@ -1477,34 +1480,77 @@ if (
     location,
   };
 }
-      /**
-       * ===============================================
-       * TẤT CẢ HƯỚNG NGUY HIỂM
-       * ===============================================
-       */
+     /**
+ * ===============================================
+ * VỰC SÂU · CƠ HỘI XUẤT HIỆN BÍ CẢNH
+ * ===============================================
+ */
 
-      if (
-        [
-          'monster_path',
-          'abyss',
-          'deep_cave',
-        ].includes(
-          choiceId,
-        )
-      ) {
-        return createMonsterEncounter(
-          client,
-          session,
-          location,
-        );
-      }
+if (
+  choiceId ===
+  'abyss'
+) {
+  /**
+   * 35% phát hiện Bí Cảnh.
+   */
+  if (
+    Math.random() <
+    0.35
+  ) {
+    const secretRealm =
+      rollSecretRealm();
 
-      return {
-        ok: false,
-        reason:
-          'unhandled_choice',
-      };
-    },
+    session.state =
+      'secret_realm_found';
+
+    session.secretRealmId =
+      secretRealm.id;
+
+    session.updatedAt =
+      Date.now();
+
+    await saveSession(
+      client,
+      session,
+    );
+
+    return {
+      ok: true,
+
+      type:
+        'secret_realm',
+
+      secretRealm,
+
+      location,
+    };
+  }
+
+  return createMonsterEncounter(
+    client,
+    session,
+    location,
+  );
+}
+
+/**
+ * ===============================================
+ * HƯỚNG NGUY HIỂM KHÁC
+ * ===============================================
+ */
+
+if (
+  [
+    'monster_path',
+    'deep_cave',
+  ].includes(
+    choiceId,
+  )
+) {
+  return createMonsterEncounter(
+    client,
+    session,
+    location,
   );
 }
 
