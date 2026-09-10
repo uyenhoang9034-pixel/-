@@ -23,10 +23,6 @@ import {
 } from './cultivationTechnique.js';
 
 import {
-  clearAdventureV2Session,
-} from './cultivationAdventureV2.js';
-
-import {
   Mutex,
 } from '../utils/mutex.js';
 
@@ -426,11 +422,6 @@ export async function startSecretRealm(
     session,
   );
 
-  await clearAdventureV2Session(
-    client,
-    guildId,
-    userId,
-  );
 
   return {
     ok: true,
