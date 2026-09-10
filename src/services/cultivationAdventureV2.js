@@ -1167,71 +1167,114 @@ export async function resolveAdventureV2Choice(
        * ===============================================
        */
 
-      if (
-        choiceId ===
-        'pavilion'
-      ) {
-        const cultivation =
-          applyCultivationReward(
-            profile,
-            randomInt(
-              140,
-              240,
-            ),
-          );
+if (
+  choiceId ===
+  'pavilion'
+) {
+  const {
+    rollPavilionSpecialEvent,
+    startAdventureMerchant,
+    resolveHeavenlyFortune,
+  } = await import(
+    './cultivationAdventureV294.js'
+  );
 
-        const stones =
-          applyStoneReward(
-            profile,
-            randomInt(
-              20,
-              50,
-            ),
-          );
+  const specialEvent =
+    rollPavilionSpecialEvent();
 
-        profile.stats.fortunes =
-          Math.max(
-            0,
-            Number(
-              profile.stats
-                ?.fortunes,
-            ) || 0,
-          ) + 1;
+  /**
+   * 30% · THƯƠNG NHÂN THẦN BÍ
+   */
+  if (
+    specialEvent ===
+    'merchant'
+  ) {
+    return startAdventureMerchant(
+      client,
+      guildId,
+      userId,
+    );
+  }
 
-        const saved =
-          await finishAdventure(
-            client,
-            profile,
-          );
+  /**
+   * 8% · THIÊN ĐẠO CƠ DUYÊN
+   */
+  if (
+    specialEvent ===
+    'heavenly_fortune'
+  ) {
+    return resolveHeavenlyFortune(
+      client,
+      guildId,
+      userId,
+    );
+  }
 
-        await clearAdventureV2Session(
-          client,
-          guildId,
-          userId,
-        );
+  /**
+   * CỔ ĐÌNH BÌNH THƯỜNG
+   */
+  const cultivation =
+    applyCultivationReward(
+      profile,
+      randomInt(
+        140,
+        240,
+      ),
+    );
 
-        return {
-          ok: true,
-          type:
-            'pavilion',
+  const stones =
+    applyStoneReward(
+      profile,
+      randomInt(
+        20,
+        50,
+      ),
+    );
 
-          location,
+  profile.stats.fortunes =
+    Math.max(
+      0,
+      Number(
+        profile.stats
+          ?.fortunes,
+      ) || 0,
+    ) + 1;
 
-          cultivationDelta:
-            cultivation,
+  const saved =
+    await finishAdventure(
+      client,
+      profile,
+    );
 
-          stoneDelta:
-            stones,
+  await clearAdventureV2Session(
+    client,
+    guildId,
+    userId,
+  );
 
-          profile:
-            saved,
+  return {
+    ok: true,
 
-          required:
-            getCultivationRequired(
-              saved,
-            ),
-        };
-      }
+    type:
+      'pavilion',
+
+    location,
+
+    cultivationDelta:
+      cultivation,
+
+    stoneDelta:
+      stones,
+
+    profile:
+      saved,
+
+    required:
+      getCultivationRequired(
+        saved,
+      ),
+  };
+}
 
       /**
        * ===============================================
