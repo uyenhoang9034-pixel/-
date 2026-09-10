@@ -152,12 +152,9 @@ async function finishAdventure(
   profile,
 ) {
   profile.stats ??= {};
+  profile.cooldowns ??= {};
 
-  profile.cooldowns ??=
-    {};
-
-  profile.stats
-    .adventureCount =
+  profile.stats.adventureCount =
     Math.max(
       0,
       Number(
@@ -166,8 +163,7 @@ async function finishAdventure(
       ) || 0,
     ) + 1;
 
-  profile.cooldowns
-    .adventureAt =
+  profile.cooldowns.adventureAt =
     Date.now() +
     CULTIVATION_CONFIG
       .gameplay
@@ -198,9 +194,7 @@ function getMerchantStock() {
         };
       },
     )
-    .filter(
-      Boolean,
-    );
+    .filter(Boolean);
 }
 
 /**
@@ -210,7 +204,7 @@ function getMerchantStock() {
  *
  * 30% gặp Thương Nhân
  * 8% Thiên Đạo Cơ Duyên
- * còn lại dùng kết quả Cổ Đình bình thường.
+ * 62% Cổ Đình bình thường
  */
 
 export function rollPavilionSpecialEvent() {
@@ -245,6 +239,13 @@ export async function startAdventureMerchant(
   guildId,
   userId,
 ) {
+  /**
+   * Không lock ở đây.
+   *
+   * Hàm này được gọi từ resolveAdventureV2Choice(),
+   * nơi Mutex cultivation:user đã được giữ sẵn.
+   */
+
   const session =
     await getSession(
       client,
@@ -259,7 +260,6 @@ export async function startAdventureMerchant(
   ) {
     return {
       ok: false,
-
       reason:
         'session_expired',
     };
@@ -402,9 +402,7 @@ export async function buyAdventureMerchantItem(
             'not_enough_stones',
 
           profile,
-
           offer,
-
           stock,
         };
       }
@@ -419,11 +417,9 @@ export async function buyAdventureMerchantItem(
         1,
       );
 
-      profile.stats ??=
-        {};
+      profile.stats ??= {};
 
-      profile.stats
-        .itemsFound =
+      profile.stats.itemsFound =
         Math.max(
           0,
           Number(
@@ -432,8 +428,7 @@ export async function buyAdventureMerchantItem(
           ) || 0,
         ) + 1;
 
-      session.merchant
-        .purchased =
+      session.merchant.purchased =
         true;
 
       const saved =
@@ -549,170 +544,170 @@ export async function resolveHeavenlyFortune(
   guildId,
   userId,
 ) {
-  const lockKey =
-    `cultivation:${guildId}:${userId}`;
+  /**
+   * QUAN TRỌNG:
+   *
+   * Không dùng Mutex.runExclusive() ở đây.
+   *
+   * Hàm này được gọi trực tiếp từ
+   * resolveAdventureV2Choice(), mà hàm đó
+   * đã giữ cùng cultivation lock.
+   *
+   * Nếu lock thêm lần nữa sẽ deadlock.
+   */
 
-  return Mutex.runExclusive(
-    lockKey,
+  const session =
+    await getSession(
+      client,
+      guildId,
+      userId,
+    );
 
-    async () => {
-      const session =
-        await getSession(
-          client,
-          guildId,
-          userId,
-        );
+  if (
+    !session ||
+    session.state !==
+      'location'
+  ) {
+    return {
+      ok: false,
 
-      if (
-        !session ||
-        session.state !==
-          'location'
-      ) {
-        return {
-          ok: false,
+      reason:
+        'session_expired',
+    };
+  }
 
-          reason:
-            'session_expired',
-        };
-      }
+  const profile =
+    await getCultivationProfile(
+      client,
+      guildId,
+      userId,
+    );
 
-      const profile =
-        await getCultivationProfile(
-          client,
-          guildId,
-          userId,
-        );
+  const cultivation =
+    randomInt(
+      260,
+      460,
+    );
 
-      const cultivation =
-        randomInt(
-          260,
-          460,
-        );
+  const stones =
+    randomInt(
+      90,
+      170,
+    );
 
-      const stones =
-        randomInt(
-          90,
-          170,
-        );
+  profile.cultivation =
+    Math.max(
+      0,
+      Number(
+        profile
+          .cultivation,
+      ) || 0,
+    ) +
+    cultivation;
 
-      profile.cultivation =
-        Math.max(
-          0,
-          Number(
-            profile
-              .cultivation,
-          ) || 0,
-        ) +
-        cultivation;
+  profile.totalCultivation =
+    Math.max(
+      0,
+      Number(
+        profile
+          .totalCultivation,
+      ) || 0,
+    ) +
+    cultivation;
 
-      profile.totalCultivation =
-        Math.max(
-          0,
-          Number(
-            profile
-              .totalCultivation,
-          ) || 0,
-        ) +
-        cultivation;
+  profile.spiritStones =
+    Math.max(
+      0,
+      Number(
+        profile
+          .spiritStones,
+      ) || 0,
+    ) +
+    stones;
 
-      profile.spiritStones =
-        Math.max(
-          0,
-          Number(
-            profile
-              .spiritStones,
-          ) || 0,
-        ) +
-        stones;
+  profile.stats ??= {};
 
-      profile.stats ??=
-        {};
-
-      profile.stats
-        .greatFortunes =
-        Math.max(
-          0,
-          Number(
-            profile.stats
-              .greatFortunes,
-          ) || 0,
-        ) + 1;
-
-      let droppedItem =
-        null;
-
-      /**
-       * 35% nhận thêm Cổ Phù.
-       */
-      if (
-        Math.random() <
-        0.35 &&
-        CULTIVATION_ITEMS
-          .co_phu
-      ) {
-        addInventoryItem(
-          profile,
-          'co_phu',
-          1,
-        );
-
+  profile.stats.greatFortunes =
+    Math.max(
+      0,
+      Number(
         profile.stats
-          .itemsFound =
-          Math.max(
-            0,
-            Number(
-              profile.stats
-                .itemsFound,
-            ) || 0,
-          ) + 1;
+          .greatFortunes,
+      ) || 0,
+    ) + 1;
 
-        droppedItem = {
-          itemId:
-            'co_phu',
+  let droppedItem =
+    null;
 
-          item:
-            CULTIVATION_ITEMS
-              .co_phu,
+  /**
+   * 35% nhận thêm Cổ Phù.
+   */
+  if (
+    Math.random() <
+      0.35 &&
+    CULTIVATION_ITEMS
+      .co_phu
+  ) {
+    addInventoryItem(
+      profile,
+      'co_phu',
+      1,
+    );
 
-          quantity:
-            1,
-        };
-      }
+    profile.stats.itemsFound =
+      Math.max(
+        0,
+        Number(
+          profile.stats
+            .itemsFound,
+        ) || 0,
+      ) + 1;
 
-      const saved =
-        await finishAdventure(
-          client,
-          profile,
-        );
+    droppedItem = {
+      itemId:
+        'co_phu',
 
-      await clearSession(
-        client,
-        guildId,
-        userId,
-      );
+      item:
+        CULTIVATION_ITEMS
+          .co_phu,
 
-      return {
-        ok: true,
+      quantity:
+        1,
+    };
+  }
 
-        type:
-          'heavenly_fortune',
+  const saved =
+    await finishAdventure(
+      client,
+      profile,
+    );
 
-        cultivationDelta:
-          cultivation,
-
-        stoneDelta:
-          stones,
-
-        droppedItem,
-
-        profile:
-          saved,
-
-        required:
-          getCultivationRequired(
-            saved,
-          ),
-      };
-    },
+  await clearSession(
+    client,
+    guildId,
+    userId,
   );
+
+  return {
+    ok: true,
+
+    type:
+      'heavenly_fortune',
+
+    cultivationDelta:
+      cultivation,
+
+    stoneDelta:
+      stones,
+
+    droppedItem,
+
+    profile:
+      saved,
+
+    required:
+      getCultivationRequired(
+        saved,
+      ),
+  };
 }
