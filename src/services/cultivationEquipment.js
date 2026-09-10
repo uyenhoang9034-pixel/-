@@ -8,27 +8,25 @@ import {
   saveCultivationProfile,
 } from './cultivationService.js';
 
-/**
- * =========================================================
- * PHÁP KHÍ
- * =========================================================
- */
-
 export const CULTIVATION_EQUIPMENT = {
   thanh_phong_kiem: {
-    id: 'thanh_phong_kiem',
+    id:
+      'thanh_phong_kiem',
 
-    name: 'Thanh Phong Kiếm',
+    name:
+      'Thanh Phong Kiếm',
 
     emoji:
-      '<a:trangtrig36:1547237577231302737>',
+      '<a:ttkiem:1547448386771222619>',
 
     ingredientItemId:
       'huyen_thiet',
 
-    ingredientAmount: 3,
+    ingredientAmount:
+      3,
 
-    successChance: 0.9,
+    successChance:
+      0.9,
 
     effect:
       '+5% Tu Vi khi Tu Luyện',
@@ -41,20 +39,23 @@ export const CULTIVATION_EQUIPMENT = {
   },
 
   huyen_thiet_ho_phu: {
-    id: 'huyen_thiet_ho_phu',
+    id:
+      'huyen_thiet_ho_phu',
 
     name:
       'Huyền Thiết Hộ Phù',
 
     emoji:
-      '<a:trangtrig18:1546068102817775626>',
+      '<a:ttphu:1547448667630207086>',
 
     ingredientItemId:
       'huyen_thiet',
 
-    ingredientAmount: 5,
+    ingredientAmount:
+      5,
 
-    successChance: 0.75,
+    successChance:
+      0.75,
 
     effect:
       'Giảm 20% Tu Vi hao tổn khi Đột Phá thất bại',
@@ -67,20 +68,23 @@ export const CULTIVATION_EQUIPMENT = {
   },
 
   tu_linh_boi: {
-    id: 'tu_linh_boi',
+    id:
+      'tu_linh_boi',
 
     name:
       'Tụ Linh Bội',
 
     emoji:
-      '<a:trangtrig18:1546068102817775626>',
+      '<a:ttboi:1547448623946801152>',
 
     ingredientItemId:
       'huyen_thiet',
 
-    ingredientAmount: 8,
+    ingredientAmount:
+      8,
 
-    successChance: 0.55,
+    successChance:
+      0.55,
 
     effect:
       '+10% Linh Thạch nhận được',
@@ -92,12 +96,6 @@ export const CULTIVATION_EQUIPMENT = {
       0.1,
   },
 };
-
-/**
- * =========================================================
- * HELPERS
- * =========================================================
- */
 
 export function getEquipment(
   equipmentId,
@@ -238,9 +236,11 @@ export function getEquipmentBonus(
     return 0;
   }
 
-  return Number(
-    equipment.effectValue,
-  ) || 0;
+  return (
+    Number(
+      equipment.effectValue,
+    ) || 0
+  );
 }
 
 export function getOreQuantity(
@@ -254,12 +254,6 @@ export function getOreQuantity(
     ) || 0,
   );
 }
-
-/**
- * =========================================================
- * LOCK
- * =========================================================
- */
 
 const forgeLocks =
   new Map();
@@ -302,12 +296,6 @@ async function withForgeLock(
     release();
   }
 }
-
-/**
- * =========================================================
- * LUYỆN KHÍ
- * =========================================================
- */
 
 export async function forgeEquipment(
   client,
@@ -431,7 +419,8 @@ export async function forgeEquipment(
 
         remainingOre:
           saved.inventory
-            ?.huyen_thiet || 0,
+            ?.huyen_thiet ||
+          0,
 
         ownedQuantity:
           saved.equipment
@@ -445,12 +434,6 @@ export async function forgeEquipment(
     },
   );
 }
-
-/**
- * =========================================================
- * TRANG BỊ
- * =========================================================
- */
 
 export async function equipCultivationEquipment(
   client,
@@ -490,7 +473,9 @@ export async function equipCultivationEquipment(
         ],
     ) || 0;
 
-  if (owned <= 0) {
+  if (
+    owned <= 0
+  ) {
     return {
       ok: false,
       reason:
