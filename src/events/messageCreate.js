@@ -104,320 +104,160 @@ import {
   findMatchingAutoReacts,
 } from '../services/autoreact/autoreactService.js';
 
-/**
- * =========================================================
- * CONSTANTS
- * =========================================================
- */
-
-const MESSAGE_XP_RATE_LIMIT_ATTEMPTS =
-  12;
-
-const MESSAGE_XP_RATE_LIMIT_WINDOW_MS =
-  10000;
+const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
+const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
+const XIN_ITEM_THREAD_ID = '1547890357105070130';
 
 const WORD_CHAIN_EMOJIS = {
-  streak:
-    '<a:trangtrig29:1546385117478527016>',
-
-  correct:
-    '✅',
-
-  wrong:
-    '❌',
-
-  end:
-    '<a:animeg2:1546040159886114846>',
-
-  newRound:
-    '<a:animeg3:1546040346717331477>',
-
-  botSuccess:
-    '<a:trangtrig19:1546068350030053406>',
-
-  wrongWord:
-    '<a:capybarag1:1546058369566122015>',
-
-  wrongChain:
-    '<a:meongg14:1546092766826864661>',
+  streak: '<a:trangtrig29:1546385117478527016>',
+  correct: '✅',
+  wrong: '❌',
+  end: '<a:animeg2:1546040159886114846>',
+  newRound: '<a:animeg3:1546040346717331477>',
+  botSuccess: '<a:trangtrig19:1546068350030053406>',
+  wrongWord: '<a:capybarag1:1546058369566122015>',
+  wrongChain: '<a:meongg14:1546092766826864661>',
 };
 
-/**
- * =========================================================
- * MESSAGE CREATE
- * =========================================================
- */
-
 export default {
-  name:
-    Events.MessageCreate,
+  name: Events.MessageCreate,
 
-  async execute(
-    message,
-    client,
-  ) {
+  async execute(message, client) {
     try {
-      if (
-        message.author.bot ||
-        !message.guild
-      ) {
+      if (message.author.bot || !message.guild) {
         return;
       }
 
-      /**
-       * Auto React chạy độc lập.
-       */
-      await handleAutoReact(
-        message,
-        client,
-      );
+      await handleAutoReact(message, client);
 
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
       );
 
-      /**
-       * Counting.
-       */
-      const countingProcessed =
-        await handleCountingGame(
+      const countingProcessed = await handleCountingGame(
+        message,
+        client,
+      );
+
+      let wordChainProcessed = false;
+
+      if (!countingProcessed) {
+        wordChainProcessed = await handleWordChain(
+          message,
+          client,
+        );
+      }
+
+      if (!countingProcessed && !wordChainProcessed) {
+        const autoresponderProcessed = await handleAutoresponder(
           message,
           client,
         );
 
-      /**
-       * Word Chain.
-       */
-      let wordChainProcessed =
-        false;
-
-      if (
-        !countingProcessed
-      ) {
-        wordChainProcessed =
-          await handleWordChain(
-            message,
-            client,
-          );
-      }
-
-      /**
-       * Các tính năng chat bình thường.
-       */
-      if (
-        !countingProcessed &&
-        !wordChainProcessed
-      ) {
-        const autoresponderProcessed =
-          await handleAutoresponder(
-            message,
-            client,
-          );
-
-        if (
-          !autoresponderProcessed
-        ) {
-          await handlePrefixCommand(
-            message,
-            client,
-          );
+        if (!autoresponderProcessed) {
+          await handlePrefixCommand(message, client);
         }
 
-        await handleLeveling(
-          message,
-          client,
-        );
+        await handleLeveling(message, client);
       }
     } catch (error) {
-      logger.error(
-        'Error in messageCreate event:',
-        error,
-      );
+      logger.error('Error in messageCreate event:', error);
     }
   },
 };
 
-/**
- * =========================================================
- * PREFIX COMMAND
- * =========================================================
- */
-
-async function handlePrefixCommand(
-  message,
-  client,
-) {
+async function handlePrefixCommand(message, client) {
   try {
-    const guildConfig =
-      await getGuildConfig(
-        client,
-        message.guild.id,
-      );
+    const guildConfig = await getGuildConfig(
+      client,
+      message.guild.id,
+    );
 
-    const prefix =
-      guildConfig?.prefix ||
-      getCommandPrefix();
-
-    const parsed =
-      parsePrefixCommand(
-        message.content,
-        prefix,
-      );
+    const prefix = guildConfig?.prefix || getCommandPrefix();
+    const parsed = parsePrefixCommand(message.content, prefix);
 
     if (!parsed) {
       return;
     }
 
-    let {
-      commandName,
-      args,
-    } = parsed;
+    let { commandName, args } = parsed;
+    const musicPrefixShortcut = commandName.toLowerCase();
+    const MUSIC_PREFIX_SHORTCUTS = new Set([
+      'leave',
+      'pause',
+      'resume',
+      'skip',
+      'stop',
+      'volume',
+    ]);
 
-    const musicPrefixShortcut =
-      commandName.toLowerCase();
-
-    const MUSIC_PREFIX_SHORTCUTS =
-      new Set([
-        'leave',
-        'pause',
-        'resume',
-        'skip',
-        'stop',
-        'volume',
-      ]);
-
-    if (
-      MUSIC_PREFIX_SHORTCUTS.has(
-        musicPrefixShortcut,
-      )
-    ) {
-      commandName =
-        'music';
-
-      args = [
-        musicPrefixShortcut,
-        ...args,
-      ];
+    if (MUSIC_PREFIX_SHORTCUTS.has(musicPrefixShortcut)) {
+      commandName = 'music';
+      args = [musicPrefixShortcut, ...args];
     }
 
     logger.info(
       `Prefix command detected: ${commandName}, args: ${args.join(', ')}`,
     );
 
-    const resolvedCommandName =
-      resolveCommandAlias(
-        commandName,
-      );
-
-    const command =
-      client.commands.get(
-        resolvedCommandName,
-      );
+    const resolvedCommandName = resolveCommandAlias(commandName);
+    const command = client.commands.get(resolvedCommandName);
 
     if (!command) {
-      logger.warn(
-        `Command not found: ${resolvedCommandName}`,
-      );
-
+      logger.warn(`Command not found: ${resolvedCommandName}`);
       return;
     }
 
-    if (
-      isMaintenanceMode() &&
-      !isBotOwner(
-        message.author.id,
-      )
-    ) {
+    if (isMaintenanceMode() && !isBotOwner(message.author.id)) {
       await message.channel
         .send({
           embeds: [
             createEmbed({
-              title:
-                'Maintenance Mode',
-
-              description:
-                getBotMessage(
-                  'maintenanceMode',
-                ),
-
-              color:
-                'warning',
+              title: 'Maintenance Mode',
+              description: getBotMessage('maintenanceMode'),
+              color: 'warning',
             }),
           ],
         })
-        .catch(
-          () => {},
-        );
-
+        .catch(() => {});
       return;
     }
 
-    if (
-      !isCommandCategoryEnabled(
-        command.category,
-      )
-    ) {
+    if (!isCommandCategoryEnabled(command.category)) {
       await message.channel
         .send({
           embeds: [
             createEmbed({
-              title:
-                'Feature Disabled',
-
-              description:
-                getBotMessage(
-                  'commandDisabled',
-                ),
-
-              color:
-                'error',
+              title: 'Feature Disabled',
+              description: getBotMessage('commandDisabled'),
+              color: 'error',
             }),
           ],
         })
-        .catch(
-          () => {},
-        );
-
+        .catch(() => {});
       return;
     }
 
-    const restriction =
-      getPrefixRestriction(
-        command,
-        args,
-        resolveSubcommandAlias,
-      );
+    const restriction = getPrefixRestriction(
+      command,
+      args,
+      resolveSubcommandAlias,
+    );
 
-    if (
-      !supportsPrefixExecution(
-        command,
-      ) ||
-      restriction.blocked
-    ) {
-      if (
-        restriction.blocked &&
-        restriction.reason
-      ) {
+    if (!supportsPrefixExecution(command) || restriction.blocked) {
+      if (restriction.blocked && restriction.reason) {
         await message.channel
           .send({
             embeds: [
               createEmbed({
-                title:
-                  'Slash Command Only',
-
-                description:
-                  `${restriction.reason}\nUse \`/${resolvedCommandName}\` instead.`,
-
-                color:
-                  'info',
+                title: 'Slash Command Only',
+                description: `${restriction.reason}\nUse \`/${resolvedCommandName}\` instead.`,
+                color: 'info',
               }),
             ],
           })
-          .catch(
-            () => {},
-          );
+          .catch(() => {});
       }
-
       return;
     }
 
@@ -425,10 +265,7 @@ async function handlePrefixCommand(
       !(await isCommandEnabled(
         client,
         message.guild.id,
-        resolvePrefixAccessKey(
-          command.data,
-          args,
-        ),
+        resolvePrefixAccessKey(command.data, args),
         command.category,
       ))
     ) {
@@ -436,67 +273,43 @@ async function handlePrefixCommand(
         .send({
           embeds: [
             createEmbed({
-              title:
-                'Command Disabled',
-
-              description:
-                'This command has been disabled for this server.',
-
-              color:
-                'error',
+              title: 'Command Disabled',
+              description: 'This command has been disabled for this server.',
+              color: 'error',
             }),
           ],
         })
-        .catch(
-          () => {},
-        );
-
+        .catch(() => {});
       return;
     }
 
-    const mockInteractionForProtection =
-      {
-        guildId:
-          message.guild.id,
+    const mockInteractionForProtection = {
+      guildId: message.guild.id,
+      user: message.author,
+    };
 
-        user:
-          message.author,
-      };
+    const abuseProtection = await enforceAbuseProtection(
+      mockInteractionForProtection,
+      command,
+      resolvedCommandName,
+    );
 
-    const abuseProtection =
-      await enforceAbuseProtection(
-        mockInteractionForProtection,
-        command,
-        resolvedCommandName,
+    if (!abuseProtection.allowed) {
+      const formattedCooldown = formatCooldownDuration(
+        abuseProtection.remainingMs,
       );
-
-    if (
-      !abuseProtection.allowed
-    ) {
-      const formattedCooldown =
-        formatCooldownDuration(
-          abuseProtection.remainingMs,
-        );
 
       await message.channel
         .send({
           embeds: [
             createEmbed({
-              title:
-                'Command Cooldown',
-
-              description:
-                `This command is on cooldown. Please wait ${formattedCooldown} before trying again.`,
-
-              color:
-                'error',
+              title: 'Command Cooldown',
+              description: `This command is on cooldown. Please wait ${formattedCooldown} before trying again.`,
+              color: 'error',
             }),
           ],
         })
-        .catch(
-          () => {},
-        );
-
+        .catch(() => {});
       return;
     }
 
@@ -509,93 +322,47 @@ async function handlePrefixCommand(
       guildConfig,
     );
   } catch (error) {
-    logger.error(
-      'Error handling prefix command:',
-      error,
-    );
+    logger.error('Error handling prefix command:', error);
   }
 }
 
-/**
- * =========================================================
- * COUNTING GAME
- * =========================================================
- */
-
-async function handleCountingGame(
-  message,
-  client,
-) {
+async function handleCountingGame(message, client) {
   try {
-    const config =
-      await getCountingGameConfig(
-        client,
-        message.guild.id,
-      );
+    const config = await getCountingGameConfig(
+      client,
+      message.guild.id,
+    );
 
     if (
       !config.enabled ||
       !config.channelId ||
-      message.channel.id !==
-        config.channelId
+      message.channel.id !== config.channelId
     ) {
       return false;
     }
 
-    const content =
-      message.content.trim();
-
-    const validCount =
-      isValidCountingMessage(
-        content,
-        config,
-      );
-
+    const content = message.content.trim();
+    const validCount = isValidCountingMessage(content, config);
     const invalidAttempt =
-      !validCount ||
-      message.author.id ===
-        config.lastUserId;
+      !validCount || message.author.id === config.lastUserId;
 
-    if (
-      invalidAttempt
-    ) {
-      await message.delete()
-        .catch(
-          () => {},
-        );
+    if (invalidAttempt) {
+      await message.delete().catch(() => {});
 
-      await saveCountingGameConfig(
-        client,
-        message.guild.id,
-        {
-          ...config,
+      await saveCountingGameConfig(client, message.guild.id, {
+        ...config,
+        nextNumber: 1,
+        lastUserId: null,
+        currentStreak: 0,
+      });
 
-          nextNumber:
-            1,
-
-          lastUserId:
-            null,
-
-          currentStreak:
-            0,
-        },
+      const failureMessage = await message.channel.send(
+        `❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`,
       );
 
-      const failureMessage =
-        await message.channel.send(
-          `❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`,
-        );
-
-      setTimeout(
-        () => {
-          failureMessage
-            .delete()
-            .catch(
-              () => {},
-            );
-        },
-        10000,
-      );
+      setTimeout(() => {
+        failureMessage.delete().catch(() => {});
+      }, 10000);
 
       return true;
     }
@@ -608,64 +375,35 @@ async function handleCountingGame(
 
     return true;
   } catch (error) {
-    logger.error(
-      'Error handling counting game:',
-      error,
-    );
-
+    logger.error('Error handling counting game:', error);
     return false;
   }
 }
 
-/**
- * =========================================================
- * WORD CHAIN
- * =========================================================
- */
-
-async function handleWordChain(
-  message,
-  client,
-) {
+async function handleWordChain(message, client) {
   try {
-    const mode =
-      getWordChainModeForChannel(
-        message.channel.id,
-      );
+    const mode = getWordChainModeForChannel(message.channel.id);
 
     if (!mode) {
       return false;
     }
 
-    const config =
-      await getWordChainConfig(
-        client,
-        message.guild.id,
-      );
+    const config = await getWordChainConfig(
+      client,
+      message.guild.id,
+    );
+    const game = getWordChainGame(config, mode);
 
-    const game =
-      getWordChainGame(
-        config,
-        mode,
-      );
-
-    if (
-      !config.enabled ||
-      !game.enabled
-    ) {
+    if (!config.enabled || !game.enabled) {
       return false;
     }
 
-    const content =
-      message.content.trim();
+    const content = message.content.trim();
 
     if (!content) {
       return false;
     }
 
-    /**
-     * Không xử lý slash / prefix.
-     */
     if (
       content.startsWith('/') ||
       content.startsWith('!') ||
@@ -674,98 +412,47 @@ async function handleWordChain(
       return false;
     }
 
-    const normalized =
-      normalizeWord(
-        content,
-      );
+    const normalized = normalizeWord(content);
 
     if (!normalized) {
       return false;
     }
 
-    const parts =
-      normalized
-        .split(/\s+/)
-        .filter(Boolean);
+    const parts = normalized.split(/\s+/).filter(Boolean);
 
-    /**
-     * Chỉ nhận đúng 2 tiếng.
-     */
     if (
       parts.length !== 2 ||
-      !parts.every(
-        part =>
-          /^\p{L}+$/u.test(
-            part,
-          ),
-      )
+      !parts.every(part => /^\p{L}+$/u.test(part))
     ) {
       return false;
     }
 
-    const needed =
-      getLastSyllable(
-        game.currentWord,
-      );
+    const needed = getLastSyllable(game.currentWord);
 
-    /**
-     * =====================================================
-     * PVP — KHÔNG ĐƯỢC NỐI 2 LƯỢT LIÊN TIẾP
-     * =====================================================
-     */
-
-    if (
-      mode === 'pvp' &&
-      game.lastUserId ===
-        message.author.id
-    ) {
+    if (mode === 'pvp' && game.lastUserId === message.author.id) {
       await recordUserFailure(
         client,
         message.guild.id,
         message.author.id,
         mode,
       );
+      await message.react(WORD_CHAIN_EMOJIS.wrong).catch(() => {});
 
-      await message.react(
-        WORD_CHAIN_EMOJIS.wrong,
-      ).catch(
-        () => {},
-      );
-
-      const warnMsg =
-        await message.reply(
+      const warnMsg = await message
+        .reply(
           `Bạn đã sử dụng một từ không khớp với lượt chơi. Hãy để người chơi khác nối tiếp từ **${needed}**! ${WORD_CHAIN_EMOJIS.wrongChain}`,
-        ).catch(
-          () => null,
-        );
+        )
+        .catch(() => null);
 
       if (warnMsg) {
-        setTimeout(
-          () =>
-            warnMsg
-              .delete()
-              .catch(
-                () => {},
-              ),
-          6000,
-        );
+        setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
       }
-
       return true;
     }
-
-    /**
-     * =====================================================
-     * CHECK CHAIN
-     * =====================================================
-     */
 
     if (
       game.currentWord &&
-      !canChain(
-        game.currentWord,
-        normalized,
-      )
+      !canChain(game.currentWord, normalized)
     ) {
       await recordUserFailure(
         client,
@@ -773,212 +460,96 @@ async function handleWordChain(
         message.author.id,
         mode,
       );
+      await message.react(WORD_CHAIN_EMOJIS.wrong).catch(() => {});
 
-      await message.react(
-        WORD_CHAIN_EMOJIS.wrong,
-      ).catch(
-        () => {},
-      );
-
-      const warnMsg =
-        await message.reply(
+      const warnMsg = await message
+        .reply(
           `Bạn đã sử dụng một từ không khớp với từ trước đó. Bạn cần bắt đầu bằng **${needed}**! ${WORD_CHAIN_EMOJIS.wrongChain}`,
-        ).catch(
-          () => null,
-        );
+        )
+        .catch(() => null);
 
       if (warnMsg) {
-        setTimeout(
-          () =>
-            warnMsg
-              .delete()
-              .catch(
-                () => {},
-              ),
-          6000,
-        );
+        setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
       }
-
       return true;
     }
 
-    /**
-     * =====================================================
-     * CHECK USED WORD
-     * =====================================================
-     */
+    const usedWords = game.usedWords || [];
 
-    const usedWords =
-      game.usedWords ||
-      [];
-
-    if (
-      usedWords.includes(
-        normalized,
-      )
-    ) {
+    if (usedWords.includes(normalized)) {
       await recordUserFailure(
         client,
         message.guild.id,
         message.author.id,
         mode,
       );
+      await message.react(WORD_CHAIN_EMOJIS.wrong).catch(() => {});
 
-      await message.react(
-        WORD_CHAIN_EMOJIS.wrong,
-      ).catch(
-        () => {},
-      );
-
-      const warnMsg =
-        await message.reply(
+      const warnMsg = await message
+        .reply(
           `Bạn đã sử dụng từ này rồi. Hãy bắt đầu một từ mới với **${needed}**! ${WORD_CHAIN_EMOJIS.wrongWord}`,
-        ).catch(
-          () => null,
-        );
+        )
+        .catch(() => null);
 
       if (warnMsg) {
-        setTimeout(
-          () =>
-            warnMsg
-              .delete()
-              .catch(
-                () => {},
-              ),
-          6000,
-        );
+        setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
       }
-
       return true;
     }
 
-    /**
-     * =====================================================
-     * VALIDATE WORD
-     * =====================================================
-     *
-     * LOCAL JSON
-     *      ↓
-     * ONLINE FALLBACK
-     */
-
-    const validUserWord =
-      await isValidWordWithFallback(
-        client,
-        normalized,
-      );
-
-    if (
-      !validUserWord
-    ) {
-      await recordUserFailure(
-        client,
-        message.guild.id,
-        message.author.id,
-        mode,
-      );
-
-      await message.react(
-        WORD_CHAIN_EMOJIS.wrong,
-      ).catch(
-        () => {},
-      );
-
-      const warnMsg =
-        await message.reply(
-          `Từ này không hợp lệ. Hãy bắt đầu một từ mới với **${needed}**! ${WORD_CHAIN_EMOJIS.wrongWord}`,
-        ).catch(
-          () => null,
-        );
-
-      if (warnMsg) {
-        setTimeout(
-          () =>
-            warnMsg
-              .delete()
-              .catch(
-                () => {},
-              ),
-          6000,
-        );
-      }
-
-      return true;
-    }
-
-    /**
-     * =====================================================
-     * USER SUCCESS
-     * =====================================================
-     */
-
-    const afterUserSuccess =
-      await recordUserSuccess(
-        client,
-        message.guild.id,
-        message.author.id,
-        normalized,
-        mode,
-      );
-
-    if (
-      !afterUserSuccess
-        ?.__wordChainAccepted
-    ) {
-      return true;
-    }
-
-    await message.react(
-      WORD_CHAIN_EMOJIS.correct,
-    ).catch(
-      () => {},
+    const validUserWord = await isValidWordWithFallback(
+      client,
+      normalized,
     );
 
-    /**
-     * =====================================================
-     * PVP
-     * =====================================================
-     */
+    if (!validUserWord) {
+      await recordUserFailure(
+        client,
+        message.guild.id,
+        message.author.id,
+        mode,
+      );
+      await message.react(WORD_CHAIN_EMOJIS.wrong).catch(() => {});
 
-    if (
-      mode ===
-      'pvp'
-    ) {
-      /**
-       * Kiểm tra xem còn từ nối tiếp không.
-       *
-       * JSON trước.
-       * Online sau.
-       */
+      const warnMsg = await message
+        .reply(
+          `Từ này không hợp lệ. Hãy bắt đầu một từ mới với **${needed}**! ${WORD_CHAIN_EMOJIS.wrongWord}`,
+        )
+        .catch(() => null);
 
-      const nextWord =
-        await findBotNextWordWithFallback(
-          client,
-          normalized,
-          [
-            ...usedWords,
-            normalized,
-          ],
-        );
+      if (warnMsg) {
+        setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
+      }
+      return true;
+    }
 
-      /**
-       * Không còn từ ở cả local lẫn online.
-       */
+    const afterUserSuccess = await recordUserSuccess(
+      client,
+      message.guild.id,
+      message.author.id,
+      normalized,
+      mode,
+    );
+
+    if (!afterUserSuccess?.__wordChainAccepted) {
+      return true;
+    }
+
+    await message.react(WORD_CHAIN_EMOJIS.correct).catch(() => {});
+
+    if (mode === 'pvp') {
+      const nextWord = await findBotNextWordWithFallback(
+        client,
+        normalized,
+        [...usedWords, normalized],
+      );
+
       if (!nextWord) {
-        const endedStreak =
-          Number(
-            afterUserSuccess
-              .games
-              ?.pvp
-              ?.currentStreak ||
-              0,
-          );
-
-        const finalWord =
-          normalized;
-
-        const nextStart =
-          getRandomStartWord();
+        const endedStreak = Number(
+          afterUserSuccess.games?.pvp?.currentStreak || 0,
+        );
+        const finalWord = normalized;
+        const nextStart = getRandomStartWord();
 
         await recordBreak(
           client,
@@ -991,66 +562,30 @@ async function handleWordChain(
           .send(
             [
               `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
-
               `${WORD_CHAIN_EMOJIS.newRound} Lượt PvP mới đã bắt đầu với từ **${nextStart}**!`,
             ].join('\n'),
           )
-          .catch(
-            () => {},
-          );
+          .catch(() => {});
       }
 
       return true;
     }
 
-    /**
-     * =====================================================
-     * PVE
-     * =====================================================
-     */
+    const updatedUsedWords = [...usedWords, normalized];
+    const botWord = await findBotNextWordWithFallback(
+      client,
+      normalized,
+      updatedUsedWords,
+    );
 
-    const updatedUsedWords =
-      [
-        ...usedWords,
-        normalized,
-      ];
-
-    /**
-     * Bot tìm từ:
-     *
-     * JSON
-     *  ↓
-     * ONLINE
-     */
-
-    const botWord =
-      await findBotNextWordWithFallback(
-        client,
-        normalized,
-        updatedUsedWords,
-      );
-
-    /**
-     * Không còn từ ở local lẫn online.
-     */
     if (!botWord) {
-      const endedStreak =
-        Number(
-          afterUserSuccess
-            .games
-            ?.bot
-            ?.personalStreaks
-            ?.[
-              message.author.id
-            ] ||
-            0,
-        );
-
-      const finalWord =
-        normalized;
-
-      const nextStart =
-        getRandomStartWord();
+      const endedStreak = Number(
+        afterUserSuccess.games?.bot?.personalStreaks?.[
+          message.author.id
+        ] || 0,
+      );
+      const finalWord = normalized;
+      const nextStart = getRandomStartWord();
 
       await recordBreak(
         client,
@@ -1063,301 +598,155 @@ async function handleWordChain(
         .send(
           [
             `${WORD_CHAIN_EMOJIS.end} Quá siêu! Nối từ đã kết thúc sau chuỗi **${endedStreak}** với **${finalWord}** là từ cuối cùng.`,
-
             `${WORD_CHAIN_EMOJIS.newRound} Lượt PvE mới đã bắt đầu với từ **${nextStart}**!`,
           ].join('\n'),
         )
-        .catch(
-          () => {},
-        );
+        .catch(() => {});
 
       return true;
     }
 
-    /**
-     * =====================================================
-     * BOT RESPONSE DELAY
-     * =====================================================
-     */
+    setTimeout(async () => {
+      try {
+        const latestConfig = await getWordChainConfig(
+          client,
+          message.guild.id,
+        );
+        const latestGame = getWordChainGame(latestConfig, 'bot');
 
-    setTimeout(
-      async () => {
-        try {
-          const latestConfig =
-            await getWordChainConfig(
-              client,
-              message.guild.id,
-            );
+        if (
+          !latestConfig.enabled ||
+          !latestGame.enabled ||
+          latestGame.currentWord !== normalized
+        ) {
+          return;
+        }
 
-          const latestGame =
-            getWordChainGame(
-              latestConfig,
-              'bot',
-            );
+        const validBotWord = await isValidWordWithFallback(
+          client,
+          botWord,
+        );
 
-          /**
-           * Game đã thay đổi trong lúc bot chờ.
-           */
-          if (
-            !latestConfig.enabled ||
-            !latestGame.enabled ||
-            latestGame.currentWord !==
-              normalized
-          ) {
-            return;
-          }
+        if (!validBotWord) {
+          return;
+        }
 
-          /**
-           * =================================================
-           * VALIDATE BOT WORD
-           * =================================================
-           *
-           * Nếu botWord lấy từ online thì
-           * cũng phải được chấp nhận.
-           */
+        const latestUsedWords = latestGame.usedWords || [];
 
-          const validBotWord =
-            await isValidWordWithFallback(
-              client,
-              botWord,
-            );
+        if (latestUsedWords.includes(botWord)) {
+          return;
+        }
 
-          if (
-            !validBotWord
-          ) {
-            return;
-          }
+        await recordBotSuccess(
+          client,
+          message.guild.id,
+          botWord,
+          'bot',
+        );
 
-          const latestUsedWords =
-            latestGame.usedWords ||
-            [];
+        const finalConfig = await getWordChainConfig(
+          client,
+          message.guild.id,
+        );
+        const finalGame = getWordChainGame(finalConfig, 'bot');
+        const personalStreak = Number(
+          finalGame.personalStreaks?.[message.author.id] || 0,
+        );
 
-          if (
-            latestUsedWords.includes(
-              botWord,
-            )
-          ) {
-            return;
-          }
+        await message.channel
+          .send(
+            [
+              `${WORD_CHAIN_EMOJIS.botSuccess} **${botWord}**`,
+              `${WORD_CHAIN_EMOJIS.streak} <@${message.author.id}> — Chuỗi hiện tại: **${personalStreak}**!`,
+              `${WORD_CHAIN_EMOJIS.newRound} Tiếng tiếp theo: **${getLastSyllable(botWord)}**`,
+            ].join('\n'),
+          )
+          .catch(() => {});
 
-          /**
-           * Save bot word.
-           */
+        const afterBotConfig = await getWordChainConfig(
+          client,
+          message.guild.id,
+        );
+        const afterBotGame = getWordChainGame(afterBotConfig, 'bot');
+        const nextPossibleWord = await findBotNextWordWithFallback(
+          client,
+          afterBotGame.currentWord,
+          afterBotGame.usedWords || [],
+        );
 
-          await recordBotSuccess(
+        if (!nextPossibleWord) {
+          const nextStart = getRandomStartWord();
+
+          await recordBreak(
             client,
             message.guild.id,
-            botWord,
+            nextStart,
             'bot',
           );
-
-          /**
-           * Get final state.
-           */
-
-          const finalConfig =
-            await getWordChainConfig(
-              client,
-              message.guild.id,
-            );
-
-          const finalGame =
-            getWordChainGame(
-              finalConfig,
-              'bot',
-            );
-
-          const personalStreak =
-            Number(
-              finalGame
-                .personalStreaks
-                ?.[
-                  message.author.id
-                ] ||
-                0,
-            );
-
-          /**
-           * Send bot response.
-           */
 
           await message.channel
             .send(
               [
-                `${WORD_CHAIN_EMOJIS.botSuccess} **${botWord}**`,
-
-                `${WORD_CHAIN_EMOJIS.streak} <@${message.author.id}> — Chuỗi hiện tại: **${personalStreak}**!`,
-
-                `${WORD_CHAIN_EMOJIS.newRound} Tiếng tiếp theo: **${getLastSyllable(botWord)}**`,
+                `${WORD_CHAIN_EMOJIS.end} Không còn từ phù hợp để nối tiếp **${botWord}**.`,
+                `${WORD_CHAIN_EMOJIS.newRound} Lượt PvE mới đã bắt đầu với từ **${nextStart}**!`,
               ].join('\n'),
             )
-            .catch(
-              () => {},
-            );
-
-          /**
-           * =================================================
-           * DEAD-END CHECK
-           * =================================================
-           *
-           * JSON trước.
-           * Online sau.
-           */
-
-          const afterBotConfig =
-            await getWordChainConfig(
-              client,
-              message.guild.id,
-            );
-
-          const afterBotGame =
-            getWordChainGame(
-              afterBotConfig,
-              'bot',
-            );
-
-          const nextPossibleWord =
-            await findBotNextWordWithFallback(
-              client,
-              afterBotGame.currentWord,
-              afterBotGame.usedWords ||
-                [],
-            );
-
-          /**
-           * Chỉ reset nếu cả local
-           * lẫn online đều không còn từ.
-           */
-
-          if (
-            !nextPossibleWord
-          ) {
-            const nextStart =
-              getRandomStartWord();
-
-            await recordBreak(
-              client,
-              message.guild.id,
-              nextStart,
-              'bot',
-            );
-
-            await message.channel
-              .send(
-                [
-                  `${WORD_CHAIN_EMOJIS.end} Không còn từ phù hợp để nối tiếp **${botWord}**.`,
-
-                  `${WORD_CHAIN_EMOJIS.newRound} Lượt PvE mới đã bắt đầu với từ **${nextStart}**!`,
-                ].join('\n'),
-              )
-              .catch(
-                () => {},
-              );
-          }
-        } catch (botErr) {
-          logger.error(
-            'Error sending bot response in word chain:',
-            botErr,
-          );
+            .catch(() => {});
         }
-      },
-      1000,
-    );
+      } catch (botErr) {
+        logger.error(
+          'Error sending bot response in word chain:',
+          botErr,
+        );
+      }
+    }, 1000);
 
     return true;
   } catch (error) {
-    logger.error(
-      'Error handling word chain:',
-      error,
-    );
-
+    logger.error('Error handling word chain:', error);
     return false;
   }
 }
 
-/**
- * =========================================================
- * LEVELING
- * =========================================================
- */
-
-async function handleLeveling(
-  message,
-  client,
-) {
+async function handleLeveling(message, client) {
   try {
-    const rateLimitKey =
-      `xp-event:${message.guild.id}:${message.author.id}`;
-
-    const canProcess =
-      await checkRateLimit(
-        rateLimitKey,
-        MESSAGE_XP_RATE_LIMIT_ATTEMPTS,
-        MESSAGE_XP_RATE_LIMIT_WINDOW_MS,
-      );
+    const rateLimitKey = `xp-event:${message.guild.id}:${message.author.id}`;
+    const canProcess = await checkRateLimit(
+      rateLimitKey,
+      MESSAGE_XP_RATE_LIMIT_ATTEMPTS,
+      MESSAGE_XP_RATE_LIMIT_WINDOW_MS,
+    );
 
     if (!canProcess) {
       return;
     }
 
-    const levelingConfig =
-      await getLevelingConfig(
-        client,
-        message.guild.id,
-      );
+    const levelingConfig = await getLevelingConfig(
+      client,
+      message.guild.id,
+    );
 
-    if (
-      !levelingConfig
-        ?.enabled
-    ) {
+    if (!levelingConfig?.enabled) {
       return;
     }
 
-    if (
-      message.member
-        ?.roles
-        ?.cache
-        ?.has(
-          PRISON_ROLE_ID,
-        )
-    ) {
+    if (message.member?.roles?.cache?.has(PRISON_ROLE_ID)) {
       return;
     }
 
-    if (
-      levelingConfig
-        .ignoredChannels
-        ?.includes(
-          message.channel.id,
-        )
-    ) {
+    if (levelingConfig.ignoredChannels?.includes(message.channel.id)) {
       return;
     }
 
-    if (
-      levelingConfig
-        .ignoredRoles
-        ?.length >
-      0
-    ) {
-      const member =
-        await message.guild.members
-          .fetch(
-            message.author.id,
-          )
-          .catch(
-            () => null,
-          );
+    if (levelingConfig.ignoredRoles?.length > 0) {
+      const member = await message.guild.members
+        .fetch(message.author.id)
+        .catch(() => null);
 
       if (
         member &&
-        member.roles.cache.some(
-          role =>
-            levelingConfig
-              .ignoredRoles
-              .includes(
-                role.id,
-              ),
+        member.roles.cache.some(role =>
+          levelingConfig.ignoredRoles.includes(role.id),
         )
       ) {
         return;
@@ -1365,174 +754,104 @@ async function handleLeveling(
     }
 
     if (
-      levelingConfig
-        .blacklistedUsers
-        ?.includes(
-          message.author.id,
-        )
+      levelingConfig.blacklistedUsers?.includes(message.author.id)
     ) {
       return;
     }
 
-    if (
-      !message.content ||
-      message.content
-        .trim()
-        .length ===
-        0
-    ) {
+    if (!message.content || message.content.trim().length === 0) {
       return;
     }
 
-    const userData =
-      await getUserLevelData(
-        client,
-        message.guild.id,
-        message.author.id,
-      );
+    const userData = await getUserLevelData(
+      client,
+      message.guild.id,
+      message.author.id,
+    );
 
-    const cooldownTime =
-      levelingConfig
-        .xpCooldown ||
-      60;
+    const cooldownTime = levelingConfig.xpCooldown || 60;
+    const now = Date.now();
+    const timeSinceLastMessage = now - (userData.lastMessage || 0);
 
-    const now =
-      Date.now();
-
-    const timeSinceLastMessage =
-      now -
-      (
-        userData.lastMessage ||
-        0
-      );
-
-    if (
-      timeSinceLastMessage <
-      cooldownTime *
-        1000
-    ) {
+    if (timeSinceLastMessage < cooldownTime * 1000) {
       return;
     }
 
     const minXP =
-      levelingConfig
-        .xpRange
-        ?.min ||
-      levelingConfig
-        .xpPerMessage
-        ?.min ||
+      levelingConfig.xpRange?.min ||
+      levelingConfig.xpPerMessage?.min ||
       15;
-
     const maxXP =
-      levelingConfig
-        .xpRange
-        ?.max ||
-      levelingConfig
-        .xpPerMessage
-        ?.max ||
+      levelingConfig.xpRange?.max ||
+      levelingConfig.xpPerMessage?.max ||
       25;
 
-    const safeMinXP =
-      Math.max(
-        1,
-        minXP,
-      );
-
-    const safeMaxXP =
-      Math.max(
-        safeMinXP,
-        maxXP,
-      );
-
+    const safeMinXP = Math.max(1, minXP);
+    const safeMaxXP = Math.max(safeMinXP, maxXP);
     const xpToGive =
       Math.floor(
-        Math.random() *
-          (
-            safeMaxXP -
-            safeMinXP +
-            1
-          ),
-      ) +
-      safeMinXP;
+        Math.random() * (safeMaxXP - safeMinXP + 1),
+      ) + safeMinXP;
 
-    let finalXP =
-      xpToGive;
+    let finalXP = xpToGive;
 
     if (
-      levelingConfig
-        .xpMultiplier &&
-      levelingConfig
-        .xpMultiplier >
-        1
+      levelingConfig.xpMultiplier &&
+      levelingConfig.xpMultiplier > 1
     ) {
-      finalXP =
-        Math.floor(
-          finalXP *
-            levelingConfig
-              .xpMultiplier,
-        );
+      finalXP = Math.floor(
+        finalXP * levelingConfig.xpMultiplier,
+      );
     }
 
-    const result =
-      await addXp(
-        client,
-        message.guild,
-        message.member,
-        finalXP,
-        {
-          source:
-            'chat',
-        },
-      );
+    const result = await addXp(
+      client,
+      message.guild,
+      message.member,
+      finalXP,
+      { source: 'chat' },
+    );
 
-    if (
-      result
-        ?.leveledUp
-    ) {
+    if (result?.leveledUp) {
       logger.info(
         `${message.author.tag} leveled up to level ${result.level} in ${message.guild.name}`,
       );
     }
   } catch (error) {
-    logger.error(
-      'Error handling leveling for message:',
-      error,
-    );
+    logger.error('Error handling leveling for message:', error);
   }
 }
 
-/**
- * =========================================================
- * AUTORESPONDER
- * =========================================================
- */
-
-async function handleAutoresponder(
-  message,
-  client,
-) {
+async function handleAutoresponder(message, client) {
   try {
-    if (
-      !message.guild ||
-      !message.content
-        ?.trim()
-    ) {
+    if (!message.guild || !message.content?.trim()) {
       return false;
     }
 
-    const config =
-      await getAutoresponderConfig(
-        client,
-        message.guild.id,
-      );
+    const config = await getAutoresponderConfig(
+      client,
+      message.guild.id,
+    );
 
-    const responder =
-      findMatchingResponder(
-        message.content,
-        config.responders,
-      );
+    const responder = findMatchingResponder(
+      message.content,
+      config.responders,
+    );
 
     if (!responder) {
+      return false;
+    }
+
+    const responderKeyword = String(
+      responder.keyword || '',
+    )
+      .trim()
+      .toLowerCase();
+
+    if (
+      responderKeyword === 'xin' &&
+      message.channel.id !== XIN_ITEM_THREAD_ID
+    ) {
       return false;
     }
 
@@ -1546,270 +865,130 @@ async function handleAutoresponder(
       return false;
     }
 
-    const payload =
-      buildDiscordMessagePayload(
-        responder.response,
-      );
+    const payload = buildDiscordMessagePayload(
+      responder.response,
+    );
 
-    if (
-      responder.response
-        ?.reply
-        ?.enabled
-    ) {
+    if (responder.response?.reply?.enabled) {
       payload.reply = {
-        messageReference:
-          message.id,
-
-        failIfNotExists:
-          false,
-
+        messageReference: message.id,
+        failIfNotExists: false,
         allowedMentions: {
           repliedUser:
-            responder.response
-              ?.reply
-              ?.mentionAuthor ===
-            true,
+            responder.response?.reply?.mentionAuthor === true,
         },
       };
     }
 
-    await message.channel.send(
-      payload,
-    );
+    await message.channel.send(payload);
 
-    logger.info(
-      'Autoresponder triggered',
-      {
-        guildId:
-          message.guild.id,
-
-        channelId:
-          message.channel.id,
-
-        userId:
-          message.author.id,
-
-        responderId:
-          responder.id,
-
-        keyword:
-          responder.displayKeyword ||
-          responder.keyword,
-      },
-    );
+    logger.info('Autoresponder triggered', {
+      guildId: message.guild.id,
+      channelId: message.channel.id,
+      userId: message.author.id,
+      responderId: responder.id,
+      keyword: responder.displayKeyword || responder.keyword,
+    });
 
     return true;
   } catch (error) {
-    logger.error(
-      'Error handling autoresponder:',
-      error,
-    );
-
+    logger.error('Error handling autoresponder:', error);
     return false;
   }
 }
 
-/**
- * =========================================================
- * AUTO REACT
- * =========================================================
- */
-
-async function handleAutoReact(
-  message,
-  client,
-) {
+async function handleAutoReact(message, client) {
   try {
-    if (
-      !message.guild ||
-      !message.content
-        ?.trim()
-    ) {
+    if (!message.guild || !message.content?.trim()) {
       return;
     }
 
-    const config =
-      await getAutoReactConfig(
-        client,
-        message.guild.id,
-      );
+    const config = await getAutoReactConfig(
+      client,
+      message.guild.id,
+    );
 
     if (
       !config.enabled ||
-      !Array.isArray(
-        config.reactions,
-      ) ||
-      config.reactions
-        .length ===
-        0
+      !Array.isArray(config.reactions) ||
+      config.reactions.length === 0
     ) {
       return;
     }
 
-    const matches =
-      findMatchingAutoReacts(
-        message.content,
-        config.reactions,
-      );
+    const matches = findMatchingAutoReacts(
+      message.content,
+      config.reactions,
+    );
 
-    if (
-      !Array.isArray(
-        matches,
-      ) ||
-      matches.length ===
-        0
-    ) {
+    if (!Array.isArray(matches) || matches.length === 0) {
       return;
     }
 
-    const reactedEmojiIds =
-      new Set();
+    const reactedEmojiIds = new Set();
 
-    for (
-      const reaction
-      of matches
-    ) {
-      const emojis =
-        Array.isArray(
-          reaction.emojis,
-        )
-          ? reaction.emojis
-          : [];
+    for (const reaction of matches) {
+      const emojis = Array.isArray(reaction.emojis)
+        ? reaction.emojis
+        : [];
 
-      if (
-        emojis.length ===
-        0
-      ) {
+      if (emojis.length === 0) {
         continue;
       }
 
-      for (
-        const emojiData
-        of emojis
-      ) {
-        if (
-          !emojiData ||
-          !emojiData.id
-        ) {
+      for (const emojiData of emojis) {
+        if (!emojiData || !emojiData.id) {
           continue;
         }
 
-        if (
-          reactedEmojiIds.has(
-            emojiData.id,
-          )
-        ) {
+        if (reactedEmojiIds.has(emojiData.id)) {
           continue;
         }
 
-        const emoji =
-          message.guild
-            .emojis
-            .cache
-            .get(
-              emojiData.id,
-            );
+        const emoji = message.guild.emojis.cache.get(
+          emojiData.id,
+        );
 
         if (!emoji) {
-          logger.warn(
-            'Auto React emoji not found in guild',
-            {
-              guildId:
-                message.guild.id,
-
-              channelId:
-                message.channel.id,
-
-              keyword:
-                reaction.displayKeyword ||
-                reaction.keyword,
-
-              emojiId:
-                emojiData.id,
-
-              emojiName:
-                emojiData.name ||
-                null,
-            },
-          );
-
+          logger.warn('Auto React emoji not found in guild', {
+            guildId: message.guild.id,
+            channelId: message.channel.id,
+            keyword:
+              reaction.displayKeyword || reaction.keyword,
+            emojiId: emojiData.id,
+            emojiName: emojiData.name || null,
+          });
           continue;
         }
 
         try {
-          await message.react(
-            emoji,
-          );
+          await message.react(emoji);
+          reactedEmojiIds.add(emojiData.id);
 
-          reactedEmojiIds.add(
-            emojiData.id,
-          );
-
-          logger.debug(
-            'Auto React added',
-            {
-              guildId:
-                message.guild.id,
-
-              channelId:
-                message.channel.id,
-
-              messageId:
-                message.id,
-
-              keyword:
-                reaction.displayKeyword ||
-                reaction.keyword,
-
-              emojiId:
-                emojiData.id,
-
-              emojiName:
-                emoji.name ||
-                emojiData.name ||
-                null,
-            },
-          );
+          logger.debug('Auto React added', {
+            guildId: message.guild.id,
+            channelId: message.channel.id,
+            messageId: message.id,
+            keyword:
+              reaction.displayKeyword || reaction.keyword,
+            emojiId: emojiData.id,
+            emojiName: emoji.name || emojiData.name || null,
+          });
         } catch (error) {
-          logger.warn(
-            'Failed to add Auto React',
-            {
-              guildId:
-                message.guild.id,
-
-              channelId:
-                message.channel.id,
-
-              messageId:
-                message.id,
-
-              keyword:
-                reaction.displayKeyword ||
-                reaction.keyword,
-
-              emojiId:
-                emojiData.id,
-
-              emojiName:
-                emoji.name ||
-                emojiData.name ||
-                null,
-
-              error:
-                error
-                  ?.message ||
-                String(
-                  error,
-                ),
-            },
-          );
+          logger.warn('Failed to add Auto React', {
+            guildId: message.guild.id,
+            channelId: message.channel.id,
+            messageId: message.id,
+            keyword:
+              reaction.displayKeyword || reaction.keyword,
+            emojiId: emojiData.id,
+            emojiName: emoji.name || emojiData.name || null,
+            error: error?.message || String(error),
+          });
         }
       }
     }
   } catch (error) {
-    logger.error(
-      'Error handling auto-react:',
-      error,
-    );
+    logger.error('Error handling auto-react:', error);
   }
 }
