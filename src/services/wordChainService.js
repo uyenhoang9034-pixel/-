@@ -151,9 +151,19 @@ export function initDictionary() {
     startWordMap = nextStartWordMap;
     dictionaryLoaded = true;
 
+    const diagnosticWords = [
+      'lính tráng',
+    ];
+
     logger.info(
       `Loaded ${validWordsSet.size} Vietnamese words for Word Chain minigame.`,
     );
+
+    for (const diagnosticWord of diagnosticWords) {
+      logger.info(
+        `Word Chain dictionary check: "${diagnosticWord}" = ${validWordsSet.has(normalizeWord(diagnosticWord)) ? 'FOUND' : 'MISSING'}`,
+      );
+    }
 
     return true;
   } catch (error) {
