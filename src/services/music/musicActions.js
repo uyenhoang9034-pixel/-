@@ -12,6 +12,7 @@ import {
 } from './permissions.js';
 import {
     buildNowPlayingEmbed,
+    buildPlayerButtonRows,
     buildQueueEmbed,
     buildQueuePaginationRow,
     getQueuePageSize,
