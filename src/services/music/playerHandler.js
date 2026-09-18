@@ -46,8 +46,7 @@ function isAudioPlayer(player) {
         player?.__usagiAudio === true ||
         isAudioTrack(
             player?.current,
-        ) ||
-        audioSession?.audioActive === true,
+        )
     );
 }
 
