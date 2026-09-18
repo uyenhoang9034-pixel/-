@@ -64,6 +64,10 @@ let validWordsSet = new Set();
 let startWordMap = new Map();
 let dictionaryLoaded = false;
 
+const BUILTIN_WORD_CHAIN_WORDS = new Set([
+  'lính tráng',
+].map(word => word.normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ')));
+
 export function normalizeWord(word) {
   if (typeof word !== 'string') {
     return '';
@@ -619,8 +623,9 @@ export function isValidWord(word) {
     return false;
   }
 
-  return validWordsSet.has(
-    cleaned,
+  return (
+    validWordsSet.has(cleaned) ||
+    BUILTIN_WORD_CHAIN_WORDS.has(cleaned)
   );
 }
 
