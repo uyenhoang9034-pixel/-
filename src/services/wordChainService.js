@@ -94,7 +94,7 @@ export function initDictionary() {
     }
 
     const rawData = fs.readFileSync(dictPath, 'utf8');
-    const words = JSON.parse(rawData);
+    const words = JSON.parse(rawData.replace(/^\uFEFF/, ''));
 
     if (!Array.isArray(words)) {
       throw new Error(
@@ -145,6 +145,12 @@ export function initDictionary() {
     logger.info(
       `[WordChain] Dictionary loaded: ${validWordsSet.size} words | source: src/data/vietnamese_words.json`,
     );
+
+    if (!validWordsSet.has(normalizeWord('sinh viên'))) {
+      logger.error(
+        '[WordChain] Dictionary integrity check failed: expected word "sinh viên" is missing after load.',
+      );
+    }
 
     return true;
   } catch (error) {
