@@ -96,44 +96,6 @@ async function editOrSendPlayerMessage(
     }
 }
 
-export async function ensurePlayerMessage(
-    client,
-    guildId,
-    track,
-    player,
-    channelId,
-) {
-    const guildData =
-        getGuildMusicData(guildId);
-
-    if (guildData.playerMessageId) {
-        return;
-    }
-
-    const embed =
-        buildNowPlayingEmbed(
-            track,
-            player,
-            guildData,
-        );
-
-    const components =
-        buildPlayerButtonRows(
-            player,
-            guildData,
-        );
-
-    await editOrSendPlayerMessage(
-        client,
-        guildData,
-        channelId ||
-            guildData.playerChannelId ||
-            player?.textChannel,
-        embed,
-        components,
-    );
-}
-
 /**
  * =========================================================
  * REFRESH MUSIC PLAYER MESSAGE
@@ -704,41 +666,100 @@ export function setupPlayerHandler(
             payload,
         ) => {
             try {
-                logger.error(
-                    `Track error in ${player.guildId} for "${
-                        track?.info?.title ||
-                        'Unknown track'
-                    }":`,
-                    payload?.error ||
-                        payload,
-                );
-
                 const guildData =
                     getGuildMusicData(
                         player.guildId,
                     );
 
-                if (
-                    guildData.playerChannelId
-                ) {
-                    const channel =
-                        client.channels.cache.get(
-                            guildData.playerChannelId,
-                        );
+                const title =
+                    track?.info?.title ||
+                    'Unknown track';
 
-                    if (channel) {
-                        await channel
-                            .send(
-                                `Failed to play **${
-                                    track?.info?.title ||
-                                    'track'
-                                }**. Skipping...`,
+                logger.error(
+                    `Track error in ${player.guildId} for "${title}":`,
+                    payload?.error ||
+                        payload,
+                );
+
+                // Retry only once. This prevents an endless fallback loop.
+                if (!track?.info?.__usagiFallbackTried) {
+                    try {
+                        const author =
+                            track?.info?.author ||
+                            '';
+
+                        const fallbackResult =
+                            await client.riffy.resolve({
+                                query:
+                                    `scsearch:${title} ${author}`.trim(),
+                                requester:
+                                    track?.info?.requester ||
+                                    null,
+                            });
+
+                        const fallbackTrack =
+                            Array.isArray(
+                                fallbackResult?.tracks,
                             )
-                            .catch(
-                                () => null,
-                            );
+                                ? fallbackResult.tracks[0]
+                                : null;
+
+                        if (fallbackTrack) {
+                            fallbackTrack.info ??= {};
+                            fallbackTrack.info.requester =
+                                track?.info?.requester ||
+                                null;
+                            fallbackTrack.info.__usagiFallbackTried =
+                                true;
+
+                            if (
+                                typeof player.queue?.add ===
+                                'function'
+                            ) {
+                                player.queue.add(
+                                    fallbackTrack,
+                                );
+                            } else {
+                                player.queue?.push?.(
+                                    fallbackTrack,
+                                );
+                            }
+
+                            player.stop();
+
+                            const channel =
+                                client.channels.cache.get(
+                                    guildData.playerChannelId ||
+                                        player.textChannel,
+                                );
+
+                            await channel
+                                ?.send(
+                                    `YouTube source failed for **${title}** — trying another audio source automatically...`,
+                                )
+                                .catch(() => null);
+
+                            return;
+                        }
+                    } catch (fallbackError) {
+                        logger.warn(
+                            `Music fallback failed for "${title}":`,
+                            fallbackError,
+                        );
                     }
                 }
+
+                const channel =
+                    client.channels.cache.get(
+                        guildData.playerChannelId ||
+                            player.textChannel,
+                    );
+
+                await channel
+                    ?.send(
+                        `Failed to play **${title}**. Skipping...`,
+                    )
+                    .catch(() => null);
             } catch (error) {
                 logger.error(
                     'Music trackError handler error:',
