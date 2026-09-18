@@ -11,7 +11,6 @@ import {
     buildNowPlayingEmbed,
     buildPlayerButtonRows,
 } from './musicEmbeds.js';
-import audioManager from '../audio/audioManager.js';
 
 const UPDATE_INTERVAL_MS = 15 * 1000;
 const IDLE_DISCONNECT_MS = 30 * 1000;
@@ -35,18 +34,11 @@ function isAudioTrack(track) {
 }
 
 function isAudioPlayer(player) {
-    const audioSession =
-        player?.guildId
-            ? audioManager.getSession(
-                player.guildId,
-            )
-            : null;
-
     return Boolean(
         player?.__usagiAudio === true ||
         isAudioTrack(
             player?.current,
-        )
+        ),
     );
 }
 
@@ -67,19 +59,33 @@ async function editOrSendPlayerMessage(
         return;
     }
 
-    const channel =
+    let channel =
         client.channels.cache.get(
             channelId,
         );
 
     if (!channel) {
-        guildData.playerMessageId = null;
-        guildData.playerChannelId = null;
+        try {
+            channel =
+                await client.channels.fetch(
+                    channelId,
+                );
+        } catch {
+            channel = null;
+        }
+    }
 
+    if (
+        !channel ||
+        typeof channel.send !== 'function'
+    ) {
+        guildData.playerMessageId = null;
         clearUpdateInterval(
             guildData,
         );
-
+        logger.warn(
+            `Music dashboard channel unavailable: ${channelId}`,
+        );
         return;
     }
 
