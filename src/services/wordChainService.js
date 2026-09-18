@@ -4,10 +4,6 @@ import { fileURLToPath } from 'url';
 
 import { logger } from '../utils/logger.js';
 
-import {
-  isOnlineWordValid,
-  findOnlineNextWord,
-} from './wordChainOnlineDictionary.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -617,90 +613,6 @@ export function isValidWord(word) {
   );
 }
 
-/**
- * Từ được tìm thấy online sẽ được
- * thêm vào dictionary runtime.
- *
- * Không sửa file JSON trên GitHub.
- * Chỉ tồn tại trong RAM của bot cho
- * đến khi bot restart.
- */
-function registerRuntimeWord(word) {
-  const cleaned =
-    normalizeWord(word);
-
-  const parts =
-    cleaned
-      .split(' ')
-      .filter(Boolean);
-
-  if (
-    parts.length !== 2 ||
-    !parts.every(
-      part =>
-        /^\p{L}+$/u.test(part),
-    )
-  ) {
-    return false;
-  }
-
-  validWordsSet.add(cleaned);
-
-  const first =
-    parts[0];
-
-  if (!startWordMap.has(first)) {
-    startWordMap.set(
-      first,
-      [],
-    );
-  }
-
-  const list =
-    startWordMap.get(first);
-
-  if (!list.includes(cleaned)) {
-    list.push(cleaned);
-  }
-
-  return true;
-}
-
-/**
- * =========================================================
- * LOCAL JSON -> ONLINE FALLBACK
- * =========================================================
- *
- * Đây là hàm messageCreate/noitu nên dùng
- * thay cho isValidWord() khi kiểm tra từ
- * do người chơi nhập.
- */
-export async function isValidWordWithFallback(
-  client,
-  word,
-) {
-  const cleaned =
-    normalizeWord(word);
-
-  if (isValidWord(cleaned)) {
-    return true;
-  }
-
-  const onlineValid =
-    await isOnlineWordValid(
-      client,
-      cleaned,
-    );
-
-  if (onlineValid) {
-    registerRuntimeWord(
-      cleaned,
-    );
-  }
-
-  return onlineValid;
-}
-
 export function canChain(
   prevWord,
   nextWord,
@@ -787,47 +699,6 @@ export function findBotNextWord(
         available.length,
     )
   ];
-}
-
-/**
- * =========================================================
- * BOT LOCAL -> ONLINE FALLBACK
- * =========================================================
- *
- * Bot ưu tiên JSON.
- *
- * Chỉ khi JSON không tìm được từ nối
- * thì mới gọi nguồn online.
- */
-export async function findBotNextWordWithFallback(
-  client,
-  prevWord,
-  usedWords = [],
-) {
-  const localWord =
-    findBotNextWord(
-      prevWord,
-      usedWords,
-    );
-
-  if (localWord) {
-    return localWord;
-  }
-
-  const onlineWord =
-    await findOnlineNextWord(
-      client,
-      prevWord,
-      usedWords,
-    );
-
-  if (onlineWord) {
-    registerRuntimeWord(
-      onlineWord,
-    );
-  }
-
-  return onlineWord;
 }
 
 export function getRandomStartWord(
@@ -1355,8 +1226,7 @@ export async function useWordChainHint(
        * JSON -> online.
        */
       const word =
-        await findBotNextWordWithFallback(
-          client,
+        findBotNextWord(
           game.currentWord,
           game.usedWords,
         );
