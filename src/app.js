@@ -13,7 +13,7 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
 import { runSafeTask, handleTaskError, ErrorCodes } from './utils/errorHandler.js';
-import { initializeMusic } from './services/music/riffySetup.js';
+import { initializeMusic, initRiffyAfterReady } from './services/music/riffySetup.js';
 import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
@@ -96,6 +96,11 @@ class TitanBot extends Client {
       startupLog('Logging into Discord...');
       await this.login(this.config.bot.token);
       startupLog('Discord login successful');
+
+      // Riffy must be initialized only after Discord is ready and client.user.id exists.
+      // Tiên Tôn already follows this lifecycle; without it Ma Tôn can play through
+      // Lavalink but Riffy track events (including trackStart/dashboard) are unreliable.
+      initRiffyAfterReady(this);
       
       startupLog('Registering slash commands globally...');
       await this.registerCommands();
