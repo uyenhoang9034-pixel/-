@@ -153,14 +153,17 @@ export function initDictionary() {
     dictionaryLoaded = false;
 
     logger.error(
-      '[WordChain] Fatal dictionary load error:',
+      '[WordChain] Dictionary load error:',
       error,
     );
 
-    throw error;
+    return false;
   }
 }
 
+// Load once at startup, but never crash the entire Discord bot if the
+// dictionary is temporarily unavailable. isValidWord/findBotNextWord will
+// retry initDictionary() when Word Chain is actually used.
 initDictionary();
 
 function createDefaultGame(mode) {
