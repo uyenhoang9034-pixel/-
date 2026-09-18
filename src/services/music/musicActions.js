@@ -101,7 +101,19 @@ async function waitForPlayerConnection(player) {
 
 export async function startPlayback(player) {
     await waitForPlayerConnection(player);
-    await player.play();
+
+    try {
+        await player.play();
+    } catch (error) {
+        throw new TitanBotError(
+            `Lavalink playback failed: ${
+                error?.message ||
+                String(error)
+            }`,
+            ErrorTypes.CONFIGURATION,
+            'The track was found, but Lavalink could not start playback. Please try again in a moment.',
+        );
+    }
 }
 
 export function getPlayer(client, guildId) {
@@ -146,6 +158,17 @@ export async function ensurePlayer(
     assertRiffyAvailable(client);
     assertInVoice(interaction.member);
 
+    const voiceChannel =
+        interaction.member.voice.channel;
+
+    assertBotVoicePermissions(
+        voiceChannel,
+    );
+
+    assertLavalinkNodeAvailable(
+        client,
+    );
+
     const guildId =
         interaction.guild.id;
 
@@ -185,22 +208,30 @@ export async function ensurePlayer(
         );
 
     /*
-     * QUAN TRỌNG:
-     *
-     * Không gọi:
-     *
-     * assertLavalinkNodeAvailable(client)
-     *
-     * ở đây nữa.
-     *
-     * Riffy tự chọn node khi createConnection().
+     * Player cũ có thể còn nằm trong Riffy sau khi bot
+     * bị move/disconnect hoặc người dùng đổi voice.
+     * Không tái sử dụng player stale/sai channel.
      */
+    if (
+        player &&
+        player.voiceChannel !==
+            voiceChannel.id
+    ) {
+        try {
+            player.destroy();
+        } catch {
+            // Player cũ có thể đã bị hủy.
+        }
+
+        player = null;
+    }
+
     if (!player) {
         player =
             client.riffy.createConnection({
                 guildId,
                 voiceChannel:
-                    interaction.member.voice.channel.id,
+                    voiceChannel.id,
                 textChannel:
                     interaction.channel.id,
                 deaf: true,
@@ -371,13 +402,26 @@ export async function playQuery(
      * hiện tại của bot.
      */
 
-    const result =
-        await client.riffy.resolve({
-            query:
-                cleanQuery,
-            requester:
-                interaction.user,
-        });
+    let result;
+
+    try {
+        result =
+            await client.riffy.resolve({
+                query:
+                    cleanQuery,
+                requester:
+                    interaction.user,
+            });
+    } catch (error) {
+        throw new TitanBotError(
+            `Lavalink resolve failed: ${
+                error?.message ||
+                String(error)
+            }`,
+            ErrorTypes.CONFIGURATION,
+            'Music could not search/load this track from Lavalink right now. Please try again in a moment.',
+        );
+    }
 
     const loadType =
         String(
