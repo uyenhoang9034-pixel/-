@@ -236,10 +236,19 @@ export async function ensurePlayer(
                     interaction.channel.id,
                 deaf: true,
             });
-
-        guildData.playerChannelId =
-            interaction.channel.id;
     }
+
+    // Always bind Music UI to the channel where /play was invoked.
+    // Existing Riffy players (especially ones previously used by /audio)
+    // otherwise keep stale text-channel/session state and the dashboard
+    // can never be created.
+    guildData.playerChannelId =
+        interaction.channel.id;
+
+    player.textChannel =
+        interaction.channel.id;
+
+    player.__usagiAudio = false;
 
     player.setVolume(
         guildData.volume,
@@ -381,11 +390,6 @@ export async function playQuery(
         client,
         interaction,
     );
-
-    // /play explicitly takes ownership of this Riffy player as Music.
-    // A player previously used by /audio can retain this transient flag and
-    // otherwise make every Music dashboard refresh return early forever.
-    player.__usagiAudio = false;
 
     /*
      * =====================================================
