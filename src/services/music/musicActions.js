@@ -12,7 +12,6 @@ import {
 } from './permissions.js';
 import {
     buildNowPlayingEmbed,
-    buildPlayerButtonRows,
     buildQueueEmbed,
     buildQueuePaginationRow,
     getQueuePageSize,
@@ -633,66 +632,9 @@ export async function playQuery(
             );
         }
 
-        // Build the public Music dashboard directly from the resolved track.
-        // Do not depend on player.current/trackStart being populated immediately.
-        const dashboardEmbed =
-            buildNowPlayingEmbed(
-                track,
-                player,
-                guildData,
-            );
-
-        const dashboardComponents =
-            buildPlayerButtonRows(
-                player,
-                guildData,
-            );
-
-        const dashboardChannel =
-            interaction.channel;
-
-        if (
-            dashboardChannel &&
-            typeof dashboardChannel.send === 'function'
-        ) {
-            try {
-                const existingMessageId =
-                    guildData.playerMessageId;
-
-                if (existingMessageId) {
-                    try {
-                        const existingMessage =
-                            await dashboardChannel.messages.fetch(
-                                existingMessageId,
-                            );
-
-                        await existingMessage.edit({
-                            embeds: [dashboardEmbed],
-                            components: dashboardComponents,
-                        });
-                    } catch {
-                        guildData.playerMessageId = null;
-                    }
-                }
-
-                if (!guildData.playerMessageId) {
-                    const dashboardMessage =
-                        await dashboardChannel.send({
-                            embeds: [dashboardEmbed],
-                            components: dashboardComponents,
-                        });
-
-                    guildData.playerMessageId =
-                        dashboardMessage.id;
-                }
-
-                guildData.playerChannelId =
-                    dashboardChannel.id;
-            } catch {
-                // The ephemeral /play acknowledgement should still succeed
-                // even if Discord refuses the public dashboard message.
-            }
-        }
+        // The trackStart handler owns the public Music dashboard.
+        // Keeping /play focused on queue/playback avoids duplicate dashboard
+        // sends and keeps command acknowledgement independent from UI refresh.
 
         return {
             embed:
