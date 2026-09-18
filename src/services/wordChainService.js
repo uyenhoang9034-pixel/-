@@ -581,27 +581,26 @@ export function getLastSyllable(word) {
 }
 
 export function isValidWord(word) {
-  initDictionary();
+  const loaded = initDictionary();
 
-  const cleaned =
-    normalizeWord(word);
+  if (!loaded) {
+    logger.error(
+      '[WordChain] Cannot validate word because the local JSON dictionary is unavailable.',
+    );
+    return false;
+  }
+
+  const cleaned = normalizeWord(word);
 
   if (!cleaned) {
     return false;
   }
 
-  const parts =
-    cleaned.split(' ');
-
-  if (parts.length !== 2) {
-    return false;
-  }
+  const parts = cleaned.split(' ');
 
   if (
-    !parts.every(
-      part =>
-        /^\p{L}+$/u.test(part),
-    )
+    parts.length !== 2 ||
+    !parts.every(part => /^\p{L}+$/u.test(part))
   ) {
     return false;
   }
