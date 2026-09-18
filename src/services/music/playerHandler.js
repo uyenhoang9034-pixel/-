@@ -96,6 +96,44 @@ async function editOrSendPlayerMessage(
     }
 }
 
+export async function ensurePlayerMessage(
+    client,
+    guildId,
+    track,
+    player,
+    channelId,
+) {
+    const guildData =
+        getGuildMusicData(guildId);
+
+    if (guildData.playerMessageId) {
+        return;
+    }
+
+    const embed =
+        buildNowPlayingEmbed(
+            track,
+            player,
+            guildData,
+        );
+
+    const components =
+        buildPlayerButtonRows(
+            player,
+            guildData,
+        );
+
+    await editOrSendPlayerMessage(
+        client,
+        guildData,
+        channelId ||
+            guildData.playerChannelId ||
+            player?.textChannel,
+        embed,
+        components,
+    );
+}
+
 /**
  * =========================================================
  * REFRESH MUSIC PLAYER MESSAGE
