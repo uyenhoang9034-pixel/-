@@ -388,19 +388,7 @@ export async function playQuery(client, interaction, query) {
 
     if (willPlayNow) {
       await startPlayback(player);
-
-      // trackStart normally creates the dashboard. Ma Tôn also has /audio
-      // sharing the same Riffy instance, so keep one safe fallback: if the
-      // event did not create a dashboard, create exactly one from this track.
-      setTimeout(() => {
-        ensurePlayerMessage(
-          client,
-          interaction.guild.id,
-          track,
-          player,
-          interaction.channel.id,
-        ).catch(() => null);
-      }, 800);
+      // trackStart owns creation of the single public Music dashboard.
     }
 
     return {
