@@ -630,6 +630,14 @@ export async function playQuery(
             await startPlayback(
                 player,
             );
+
+            // Do not rely only on Riffy's trackStart event.
+            // Some nodes can start playback before that event reaches this handler.
+            // Refresh explicitly so the public Now Playing dashboard is always created.
+            await refreshPlayerMessage(
+                client,
+                interaction.guild.id,
+            );
         }
 
         return {
