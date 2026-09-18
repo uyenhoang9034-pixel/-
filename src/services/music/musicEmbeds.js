@@ -122,7 +122,7 @@ export function buildNowPlayingEmbed(track, player, guildData) {
             `${EMOJI_VOLUME} **Âm lượng:** ${guildData?.volume ?? 75}%`,
             `${EMOJI_INFO} **Lặp lại:** ${getLoopLabel(guildData?.loop)}`,
             `${EMOJI_INFO} **Hàng chờ:** ${queueLength} bài`,
-        ].join('\n'),
+        ].join(String.fromCharCode(10)),
         color: 0xffb7d5,
         footer: player?.paused ? 'Paused' : 'Playing',
     });
