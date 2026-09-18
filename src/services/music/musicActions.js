@@ -12,6 +12,7 @@ import {
 } from './permissions.js';
 import {
     buildNowPlayingEmbed,
+    buildPlayerButtonRows,
     buildQueueEmbed,
     buildQueuePaginationRow,
     getQueuePageSize,
@@ -641,13 +642,75 @@ export async function playQuery(
             );
         }
 
-        // Keep the command stable, but also trigger the dashboard refresh
-        // after Riffy has had a moment to promote the queued track to current.
-        // This is intentionally fire-and-forget: dashboard failure must never
-        // make /play fail.
-        // Refresh a few times because Riffy promotes queue -> current
-        // asynchronously and timing differs between Lavalink nodes.
-        for (const delay of [250, 1000, 2500]) {
+        // Create/update the public dashboard from the resolved Music track.
+        // This does not depend on Riffy's trackStart timing or player.current.
+        // Dashboard errors are isolated from /play so playback can never fail
+        // because Discord rejected a UI update.
+        void (async () => {
+            try {
+                const channel =
+                    interaction.channel;
+
+                if (
+                    !channel ||
+                    typeof channel.send !== 'function'
+                ) {
+                    return;
+                }
+
+                const embed =
+                    buildNowPlayingEmbed(
+                        track,
+                        player,
+                        guildData,
+                    );
+
+                const components =
+                    buildPlayerButtonRows(
+                        player,
+                        guildData,
+                    );
+
+                let message = null;
+
+                if (guildData.playerMessageId) {
+                    try {
+                        message =
+                            await channel.messages.fetch(
+                                guildData.playerMessageId,
+                            );
+
+                        await message.edit({
+                            embeds: [embed],
+                            components,
+                        });
+                    } catch {
+                        guildData.playerMessageId =
+                            null;
+                        message = null;
+                    }
+                }
+
+                if (!message) {
+                    message =
+                        await channel.send({
+                            embeds: [embed],
+                            components,
+                        });
+
+                    guildData.playerMessageId =
+                        message.id;
+                }
+
+                guildData.playerChannelId =
+                    channel.id;
+            } catch {
+                // Public dashboard is non-critical to playback.
+            }
+        })();
+
+        // Event/interval refresh remains responsible for progress updates.
+        for (const delay of [1000, 2500]) {
             setTimeout(
                 () => {
                     refreshPlayerMessage(
