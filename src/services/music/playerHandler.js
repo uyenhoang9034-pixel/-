@@ -188,6 +188,10 @@ export async function refreshPlayerMessage(
             guildData.playerChannelId ||
             player.textChannel;
 
+        if (!channelId) {
+            return;
+        }
+
         await editOrSendPlayerMessage(
             client,
             guildData,
@@ -489,6 +493,13 @@ export function setupPlayerHandler(
                 const channelId =
                     guildData.playerChannelId ||
                     player.textChannel;
+
+                if (!channelId) {
+                    logger.warn(
+                        `Music trackStart has no text channel for guild ${player.guildId}.`,
+                    );
+                    return;
+                }
 
                 await editOrSendPlayerMessage(
                     client,
