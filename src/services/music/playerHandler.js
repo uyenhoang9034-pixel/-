@@ -17,33 +17,6 @@ const IDLE_DISCONNECT_MS = 30 * 1000;
 
 /**
  * =========================================================
- * AUDIO / MUSIC SEPARATION
- * =========================================================
- *
- * Audio tracks are marked by audioResults.js:
- *
- * track.info.__usagiAudio = true
- *
- * Music must completely ignore those tracks.
- */
-
-function isAudioTrack(track) {
-    return Boolean(
-        track?.info?.__usagiAudio === true,
-    );
-}
-
-function isAudioPlayer(player) {
-    return Boolean(
-        player?.__usagiAudio === true ||
-        isAudioTrack(
-            player?.current,
-        ),
-    );
-}
-
-/**
- * =========================================================
  * MUSIC PLAYER MESSAGE
  * =========================================================
  */
@@ -59,33 +32,19 @@ async function editOrSendPlayerMessage(
         return;
     }
 
-    let channel =
+    const channel =
         client.channels.cache.get(
             channelId,
         );
 
     if (!channel) {
-        try {
-            channel =
-                await client.channels.fetch(
-                    channelId,
-                );
-        } catch {
-            channel = null;
-        }
-    }
-
-    if (
-        !channel ||
-        typeof channel.send !== 'function'
-    ) {
         guildData.playerMessageId = null;
+        guildData.playerChannelId = null;
+
         clearUpdateInterval(
             guildData,
         );
-        logger.warn(
-            `Music dashboard channel unavailable: ${channelId}`,
-        );
+
         return;
     }
 
@@ -141,11 +100,6 @@ async function editOrSendPlayerMessage(
  * =========================================================
  * REFRESH MUSIC PLAYER MESSAGE
  * =========================================================
- *
- * IMPORTANT:
- *
- * This function only refreshes Music.
- * Audio is handled by audioPlayerEvents.js.
  */
 
 export async function refreshPlayerMessage(
@@ -158,17 +112,10 @@ export async function refreshPlayerMessage(
                 guildId,
             );
 
-        /**
-         * Never touch Audio players.
-         */
         if (
             !player ||
-            isAudioPlayer(player)
+            !player.current
         ) {
-            return;
-        }
-
-        if (!player.current) {
             return;
         }
 
@@ -193,10 +140,6 @@ export async function refreshPlayerMessage(
         const channelId =
             guildData.playerChannelId ||
             player.textChannel;
-
-        if (!channelId) {
-            return;
-        }
 
         await editOrSendPlayerMessage(
             client,
@@ -414,19 +357,6 @@ export function setupPlayerHandler(
             player,
             track,
         ) => {
-            /**
-             * CRITICAL:
-             *
-             * Audio has its own event handler.
-             * Music must completely ignore Audio.
-             */
-            if (
-                isAudioTrack(track) ||
-                isAudioPlayer(player)
-            ) {
-                return;
-            }
-
             try {
                 const guildData =
                     getGuildMusicData(
@@ -500,13 +430,6 @@ export function setupPlayerHandler(
                     guildData.playerChannelId ||
                     player.textChannel;
 
-                if (!channelId) {
-                    logger.warn(
-                        `Music trackStart has no text channel for guild ${player.guildId}.`,
-                    );
-                    return;
-                }
-
                 await editOrSendPlayerMessage(
                     client,
                     guildData,
@@ -537,18 +460,6 @@ export function setupPlayerHandler(
     client.riffy.on(
         'queueEnd',
         async (player) => {
-            /**
-             * Audio has its own queueEnd handler.
-             *
-             * DO NOT delete Audio dashboard.
-             * DO NOT destroy Audio player.
-             */
-            if (
-                isAudioPlayer(player)
-            ) {
-                return;
-            }
-
             try {
                 const guildData =
                     getGuildMusicData(
@@ -637,19 +548,6 @@ export function setupPlayerHandler(
                                             player.guildId,
                                         );
 
-                                    /**
-                                     * Never destroy
-                                     * an Audio player.
-                                     */
-                                    if (
-                                        currentPlayer &&
-                                        isAudioPlayer(
-                                            currentPlayer,
-                                        )
-                                    ) {
-                                        return;
-                                    }
-
                                     if (
                                         currentPlayer &&
                                         !currentPlayer.playing &&
@@ -688,15 +586,6 @@ export function setupPlayerHandler(
     client.riffy.on(
         'playerDisconnect',
         async (player) => {
-            /**
-             * Audio handles its own disconnect.
-             */
-            if (
-                isAudioPlayer(player)
-            ) {
-                return;
-            }
-
             try {
                 const guildData =
                     getGuildMusicData(
@@ -776,56 +665,14 @@ export function setupPlayerHandler(
             track,
             payload,
         ) => {
-            /**
-             * CRITICAL:
-             *
-             * Audio playback errors must NEVER
-             * reach the Music dashboard.
-             */
-            if (
-                isAudioTrack(track) ||
-                isAudioPlayer(player)
-            ) {
-                return;
-            }
-
             try {
-                const trackError =
-                    payload?.exception ||
-                    payload?.error ||
-                    payload;
-
-                const errorMessage =
-                    trackError?.message ||
-                    payload?.message ||
-                    payload?.cause?.message ||
-                    (typeof trackError === 'string'
-                        ? trackError
-                        : 'Unknown Lavalink error');
-
-                const errorCause =
-                    trackError?.cause ||
-                    payload?.cause ||
-                    null;
-
-                const errorSeverity =
-                    trackError?.severity ||
-                    payload?.severity ||
-                    null;
-
-                const nodeName =
-                    player?.node?.name ||
-                    player?.node?.options?.name ||
-                    'unknown';
-
                 logger.error(
                     `Track error in ${player.guildId} for "${
                         track?.info?.title ||
                         'Unknown track'
-                    }" [node: ${nodeName}] [severity: ${
-                        errorSeverity || 'unknown'
-                    }]:`,
-                    trackError,
+                    }":`,
+                    payload?.error ||
+                        payload,
                 );
 
                 const guildData =
@@ -842,30 +689,13 @@ export function setupPlayerHandler(
                         );
 
                     if (channel) {
-                        const details = [
-                            `Failed to play **${
-                                track?.info?.title ||
-                                'track'
-                            }**. Skipping...`,
-                            '',
-                            `**Lavalink:** ${String(
-                                errorMessage,
-                            ).slice(0, 900)}`,
-                            errorCause
-                                ? `**Cause:** ${String(
-                                      errorCause,
-                                  ).slice(0, 500)}`
-                                : null,
-                            errorSeverity
-                                ? `**Severity:** ${errorSeverity}`
-                                : null,
-                            `**Node:** ${nodeName}`,
-                        ]
-                            .filter(Boolean)
-                            .join('\\n');
-
                         await channel
-                            .send(details)
+                            .send(
+                                `Failed to play **${
+                                    track?.info?.title ||
+                                    'track'
+                                }**. Skipping...`,
+                            )
                             .catch(
                                 () => null,
                             );
@@ -893,16 +723,6 @@ export function setupPlayerHandler(
             track,
             payload,
         ) => {
-            /**
-             * Audio has its own error handling.
-             */
-            if (
-                isAudioTrack(track) ||
-                isAudioPlayer(player)
-            ) {
-                return;
-            }
-
             logger.warn(
                 `Track stuck in ${player.guildId} for "${
                     track?.info?.title ||
@@ -940,15 +760,6 @@ export async function shutdownMusic(
             client.riffy.players.values()
     ) {
         try {
-            /**
-             * Don't let the Music shutdown
-             * handler accidentally treat Audio
-             * as a Music player.
-             *
-             * During complete bot shutdown,
-             * however, all Riffy players still
-             * need to be destroyed.
-             */
             player.destroy();
         } catch (error) {
             logger.debug(
