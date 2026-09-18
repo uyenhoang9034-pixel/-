@@ -146,11 +146,6 @@ export function initDictionary() {
       `[WordChain] Dictionary loaded: ${validWordsSet.size} words | source: src/data/vietnamese_words.json`,
     );
 
-    if (!validWordsSet.has(normalizeWord('sinh viên'))) {
-      logger.error(
-        '[WordChain] Dictionary integrity check failed: expected word "sinh viên" is missing after load.',
-      );
-    }
 
     return true;
   } catch (error) {
@@ -587,12 +582,7 @@ export function getLastSyllable(word) {
 }
 
 export function isValidWord(word) {
-  const loaded = initDictionary();
-
-  if (!loaded) {
-    logger.error(
-      '[WordChain] Cannot validate word because the local JSON dictionary is unavailable.',
-    );
+  if (!dictionaryLoaded && !initDictionary()) {
     return false;
   }
 
@@ -650,7 +640,9 @@ export function findBotNextWord(
   prevWord,
   usedWords = [],
 ) {
-  initDictionary();
+  if (!dictionaryLoaded && !initDictionary()) {
+    return null;
+  }
 
   const firstSyllable =
     getLastSyllable(
@@ -705,7 +697,9 @@ export function findBotNextWord(
 export function getRandomStartWord(
   excludeWords = [],
 ) {
-  initDictionary();
+  if (!dictionaryLoaded && !initDictionary()) {
+    return null;
+  }
 
   const excluded =
     new Set(
@@ -747,7 +741,7 @@ export function getRandomStartWord(
     ];
   }
 
-  return 'học sinh';
+  return null;
 }
 
 function getStorageKey(guildId) {
