@@ -382,6 +382,11 @@ export async function playQuery(
         interaction,
     );
 
+    // /play explicitly takes ownership of this Riffy player as Music.
+    // A player previously used by /audio can retain this transient flag and
+    // otherwise make every Music dashboard refresh return early forever.
+    player.__usagiAudio = false;
+
     /*
      * =====================================================
      * RESOLVE
@@ -636,15 +641,19 @@ export async function playQuery(
         // after Riffy has had a moment to promote the queued track to current.
         // This is intentionally fire-and-forget: dashboard failure must never
         // make /play fail.
-        setTimeout(
-            () => {
-                refreshPlayerMessage(
-                    client,
-                    interaction.guild.id,
-                ).catch(() => null);
-            },
-            750,
-        );
+        // Refresh a few times because Riffy promotes queue -> current
+        // asynchronously and timing differs between Lavalink nodes.
+        for (const delay of [250, 1000, 2500]) {
+            setTimeout(
+                () => {
+                    refreshPlayerMessage(
+                        client,
+                        interaction.guild.id,
+                    ).catch(() => null);
+                },
+                delay,
+            );
+        }
 
         return {
             embed:
