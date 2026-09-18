@@ -64,10 +64,6 @@ let validWordsSet = new Set();
 let startWordMap = new Map();
 let dictionaryLoaded = false;
 
-const BUILTIN_WORD_CHAIN_WORDS = new Set([
-  'lính tráng',
-].map(word => word.normalize('NFC').trim().toLowerCase().replace(/\s+/g, ' ')));
-
 export function normalizeWord(word) {
   if (typeof word !== 'string') {
     return '';
@@ -85,33 +81,25 @@ export function initDictionary() {
     return true;
   }
 
+  const dictPath = path.join(
+    __dirname,
+    '../data/vietnamese_words.json',
+  );
+
   try {
-    const dictPath = path.join(
-      __dirname,
-      '../data/vietnamese_words.json',
-    );
-
     if (!fs.existsSync(dictPath)) {
-      logger.warn(
-        `Vietnamese dictionary file not found at ${dictPath}`,
+      throw new Error(
+        `Word Chain dictionary file not found: ${dictPath}`,
       );
-
-      return false;
     }
 
-    const rawData = fs.readFileSync(
-      dictPath,
-      'utf8',
-    );
-
+    const rawData = fs.readFileSync(dictPath, 'utf8');
     const words = JSON.parse(rawData);
 
     if (!Array.isArray(words)) {
-      logger.error(
-        'Vietnamese dictionary must be an array.',
+      throw new Error(
+        'Word Chain dictionary must be a JSON array.',
       );
-
-      return false;
     }
 
     const nextValidWords = new Set();
@@ -126,15 +114,9 @@ export function initDictionary() {
 
       const parts = cleaned.split(' ');
 
-      if (parts.length !== 2) {
-        continue;
-      }
-
       if (
-        !parts.every(
-          part =>
-            /^\p{L}+$/u.test(part),
-        )
+        parts.length !== 2 ||
+        !parts.every(part => /^\p{L}+$/u.test(part))
       ) {
         continue;
       }
@@ -147,37 +129,35 @@ export function initDictionary() {
         nextStartWordMap.set(first, []);
       }
 
-      nextStartWordMap
-        .get(first)
-        .push(cleaned);
+      nextStartWordMap.get(first).push(cleaned);
+    }
+
+    if (nextValidWords.size === 0) {
+      throw new Error(
+        'Word Chain dictionary loaded 0 valid two-syllable words.',
+      );
     }
 
     validWordsSet = nextValidWords;
     startWordMap = nextStartWordMap;
     dictionaryLoaded = true;
 
-    const diagnosticWords = [
-      'lính tráng',
-    ];
-
     logger.info(
-      `Loaded ${validWordsSet.size} Vietnamese words for Word Chain minigame.`,
+      `[WordChain] Dictionary loaded: ${validWordsSet.size} words | source: src/data/vietnamese_words.json`,
     );
-
-    for (const diagnosticWord of diagnosticWords) {
-      logger.info(
-        `Word Chain dictionary check: "${diagnosticWord}" = ${validWordsSet.has(normalizeWord(diagnosticWord)) ? 'FOUND' : 'MISSING'}`,
-      );
-    }
 
     return true;
   } catch (error) {
+    validWordsSet = new Set();
+    startWordMap = new Map();
+    dictionaryLoaded = false;
+
     logger.error(
-      'Error loading Vietnamese dictionary:',
+      '[WordChain] Fatal dictionary load error:',
       error,
     );
 
-    return false;
+    throw error;
   }
 }
 
@@ -623,10 +603,7 @@ export function isValidWord(word) {
     return false;
   }
 
-  return (
-    validWordsSet.has(cleaned) ||
-    BUILTIN_WORD_CHAIN_WORDS.has(cleaned)
-  );
+  return validWordsSet.has(cleaned);
 }
 
 export function canChain(
