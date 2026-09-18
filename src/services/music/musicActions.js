@@ -632,9 +632,19 @@ export async function playQuery(
             );
         }
 
-        // The trackStart handler owns the public Music dashboard.
-        // Keeping /play focused on queue/playback avoids duplicate dashboard
-        // sends and keeps command acknowledgement independent from UI refresh.
+        // Keep the command stable, but also trigger the dashboard refresh
+        // after Riffy has had a moment to promote the queued track to current.
+        // This is intentionally fire-and-forget: dashboard failure must never
+        // make /play fail.
+        setTimeout(
+            () => {
+                refreshPlayerMessage(
+                    client,
+                    interaction.guild.id,
+                ).catch(() => null);
+            },
+            750,
+        );
 
         return {
             embed:
