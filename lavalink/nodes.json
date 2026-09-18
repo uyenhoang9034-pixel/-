@@ -19,12 +19,5 @@
     "password": "youshallnotpass",
     "secure": true,
     "name": "Jirayu SSL"
-  },
-  {
-    "host": "lava-v4.millohost.my.id",
-    "port": 443,
-    "password": "https://discord.gg/mjS5J2K3ep",
-    "secure": true,
-    "name": "MilloHost"
   }
 ]
