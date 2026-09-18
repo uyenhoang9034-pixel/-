@@ -86,12 +86,10 @@ import {
   getWordChainGame,
   getWordChainConfig,
   isValidWord,
-  isValidWordWithFallback,
   canChain,
   normalizeWord,
   getLastSyllable,
   findBotNextWord,
-  findBotNextWordWithFallback,
   getRandomStartWord,
   recordUserSuccess,
   recordUserFailure,
@@ -497,10 +495,7 @@ async function handleWordChain(message, client) {
       return true;
     }
 
-    const validUserWord = await isValidWordWithFallback(
-      client,
-      normalized,
-    );
+    const validUserWord = isValidWord(normalized);
 
     if (!validUserWord) {
       await recordUserFailure(
@@ -538,8 +533,7 @@ async function handleWordChain(message, client) {
     await message.react(WORD_CHAIN_EMOJIS.correct).catch(() => {});
 
     if (mode === 'pvp') {
-      const nextWord = await findBotNextWordWithFallback(
-        client,
+      const nextWord = findBotNextWord(
         normalized,
         [...usedWords, normalized],
       );
@@ -572,8 +566,7 @@ async function handleWordChain(message, client) {
     }
 
     const updatedUsedWords = [...usedWords, normalized];
-    const botWord = await findBotNextWordWithFallback(
-      client,
+    const botWord = findBotNextWord(
       normalized,
       updatedUsedWords,
     );
@@ -622,10 +615,7 @@ async function handleWordChain(message, client) {
           return;
         }
 
-        const validBotWord = await isValidWordWithFallback(
-          client,
-          botWord,
-        );
+        const validBotWord = isValidWord(botWord);
 
         if (!validBotWord) {
           return;
@@ -668,8 +658,7 @@ async function handleWordChain(message, client) {
           message.guild.id,
         );
         const afterBotGame = getWordChainGame(afterBotConfig, 'bot');
-        const nextPossibleWord = await findBotNextWordWithFallback(
-          client,
+        const nextPossibleWord = findBotNextWord(
           afterBotGame.currentWord,
           afterBotGame.usedWords || [],
         );
