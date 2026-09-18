@@ -28,7 +28,7 @@ import {
   disableWordChain,
   resetWordChainGame,
   buildWordChainLeaderboard,
-  isValidWordWithFallback,
+  isValidWord,
   normalizeWord,
   getLastSyllable,
   getRandomStartWord,
@@ -495,12 +495,7 @@ export default {
 
         if (
           startWordInput &&
-          !(
-            await isValidWordWithFallback(
-              interaction.client,
-              startWordInput,
-            )
-          )
+          !isValidWord(startWordInput)
         ) {
           return await replyUserError(
             interaction,
@@ -1082,18 +1077,9 @@ export default {
               'start_word',
             );
 
-        /**
-         * JSON -> ONLINE FALLBACK
-         */
-
         if (
           startWordInput &&
-          !(
-            await isValidWordWithFallback(
-              interaction.client,
-              startWordInput,
-            )
-          )
+          !isValidWord(startWordInput)
         ) {
           return await replyUserError(
             interaction,
@@ -1467,13 +1453,6 @@ export default {
           );
         }
 
-        /**
-         * useWordChainHint() trong service
-         * đã dùng:
-         *
-         * LOCAL JSON -> ONLINE FALLBACK
-         */
-
         const hintResult =
           await useWordChainHint(
             interaction.client,
@@ -1504,14 +1483,6 @@ export default {
             },
           );
         }
-
-        /**
-         * Không tìm thấy ở:
-         *
-         * - JSON
-         * - Cache
-         * - Online
-         */
 
         if (
           hintResult.reason ===
