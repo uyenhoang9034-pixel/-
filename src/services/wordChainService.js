@@ -70,6 +70,7 @@ export function normalizeWord(word) {
   }
 
   return word
+    .normalize('NFC')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
