@@ -630,14 +630,67 @@ export async function playQuery(
             await startPlayback(
                 player,
             );
+        }
 
-            // Do not rely only on Riffy's trackStart event.
-            // Some nodes can start playback before that event reaches this handler.
-            // Refresh explicitly so the public Now Playing dashboard is always created.
-            await refreshPlayerMessage(
-                client,
-                interaction.guild.id,
+        // Build the public Music dashboard directly from the resolved track.
+        // Do not depend on player.current/trackStart being populated immediately.
+        const dashboardEmbed =
+            buildNowPlayingEmbed(
+                track,
+                player,
+                guildData,
             );
+
+        const dashboardComponents =
+            buildPlayerButtonRows(
+                player,
+                guildData,
+            );
+
+        const dashboardChannel =
+            interaction.channel;
+
+        if (
+            dashboardChannel &&
+            typeof dashboardChannel.send === 'function'
+        ) {
+            try {
+                const existingMessageId =
+                    guildData.playerMessageId;
+
+                if (existingMessageId) {
+                    try {
+                        const existingMessage =
+                            await dashboardChannel.messages.fetch(
+                                existingMessageId,
+                            );
+
+                        await existingMessage.edit({
+                            embeds: [dashboardEmbed],
+                            components: dashboardComponents,
+                        });
+                    } catch {
+                        guildData.playerMessageId = null;
+                    }
+                }
+
+                if (!guildData.playerMessageId) {
+                    const dashboardMessage =
+                        await dashboardChannel.send({
+                            embeds: [dashboardEmbed],
+                            components: dashboardComponents,
+                        });
+
+                    guildData.playerMessageId =
+                        dashboardMessage.id;
+                }
+
+                guildData.playerChannelId =
+                    dashboardChannel.id;
+            } catch {
+                // The ephemeral /play acknowledgement should still succeed
+                // even if Discord refuses the public dashboard message.
+            }
         }
 
         return {
