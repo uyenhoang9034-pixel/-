@@ -774,13 +774,42 @@ export function setupPlayerHandler(
             }
 
             try {
+                const trackError =
+                    payload?.exception ||
+                    payload?.error ||
+                    payload;
+
+                const errorMessage =
+                    trackError?.message ||
+                    payload?.message ||
+                    payload?.cause?.message ||
+                    (typeof trackError === 'string'
+                        ? trackError
+                        : 'Unknown Lavalink error');
+
+                const errorCause =
+                    trackError?.cause ||
+                    payload?.cause ||
+                    null;
+
+                const errorSeverity =
+                    trackError?.severity ||
+                    payload?.severity ||
+                    null;
+
+                const nodeName =
+                    player?.node?.name ||
+                    player?.node?.options?.name ||
+                    'unknown';
+
                 logger.error(
                     `Track error in ${player.guildId} for "${
                         track?.info?.title ||
                         'Unknown track'
-                    }":`,
-                    payload?.error ||
-                        payload,
+                    }" [node: ${nodeName}] [severity: ${
+                        errorSeverity || 'unknown'
+                    }]:`,
+                    trackError,
                 );
 
                 const guildData =
@@ -797,13 +826,30 @@ export function setupPlayerHandler(
                         );
 
                     if (channel) {
+                        const details = [
+                            `Failed to play **${
+                                track?.info?.title ||
+                                'track'
+                            }**. Skipping...`,
+                            '',
+                            `**Lavalink:** ${String(
+                                errorMessage,
+                            ).slice(0, 900)}`,
+                            errorCause
+                                ? `**Cause:** ${String(
+                                      errorCause,
+                                  ).slice(0, 500)}`
+                                : null,
+                            errorSeverity
+                                ? `**Severity:** ${errorSeverity}`
+                                : null,
+                            `**Node:** ${nodeName}`,
+                        ]
+                            .filter(Boolean)
+                            .join('\\n');
+
                         await channel
-                            .send(
-                                `Failed to play **${
-                                    track?.info?.title ||
-                                    'track'
-                                }**. Skipping...`,
-                            )
+                            .send(details)
                             .catch(
                                 () => null,
                             );
