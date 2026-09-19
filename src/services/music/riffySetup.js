@@ -2,7 +2,7 @@ import { createRequire } from 'module';
 import { GatewayDispatchEvents } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import lavalinkConfig from '../../config/music/lavalink.js';
-import { setupPlayerHandler } from './playerHandler.js';
+import { setupAudioPlayerEvents } from '../audio/audioPlayerEvents.js';
 
 const require = createRequire(import.meta.url);
 const { Riffy } = require('riffy');
@@ -37,7 +37,7 @@ export function initializeMusic(client) {
         },
     });
 
-    setupPlayerHandler(client);
+    setupAudioPlayerEvents(client);
 
     client.on('raw', (packet) => {
         if (
@@ -52,10 +52,10 @@ export function initializeMusic(client) {
     });
 
     client.riffy.on('playerError', (player, error) => {
-        logger.error(`Music player error in guild ${player.guildId}:`, error);
+        logger.error(`Audio player error in guild ${player.guildId}:`, error);
     });
 
-    logger.info(`Music initialized with ${lavalinkConfig.nodes.length} Lavalink node(s).`);
+    logger.info(`Audio Lavalink initialized with ${lavalinkConfig.nodes.length} Lavalink node(s).`);
 }
 
 export function initRiffyAfterReady(client) {
