@@ -1,6 +1,6 @@
 import { PRISON_ROLE_ID } from '../config/leveling/levelingSystem.js';
 
-export const PRISON_CHANNEL_ID = '1541818500241170576';
+export const PRISON_CHANNEL_ID = '1551468471043493920';
 
 const keyFor = (guildId, userId) => `guild:${guildId}:prison:${userId}`;
 
