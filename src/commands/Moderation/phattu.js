@@ -1,8 +1,11 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import path from 'node:path';
 import { jailMember, PRISON_CHANNEL_ID } from '../../services/prisonService.js';
 
 const PRISON_ROLE_ID = '1541818610639446066';
+const PRISON_IMAGE_NAME = 'nhatu.png';
+const PRISON_IMAGE_PATH = path.resolve(process.cwd(), 'assets', 'nhatu', PRISON_IMAGE_NAME);
 
 export default {
   data: new SlashCommandBuilder()
@@ -52,7 +55,7 @@ export default {
     });
 
     const embed = new EmbedBuilder()
-      .setColor(0xffffff)
+      .setColor(0xfceec9)
       .setTitle('<a:trangtrig2:1546040703375904801> 𝓤𝓼𝓪𝓰𝓲 · 𝓝𝓱𝓪̀ 𝓣𝓾̀ <a:trangtrig3:1546040818261954610>')
       .setDescription([
         '<a:bang3:1546891744237461635> **LỆNH PHẠT TÙ**',
@@ -68,9 +71,11 @@ export default {
         `Dùng **/laudon** và hoàn thành đủ **${record.remainingLabor} lần** lao động.`,
         '',
         '<a:catg11:1546058047393239151> *Quản ngục Usagi đang canh cửa. Đừng hòng trốn!*',
-      ].join('\n'));
+      ].join('\n'))
+      .setImage(`attachment://${PRISON_IMAGE_NAME}`);
 
-    await channel.send({ embeds: [embed] });
+    const image = new AttachmentBuilder(PRISON_IMAGE_PATH, { name: PRISON_IMAGE_NAME });
+    await channel.send({ embeds: [embed], files: [image] });
     await InteractionHelper.safeEditReply(interaction, {
       content: `Đã phạt tù <@${user.id}>. Thông báo đã gửi tại <#${PRISON_CHANNEL_ID}>.`,
     });
