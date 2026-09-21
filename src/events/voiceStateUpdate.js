@@ -45,6 +45,9 @@ const MAX_CHANNEL_NAME_LENGTH =
 const FALLBACK_CHANNEL_NAME =
     'Voice Room';
 
+const PRISON_ROLE_ID =
+    '1541818610639446066';
+
 const MAX_TRACKED_COOLDOWNS =
     10000;
 
@@ -748,17 +751,114 @@ export default {
                  * =================================================
                  */
 
+                // Copy the category's current role/member overwrites so
+                // temporary rooms stay synchronized with Voice Lounge privacy.
+                const inheritedOverwrites =
+                    triggerChannel.parent
+                        ?.permissionOverwrites
+                        ?.cache
+                        ?.map(overwrite => ({
+                            id:
+                                overwrite.id,
+
+                            allow:
+                                overwrite.allow
+                                    .bitfield,
+
+                            deny:
+                                overwrite.deny
+                                    .bitfield,
+                        })) ||
+                    [];
+
+                const overwriteMap =
+                    new Map(
+                        inheritedOverwrites
+                            .map(overwrite => [
+                                overwrite.id,
+                                overwrite,
+                            ]),
+                    );
+
+                const categoryEveryone =
+                    overwriteMap
+                        .get(
+                            guild.id,
+                        );
+
                 const everyoneOverwrite = {
                     id:
                         guild.id,
 
-                    allow: [
-                        PermissionFlagsBits.Speak,
-                    ],
+                    allow:
+                        categoryEveryone
+                            ?.allow ??
+                        0n,
 
                     deny:
-                        [],
+                        categoryEveryone
+                            ?.deny ??
+                        0n,
                 };
+
+                // Preserve the existing Join-to-Create room lock/hidden setting.
+                if (
+                    savedLocked
+                ) {
+                    everyoneOverwrite.deny |=
+                        PermissionFlagsBits.Connect;
+                    everyoneOverwrite.allow &=
+                        ~PermissionFlagsBits.Connect;
+                } else {
+                    everyoneOverwrite.allow |=
+                        PermissionFlagsBits.Connect;
+                    everyoneOverwrite.deny &=
+                        ~PermissionFlagsBits.Connect;
+                }
+
+                if (
+                    savedHidden
+                ) {
+                    everyoneOverwrite.deny |=
+                        PermissionFlagsBits.ViewChannel;
+                    everyoneOverwrite.allow &=
+                        ~PermissionFlagsBits.ViewChannel;
+                }
+
+                overwriteMap.set(
+                    guild.id,
+                    everyoneOverwrite,
+                );
+
+                // Prisoners must never see Join-to-Create rooms, even if
+                // another role would otherwise grant ViewChannel.
+                const categoryPrison =
+                    overwriteMap
+                        .get(
+                            PRISON_ROLE_ID,
+                        );
+
+                overwriteMap.set(
+                    PRISON_ROLE_ID,
+                    {
+                        id:
+                            PRISON_ROLE_ID,
+
+                        allow:
+                            (categoryPrison
+                                ?.allow ??
+                            0n) &
+                            ~PermissionFlagsBits.ViewChannel &
+                            ~PermissionFlagsBits.Connect,
+
+                        deny:
+                            (categoryPrison
+                                ?.deny ??
+                            0n) |
+                            PermissionFlagsBits.ViewChannel |
+                            PermissionFlagsBits.Connect,
+                    },
+                );
 
                 if (
                     savedLocked
@@ -822,6 +922,9 @@ export default {
                                 savedRegion,
 
                             permissionOverwrites: [
+                                ...overwriteMap
+                                    .values(),
+
                                 {
                                     id:
                                         member.id,
@@ -834,8 +937,6 @@ export default {
                                         PermissionFlagsBits.MoveMembers,
                                     ],
                                 },
-
-                                everyoneOverwrite,
                             ],
                         });
 
