@@ -1,6 +1,10 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags, AttachmentBuilder } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import path from 'node:path';
 import { getPrisonRecord, performLabor, progressBar, PRISON_CHANNEL_ID } from '../../services/prisonService.js';
+
+const PRISON_IMAGE_NAME = 'nhatu.png';
+const PRISON_IMAGE_PATH = path.resolve(process.cwd(), 'assets', 'nhatu', PRISON_IMAGE_NAME);
 
 export default {
   data: new SlashCommandBuilder()
@@ -30,7 +34,7 @@ export default {
 
     if (result.status === 'released') {
       const embed = new EmbedBuilder()
-        .setColor(0xffffff)
+        .setColor(0xfceec9)
         .setTitle('<a:trangtrig2:1546040703375904801> 𝓤𝓼𝓪𝓰𝓲 · 𝓜𝓪̃𝓷 𝓗𝓪̣𝓷 𝓣𝓾̀ <a:trangtrig3:1546040818261954610>')
         .setDescription([
           '<a:trangtrig1:1546040442548654140> **TỰ DO!**',
@@ -45,8 +49,10 @@ export default {
           '<a:trangtrig6:1546043036390260756> Các role trước khi thụ án đang được khôi phục.',
           '',
           '<a:catg11:1546058047393239151> Quản Ngục Usagi: *Lần sau ngoan nhé, không là vào lau tiếp đấy!*',
-        ].join('\n'));
-      return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        ].join('\n'))
+        .setImage(`attachment://${PRISON_IMAGE_NAME}`);
+      const image = new AttachmentBuilder(PRISON_IMAGE_PATH, { name: PRISON_IMAGE_NAME });
+      return InteractionHelper.safeEditReply(interaction, { embeds: [embed], files: [image] });
     }
 
     const bar = progressBar(record.completedLabor, record.totalLabor);
@@ -72,7 +78,7 @@ export default {
           '<a:catg11:1546058047393239151> Quản ngục Usagi: *Lau tiếp đi, sàn vẫn còn bẩn lắm!*',
         ];
 
-    const embed = new EmbedBuilder().setColor(0xffffff).setDescription(description.join('\n'));
+    const embed = new EmbedBuilder().setColor(0xfceec9).setDescription(description.join('\n'));
     return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
   },
 };
