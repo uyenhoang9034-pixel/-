@@ -24,11 +24,13 @@ export async function jailMember(client, member, { laborRequired, reason, modera
     throw new Error('Bot cần quyền Manage Roles để phạt tù.');
   }
 
-  const removableRoles = member.roles.cache.filter(role =>
+  // Refresh member roles first so /phattu never works from a stale cache.
+  const freshMember = await guild.members.fetch(member.id);
+  const removableRoles = freshMember.roles.cache.filter(role =>
     role.id !== guild.id &&
     role.id !== PRISON_ROLE_ID &&
     !role.managed &&
-    role.position < botMember.roles.highest.position
+    role.editable
   );
 
   const originalRoleIds = existing?.active
@@ -38,23 +40,37 @@ export async function jailMember(client, member, { laborRequired, reason, modera
   if (!existing?.active) {
     const keepRoleIds = [guild.id, PRISON_ROLE_ID];
 
-    for (const role of member.roles.cache.values()) {
+    for (const role of freshMember.roles.cache.values()) {
       if (keepRoleIds.includes(role.id) || role.managed) continue;
 
-      if (role.position >= botMember.roles.highest.position) {
+      if (!role.editable) {
         throw new Error(
-          `Không thể phạt tù vì bot không thể xóa role "${role.name}" (${role.id}). Hãy đặt role bot cao hơn role này.`,
+          `Không thể phạt tù vì bot không thể xóa role "${role.name}" (${role.id}). Hãy kéo role của bot lên trên role này và đảm bảo bot có Manage Roles.`,
         );
       }
     }
 
-    if (removableRoles.size > 0) {
-      await member.roles.remove([...removableRoles.keys()], 'Usagi Prison: phạt tù');
+    // Remove one by one and verify. Discord may accept a bulk request while
+    // leaving roles that the bot cannot actually manage.
+    for (const role of removableRoles.values()) {
+      await freshMember.roles.remove(role.id, 'Usagi Prison: phạt tù');
+    }
+
+    const verifiedMember = await guild.members.fetch(freshMember.id);
+    const rolesStillPresent = [...removableRoles.keys()].filter(id =>
+      verifiedMember.roles.cache.has(id)
+    );
+
+    if (rolesStillPresent.length > 0) {
+      throw new Error(
+        `Không thể xóa hết role cũ: ${rolesStillPresent.map(id => `<@&${id}>`).join(', ')}. Kiểm tra thứ tự role của bot.`,
+      );
     }
   }
 
-  if (!member.roles.cache.has(PRISON_ROLE_ID)) {
-    await member.roles.add(PRISON_ROLE_ID, 'Usagi Prison: vào tù');
+  const jailedMember = await guild.members.fetch(member.id);
+  if (!jailedMember.roles.cache.has(PRISON_ROLE_ID)) {
+    await jailedMember.roles.add(PRISON_ROLE_ID, 'Usagi Prison: vào tù');
   }
 
   const added = Math.max(1, Math.floor(Number(laborRequired) || 1));
