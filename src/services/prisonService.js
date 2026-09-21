@@ -35,8 +35,22 @@ export async function jailMember(client, member, { laborRequired, reason, modera
     ? existing.originalRoleIds || []
     : [...removableRoles.keys()];
 
-  if (!existing?.active && removableRoles.size > 0) {
-    await member.roles.remove([...removableRoles.keys()], 'Usagi Prison: phạt tù');
+  if (!existing?.active) {
+    const keepRoleIds = [guild.id, PRISON_ROLE_ID];
+
+    for (const role of member.roles.cache.values()) {
+      if (keepRoleIds.includes(role.id) || role.managed) continue;
+
+      if (role.position >= botMember.roles.highest.position) {
+        throw new Error(
+          `Không thể phạt tù vì bot không thể xóa role "${role.name}" (${role.id}). Hãy đặt role bot cao hơn role này.`,
+        );
+      }
+    }
+
+    if (removableRoles.size > 0) {
+      await member.roles.remove([...removableRoles.keys()], 'Usagi Prison: phạt tù');
+    }
   }
 
   if (!member.roles.cache.has(PRISON_ROLE_ID)) {
