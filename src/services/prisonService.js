@@ -1,7 +1,6 @@
 import { PRISON_ROLE_ID } from '../config/leveling/levelingSystem.js';
 
 export const PRISON_CHANNEL_ID = '1551468471043493920';
-export const TIEN_LO_ROLE_ID = '1547581204759318579';
 
 const keyFor = (guildId, userId) => `guild:${guildId}:prison:${userId}`;
 
@@ -37,7 +36,6 @@ export async function jailMember(client, member, { laborRequired, reason, modera
   const oldRoles = freshMember.roles.cache.filter(role =>
     role.id !== guild.id &&
     role.id !== PRISON_ROLE_ID &&
-    role.id !== TIEN_LO_ROLE_ID &&
     !role.managed
   );
 
@@ -118,7 +116,6 @@ export async function releaseMember(client, member, record) {
       role &&
       role.id !== guild.id &&
       role.id !== PRISON_ROLE_ID &&
-      role.id !== TIEN_LO_ROLE_ID &&
       !role.managed &&
       role.position < botMember.roles.highest.position
     )
