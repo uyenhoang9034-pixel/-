@@ -72,7 +72,7 @@ export default {
         '<a:trangtrig1:1546040442548654140> **TỰ DO!**',
         '',
         `<@${user.id}> đã được thả khỏi Nhà Tù!`,
-        `<a:danceg1:1541433201904455832> Lao động: **${completedBeforeRelease} / ${total} lần**`,
+        `<a:trangtrig31:1546905996893626440> Lao động: **${completedBeforeRelease} / ${total} lần**`,
         `<a:danceg1:1541433201904455832> Án phạt: **${released.reason || 'Không có lý do'}**`,
         '<a:danceg1:1541433201904455832> Trạng thái: **ĐÃ MÃN HẠN**',
         '',
