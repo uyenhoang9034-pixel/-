@@ -5,6 +5,8 @@ import { getPrisonRecord, performLabor, progressBar, PRISON_CHANNEL_ID } from '.
 
 const PRISON_IMAGE_NAME = 'nhatu.png';
 const PRISON_IMAGE_PATH = path.resolve(process.cwd(), 'assets', 'nhatu', PRISON_IMAGE_NAME);
+const LABOR_COOLDOWN_MS = 5_000;
+const laborCooldowns = new Map();
 
 export default {
   data: new SlashCommandBuilder()
@@ -28,8 +30,31 @@ export default {
       });
     }
 
+    const cooldownKey = `${interaction.guildId}:${interaction.user.id}`;
+    const now = Date.now();
+    const lastUsedAt = laborCooldowns.get(cooldownKey) || 0;
+    const remainingMs = LABOR_COOLDOWN_MS - (now - lastUsedAt);
+
+    if (remainingMs > 0) {
+      const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+      return interaction.reply({
+        content: `<a:catg11:1546058047393239151> Nghỉ tay một chút! Bạn phải chờ **${remainingSeconds} giây** nữa mới có thể **/laudon** tiếp.`,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
+    // Lock immediately so double interactions cannot count twice.
+    laborCooldowns.set(cooldownKey, now);
+
     await InteractionHelper.safeDefer(interaction);
-    const result = await performLabor(client, interaction.member);
+    let result;
+    try {
+      result = await performLabor(client, interaction.member);
+    } catch (error) {
+      // A failed labor action must not consume the 5-second cooldown.
+      laborCooldowns.delete(cooldownKey);
+      throw error;
+    }
     const record = result.record;
 
     if (result.status === 'released') {
