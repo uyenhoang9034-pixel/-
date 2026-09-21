@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, AttachmentBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import path from 'node:path';
 import { getPrisonRecord, releaseMember, PRISON_CHANNEL_ID } from '../../services/prisonService.js';
@@ -17,7 +17,7 @@ export default {
   category: 'moderation',
 
   async execute(interaction, config, client) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await interaction.deferReply({ ephemeral: true });
 
     const user = interaction.options.getUser('thanhvien');
     const member = interaction.options.getMember('thanhvien');
