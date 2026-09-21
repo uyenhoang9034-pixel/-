@@ -860,38 +860,6 @@ export default {
                     },
                 );
 
-                if (
-                    savedLocked
-                ) {
-                    everyoneOverwrite
-                        .deny
-                        .push(
-                            PermissionFlagsBits.Connect,
-                        );
-                } else {
-                    everyoneOverwrite
-                        .allow
-                        .push(
-                            PermissionFlagsBits.Connect,
-                        );
-                }
-
-                if (
-                    savedHidden
-                ) {
-                    everyoneOverwrite
-                        .deny
-                        .push(
-                            PermissionFlagsBits.ViewChannel,
-                        );
-                } else {
-                    everyoneOverwrite
-                        .allow
-                        .push(
-                            PermissionFlagsBits.ViewChannel,
-                        );
-                }
-
                 /**
                  * =================================================
                  * CREATE
