@@ -65,7 +65,7 @@ export default {
           '<a:trangtrig1:1546040442548654140> **TỰ DO!**',
           '',
           `<@${interaction.user.id}> đã hoàn thành toàn bộ hình phạt!`,
-          `<a:danceg1:1541433201904455832> Lao động: **${record.totalLabor} / ${record.totalLabor} lần** ✅`,
+          `<a:trangtrig31:1546905996893626440> Lao động: **${record.totalLabor} / ${record.totalLabor} lần** ✅`,
           `<a:danceg1:1541433201904455832> Án phạt: **${record.reason}**`,
           '<a:danceg1:1541433201904455832> Trạng thái: **ĐÃ MÃN HẠN**',
           '',
