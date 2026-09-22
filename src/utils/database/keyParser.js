@@ -170,7 +170,7 @@ export function getStructuredListPlan(prefix, tables) {
     };
 
 
-    match = normalizedPrefix.match(/^([^:]+):leveling:users:$/);
+    let match = normalizedPrefix.match(/^([^:]+):leveling:users:$/);
     if (match && match[1] !== 'guild') {
         addUserLevels(match[1]);
         return plan;
