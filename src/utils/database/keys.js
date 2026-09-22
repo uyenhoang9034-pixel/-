@@ -96,14 +96,6 @@ export function getWarningsPrefix(guildId) {
     return `guild:${guildId}:warnings:`;
 }
 
-export function getUserNotesKey(guildId, userId) {
-    return `guild:${guildId}:usernotes:${userId}`;
-}
-
-export function getUserNotesListKey(guildId) {
-    return `guild:${guildId}:usernotes:list`;
-}
-
 export function getReactionRoleKey(guildId, messageId) {
     return `guild:${guildId}:reaction_roles:${messageId}`;
 }
@@ -223,18 +215,6 @@ export function getLegacyVariantsForCanonical(canonicalKey) {
         const warningsMatch = sample.match(/^guild:([^:]+):warnings:([^:]+)$/);
         if (warningsMatch && toCanonical(['', warningsMatch[1], warningsMatch[2]]) === canonicalKey) {
             variants.push(`moderation:warnings:${warningsMatch[1]}:${warningsMatch[2]}`);
-            continue;
-        }
-
-        const notesMatch = sample.match(/^guild:([^:]+):usernotes:([^:]+)$/);
-        if (notesMatch && toCanonical(['', notesMatch[1], notesMatch[2]]) === canonicalKey) {
-            variants.push(`moderation_user_notes_${notesMatch[1]}_${notesMatch[2]}`);
-            continue;
-        }
-
-        const notesListMatch = sample.match(/^guild:([^:]+):usernotes:list$/);
-        if (notesListMatch && toCanonical(['', notesListMatch[1]]) === canonicalKey) {
-            variants.push(`moderation_user_notes_list_${notesListMatch[1]}`);
             continue;
         }
 
