@@ -1,6 +1,6 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, AttachmentBuilder, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed } from '../utils/embeds.js';
-import { createTicket, closeTicket, claimTicket, updateTicketPriority, getUserTicketCount } from '../services/ticket.js';
+import { createTicket, closeTicket, claimTicket, getUserTicketCount } from '../services/ticket.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
 import { logger } from '../utils/logger.js';
@@ -284,36 +284,6 @@ const claimTicketHandler = {
   }
 };
 
-const priorityTicketHandler = {
-  name: 'ticket_priority',
-  async execute(interaction, client, args) {
-    try {
-      if (!(await ensureGuildContext(interaction))) return;
-
-      await assertTicketPermission(interaction, client, 'change ticket priority', {}, 2000);
-
-      const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
-      if (!deferSuccess) return;
-      
-      const priority = args?.[0];
-      if (!priority) {
-        await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'A priority value is required.' });
-        return;
-      }
-
-      await updateTicketPriority(interaction.channel, priority, interaction.user);
-      await interaction.editReply({ embeds: [successEmbed('Priority Updated', `Ticket priority set to **${priority.toUpperCase()}**.`)] });
-    } catch (error) {
-      logger.error('Error updating ticket priority:', error);
-      if (!interaction.replied && !interaction.deferred) {
-        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while updating the priority.' });
-      } else if (interaction.deferred) {
-        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while updating the priority.' });
-      }
-    }
-  }
-};
-
 const pinTicketHandler = {
   name: 'ticket_pin',
   async execute(interaction, client) {
@@ -495,7 +465,6 @@ export {
   closeTicketModalHandler,
   closeTicketHandler, 
   claimTicketHandler, 
-  priorityTicketHandler,
   pinTicketHandler,
   unclaimTicketHandler,
   reopenTicketHandler,
