@@ -9,7 +9,6 @@ import {
     getUserLevelKey,
     getAFKKey,
     getWarningsKey,
-    getUserNotesKey,
     getEconomyPrefix,
     getUserLevelPrefix,
 } from '../utils/database.js';
@@ -28,7 +27,6 @@ const wipedataConfirmHandler = {
         getUserLevelKey(guildId, userId),
         getAFKKey(guildId, userId),
         getWarningsKey(guildId, userId),
-        getUserNotesKey(guildId, userId),
         `level:${guildId}:${userId}`,
         `xp:${guildId}:${userId}`,
         `inventory:${guildId}:${userId}`,
