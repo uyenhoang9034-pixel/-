@@ -3,6 +3,8 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 
+
+
 import audioManager from '../../services/audio/audioManager.js';
 
 import {
@@ -594,8 +596,7 @@ export default {
        */
 
       throw new Error(
-        `Audio was queued but playback did not start. Queue length: ${
-          player.queue?.length || 0
+        `Audio was queued but playback did not start. Queue length: ${player.queue?.length || 0
         }`,
       );
     } catch (error) {
@@ -622,9 +623,8 @@ export default {
                 '',
                 `🔎 **${input}**`,
                 '',
-                `⚠️ ${
-                  error?.message ||
-                  'Unknown playback error'
+                `⚠️ ${error?.message ||
+                'Unknown playback error'
                 }`,
                 '',
                 'Bạn có thể thử một link YouTube khác hoặc dùng Search Audio.',
