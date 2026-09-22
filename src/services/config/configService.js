@@ -13,7 +13,6 @@ const CONFIG_HISTORY_LIMIT = 100;
 
 const CONFIG_VALIDATION_RULES = {
     logChannelId: { type: 'channel', required: false },
-    reportChannelId: { type: 'channel', required: false },
     premiumRoleId: { type: 'role', required: false },
     autoRole: { type: 'role', required: false },
     modRole: { type: 'role', required: false },
@@ -33,12 +32,10 @@ const SETTING_CONFLICTS = {
 
 const LEGACY_LOGGING_KEY_MAP = {
     logChannelId: 'audit',
-    reportChannelId: 'reports',
 };
 
 const ConfigValueSchemas = Object.freeze({
     logChannelId: z.union([z.string().min(1), z.object({ id: z.string().min(1) }), z.null()]),
-    reportChannelId: z.union([z.string().min(1), z.object({ id: z.string().min(1) }), z.null()]),
     premiumRoleId: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
     autoRole: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
     modRole: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
@@ -89,9 +86,6 @@ class ConfigService {
         delete next[key];
         if (key === 'logChannelId') {
             delete next.enableLogging;
-        }
-        if (key === 'reportChannelId') {
-            delete next.reportChannelId;
         }
         return next;
     }
