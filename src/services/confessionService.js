@@ -61,5 +61,12 @@ export async function publishConfession(client,guild,data){
   ?`${CONFESSION.emojiMode} **Gửi bởi <@${data.authorId}>**`
   :`${CONFESSION.emojiMode} **Ẩn danh · \`${data.anonymousCode}\`**\n\nMã \`${data.anonymousCode}\` là danh tính ẩn danh của người viết **trong confession này**.`;
  const embed=new EmbedBuilder().setColor(CONFESSION.color).setDescription(`${CONFESSION.emojiMain} **Confession #${data.number}**\n\n${data.content}\n\n${identity}`);
- return forum.threads.create({name:`Confession #${data.number}`,message:{embeds:[embed],components:[publicButtons(data.id)]},reason:`Approved confession #${data.number}`});
+ const thread=await forum.threads.create({name:`Confession #${data.number}`,message:{embeds:[embed],components:[publicButtons(data.id)]},reason:`Approved confession #${data.number}`});
+ try{
+  const starter=await thread.fetchStarterMessage();
+  if(starter)await starter.react('1546905942476464178');
+ }catch(error){
+  console.warn(`[Confession] Không thể tự react trangtrig30 cho #${data.number}:`,error?.message||error);
+ }
+ return thread;
 }
