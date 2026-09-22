@@ -9,11 +9,44 @@ export default {
   .setDMPermission(false)
   .addSubcommand(s=>s.setName('panel').setDescription('Đăng bài panel Usagi Confession lên forum.'))
   .addSubcommand(s=>s.setName('info').setDescription('Xem thông tin confession dành cho BQL.')
-    .addIntegerOption(o=>o.setName('id').setDescription('Số confession, ví dụ 3552').setRequired(true).setMinValue(1))),
+    .addIntegerOption(o=>o.setName('id').setDescription('Số confession, ví dụ 3552').setRequired(true).setMinValue(1)))
+  .addSubcommand(s=>s.setName('trace').setDescription('Tra người thật đứng sau mã ẩn danh trong một confession.')
+    .addIntegerOption(o=>o.setName('confession').setDescription('Số confession, ví dụ 3552').setRequired(true).setMinValue(1))
+    .addStringOption(o=>o.setName('code').setDescription('Mã ẩn danh, ví dụ RPL-X82K hoặc USG-4K8P').setRequired(true))),
  category:'Community',
  async execute(interaction){
   if(!interaction.inGuild())return interaction.reply({content:'❌ Lệnh này chỉ dùng trong server.',flags:MessageFlags.Ephemeral});
   const sub=interaction.options.getSubcommand();
+
+  if(sub==='trace'){
+   if(!interaction.member.roles.cache.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Bạn không có role BQL để tra mã ẩn danh.',flags:MessageFlags.Ephemeral});
+   const number=interaction.options.getInteger('confession');
+   const code=interaction.options.getString('code').trim().toUpperCase();
+   const d=await getConfessionByNumber(interaction.client,interaction.guildId,number);
+   if(!d)return interaction.reply({content:`❌ Không tìm thấy Confession #${number}.`,flags:MessageFlags.Ephemeral});
+
+   let userId=null;
+   let type=null;
+   if(d.anonymousCode?.toUpperCase()===code){
+    userId=d.authorId;
+    type='Người gửi confession';
+   }else{
+    const found=Object.entries(d.replyAliases||{}).find(([,alias])=>String(alias).toUpperCase()===code);
+    if(found){userId=found[0];type='Người trả lời ẩn danh';}
+   }
+
+   if(!userId)return interaction.reply({content:`❌ Không tìm thấy mã **${code}** trong Confession #${number}.`,flags:MessageFlags.Ephemeral});
+
+   const embed=new EmbedBuilder().setColor(CONFESSION.color).setDescription(
+    `${CONFESSION.emojiMain} **Tra mã ẩn danh**\n\n`+
+    `**Confession:** #${number}\n`+
+    `**Mã:** \`${code}\`\n`+
+    `**Loại:** ${type}\n`+
+    `**Người dùng thật:** <@${userId}>\n`+
+    `**User ID:** \`${userId}\``
+   );
+   return interaction.reply({embeds:[embed],flags:MessageFlags.Ephemeral});
+  }
 
   if(sub==='info'){
    if(!interaction.member.roles.cache.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Bạn không có role duyệt confession.',flags:MessageFlags.Ephemeral});
