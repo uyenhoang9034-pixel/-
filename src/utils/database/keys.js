@@ -32,14 +32,6 @@ export function getFakeAccountKey(guildId, userId) {
     return `guild:${guildId}:fake_account:${userId}`;
 }
 
-export function getEconomyKey(guildId, userId) {
-    return `guild:${guildId}:economy:${userId}`;
-}
-
-export function getEconomyPrefix(guildId) {
-    return `guild:${guildId}:economy:`;
-}
-
 export function getAFKKey(guildId, userId) {
     return `guild:${guildId}:afk:${userId}`;
 }
@@ -58,26 +50,6 @@ export function getUserLevelKey(guildId, userId) {
 
 export function getUserLevelPrefix(guildId) {
     return `guild:${guildId}:leveling:users:`;
-}
-
-export function getApplicationRolesKey(guildId) {
-    return `guild:${guildId}:applications:roles`;
-}
-
-export function getApplicationSettingsKey(guildId) {
-    return `guild:${guildId}:applications:settings`;
-}
-
-export function getUserApplicationsKey(guildId, userId) {
-    return `guild:${guildId}:applications:users:${userId}`;
-}
-
-export function getApplicationKey(guildId, applicationId) {
-    return `guild:${guildId}:applications:${applicationId}`;
-}
-
-export function getApplicationsPrefix(guildId) {
-    return `guild:${guildId}:applications:`;
 }
 
 export function getJoinToCreateConfigKey(guildId) {
@@ -129,10 +101,6 @@ export function getGiveawayLockKey(messageId) {
  * Used by migration script and read-time fallback.
  */
 export const LEGACY_KEY_RESOLVERS = [
-    {
-        pattern: /^economy:([^:]+):([^:]+)$/,
-        toCanonical: ([, guildId, userId]) => getEconomyKey(guildId, userId),
-    },
     {
         pattern: /^birthdays:([^:]+)$/,
         toCanonical: ([, guildId]) => getGuildBirthdaysKey(guildId),
@@ -194,12 +162,6 @@ export function getLegacyVariantsForCanonical(canonicalKey) {
 
     for (const { pattern, toCanonical } of LEGACY_KEY_RESOLVERS) {
         const sample = canonicalKey;
-        const match = sample.match(/^guild:([^:]+):economy:([^:]+)$/);
-        if (match && toCanonical(['', match[1], match[2]]) === canonicalKey) {
-            variants.push(`economy:${match[1]}:${match[2]}`);
-            continue;
-        }
-
         const birthdaysMatch = sample.match(/^guild:([^:]+):birthdays$/);
         if (birthdaysMatch && toCanonical(['', birthdaysMatch[1]]) === canonicalKey) {
             variants.push(`birthdays:${birthdaysMatch[1]}`);
