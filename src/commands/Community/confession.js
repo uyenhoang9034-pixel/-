@@ -1,6 +1,8 @@
 import { SlashCommandBuilder, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from 'discord.js';
 import { CONFESSION, getConfessionByNumber, infoEmbed } from '../../services/confessionService.js';
 
+const CFS_IMAGE='https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/confessions/cfs.png';
+
 export default {
  slashOnly:true,
  data:new SlashCommandBuilder().setName('confession').setDescription('Usagi Confession.')
@@ -36,7 +38,7 @@ export default {
    '<a:trangtrig47:1547249293944029308> **Public**\nTên của bạn sẽ được hiển thị cùng confession sau khi được duyệt.\n\n'+
    '<a:heartg6:1546906117551030382> *Bot sẽ gửi tin nhắn riêng cho bạn khi confession được duyệt hoặc từ chối.*\n'+
    '<a:heartg6:1546906117551030382> *Nếu gặp bất cứ vấn đề gì liên quan đến cfs, vui lòng tag <@872792190651334707> để được giải quyết nhanh chóng. Xin cảm ơn!*'
-  );
+  ).setImage(CFS_IMAGE);
   const row=new ActionRowBuilder().addComponents(
    new ButtonBuilder().setCustomId('confession_open_anonymous').setLabel('Ẩn danh').setEmoji('1547249293944029308').setStyle(ButtonStyle.Secondary),
    new ButtonBuilder().setCustomId('confession_open_public').setLabel('Public').setEmoji('1547249293944029308').setStyle(ButtonStyle.Success)
