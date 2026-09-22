@@ -24,13 +24,10 @@ const RISKY_COMMAND_NAMES = new Set([
   'wipedata',
   'ban',
   'kick',
-  'timeout',
-  'untimeout',
   'purge',
   'warn',
   'unban',
   'lock',
-  'unlock',
   'ticket',
   'reactroles'
 ]);
