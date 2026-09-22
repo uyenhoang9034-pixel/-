@@ -12,14 +12,6 @@ const KEY_MIGRATION_MARKER = `__meta:key_migration:v${KEY_MIGRATION_VERSION}`;
 async function keyExists(client, canonicalKey) {
     const parsed = parseKey(canonicalKey);
 
-    if (parsed.type === 'economy') {
-        const result = await client.query(
-            `SELECT 1 FROM ${pgConfig.tables.economy} WHERE guild_id = $1 AND user_id = $2 LIMIT 1`,
-            [parsed.guildId, parsed.userId],
-        );
-        return result.rows.length > 0;
-    }
-
     if (parsed.type === 'user_level') {
         const result = await client.query(
             `SELECT 1 FROM ${pgConfig.tables.user_levels} WHERE guild_id = $1 AND user_id = $2 LIMIT 1`,
@@ -77,25 +69,6 @@ function resolveTimestampValue(input, fallback = new Date()) {
 
     const parsedDate = new Date(input);
     return !Number.isNaN(parsedDate.getTime()) ? parsedDate : fallback;
-}
-
-async function migrateEconomyFromTemp(client, legacyKey, value) {
-    const parsed = parseKey(canonicalizeKey(legacyKey));
-    const payload = typeof value === 'string' ? JSON.parse(value) : value;
-    const wallet = payload?.wallet ?? payload?.balance ?? 0;
-    const bank = payload?.bank ?? 0;
-
-    await ensureParentRows(client, parsed.guildId, parsed.userId);
-    await client.query(
-        `INSERT INTO ${pgConfig.tables.economy} (guild_id, user_id, balance, bank, data, updated_at)
-         VALUES ($1, $2, $3, $4, $5::jsonb, CURRENT_TIMESTAMP)
-         ON CONFLICT (guild_id, user_id) DO UPDATE SET
-           balance = EXCLUDED.balance,
-           bank = EXCLUDED.bank,
-           data = EXCLUDED.data,
-           updated_at = CURRENT_TIMESTAMP`,
-        [parsed.guildId, parsed.userId, wallet, bank, JSON.stringify(payload ?? {})],
-    );
 }
 
 async function migrateUserLevelFromTemp(client, legacyKey, value) {
@@ -223,13 +196,7 @@ export async function runKeyMigration({ pool, dryRun = false, force = false, log
                 logger.info(`Migrate ${legacyKey} -> ${canonicalKey} [${parsed.type}]`);
 
                 if (!dryRun) {
-                    if (parsed.type === 'economy') {
-                        await migrateEconomyFromTemp(client, legacyKey, row.value);
-                        await client.query(
-                            `DELETE FROM ${pgConfig.tables.temp_data} WHERE key = $1`,
-                            [legacyKey],
-                        );
-                    } else if (parsed.type === 'user_level') {
+                    if (parsed.type === 'user_level') {
                         await migrateUserLevelFromTemp(client, legacyKey, row.value);
                         await client.query(
                             `DELETE FROM ${pgConfig.tables.temp_data} WHERE key = $1`,
