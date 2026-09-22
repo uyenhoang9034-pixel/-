@@ -1,68 +1,33 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { randomUUID } from 'crypto';
-import { CONFESSION, nextConfessionNumber, saveConfession, reviewEmbed, reviewButtons } from '../../services/confessionService.js';
+import { SlashCommandBuilder, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { CONFESSION } from '../../services/confessionService.js';
 
 export default {
   slashOnly: true,
   data: new SlashCommandBuilder()
     .setName('confession')
-    .setDescription('Gửi confession ẩn danh để BQL duyệt.')
+    .setDescription('Mở bảng Usagi Confession.')
     .setDMPermission(false),
-
   category: 'Community',
 
-  async execute(interaction, config, client) {
-    if (!interaction.inGuild()) {
-      return interaction.reply({ content: '❌ Lệnh này chỉ dùng trong server.', flags: MessageFlags.Ephemeral });
-    }
+  async execute(interaction) {
+    if (!interaction.inGuild()) return interaction.reply({ content: '❌ Lệnh này chỉ dùng trong server.', flags: MessageFlags.Ephemeral });
 
-    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
-    const modal = new ModalBuilder()
-      .setCustomId('confession_submit')
-      .setTitle('💌 Gửi Confession');
+    const embed = new EmbedBuilder()
+      .setColor(CONFESSION.color)
+      .setDescription(
+        '<a:trangtrig2:1546040703375904801> **𝓤𝓼𝓪𝓰𝓲 𝓒𝓸𝓷𝓯𝓮𝓼𝓼𝓲𝓸𝓷** <a:trangtrig3:1546040818261954610>\n\n' +
+        'Chọn một trong hai nút bên dưới để gửi confession.\nConfession của bạn sẽ được gửi đến Ban Quản Lý để duyệt trước khi xuất hiện.\n\n' +
+        '<a:trangtrig47:1547249293944029308> **Ẩn danh**\nTên và tài khoản Discord của bạn sẽ không được hiển thị khi confession được đăng.\n' +
+        '<a:trangtrig47:1547249293944029308> **Public**\nTên của bạn sẽ được hiển thị cùng confession sau khi được duyệt.\n\n' +
+        '<a:heartg6:1546906117551030382> *Bot sẽ gửi tin nhắn riêng cho bạn khi confession được duyệt hoặc từ chối.*\n' +
+        '<a:heartg6:1546906117551030382> *Nếu gặp bất cứ vấn đề gì liên quan đến cfs, vui lòng tag <@872792190651334707> để được giải quyết nhanh chóng. Xin cảm ơn!*'
+      );
 
-    const content = new TextInputBuilder()
-      .setCustomId('content')
-      .setLabel('Nội dung confession')
-      .setStyle(TextInputStyle.Paragraph)
-      .setMinLength(1)
-      .setMaxLength(4000)
-      .setRequired(true)
-      .setPlaceholder('Viết confession của bạn tại đây...');
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('confession_open_anonymous').setLabel('Ẩn danh').setEmoji('1547249293944029308').setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId('confession_open_public').setLabel('Public').setEmoji('1547249293944029308').setStyle(ButtonStyle.Success),
+    );
 
-    modal.addComponents(new ActionRowBuilder().addComponents(content));
-    await interaction.showModal(modal);
+    await interaction.reply({ embeds: [embed], components: [row] });
   },
 };
-
-export async function submitConfession(interaction, client) {
-  const content = interaction.fields.getTextInputValue('content').trim();
-  const number = await nextConfessionNumber(client, interaction.guildId);
-  const data = {
-    id: randomUUID(),
-    number,
-    guildId: interaction.guildId,
-    authorId: interaction.user.id,
-    content,
-    status: 'pending',
-    createdAt: Date.now(),
-  };
-
-  const reviewChannel = await interaction.guild.channels.fetch(CONFESSION.reviewChannelId);
-  if (!reviewChannel?.isTextBased()) throw new Error('Không tìm thấy kênh BQL duyệt confession.');
-
-  const reviewMessage = await reviewChannel.send({
-    content: `<@&${CONFESSION.reviewerRoleId}>`,
-    embeds: [reviewEmbed(data)],
-    components: [reviewButtons(data.id)],
-    allowedMentions: { roles: [CONFESSION.reviewerRoleId] },
-  });
-
-  data.reviewMessageId = reviewMessage.id;
-  await saveConfession(client, data);
-
-  await interaction.reply({
-    content: `💌 Đã gửi **Confession #${number}** tới BQL để duyệt. Danh tính của bạn sẽ không hiển thị ở bài đăng công khai.`,
-    flags: MessageFlags.Ephemeral,
-  });
-}
