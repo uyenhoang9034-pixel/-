@@ -33,7 +33,28 @@ export default {
         const target = interaction.options.getUser("target");
         const guildId = interaction.guildId;
 
-        const validWarnings = await WarningService.getWarnings(guildId, target.id);
+        let validWarnings;
+        try {
+            validWarnings = await WarningService.getWarnings(guildId, target.id);
+        } catch (error) {
+            logger.error('Failed to load warnings', {
+                error,
+                guildId,
+                targetUserId: target.id,
+                moderatorId: interaction.user.id,
+            });
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [
+                    createEmbed({
+                        title: 'Warnings unavailable',
+                        description: 'Không thể đọc dữ liệu cảnh cáo lúc này. Vui lòng thử lại sau.',
+                    }).setColor(getColor('error')),
+                ],
+                components: [],
+            });
+            return;
+        }
+
         const totalWarns = validWarnings.length;
 
         if (totalWarns === 0) {
