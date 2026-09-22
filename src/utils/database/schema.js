@@ -114,18 +114,6 @@ export const tableStatements = [
         FOREIGN KEY (user_id) REFERENCES ${t.users}(id) ON DELETE CASCADE
     )`,
 
-    `CREATE TABLE IF NOT EXISTS ${t.economy} (
-        guild_id VARCHAR(20),
-        user_id VARCHAR(20),
-        balance BIGINT DEFAULT 0,
-        bank BIGINT DEFAULT 0,
-        data JSONB DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (guild_id, user_id),
-        FOREIGN KEY (guild_id) REFERENCES ${t.guilds}(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES ${t.users}(id) ON DELETE CASCADE
-    )`,
 
     `CREATE TABLE IF NOT EXISTS ${t.verification_audit} (
         id SERIAL PRIMARY KEY,
@@ -150,15 +138,6 @@ export const tableStatements = [
         FOREIGN KEY (guild_id) REFERENCES ${t.guilds}(id) ON DELETE CASCADE
     )`,
 
-    `CREATE TABLE IF NOT EXISTS ${t.application_roles} (
-        guild_id VARCHAR(20),
-        role_id VARCHAR(20),
-        data JSONB DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (guild_id, role_id),
-        FOREIGN KEY (guild_id) REFERENCES ${t.guilds}(id) ON DELETE CASCADE
-    )`,
 
     `CREATE TABLE IF NOT EXISTS ${t.temp_data} (
         key VARCHAR(255) PRIMARY KEY,
@@ -188,7 +167,6 @@ export const indexStatements = [
     `CREATE INDEX IF NOT EXISTS idx_afk_status_expires_at ON ${t.afk_status}(expires_at)`,
     `CREATE INDEX IF NOT EXISTS idx_user_levels_guild_id ON ${t.user_levels}(guild_id)`,
     `CREATE INDEX IF NOT EXISTS idx_user_levels_xp ON ${t.user_levels}(xp)`,
-    `CREATE INDEX IF NOT EXISTS idx_economy_guild_id ON ${t.economy}(guild_id)`,
     `CREATE INDEX IF NOT EXISTS idx_verification_audit_guild_id ON ${t.verification_audit}(guild_id)`,
     `CREATE INDEX IF NOT EXISTS idx_verification_audit_user_id ON ${t.verification_audit}(user_id)`,
     `CREATE INDEX IF NOT EXISTS idx_verification_audit_created_at ON ${t.verification_audit}(created_at)`,
@@ -216,8 +194,6 @@ export const triggerDefinitions = [
     { name: 'update_welcome_configs_updated_at', table: t.welcome_configs },
     { name: 'update_leveling_configs_updated_at', table: t.leveling_configs },
     { name: 'update_user_levels_updated_at', table: t.user_levels },
-    { name: 'update_economy_updated_at', table: t.economy },
-    { name: 'update_application_roles_updated_at', table: t.application_roles },
     { name: 'update_invite_tracking_updated_at', table: t.invite_tracking },
     { name: 'update_guild_users_updated_at', table: t.guild_users },
     { name: 'update_birthdays_updated_at', table: t.birthdays },
