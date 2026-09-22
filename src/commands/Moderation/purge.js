@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
@@ -8,19 +8,36 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
-    .setName("purge")
+    .setName("clear")
     .setDescription("Delete a specific amount of messages")
     .addIntegerOption((option) =>
       option
         .setName("amount")
         .setDescription("Number of messages (1-100)")
         .setRequired(true),
-    )
-.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    ),
   category: "moderation",
   abuseProtection: { maxAttempts: 5, windowMs: 60_000 },
 
   async execute(interaction, config, client) {
+    const allowedRoleIds = new Set([
+      '1541303749916754001',
+      '1541304185100701696',
+      '1542537515037233172',
+    ]);
+
+    const hasAllowedRole = interaction.member?.roles?.cache?.some(
+      role => allowedRoleIds.has(role.id),
+    );
+
+    if (!hasAllowedRole) {
+      await replyUserError(interaction, {
+        type: ErrorTypes.PERMISSION,
+        message: 'Bạn không có quyền sử dụng lệnh này.',
+      });
+      return;
+    }
+
     const deferSuccess = await InteractionHelper.safeDefer(interaction, {
       flags: MessageFlags.Ephemeral,
     });
@@ -28,7 +45,7 @@ export default {
       logger.warn(`Purge interaction defer failed`, {
         userId: interaction.user.id,
         guildId: interaction.guildId,
-        commandName: 'purge'
+        commandName: 'clear'
       });
       return;
     }
