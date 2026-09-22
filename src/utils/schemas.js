@@ -13,10 +13,8 @@ export const LogIgnoreSchema = z
 export const LoggingChannelsSchema = z
   .object({
     audit: z.string().nullable().optional(),
-    applications: z.string().nullable().optional(),
-    reports: z.string().nullable().optional(),
   })
-  .default({ audit: null, applications: null, reports: null });
+  .default({ audit: null });
 
 export const LoggingConfigSchema = z
   .object({
@@ -94,7 +92,6 @@ export const GuildConfigSchema = z
     welcomeMessage: z.string().optional(),
     autoRole: z.string().nullable().optional(),
     dmOnClose: z.boolean().optional(),
-    reportChannelId: z.string().nullable().optional(),
     birthdayChannelId: z.string().nullable().optional(),
     premiumRoleId: z.string().nullable().optional(),
     logIgnore: LogIgnoreSchema.optional(),
@@ -109,7 +106,7 @@ export const GuildConfigSchema = z
 
 const DEFAULT_LOGGING = {
   enabled: false,
-  channels: { audit: null, applications: null, reports: null },
+  channels: { audit: null },
   ignore: { users: [], channels: [] },
   enabledEvents: {},
 };
@@ -118,7 +115,6 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
   const base = typeof raw === 'object' && raw !== null ? raw : {};
   const {
     logChannelId,
-    reportChannelId,
     enableLogging,
     logIgnore,
   } = legacy;
@@ -129,12 +125,7 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
     logChannelId ??
     null;
 
-  const applicationsChannel = base.channels?.applications ?? null;
 
-  const reportsChannel =
-    base.channels?.reports ??
-    reportChannelId ??
-    null;
 
   const ignore = {
     users: base.ignore?.users ?? logIgnore?.users ?? [],
@@ -156,8 +147,6 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
     enabled,
     channels: {
       audit: auditChannel,
-      applications: applicationsChannel,
-      reports: reportsChannel,
     },
     ignore,
     enabledEvents: base.enabledEvents ?? {},
@@ -172,7 +161,6 @@ export function stripLegacyLoggingFields(config) {
   const {
     logChannelId: _logChannelId,
     enableLogging: _enableLogging,
-    reportChannelId: _reportChannelId,
     logIgnore: _logIgnore,
     ...rest
   } = config;
@@ -191,7 +179,6 @@ export function normalizeGuildConfig(raw, defaults = {}) {
 
   merged.logging = migrateLoggingConfig(merged.logging, {
     logChannelId: merged.logChannelId,
-    reportChannelId: merged.reportChannelId,
     enableLogging: merged.enableLogging,
     logIgnore: merged.logIgnore,
   });
@@ -201,7 +188,6 @@ export function normalizeGuildConfig(raw, defaults = {}) {
 
   normalized.logging = migrateLoggingConfig(normalized.logging, {
     logChannelId: normalized.logChannelId,
-    reportChannelId: normalized.reportChannelId,
     enableLogging: normalized.enableLogging,
     logIgnore: normalized.logIgnore,
   });
