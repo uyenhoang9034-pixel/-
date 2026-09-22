@@ -13,12 +13,9 @@ export const commandAliases = {
 
     'ban': 'ban',
     'kick': 'kick',
-    'mute': 'timeout',
     'warn': 'warn',
     'clear': 'purge',
     'purge': 'purge',
-    'untimeout': 'untimeout',
-    'unmute': 'untimeout',
 
     'rank': 'rank',
     'lvl': 'rank',
@@ -37,8 +34,6 @@ export const commandAliases = {
     'bday': 'birthday',
     'b': 'birthday',
 
-    'roll': 'roll',
-    'dice': 'roll',
 
     'gcreate': 'gcreate',
     'gstart': 'gcreate',
