@@ -39,8 +39,6 @@ export {
     getJoinToCreateChannelsKey,
     getWarningsKey,
     getWarningsPrefix,
-    getUserNotesKey,
-    getUserNotesListKey,
     getReactionRoleKey,
     getReactionRolesPrefix,
     getServerCountersKey,
