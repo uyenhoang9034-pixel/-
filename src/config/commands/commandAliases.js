@@ -17,9 +17,6 @@ export const commandAliases = {
     'clear': 'purge',
     'purge': 'purge',
 
-    'rank': 'rank',
-    'lvl': 'rank',
-    'xp': 'rank',
     'leaderboard': 'leaderboard',
     'lb': 'leaderboard',
     'top': 'leaderboard',
