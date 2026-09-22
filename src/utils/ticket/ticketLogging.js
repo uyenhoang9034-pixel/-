@@ -86,7 +86,6 @@ function getLogChannelForEventType(config, eventType) {
     case 'delete':
     case 'claim':
     case 'unclaim':
-    case 'priority':
     case 'pin':
     case 'unpin':
     case 'feedback':
@@ -103,7 +102,6 @@ const TICKET_EVENT_STYLES = {
   delete: { color: 0x8b0000, title: 'Ticket Deleted' },
   claim: { color: 0x5865F2, title: 'Ticket Claimed' },
   unclaim: { color: 0xFAA61A, title: 'Ticket Unclaimed' },
-  priority: { color: 0x9b59b6, title: 'Priority Updated' },
   transcript: { color: 0x57F287, title: 'Transcript Generated' },
   feedback: { color: 0x57F287, title: 'Feedback Received' },
 };
@@ -171,19 +169,6 @@ async function createTicketLogEmbed(guild, event) {
       ];
       break;
 
-    case 'priority': {
-      const priorityEmojis = { none: '⚪', low: '🔵', medium: '🟢', high: '🟡', urgent: '🔴' };
-      const priorityLabel = event.priority
-        ? `${priorityEmojis[event.priority] || '⚪'} ${event.priority.charAt(0).toUpperCase()}${event.priority.slice(1)}`
-        : 'Unknown';
-      author = await resolveUserAuthor(guild.client, event.executorId);
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
-        { name: 'Priority', value: priorityLabel, inline: true },
-        { name: 'Updated by', value: executorMention || 'Unknown', inline: true },
-      ];
-      break;
-    }
 
     case 'transcript':
       inlineFields = [
