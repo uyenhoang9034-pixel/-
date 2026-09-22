@@ -1,10 +1,8 @@
 import {
     canonicalizeKey,
-    getEconomyPrefix,
     getUserLevelPrefix,
     getWarningsPrefix,
     getReactionRolesPrefix,
-    getApplicationsPrefix,
     getTicketCounterKey,
     getServerCountersKey,
     getGuildConfigKey,
@@ -16,10 +14,6 @@ import {
 const TEMP_BACKED_TYPES = new Set([
     'warnings',
     'reaction_role',
-    'application',
-    'application_roles',
-    'application_settings',
-    'application_users',
     'jointocreate_config',
     'jointocreate_channels',
     'birthday_left',
@@ -79,9 +73,6 @@ export function parseKey(key) {
             }
             return { type: 'leveling_data', guildId, fullKey };
         }
-        if (parts[2] === 'economy' && parts[3]) {
-            return { type: 'economy', guildId, userId: parts[3], fullKey };
-        }
         if (parts[2] === 'afk' && parts[3]) {
             return { type: 'afk_status', guildId, userId: parts[3], fullKey };
         }
@@ -101,20 +92,6 @@ export function parseKey(key) {
         }
         if (parts[2] === 'counters' && !parts[3]) {
             return { type: 'counters', guildId, fullKey };
-        }
-        if (parts[2] === 'applications') {
-            if (parts[3] === 'roles') {
-                return { type: 'application_roles', guildId, fullKey };
-            }
-            if (parts[3] === 'settings') {
-                return { type: 'application_settings', guildId, fullKey };
-            }
-            if (parts[3] === 'users' && parts[4]) {
-                return { type: 'application_users', guildId, userId: parts[4], fullKey };
-            }
-            if (parts[3] && parts[3] !== 'role') {
-                return { type: 'application', guildId, applicationId: parts[3], fullKey };
-            }
         }
         if (parts[2] === 'jointocreate') {
             if (parts[3] === 'channels') {
@@ -157,13 +134,6 @@ export function getStructuredListPlan(prefix, tables) {
     const canonicalPrefix = canonicalizeKey(prefix.endsWith(':') ? prefix.slice(0, -1) : prefix);
     const normalizedPrefix = prefix.endsWith(':') ? prefix : `${prefix}:`;
 
-    const addEconomy = (guildId) => {
-        plan.queries.push({
-            sql: `SELECT user_id FROM ${tables.economy} WHERE guild_id = $1`,
-            params: [guildId],
-            mapKey: (row) => `guild:${guildId}:economy:${row.user_id}`,
-        });
-    };
 
     const addUserLevels = (guildId) => {
         plan.queries.push({
@@ -189,30 +159,16 @@ export function getStructuredListPlan(prefix, tables) {
             getWelcomeConfigKey(guildId),
             getLevelingKey(guildId),
             getServerCountersKey(guildId),
-            `guild:${guildId}:applications:roles`,
-            `guild:${guildId}:applications:settings`,
             `guild:${guildId}:jointocreate`,
             `guild:${guildId}:jointocreate:channels`,
             `guild:${guildId}:invites`,
             `guild:${guildId}:birthdays:left`,
             `guild:${guildId}:birthdays:tracking`,
         );
-        addEconomy(guildId);
         addUserLevels(guildId);
         addTickets(guildId);
     };
 
-    let match = normalizedPrefix.match(/^economy:([^:]+):$/);
-    if (match) {
-        addEconomy(match[1]);
-        return plan;
-    }
-
-    match = normalizedPrefix.match(/^guild:([^:]+):economy:$/);
-    if (match) {
-        addEconomy(match[1]);
-        return plan;
-    }
 
     match = normalizedPrefix.match(/^([^:]+):leveling:users:$/);
     if (match && match[1] !== 'guild') {
@@ -256,23 +212,15 @@ export function getStructuredListPlan(prefix, tables) {
         return plan;
     }
 
-    match = normalizedPrefix.match(/^guild:([^:]+):applications:$/);
-    if (match) {
-        plan.tempPrefixes = [getApplicationsPrefix(match[1])];
-        return plan;
-    }
 
     match = normalizedPrefix.match(/^guild:([^:]+):$/);
     if (match) {
         addGuildScopedSingletons(match[1]);
         plan.tempPrefixes = [
-            getApplicationsPrefix(match[1]),
             getWarningsPrefix(match[1]),
             `moderation:warnings:${match[1]}:`,
             getReactionRolesPrefix(match[1]),
             `reaction_roles:${match[1]}:`,
-            getEconomyPrefix(match[1]),
-            `economy:${match[1]}:`,
             getUserLevelPrefix(match[1]),
             `${match[1]}:leveling:users:`,
         ];
