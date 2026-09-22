@@ -56,37 +56,6 @@ export const botConfig = {
   },
 
   // =========================
-  // APPLICATIONS SYSTEM
-  // =========================
-  applications: {
-    // Default questions shown when someone fills out an application.
-    defaultQuestions: [
-      { question: "What is your name?", required: true },
-      { question: "How old are you?", required: true },
-      { question: "Why do you want to join?", required: true },
-    ],
-
-    // Embed colors by application status.
-    statusColors: {
-      pending: "#FFA500",
-      approved: "#00FF00",
-      denied: "#FF0000",
-    },
-
-    // How long users must wait before submitting another application (hours).
-    applicationCooldown: 24,
-
-    // Auto-delete denied applications after this many days.
-    deleteDeniedAfter: 7,
-
-    // Auto-delete approved applications after this many days.
-    deleteApprovedAfter: 30,
-
-    // Role IDs allowed to manage applications.
-    managerRoles: [], // Will be populated from environment or database
-  },
-
-  // =========================
   // EMBED COLORS & BRANDING
   // =========================
   // IMPORTANT: This is the SINGLE SOURCE OF TRUTH for all bot colors
@@ -126,7 +95,6 @@ export const botConfig = {
         closed: "#ED4245",
         pending: "#99AAB5",
       },
-      economy: "#F1C40F",
       birthday: "#E91E63",
       moderation: "#9B59B6",
 
@@ -153,60 +121,6 @@ export const botConfig = {
       icon: null,
       url: null,
     },
-  },
-
-  // =========================
-  // ECONOMY SETTINGS
-  // =========================
-  economy: {
-    currency: {
-      // Currency display name.
-      name: "coins",
-      // Plural display name.
-      namePlural: "coins",
-      // Currency symbol shown in balances.
-      symbol: "$",
-    },
-
-    // Starting balance for new users.
-    startingBalance: 0,
-
-    // Maximum bank amount before upgrades (if upgrades are used).
-    baseBankCapacity: 100000,
-
-    // Daily reward amount.
-    dailyAmount: 100,
-
-    // Work command random payout range.
-    workMin: 10,
-    workMax: 100,
-
-    // Beg command random payout range.
-    begMin: 5,
-    begMax: 50,
-
-    // Command cooldowns (milliseconds).
-    cooldowns: {
-      daily: 24 * 60 * 60 * 1000,
-      work: 60 * 60 * 1000,
-      crime: 2 * 60 * 60 * 1000,
-      rob: 4 * 60 * 60 * 1000,
-    },
-
-    // Chance to succeed when robbing (0.4 = 40%).
-    robSuccessRate: 0.4,
-
-    // Jail time after failed rob (milliseconds).
-    // 3600000 = 1 hour.
-    robFailJailTime: 3600000,
-  },
-
-  // =========================
-  // SHOP SETTINGS
-  // =========================
-  // Add shop defaults here when needed.
-  shop: {
-
   },
 
   // =========================
@@ -449,7 +363,6 @@ export const botConfig = {
   // Set any feature to `false` to disable it globally.
   features: {
     // Core systems.
-    economy: true,
     leveling: true,
     moderation: true,
     logging: true,
@@ -532,7 +445,6 @@ export const BotConfig = botConfig;
 const COMMAND_CATEGORY_FEATURE_MAP = {
   birthday: "birthday",
   community: "community",
-  economy: "economy",
   fun: "fun",
   giveaway: "giveaways",
   jointocreate: "joinToCreate",
@@ -609,17 +521,6 @@ export function isCommandCategoryEnabled(category) {
   return isFeatureEnabled(featureKey);
 }
 
-export function getApplicationStatusColor(status) {
-  const colors = botConfig.applications?.statusColors || {};
-  const hex = colors[status];
-  return hex ? getColor(hex) : getColor(status === "approved" ? "success" : status === "denied" ? "error" : "warning");
-}
-
-export function getDefaultApplicationQuestions() {
-  return (botConfig.applications?.defaultQuestions || []).map((entry) =>
-    typeof entry === "string" ? entry : entry.question,
-  ).filter(Boolean);
-}
 
 export function getColor(path, fallback = "#99AAB5") {
   
