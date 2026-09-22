@@ -11,7 +11,6 @@ export default [
   createTicketHandler,
   closeTicketHandler,
   claimTicketHandler,
-  priorityTicketHandler,
   pinTicketHandler,
   unclaimTicketHandler,
   reopenTicketHandler,
