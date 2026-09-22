@@ -15,8 +15,6 @@ import {
 
 const TEMP_BACKED_TYPES = new Set([
     'warnings',
-    'usernotes',
-    'usernotes_list',
     'reaction_role',
     'application',
     'application_roles',
@@ -97,14 +95,6 @@ export function parseKey(key) {
         }
         if (parts[2] === 'warnings' && parts[3]) {
             return { type: 'warnings', guildId, userId: parts[3], fullKey };
-        }
-        if (parts[2] === 'usernotes') {
-            if (parts[3] === 'list') {
-                return { type: 'usernotes_list', guildId, fullKey };
-            }
-            if (parts[3]) {
-                return { type: 'usernotes', guildId, userId: parts[3], fullKey };
-            }
         }
         if (parts[2] === 'reaction_roles' && parts[3]) {
             return { type: 'reaction_role', guildId, messageId: parts[3], fullKey };
@@ -204,7 +194,6 @@ export function getStructuredListPlan(prefix, tables) {
             `guild:${guildId}:jointocreate`,
             `guild:${guildId}:jointocreate:channels`,
             `guild:${guildId}:invites`,
-            `guild:${guildId}:usernotes:list`,
             `guild:${guildId}:birthdays:left`,
             `guild:${guildId}:birthdays:tracking`,
         );
