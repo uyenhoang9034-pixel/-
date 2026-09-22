@@ -28,8 +28,6 @@ const COMMAND_ERROR_SUBTYPES = {
   kick: 'kick_failed',
   ban: 'ban_failed',
   unban: 'unban_failed',
-  timeout: 'timeout_failed',
-  untimeout: 'untimeout_failed',
   warnings: 'warnings_view_failed',
   ticket: 'ticket_failed',
   serverstats: 'serverstats_failed',
