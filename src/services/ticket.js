@@ -50,9 +50,6 @@ import {
   wrapServiceBoundary,
 } from '../utils/serviceErrorBoundary.js';
 
-import {
-  PRIORITY_MAP,
-} from '../utils/helpers.js';
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -389,7 +386,6 @@ export async function createTicket(
   member,
   categoryId,
   reason = 'No reason provided',
-  priority = 'none',
 ) {
   try {
     const config =
@@ -492,23 +488,6 @@ export async function createTicket(
       `ticket-${ticketNumber}`;
 
 
-    if (
-      priority !==
-      'none'
-    ) {
-      const priorityInfo =
-        PRIORITY_MAP[
-          priority
-        ];
-
-      if (
-        priorityInfo
-      ) {
-        channelName =
-          `${priorityInfo.emoji} ${channelName}`;
-      }
-    }
-
 
     const channel =
       await guild.channels.create(
@@ -600,9 +579,6 @@ export async function createTicket(
               .toISOString()
           : null,
 
-      priority:
-        priority ||
-        'none',
 
       reason,
     };
@@ -615,11 +591,6 @@ export async function createTicket(
     );
 
 
-    const priorityInfo =
-      PRIORITY_MAP[
-        priority
-      ] ||
-      PRIORITY_MAP.none;
 
 
     const embed =
@@ -630,8 +601,7 @@ export async function createTicket(
 
           description:
             `${member.toString()}, cảm ơn bạn đã tạo ticket! 💗\n\n` +
-            `📝 **Lý do:** ${reason}\n` +
-            `🌷 **Mức độ:** ${priorityInfo.emoji} ${priorityInfo.label}`,
+            `📝 **Lý do:** ${reason}`,
 
           color:
             '#FFB6C9',
@@ -689,40 +659,6 @@ export async function createTicket(
       );
 
 
-    if (
-      ticketConfig.enablePriority
-    ) {
-      row.addComponents(
-
-        new ButtonBuilder()
-          .setCustomId(
-            'ticket_priority:low',
-          )
-          .setLabel(
-            'Low',
-          )
-          .setStyle(
-            ButtonStyle.Secondary,
-          )
-          .setEmoji(
-            '🔵',
-          ),
-
-        new ButtonBuilder()
-          .setCustomId(
-            'ticket_priority:high',
-          )
-          .setLabel(
-            'High',
-          )
-          .setStyle(
-            ButtonStyle.Danger,
-          )
-          .setEmoji(
-            '🔴',
-          ),
-      );
-    }
 
 
     const staffMention =
@@ -797,9 +733,7 @@ export async function createTicket(
 
           reason,
 
-          priority:
-            priority ||
-            'none',
+
 
           metadata: {
             channelId:
@@ -3054,298 +2988,3 @@ async function getNextTicketNumber(
 }
 
 
-/**
- * =========================================================
- * UPDATE PRIORITY
- * =========================================================
- */
-
-export async function updateTicketPriority(
-  channel,
-  priority,
-  updater,
-) {
-  try {
-    const ticketData =
-      requireTicket(
-        await getTicketData(
-          channel.guild.id,
-          channel.id,
-        ),
-
-        channel,
-      );
-
-
-    const priorityInfo =
-      PRIORITY_MAP[
-        priority
-      ];
-
-
-    if (
-      !priorityInfo
-    ) {
-      ticketUserError(
-        'Invalid priority level',
-
-        'Invalid priority level.',
-
-        ErrorTypes.VALIDATION,
-
-        {
-          channelId:
-            channel.id,
-
-          priority,
-
-          operation:
-            'updateTicketPriority',
-        },
-      );
-    }
-
-
-    const previousPriority =
-      ticketData.priority;
-
-
-    ticketData.priority =
-      priority;
-
-    ticketData.priorityUpdatedBy =
-      updater.id;
-
-    ticketData.priorityUpdatedAt =
-      new Date()
-        .toISOString();
-
-
-    await saveTicketData(
-      channel.guild.id,
-      channel.id,
-      ticketData,
-    );
-
-
-    const currentName =
-      channel.name;
-
-
-    const priorityEmojis =
-      [
-        ...new Set(
-          Object.values(
-            PRIORITY_MAP,
-          )
-            .map(
-              item =>
-                item.emoji,
-            )
-            .filter(
-              Boolean,
-            ),
-        ),
-      ];
-
-
-    const escapedPriorityEmojis =
-      priorityEmojis.map(
-        emoji =>
-          emoji.replace(
-            /[.*+?^${}()|[\]\\]/g,
-            '\\$&',
-          ),
-      );
-
-
-    const cleanName =
-      escapedPriorityEmojis.length >
-      0
-        ? currentName
-            .replace(
-              new RegExp(
-                `(?:${escapedPriorityEmojis.join('|')})`,
-                'g',
-              ),
-              '',
-            )
-            .trim()
-        : currentName.trim();
-
-
-    const newName =
-      priority ===
-      'none'
-        ? cleanName
-        : `${priorityInfo.emoji} ${cleanName}`;
-
-
-    if (
-      newName &&
-      newName !==
-        currentName
-    ) {
-      try {
-        await channel.setName(
-          newName,
-        );
-
-      } catch (nameError) {
-        logger.warn(
-          `Could not update channel name for priority: ${nameError.message}`,
-        );
-      }
-    }
-
-
-    const messages =
-      await channel.messages.fetch();
-
-
-    const ticketMessage =
-      messages.find(
-        message =>
-          message.embeds.length >
-            0 &&
-          message.embeds[0]
-            .title
-            ?.startsWith(
-              'Ticket #',
-            ),
-      );
-
-
-    if (
-      ticketMessage
-    ) {
-      const embed =
-        ticketMessage.embeds[0];
-
-
-      const updatedEmbed =
-        createEmbed(
-          {
-            title:
-              embed.title ||
-              'Ticket',
-
-            description:
-              (
-                embed.description
-                  ?.split(
-                    '\n**Priority:**',
-                  )[0] ||
-                ''
-              ) +
-              `\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
-
-            color:
-              priorityInfo.color,
-
-            fields:
-              embed.fields ||
-              [],
-
-            footer:
-              embed.footer,
-          },
-        );
-
-
-      await ticketMessage.edit(
-        {
-          embeds: [
-            updatedEmbed,
-          ],
-        },
-      );
-    }
-
-
-    const updateEmbed =
-      createEmbed(
-        {
-          title:
-            'Priority Updated',
-
-          description:
-            `📊 Ticket priority updated to **${priorityInfo.emoji} ${priorityInfo.label}** by ${updater}`,
-
-          color:
-            priorityInfo.color,
-        },
-      );
-
-
-    await channel.send(
-      {
-        embeds: [
-          updateEmbed,
-        ],
-      },
-    );
-
-
-    await logTicketEvent(
-      {
-        client:
-          channel.client,
-
-        guildId:
-          channel.guild.id,
-
-        event: {
-          type:
-            'priority',
-
-          ticketId:
-            channel.id,
-
-          ticketNumber:
-            ticketData.id,
-
-          userId:
-            ticketData.userId,
-
-          executorId:
-            updater.id,
-
-          priority,
-
-          metadata: {
-            previousPriority,
-
-            updatedAt:
-              ticketData.priorityUpdatedAt,
-          },
-        },
-      },
-    );
-
-
-    return ticketData;
-
-  } catch (error) {
-    rethrowTicketError(
-      error,
-
-      'updateTicketPriority',
-
-      'Failed to update ticket priority. Please try again in a moment.',
-
-      {
-        guildId:
-          channel?.guild?.id,
-
-        channelId:
-          channel?.id,
-
-        updaterId:
-          updater?.id,
-
-        priority,
-      },
-    );
-  }
-}
