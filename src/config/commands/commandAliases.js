@@ -14,8 +14,7 @@ export const commandAliases = {
     'ban': 'ban',
     'kick': 'kick',
     'warn': 'warn',
-    'clear': 'purge',
-    'purge': 'purge',
+    'clear': 'clear',
 
     'leaderboard': 'leaderboard',
     'lb': 'leaderboard',
