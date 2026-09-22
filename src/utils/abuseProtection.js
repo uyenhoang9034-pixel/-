@@ -24,7 +24,7 @@ const RISKY_COMMAND_NAMES = new Set([
   'wipedata',
   'ban',
   'kick',
-  'purge',
+  'clear',
   'warn',
   'unban',
   'lock',
