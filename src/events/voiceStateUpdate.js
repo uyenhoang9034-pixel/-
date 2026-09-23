@@ -24,6 +24,10 @@ import {
     handleVoiceLevelState,
 } from '../services/leveling/voiceLevelService.js';
 
+import {
+    handleMusicVoiceState,
+} from '../services/music/musicVoiceState.js';
+
 const channelCreationCooldown =
     new Map();
 
