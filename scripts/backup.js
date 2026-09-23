@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { logger } from '../src/utils/logger.js';
 
+
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
