@@ -166,7 +166,7 @@ export default {
 
                 if (validRoles.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No valid auto-role found. Any invalid role has been removed.${conflictSummary ?`\n\n⚠️ Setup blockers:\n${conflictSummary}`: ''}`)],
+                        embeds: [createAutoroleInfoEmbed('ℹ️ No valid auto-role found. Any invalid role has been removed.')],
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -174,7 +174,7 @@ export default {
                 const embed = new EmbedBuilder()
                     .setColor(getColor('info'))
                     .setTitle('Auto-Assigned Role')
-                    .setDescription(`${validRoles[0]}${conflictSummary ?`\n\n⚠️ Setup blockers:\n${conflictSummary}`: ''}`)
+                    .setDescription(`${validRoles[0]}`)
                     .setFooter({ text: 'Only one auto-role can be configured.' });
 
                 await InteractionHelper.safeEditReply(interaction, {
