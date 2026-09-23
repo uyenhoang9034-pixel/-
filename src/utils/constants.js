@@ -40,10 +40,6 @@ export const DEFAULT_GUILD_CONFIG = {
             channels: []
         },
         enabledEvents: {},
-    },
-
-    verification: {
-        enabled: false
     }
 };
 

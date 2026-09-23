@@ -535,37 +535,6 @@ class PostgreSQLDatabase {
         }
     }
 
-    async insertVerificationAudit(record) {
-        try {
-            if (!this.isAvailable()) {
-                return false;
-            }
-
-            const {
-                guildId,
-                userId,
-                action,
-                source = null,
-                moderatorId = null,
-                metadata = {},
-                createdAt = new Date()
-            } = record;
-
-            const timestamp = createdAt instanceof Date ? createdAt : new Date(createdAt);
-
-            await this.pool.query(
-                `INSERT INTO ${pgConfig.tables.verification_audit} (guild_id, user_id, action, source, moderator_id, metadata, created_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                [guildId, userId, action, source, moderatorId, metadata, timestamp]
-            );
-
-            return true;
-        } catch (error) {
-            logger.error('Error inserting verification audit:', error);
-            return false;
-        }
-    }
-
     async exists(key) {
         try {
             if (!this.isAvailable()) {

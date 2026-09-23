@@ -13,7 +13,6 @@ const configuredTables = {
     leveling_configs: 'leveling_configs',
     user_levels: 'user_levels',
     invite_tracking: 'invite_tracking',
-    verification_audit: 'verification_audit',
     temp_data: 'temp_data',
     cache_data: 'cache_data',
 };
@@ -30,7 +29,6 @@ const allowedTableIdentifiers = new Set([
     'leveling_configs',
     'user_levels',
     'invite_tracking',
-    'verification_audit',
     'temp_data',
     'cache_data',
 ]);

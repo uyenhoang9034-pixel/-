@@ -19,7 +19,6 @@ export const CATEGORY_ICONS = {
   Ticket: '🎫',
   Tools: '🛠️',
   Utility: '🔧',
-  Verification: '✅',
   Welcome: '👋',
 };
 

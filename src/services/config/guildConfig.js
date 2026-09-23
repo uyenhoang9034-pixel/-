@@ -59,7 +59,7 @@ export const setConfigValue = wrapServiceBoundary(async function setConfigValue(
 });
 
 /**
- * Merge partial updates into a nested config object (e.g. verification, logging).
+ * Merge partial updates into a nested config object (e.g. logging, welcome).
  */
 export const patchGuildConfig = wrapServiceBoundary(async function patchGuildConfig(client, guildId, patch, context = {}) {
     if (!patch || typeof patch !== 'object') {

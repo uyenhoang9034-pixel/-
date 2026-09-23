@@ -35,7 +35,6 @@ const CATEGORY_ICONS = {
     Community: "👥",
     Birthday: "🎂",
     "Join To Create": "🔌",
-    Verification: "✅",
     Config: "⚙️",
 };
 

@@ -3,7 +3,6 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, Me
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 
 function createAutoroleInfoEmbed(description) {
@@ -60,13 +59,6 @@ export default {
         if (subcommand === 'add') {
             const role = options.getRole('role');
 
-            const guildConfig = await getGuildConfig(client, guild.id);
-            const verificationEnabled = Boolean(guildConfig.verification?.enabled);
-            const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
-
-            if (verificationEnabled || autoVerifyEnabled) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You cannot add AutoRole while the verification system or AutoVerify is enabled. Disable those first.' });
-            }
             
             if (role.position >= guild.members.me.roles.highest.position) {
                 logger.warn(`[Autorole] User ${interaction.user.tag} tried to add role ${role.name} (${role.id}) higher than bot's highest role in ${guild.name}`);
@@ -133,14 +125,6 @@ export default {
         
         else if (subcommand === 'list') {
             try {
-                const guildConfig = await getGuildConfig(client, guild.id);
-                const verificationEnabled = Boolean(guildConfig.verification?.enabled);
-                const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
-                const conflictSummary = [
-                    verificationEnabled ? 'Verification system is enabled' : null,
-                    autoVerifyEnabled ? 'AutoVerify is enabled' : null
-                ].filter(Boolean).join('\n');
-
                 const config = await getWelcomeConfig(client, guild.id);
                 const autoRoles = Array.isArray(config.roleIds) ? config.roleIds : [];
 
@@ -154,7 +138,7 @@ export default {
 
                 if (singleRoleIds.length === 0) {
                     return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [createAutoroleInfoEmbed(`ℹ️ No role is set to be auto-assigned.${conflictSummary ?`\n\n⚠️ Setup blockers:\n${conflictSummary}`: ''}`)],
+                        embeds: [createAutoroleInfoEmbed('ℹ️ No role is set to be auto-assigned.')],
                         flags: MessageFlags.Ephemeral
                     });
                 }

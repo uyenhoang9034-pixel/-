@@ -16,7 +16,6 @@ import {
 
 import {
   reconcileTicketPanels,
-  reconcileVerificationPanels,
   reconcileReactionRolePanelHealth,
 } from '../services/panelHealthService.js';
 
@@ -126,20 +125,6 @@ export default {
         `Ticket panel health: scanned ${ticketPanelSummary.scannedGuilds} guilds, healthy ${ticketPanelSummary.healthyPanels}, deleted ${ticketPanelSummary.deletedPanels}, missing channel ${ticketPanelSummary.missingChannels}, recovered ${ticketPanelSummary.recoveredIds}, errors ${ticketPanelSummary.errors}`,
       );
 
-      /**
-       * =====================================================
-       * VERIFICATION PANEL
-       * =====================================================
-       */
-
-      const verificationPanelSummary =
-        await reconcileVerificationPanels(
-          client,
-        );
-
-      startupLog(
-        `Verification panel health: scanned ${verificationPanelSummary.scannedGuilds} guilds, healthy ${verificationPanelSummary.healthyPanels}, deleted ${verificationPanelSummary.deletedPanels}, missing channel ${verificationPanelSummary.missingChannels}, recovered ${verificationPanelSummary.recoveredIds}, errors ${verificationPanelSummary.errors}`,
-      );
 
       /**
        * =====================================================

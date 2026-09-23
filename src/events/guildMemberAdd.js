@@ -27,7 +27,7 @@ export default {
                 const me = guild.members.me;
                 const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
                 // Skip only the welcome message if permissions are missing; the rest of the
-                // join pipeline (auto-role, verification, logging, counters) must still run.
+                // join pipeline (auto-role, logging, counters) must still run.
                 if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
                     const formatData = { user, guild, member };
                     const welcomeMessage = formatWelcomeMessage(
@@ -114,9 +114,6 @@ export default {
                 }
             }
 
-            if (config?.verification?.enabled || config?.verification?.autoVerify?.enabled) {
-                await handleVerification(member, guild, config.verification, member.client);
-            }
 
             try {
                 await logEvent({
@@ -170,38 +167,6 @@ export default {
         }
     }
 };
-
-async function handleVerification(member, guild, verificationConfig, client) {
-    const { autoVerifyOnJoin } = await import('../services/verificationService.js');
-
-    try {
-        const result = await autoVerifyOnJoin(client, guild, member, verificationConfig);
-
-        if (result.autoVerified) {
-            logger.info('User auto-verified on join', {
-                guildId: guild.id,
-                userId: member.id,
-                userTag: member.user.tag,
-                roleName: result.roleName,
-                criteria: result.criteria
-            });
-        } else {
-            logger.debug('User not auto-verified on join', {
-                guildId: guild.id,
-                userId: member.id,
-                reason: result.reason
-            });
-        }
-
-    } catch (error) {
-        logger.error('Error in auto-verification for member', {
-            guildId: guild.id,
-            userId: member.id,
-            userTag: member.user.tag,
-            error: error.message
-        });
-    }
-}
 
 async function assignRoleSafely(member, role) {
     try {

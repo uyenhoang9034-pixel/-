@@ -115,17 +115,6 @@ export const tableStatements = [
     )`,
 
 
-    `CREATE TABLE IF NOT EXISTS ${t.verification_audit} (
-        id SERIAL PRIMARY KEY,
-        guild_id VARCHAR(20) NOT NULL,
-        user_id VARCHAR(20) NOT NULL,
-        action VARCHAR(50) NOT NULL,
-        source VARCHAR(50),
-        moderator_id VARCHAR(20),
-        metadata JSONB DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`,
-
     `CREATE TABLE IF NOT EXISTS ${t.invite_tracking} (
         guild_id VARCHAR(20),
         inviter_id VARCHAR(20),
@@ -167,9 +156,6 @@ export const indexStatements = [
     `CREATE INDEX IF NOT EXISTS idx_afk_status_expires_at ON ${t.afk_status}(expires_at)`,
     `CREATE INDEX IF NOT EXISTS idx_user_levels_guild_id ON ${t.user_levels}(guild_id)`,
     `CREATE INDEX IF NOT EXISTS idx_user_levels_xp ON ${t.user_levels}(xp)`,
-    `CREATE INDEX IF NOT EXISTS idx_verification_audit_guild_id ON ${t.verification_audit}(guild_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_verification_audit_user_id ON ${t.verification_audit}(user_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_verification_audit_created_at ON ${t.verification_audit}(created_at)`,
     `CREATE INDEX IF NOT EXISTS idx_temp_data_expires_at ON ${t.temp_data}(expires_at)`,
     `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${t.cache_data}(expires_at)`,
 ];

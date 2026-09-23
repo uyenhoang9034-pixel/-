@@ -34,26 +34,6 @@ const TicketLoggingSchema = z
   })
   .optional();
 
-const AutoVerifyConfigSchema = z
-  .object({
-    enabled: z.boolean().default(false),
-    criteria: z.enum(['account_age', 'server_size', 'none']).default('none'),
-    accountAgeDays: z.number().int().min(1).max(365).nullable().optional(),
-    roleId: z.string().nullable().optional()
-  })
-  .optional();
-
-const VerificationConfigSchema = z
-  .object({
-    enabled: z.boolean().default(false),
-    channelId: z.string().nullable().optional(),
-    messageId: z.string().nullable().optional(),
-    roleId: z.string().optional(),
-    message: z.string().optional(),
-    buttonText: z.string().default('Verify'),
-    autoVerify: AutoVerifyConfigSchema
-  })
-  .optional();
 
 export const GuildConfigSchema = z
   .object({
@@ -99,8 +79,7 @@ export const GuildConfigSchema = z
     disabledCategories: z.record(z.boolean()).optional(),
     logging: LoggingConfigSchema.optional(),
     ticketLogging: TicketLoggingSchema.optional(),
-    enableLogging: z.boolean().optional(),
-    verification: VerificationConfigSchema
+    enableLogging: z.boolean().optional()
   })
   .passthrough();
 

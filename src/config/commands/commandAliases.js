@@ -43,10 +43,6 @@ export const commandAliases = {
     't': 'ticket',
     'new': 'ticket',
 
-    'ver': 'verify',
-    'vadmin': 'verification',
-    'av': 'autoverify',
-
     'welcome': 'welcome',
     'greet': 'greet',
     'goodbye': 'goodbye',
