@@ -1,4 +1,4 @@
-import { EmbedBuilder, MessageFlags } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import { getUserBirthday } from '../../../services/birthdayService.js';
 import { logger } from '../../../utils/logger.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
@@ -7,7 +7,7 @@ const BIRTHDAY_ADMIN_ROLE_ID = '1545305594712432640';
 
 export default {
     async execute(interaction, config, client) {
-        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+        await InteractionHelper.safeDefer(interaction);
 
         const requestedUser = interaction.options.getUser('user');
         const isAdmin = interaction.member?.roles?.cache?.has(BIRTHDAY_ADMIN_ROLE_ID);
