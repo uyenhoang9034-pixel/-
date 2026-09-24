@@ -1,10 +1,10 @@
-import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { setBirthday } from '../../../services/birthdayService.js';
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 export default {
     async execute(interaction, config, client) {
-        await InteractionHelper.safeDefer(interaction);
+        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
 
         const month = interaction.options.getInteger("month");
         const day = interaction.options.getInteger("day");
