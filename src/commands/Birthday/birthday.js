@@ -8,6 +8,7 @@ import birthdayList from './modules/birthday_list.js';
 import birthdayRemove from './modules/birthday_remove.js';
 import nextBirthdays from './modules/next_birthdays.js';
 import birthdaySetchannel from './modules/birthday_setchannel.js';
+import birthdaySend from './modules/birthday_send.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
@@ -75,6 +76,17 @@ export default {
         )
         .addSubcommand(subcommand =>
             subcommand
+                .setName('send')
+                .setDescription('Send today\'s birthday announcement manually (Manage Server required)')
+                .addUserOption(option =>
+                    option
+                        .setName('user')
+                        .setDescription('Send for a specific user whose birthday is today; leave empty for everyone today')
+                        .setRequired(false)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('setchannel')
                 .setDescription('Set or disable the channel for birthday announcements. (Manage Server required)')
                 .addChannelOption(option =>
@@ -100,6 +112,8 @@ export default {
                 return await birthdayRemove.execute(interaction, config, client);
             case 'next':
                 return await nextBirthdays.execute(interaction, config, client);
+            case 'send':
+                return await birthdaySend.execute(interaction, config, client);
             case 'setchannel':
                 return await birthdaySetchannel.execute(interaction, config, client);
             default:
