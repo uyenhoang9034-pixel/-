@@ -43,6 +43,7 @@ export const tableStatements = [
         user_id VARCHAR(20),
         month INTEGER NOT NULL,
         day INTEGER NOT NULL,
+        year INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (guild_id, user_id),
