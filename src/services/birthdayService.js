@@ -41,10 +41,14 @@ export function validateBirthday(month, day) {
   return { isValid: true };
 }
 
-export async function setBirthday(client, guildId, userId, month, day) {
+export async function setBirthday(client, guildId, userId, month, day, year) {
   try {
     
     const validation = validateBirthday(month, day);
+    const currentYear = new Date().getFullYear();
+    if (!Number.isInteger(year) || year < 1900 || year > currentYear) {
+      throw new TitanBotError('Invalid birth year', ErrorTypes.VALIDATION, 'Năm sinh không hợp lệ.', { year, userId, guildId });
+    }
     if (!validation.isValid) {
       logger.warn('Birthday validation failed', {
         userId,
@@ -62,7 +66,7 @@ export async function setBirthday(client, guildId, userId, month, day) {
       );
     }
 
-    const success = await dbSetBirthday(client, guildId, userId, month, day);
+    const success = await dbSetBirthday(client, guildId, userId, month, day, year);
     
     if (!success) {
       throw new TitanBotError(
@@ -78,14 +82,16 @@ export async function setBirthday(client, guildId, userId, month, day) {
       guildId,
       month,
       day,
-      monthName: getMonthName(month)
+      monthName: getMonthName(month),
+      year
     });
 
     return {
       data: {
         month,
         day,
-        monthName: getMonthName(month)
+        monthName: getMonthName(month),
+        year
       }
     };
   } catch (error) {
@@ -114,7 +120,8 @@ export async function getUserBirthday(client, guildId, userId) {
     return {
       month: birthdayData.month,
       day: birthdayData.day,
-      monthName: getMonthName(birthdayData.month)
+      monthName: getMonthName(birthdayData.month),
+      year: birthdayData.year ?? null
     };
   } catch (error) {
     logger.error('Error in getUserBirthday service', {
@@ -139,7 +146,8 @@ export async function getAllBirthdays(client, guildId) {
         userId,
         month: data.month,
         day: data.day,
-        monthName: getMonthName(data.month)
+        monthName: getMonthName(data.month),
+        year: data.year ?? null
       }))
       .sort((a, b) => {
         if (a.month !== b.month) return a.month - b.month;
@@ -223,6 +231,7 @@ export async function getUpcomingBirthdays(client, guildId, limit = 5) {
         month: userData.month,
         day: userData.day,
         monthName: getMonthName(userData.month),
+        year: userData.year ?? null,
         date: nextBirthday,
         daysUntil
       });
@@ -256,7 +265,8 @@ export async function getTodaysBirthdays(client, guildId) {
           userId,
           month: userData.month,
           day: userData.day,
-          monthName: getMonthName(userData.month)
+          monthName: getMonthName(userData.month),
+          year: userData.year ?? null
         });
       }
     }
@@ -325,7 +335,7 @@ export async function checkBirthdays(client) {
         if (userData.month === currentMonth && userData.day === currentDay) {
           const member = await guild.members.fetch(userId).catch(() => null);
           if (member) {
-            birthdayMembers.push(member);
+            birthdayMembers.push({ member, birthday: userData });
             if (birthdayRoleId) {
               try {
                 await member.roles.add(birthdayRoleId, "Happy Birthday! 🎉");
@@ -341,20 +351,20 @@ export async function checkBirthdays(client) {
       if (birthdayMembers.length > 0) {
         await client.db.set(trackingKey, updatedTrackingData);
 
-        for (const member of birthdayMembers) {
+        for (const { member, birthday } of birthdayMembers) {
           const footerTime = new Date().toLocaleString('vi-VN', {
             timeZone: 'Asia/Ho_Chi_Minh'
           });
 
           await channel.send({
             embeds: [{
-              title: `<a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 ${member.toString()}! <a:trangtrig3:1546040818261954610>`,
               description:
+                `## <a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 ${member.toString()}! <a:trangtrig3:1546040818261954610>\n\n` +
                 `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
                 `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
                 `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
                 `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
-                `*Ngày ${userData.day} tháng ${userData.month}*\n\n` +
+                `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
                 `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`,
               color: 0xFCEEC9,
               image: {
