@@ -17,19 +17,20 @@ function getVietnamToday() {
     };
 }
 
-function buildBirthdayEmbed(member) {
+function buildBirthdayEmbed(member, birthday) {
     const footerTime = new Date().toLocaleString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh'
     });
 
     return new EmbedBuilder()
         .setColor(0xFCEEC9)
-        .setTitle(`<a:heartg3:1546047728314884226> HAPPY BIRTHDAY ${member.toString()}`)
+        .setTitle(`<a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 ${member.toString()}! <a:trangtrig3:1546040818261954610>`)
         .setDescription(
             `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
             `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
             `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
             `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
+            `*Ngày ${birthday.day} tháng ${birthday.month}*\n\n` +
             'Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!'
         )
         .setImage('https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/birthday/birthday.jpg')
@@ -104,7 +105,7 @@ export default {
                 if (!member) continue;
 
                 await channel.send({
-                    embeds: [buildBirthdayEmbed(member)]
+                    embeds: [buildBirthdayEmbed(member, birthdays[userId])]
                 });
                 sent++;
             }
