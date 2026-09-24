@@ -35,6 +35,14 @@ export default {
                         .setMinValue(1)
                         .setMaxValue(31)
                 )
+                .addIntegerOption(option =>
+                    option
+                        .setName('year')
+                        .setDescription('Birth year')
+                        .setRequired(true)
+                        .setMinValue(1900)
+                        .setMaxValue(new Date().getFullYear())
+                )
                 .addUserOption(option =>
                     option
                         .setName('user')
