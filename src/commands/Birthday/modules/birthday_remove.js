@@ -1,10 +1,10 @@
-import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { deleteBirthday } from '../../../services/birthdayService.js';
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 export default {
     async execute(interaction, config, client) {
-        await InteractionHelper.safeDefer(interaction);
+        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
 
         const targetUser = interaction.options.getUser("user") || interaction.user;
         const userId = targetUser.id;
