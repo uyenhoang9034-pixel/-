@@ -17,7 +17,7 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
-                .setDescription('Set your birthday')
+                .setDescription('Set a birthday')
                 .addIntegerOption(option =>
                     option
                         .setName('month')
@@ -33,6 +33,12 @@ export default {
                         .setRequired(true)
                         .setMinValue(1)
                         .setMaxValue(31)
+                )
+                .addUserOption(option =>
+                    option
+                        .setName('user')
+                        .setDescription('User to set birthday for (Manage Server required for others)')
+                        .setRequired(false)
                 )
         )
         .addSubcommand(subcommand =>
@@ -54,7 +60,13 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('remove')
-                .setDescription('Remove your birthday')
+                .setDescription('Remove a birthday')
+                .addUserOption(option =>
+                    option
+                        .setName('user')
+                        .setDescription('User to remove birthday for (Manage Server required for others)')
+                        .setRequired(false)
+                )
         )
         .addSubcommand(subcommand =>
             subcommand
