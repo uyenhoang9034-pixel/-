@@ -3,22 +3,12 @@ import { getUserBirthday } from '../../../services/birthdayService.js';
 import { logger } from '../../../utils/logger.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
-const BIRTHDAY_ADMIN_ROLE_ID = '1545305594712432640';
-
 export default {
     async execute(interaction, config, client) {
         await InteractionHelper.safeDefer(interaction);
 
         const requestedUser = interaction.options.getUser('user');
-        const isAdmin = interaction.member?.roles?.cache?.has(BIRTHDAY_ADMIN_ROLE_ID);
         const targetUser = requestedUser || interaction.user;
-
-        if (targetUser.id !== interaction.user.id && !isAdmin) {
-            const embed = new EmbedBuilder()
-                .setColor(0xFCEEC9)
-                .setDescription('<a:heartg1:1545307544808071258> Bạn chỉ có thể xem thông tin sinh nhật của chính mình.');
-            return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
-        }
 
         const userId = targetUser.id;
         const guildId = interaction.guildId;
