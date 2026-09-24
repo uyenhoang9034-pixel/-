@@ -359,7 +359,7 @@ export async function checkBirthdays(client) {
           await channel.send({
             embeds: [{
               description:
-                `## <a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 ${member.toString()}! <a:trangtrig3:1546040818261954610>\n\n` +
+                `## <a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂! <a:trangtrig3:1546040818261954610>\n\n` +
                 `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
                 `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
                 `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
