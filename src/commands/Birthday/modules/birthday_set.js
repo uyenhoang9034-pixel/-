@@ -1,4 +1,4 @@
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { setBirthday } from '../../../services/birthdayService.js';
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
@@ -8,15 +8,22 @@ export default {
 
         const month = interaction.options.getInteger("month");
         const day = interaction.options.getInteger("day");
-        const userId = interaction.user.id;
+        const targetUser = interaction.options.getUser("user") || interaction.user;
+        const userId = targetUser.id;
         const guildId = interaction.guildId;
 
-        const result = await setBirthday(client, guildId, userId, month, day);
+        if (targetUser.id !== interaction.user.id && !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+            const embed = new EmbedBuilder()
+                .setColor(0xFCEEC9)
+                .setDescription('Bạn cần quyền **Manage Server** để đặt sinh nhật cho người khác.');
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        await setBirthday(client, guildId, userId, month, day);
 
         const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
-            .setTitle('Birthday Set!')
-            .setDescription(`Your birthday has been set to **${result.data.monthName} ${result.data.day}**!`);
+            .setColor(0xFCEEC9)
+            .setDescription(`<a:heartg1:1545307544808071258> Sinh nhật của **${userId}** vào ngày **${day} tháng ${month}** đã được lưu vào hệ thống!`);
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [embed]
