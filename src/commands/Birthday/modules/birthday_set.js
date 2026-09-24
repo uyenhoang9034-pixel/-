@@ -1,5 +1,5 @@
 import { EmbedBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
-import { setBirthday } from '../../../services/birthdayService.js';
+import { setBirthday, getUserBirthday } from '../../../services/birthdayService.js';
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 export default {
@@ -17,6 +17,21 @@ export default {
             const embed = new EmbedBuilder()
                 .setColor(0xFCEEC9)
                 .setDescription('Bạn cần quyền **Manage Server** để đặt sinh nhật cho người khác.');
+            return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        }
+
+        const existingBirthday = await getUserBirthday(client, guildId, userId);
+        if (existingBirthday) {
+            const existingDate = existingBirthday.year
+                ? `${existingBirthday.day}/${existingBirthday.month}/${existingBirthday.year}`
+                : `${existingBirthday.day}/${existingBirthday.month}`;
+
+            const embed = new EmbedBuilder()
+                .setColor(0xFCEEC9)
+                .setDescription(
+                    `<a:heartg1:1545307544808071258> **${userId}** đã có ngày sinh **${existingDate}** trong hệ thống.\n` +
+                    'Muốn đổi ngày sinh, hãy dùng `/birthday remove` trước rồi mới `/birthday set` lại.'
+                );
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
 
