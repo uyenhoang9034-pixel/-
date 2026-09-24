@@ -21,24 +21,24 @@ export default {
                 .setDescription('Set a birthday')
                 .addIntegerOption(option =>
                     option
-                        .setName('month')
-                        .setDescription('Birth month (1-12)')
-                        .setRequired(true)
-                        .setMinValue(1)
-                        .setMaxValue(12)
-                )
-                .addIntegerOption(option =>
-                    option
                         .setName('day')
-                        .setDescription('Birth day (1-31)')
+                        .setDescription('Ngày sinh (1-31)')
                         .setRequired(true)
                         .setMinValue(1)
                         .setMaxValue(31)
                 )
                 .addIntegerOption(option =>
                     option
+                        .setName('month')
+                        .setDescription('Tháng sinh (1-12)')
+                        .setRequired(true)
+                        .setMinValue(1)
+                        .setMaxValue(12)
+                )
+                .addIntegerOption(option =>
+                    option
                         .setName('year')
-                        .setDescription('Birth year')
+                        .setDescription('Năm sinh')
                         .setRequired(true)
                         .setMinValue(1900)
                         .setMaxValue(new Date().getFullYear())
