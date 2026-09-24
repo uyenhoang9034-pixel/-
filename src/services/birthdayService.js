@@ -340,17 +340,31 @@ export async function checkBirthdays(client) {
 
       if (birthdayMembers.length > 0) {
         await client.db.set(trackingKey, updatedTrackingData);
-        const mentionList = birthdayMembers.map(m => m.toString()).join(', ');
-        
-        await channel.send({
-          embeds: [{
-            title: '🎉 Happy Birthday! 🎂',
-            description: `A very happy birthday to ${mentionList}! Wishing you an amazing day! 🎈`,
-            color: 0xff69b4,
-            footer: { text: 'Birthday Bot' },
-            timestamp: new Date()
-          }]
-        });
+
+        for (const member of birthdayMembers) {
+          const footerTime = new Date().toLocaleString('vi-VN', {
+            timeZone: 'Asia/Ho_Chi_Minh'
+          });
+
+          await channel.send({
+            embeds: [{
+              title: `<a:heartg3:1546047728314884226> HAPPY BIRTHDAY ${member.toString()}`,
+              description:
+                `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
+                `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
+                `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
+                `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
+                `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`,
+              color: 0xFCEEC9,
+              image: {
+                url: 'https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/birthday/birthday.jpg'
+              },
+              footer: {
+                text: `Birthday Bot • ${footerTime}`
+              }
+            }]
+          });
+        }
       }
     } catch (error) {
       logger.error(`Error processing birthdays for guild ${guildId}:`, error);
