@@ -35,7 +35,7 @@ export default {
                 continue;
             }
             displayIndex++;
-            birthdayList += `${displayIndex}. <@${birthday.userId}> - ${birthday.monthName} ${birthday.day}\n`;
+            birthdayList += `${displayIndex}. <@${birthday.userId}> - Ngày ${birthday.day} tháng ${birthday.month}\n`;
         }
 
         if (fetchedMembers && staleUserIds.length > 0) {
@@ -57,7 +57,7 @@ export default {
         birthdayList = `**${displayIndex} birthday${displayIndex !== 1 ? 's' : ''} in ${interaction.guild.name}**\n\n` + birthdayList;
 
         const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
+            .setColor(0xFFB6C1)
             .setTitle('Server Birthdays')
             .setDescription(`${birthdayList}\n\nTotal: ${displayIndex} birthday${displayIndex !== 1 ? 's' : ''}`);
 
