@@ -3,8 +3,8 @@ import {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
-    PermissionFlagsBits,
 } from 'discord.js';
+import { getUserBirthday } from './birthdayService.js';
 
 const PRIVATE_VERIFY_ROLE_ID = '1556533290561839104';
 
@@ -26,17 +26,23 @@ export async function markPrivateVerified(client, guildId, userId) {
 
 function buildPanel() {
     const embed = new EmbedBuilder()
-        .setColor(0xf6b6d6)
-        .setTitle('🔞 Xác nhận trước khi tham gia')
+        .setColor(0xF6B6D6)
+        .setTitle('<a:trangtrig2:1546040703375904801> 𝓣𝓪̂𝓶 𝓢𝓾̛̣ 𝓥𝓾̀𝓷𝓰 𝓚𝓲́𝓷 <a:trangtrig3:1546040818261954610>')
         .setDescription(
-            'Bạn cần xác nhận trước khi có thể gửi tin nhắn trong kênh này.\n\n' +
-            'Nhấn **Đồng ý & tiếp tục** để mở quyền trò chuyện.',
+            'Đây là không gian dành cho những cuộc trò chuyện riêng tư và nhạy cảm.\n' +
+            'Trước khi tham gia, hãy xác nhận rằng bạn đủ điều kiện truy cập nội dung giới hạn độ tuổi của Discord và đồng ý với những điều sau:\n' +
+            '<:bunny2:1546149280463716413> Tôn trọng câu chuyện và quyền riêng tư của mọi người.\n' +
+            '<:bunny2:1546149280463716413> Không mang nội dung, hình ảnh hoặc câu chuyện của thành viên ra ngoài khi chưa được đồng ý.\n' +
+            '<:bunny2:1546149280463716413> Tự chịu trách nhiệm với nội dung mình chia sẻ và tiếp nhận tại đây.\n' +
+            '<:bunny2:1546149280463716413> Tuân thủ Nội quy Server và Điều khoản của Discord.\n\n' +
+            '**Xác nhận một lần duy nhất để mở quyền trò chuyện tại kênh.**',
         );
 
     const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('private_verify_accept')
             .setLabel('Đồng ý & tiếp tục')
+            .setEmoji({ id: '1546085874763178094', name: 'dog19' })
             .setStyle(ButtonStyle.Success),
     );
 
@@ -88,6 +94,23 @@ export async function setupPrivateVerification(client, guild, channel) {
     return config;
 }
 
+function isAtLeast18(birthday, now = new Date()) {
+    if (!birthday?.year || !birthday?.month || !birthday?.day) {
+        return false;
+    }
+
+    let age = now.getFullYear() - birthday.year;
+    const birthdayPassed =
+        now.getMonth() + 1 > birthday.month ||
+        (now.getMonth() + 1 === birthday.month && now.getDate() >= birthday.day);
+
+    if (!birthdayPassed) {
+        age -= 1;
+    }
+
+    return age >= 18;
+}
+
 export async function verifyPrivateMember(client, interaction) {
     const config = await getPrivateVerificationConfig(client, interaction.guildId);
     if (!config || interaction.channelId !== config.channelId) {
@@ -97,6 +120,20 @@ export async function verifyPrivateMember(client, interaction) {
     const role = await interaction.guild.roles.fetch(PRIVATE_VERIFY_ROLE_ID).catch(() => null);
     if (!role) {
         return { ok: false, reason: 'missing_role' };
+    }
+
+    const birthday = await getUserBirthday(
+        client,
+        interaction.guildId,
+        interaction.user.id,
+    );
+
+    if (!birthday?.year) {
+        return { ok: false, reason: 'birthday_missing' };
+    }
+
+    if (!isAtLeast18(birthday)) {
+        return { ok: false, reason: 'underage' };
     }
 
     const alreadyVerified = await isPrivateVerified(
