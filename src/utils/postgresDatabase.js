@@ -14,6 +14,7 @@ import {
     getStructuredListPlan,
 } from './database/keyParser.js';
 import { runKeyMigration } from './database/keyMigration.js';
+import { runHuanqianCleanup } from './database/huanqianCleanup.js';
 import {
     tableStatements,
     indexStatements,
@@ -199,6 +200,16 @@ class PostgreSQLDatabase {
         } catch (error) {
             // Never block startup on key migration; legacy reads still work via fallback.
             logger.error('Startup key migration failed (continuing with legacy fallback):', error);
+        }
+
+        try {
+            const cleanup = await runHuanqianCleanup({ pool: this.pool, logger });
+            if (cleanup?.alreadyDone) {
+                logger.debug('Huan Qian cleanup already applied, skipping.');
+            }
+        } catch (error) {
+            // Cleanup is intentionally non-fatal; never block bot startup.
+            logger.error('Huan Qian cleanup failed (continuing startup):', error);
         }
     }
 
