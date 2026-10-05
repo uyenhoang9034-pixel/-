@@ -6,6 +6,8 @@ import {
     PermissionFlagsBits,
 } from 'discord.js';
 
+const PRIVATE_VERIFY_ROLE_ID = '1556533290561839104';
+
 const CONFIG_KEY = guildId => `guild:${guildId}:private_verify:config`;
 const VERIFIED_KEY = (guildId, userId) =>
     `guild:${guildId}:private_verify:verified:${userId}`;
@@ -43,15 +45,12 @@ function buildPanel() {
 
 export async function setupPrivateVerification(client, guild, channel) {
     let config = await getPrivateVerificationConfig(client, guild.id);
-    let role = config?.roleId
-        ? await guild.roles.fetch(config.roleId).catch(() => null)
-        : null;
+    const role = await guild.roles.fetch(PRIVATE_VERIFY_ROLE_ID).catch(() => null);
 
     if (!role) {
-        role = await guild.roles.create({
-            name: 'Vùng Kín ✓',
-            reason: 'Private channel verification access',
-        });
+        throw new Error(
+            `Private verification role ${PRIVATE_VERIFY_ROLE_ID} was not found in this server.`,
+        );
     }
 
     // Keep the channel visible, but prevent unverified members from sending.
@@ -81,7 +80,7 @@ export async function setupPrivateVerification(client, guild, channel) {
 
     config = {
         channelId: channel.id,
-        roleId: role.id,
+        roleId: PRIVATE_VERIFY_ROLE_ID,
         panelMessageId: panelMessage.id,
     };
 
@@ -95,7 +94,7 @@ export async function verifyPrivateMember(client, interaction) {
         return { ok: false, reason: 'wrong_channel' };
     }
 
-    const role = await interaction.guild.roles.fetch(config.roleId).catch(() => null);
+    const role = await interaction.guild.roles.fetch(PRIVATE_VERIFY_ROLE_ID).catch(() => null);
     if (!role) {
         return { ok: false, reason: 'missing_role' };
     }
