@@ -33,7 +33,7 @@ export default {
         return interaction.editReply({
             content:
                 '<a:meongg7:1546091671970783282> **Xác nhận thành công!**\n' +
-                'Bạn đã được mở quyền trò chuyện tại <#1556532141201039451>.\n' +
+                'Bạn đã được mở quyền trò chuyện tại <#1556535965219033088>.\n' +
                 'Hãy giữ những điều được chia sẻ ở đây trong sự tôn trọng và riêng tư nhé.',
         });
     },
