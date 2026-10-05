@@ -68,8 +68,8 @@ export async function setupPrivateVerification(client, guild, channel) {
 
     await channel.permissionOverwrites.edit(role, {
         ViewChannel: true,
-        SendMessages: true,
-        AddReactions: true,
+        SendMessages: false,
+        AddReactions: false,
         ReadMessageHistory: true,
     });
 
