@@ -2,8 +2,8 @@ import { EmbedBuilder } from 'discord.js';
 import { getUpcomingBirthdays } from '../../../services/birthdayService.js';
 import { deleteBirthday } from '../../../utils/database.js';
 import { logger } from '../../../utils/logger.js';
-
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
+
 export default {
     async execute(interaction, config, client) {
         await InteractionHelper.safeDefer(interaction);
@@ -12,74 +12,63 @@ export default {
 
         if (next5.length === 0) {
             const embed = new EmbedBuilder()
-                .setColor(0xFF0000)
-                .setTitle('No Birthdays Found')
-                .setDescription('No birthdays have been set up in this server yet. Use `/birthday set` to add birthdays!');
-            return await InteractionHelper.safeEditReply(interaction, {
-                embeds: [embed]
-            });
+                .setColor(0xFFB6C1)
+                .setDescription(
+                    '<a:trangtrig2:1546040703375904801> **UPCOMING BIRTHDAYS** <a:trangtrig3:1546040818261954610>\n\n' +
+                    '<a:heartg1:1545307544808071258> Chưa có sinh nhật nào được lưu trong hệ thống.'
+                );
+            return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
 
+        let birthdayList =
+            '<a:trangtrig2:1546040703375904801> **UPCOMING BIRTHDAYS** <a:trangtrig3:1546040818261954610>\n\n' +
+            '<a:heartg1:1545307544808071258> **5 sinh nhật sắp tới**\n\n';
+
         let displayIndex = 0;
+        const staleUserIds = [];
+
         for (const birthday of next5) {
             const member = await interaction.guild.members.fetch(birthday.userId).catch(() => null);
             if (!member) {
-                deleteBirthday(client, interaction.guildId, birthday.userId).catch(() => null);
+                staleUserIds.push(birthday.userId);
                 continue;
             }
+
             displayIndex++;
 
-            let timeUntil = '';
+            let timeUntil;
             if (birthday.daysUntil === 0) {
-                timeUntil = '🎉 **Today!**';
+                timeUntil = 'Hôm nay';
             } else if (birthday.daysUntil === 1) {
-                timeUntil = '📅 **Tomorrow!**';
+                timeUntil = 'Ngày mai';
             } else {
-                timeUntil = `In ${birthday.daysUntil} day${birthday.daysUntil > 1 ? 's' : ''}`;
+                timeUntil = `Còn ${birthday.daysUntil} ngày`;
             }
+
+            birthdayList +=
+                `**${displayIndex}. ${member.toString()}**\n` +
+                `Ngày ${birthday.day} tháng ${birthday.month} · ${timeUntil}\n\n`;
+        }
+
+        for (const userId of staleUserIds) {
+            deleteBirthday(client, interaction.guildId, userId).catch(() => null);
         }
 
         if (displayIndex === 0) {
             const embed = new EmbedBuilder()
-                .setColor(0xFF0000)
-                .setTitle('No Upcoming Birthdays')
-                .setDescription('No upcoming birthdays found for current server members.');
-            return await InteractionHelper.safeEditReply(interaction, {
-                embeds: [embed]
-            });
+                .setColor(0xFFB6C1)
+                .setDescription(
+                    '<a:trangtrig2:1546040703375904801> **UPCOMING BIRTHDAYS** <a:trangtrig3:1546040818261954610>\n\n' +
+                    '<a:heartg1:1545307544808071258> Không tìm thấy sinh nhật sắp tới của thành viên hiện tại.'
+                );
+            return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }
-
-        let birthdayList = `🎂 **Next 5 Upcoming Birthdays**\n\nHere are the next 5 birthdays in ${interaction.guild.name}:\n\n`;
-        displayIndex = 0;
-        for (const birthday of next5) {
-            const member = await interaction.guild.members.fetch(birthday.userId).catch(() => null);
-            if (!member) {
-                continue;
-            }
-            displayIndex++;
-
-            let timeUntil = '';
-            if (birthday.daysUntil === 0) {
-                timeUntil = '🎉 **Today!**';
-            } else if (birthday.daysUntil === 1) {
-                timeUntil = '📅 **Tomorrow!**';
-            } else {
-                timeUntil = `In ${birthday.daysUntil} day${birthday.daysUntil > 1 ? 's' : ''}`;
-            }
-
-            birthdayList += `${displayIndex}. **${member.displayName}**\n<@${birthday.userId}>\n📅 **Date:** ${birthday.monthName} ${birthday.day}\n⏰ **Time:** ${timeUntil}\n\n`;
-        }
-
-        birthdayList += `Use /birthday set to add your birthday!`;
 
         const embed = new EmbedBuilder()
-            .setColor(0x00FF00)
-            .setTitle('Next 5 Upcoming Birthdays')
-            .setDescription(birthdayList);
+            .setColor(0xFFB6C1)
+            .setDescription(birthdayList.trim());
 
-        await InteractionHelper.safeEditReply(interaction, {
-            embeds: [embed]
-        });
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
 
         logger.info('Next birthdays retrieved successfully', {
             userId: interaction.user.id,
