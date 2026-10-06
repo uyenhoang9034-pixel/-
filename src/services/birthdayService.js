@@ -254,8 +254,8 @@ export async function getTodaysBirthdays(client, guildId) {
   try {
     const birthdays = await getGuildBirthdays(client, guildId);
     const today = new Date();
-    const currentMonth = today.getUTCMonth() + 1;
-    const currentDay = today.getUTCDate();
+    const currentMonth = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Ho_Chi_Minh', month: 'numeric' }).format(today));
+    const currentDay = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Ho_Chi_Minh', day: 'numeric' }).format(today));
 
     const todaysBirthdays = [];
 
@@ -283,11 +283,11 @@ export async function getTodaysBirthdays(client, guildId) {
 
 export async function checkBirthdays(client) {
   const today = new Date();
-  const currentMonth = today.getUTCMonth() + 1;
-  const currentDay = today.getUTCDate();
+  const currentMonth = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Ho_Chi_Minh', month: 'numeric' }).format(today));
+  const currentDay = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Ho_Chi_Minh', day: 'numeric' }).format(today));
 
   if (process.env.NODE_ENV !== 'production') {
-    logger.debug(`🎂 Running daily birthday check for UTC: ${currentMonth}/${currentDay}.`);
+    logger.debug(`🎂 Running daily birthday check for Vietnam time: ${currentMonth}/${currentDay}.`);
   }
 
   for (const [guildId, guild] of client.guilds.cache) {
