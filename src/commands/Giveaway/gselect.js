@@ -57,7 +57,7 @@ export default {
 
         return InteractionHelper.safeReply(interaction, {
             embeds: [successEmbed('Đã lưu lựa chọn riêng tư', 
-                `Người được chọn: <@${winner.id}>\nGiải thưởng: **${giveaway.prize || 'phần thưởng'}**\n\nChưa có thông báo công khai. Dùng `/gannounce messageid:${messageId}` sau khi kiểm tra để công bố.`)],
+                `Người được chọn: <@${winner.id}>\nGiải thưởng: **${giveaway.prize || 'phần thưởng'}**\n\nChưa có thông báo công khai. Dùng lệnh /gannounce với cùng Message ID sau khi kiểm tra để công bố.`)],
             flags: MessageFlags.Ephemeral
         });
     }
