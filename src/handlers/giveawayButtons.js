@@ -162,10 +162,12 @@ export const giveawayEndHandler = {
             const resultMessage = winners.length > 0
                 ? await interaction.channel.send({
                     content:
-                        `🎉 CONGRATULATIONS ${winnerMentions}! You won the **${giveaway.prize || 'giveaway prize'}** giveaway! Please contact the host <@${giveaway.hostId}> to claim your prize.`
+                        `<a:chiikawag7:1541427343216738414> **Chúc mừng ${winnerMentions}!**\n` +
+                        `Bạn đã trúng **${giveaway.prize || 'phần thưởng'}**! <a:giftg1:1543150714732412948>\n` +
+                        `Vui lòng mở ticket để nhận phần thưởng.`
                 })
                 : await interaction.channel.send({
-                    content: `The giveaway for **${giveaway.prize || 'this prize'}** has ended with no valid entries.`
+                    content: `<a:chiikawag7:1541427343216738414> Giveaway **${giveaway.prize || 'phần thưởng'}** đã kết thúc nhưng không có người tham gia hợp lệ.`
                 });
 
             if (winners.length > 0) {
