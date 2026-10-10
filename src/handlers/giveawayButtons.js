@@ -153,6 +153,26 @@ export const giveawayEndHandler = {
                 components: [updatedRow]
             });
 
+            // Match the scheduled end and /gend behavior: post a public result
+            // message when an admin ends the giveaway early via the End button.
+            const winnerMentions = winners.length > 0
+                ? winners.map(id => `<@${id}>`).join(', ')
+                : null;
+
+            const resultMessage = winners.length > 0
+                ? await interaction.channel.send({
+                    content:
+                        `🎉 CONGRATULATIONS ${winnerMentions}! You won the **${giveaway.prize || 'giveaway prize'}** giveaway! Please contact the host <@${giveaway.hostId}> to claim your prize.`
+                })
+                : await interaction.channel.send({
+                    content: `The giveaway for **${giveaway.prize || 'this prize'}** has ended with no valid entries.`
+                });
+
+            if (winners.length > 0) {
+                giveaway.winnerPingMessageId = resultMessage.id;
+                await saveGiveaway(client, interaction.guildId, giveaway);
+            }
+
             try {
                 await logEvent({
                     client,
