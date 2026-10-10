@@ -33,15 +33,23 @@ export default {
             throw new TitanBotError('Giveaway not found', ErrorTypes.VALIDATION,
                 'Không tìm thấy giveaway theo Message ID này.', { messageId });
         }
-        if (giveaway.ended || giveaway.isEnded) {
+        if ((giveaway.ended || giveaway.isEnded) && !giveaway.announcementPending) {
             throw new TitanBotError('Giveaway already ended', ErrorTypes.VALIDATION,
-                'Giveaway đã kết thúc rồi.', { messageId });
+                'Giveaway đã được công bố kết quả rồi.', { messageId });
         }
 
-        const winners = Array.isArray(giveaway.pendingWinnerIds) ? giveaway.pendingWinnerIds : [];
+        let winners = Array.isArray(giveaway.pendingWinnerIds) ? giveaway.pendingWinnerIds : [];
+        if (!winners.length && giveaway.announcementPending) {
+            const participants = [...new Set(giveaway.participants || [])];
+            for (let i = participants.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [participants[i], participants[j]] = [participants[j], participants[i]];
+            }
+            winners = participants.slice(0, Math.min(giveaway.winnerCount || 1, participants.length));
+        }
         if (!winners.length) {
-            throw new TitanBotError('No private winner selected', ErrorTypes.VALIDATION,
-                'Chưa có người thắng được chọn riêng. Hãy dùng /gselect trước.', { messageId });
+            throw new TitanBotError('No winner available', ErrorTypes.VALIDATION,
+                'Không có người tham gia hợp lệ để công bố.', { messageId });
         }
 
         const channel = await interaction.client.channels.fetch(giveaway.channelId).catch(() => null);
@@ -59,7 +67,8 @@ export default {
         giveaway.ended = true;
         giveaway.isEnded = true;
         giveaway.endedAt = new Date().toISOString();
-        giveaway.endedBy = interaction.user.id;
+        giveaway.endedBy = giveaway.endedBy || interaction.user.id;
+        giveaway.announcementPending = false;
         await saveGiveaway(interaction.client, interaction.guildId, giveaway);
 
         await giveawayMessage.edit({
