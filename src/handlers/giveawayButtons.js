@@ -122,7 +122,7 @@ export const giveawayEndHandler = {
                 );
             }
 
-            if (giveaway.ended || giveaway.isEnded || isGiveawayEnded(giveaway)) {
+            if (giveaway.ended || giveaway.isEnded) {
                 throw new TitanBotError(
                     'Giveaway already ended',
                     ErrorTypes.VALIDATION,
@@ -132,11 +132,13 @@ export const giveawayEndHandler = {
             }
 
             const participants = giveaway.participants || [];
-            const winners = selectWinners(participants, giveaway.winnerCount);
+            const announcementPending = giveaway.delayAnnouncement === true;
+            const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1);
 
             giveaway.ended = true;
             giveaway.isEnded = true;
             giveaway.winnerIds = winners;
+            giveaway.announcementPending = announcementPending;
             giveaway.endedAt = new Date().toISOString();
             giveaway.endedBy = interaction.user.id;
 
@@ -144,7 +146,7 @@ export const giveawayEndHandler = {
 
             logger.info(`Giveaway ended via button by ${interaction.user.tag}: ${interaction.message.id}`);
 
-            const updatedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
+            const updatedEmbed = createGiveawayEmbed(giveaway, announcementPending ? 'pending' : 'ended', winners);
             const updatedRow = createGiveawayButtons(true);
 
             await interaction.message.edit({
@@ -159,7 +161,7 @@ export const giveawayEndHandler = {
                 ? winners.map(id => `<@${id}>`).join(', ')
                 : null;
 
-            const resultMessage = winners.length > 0
+            const resultMessage = announcementPending ? null : winners.length > 0
                 ? await interaction.channel.send({
                     content:
                         `<a:chiikawag7:1541427343216738414> **Chúc mừng ${winnerMentions}!**\n` +
@@ -170,7 +172,7 @@ export const giveawayEndHandler = {
                     content: `<a:chiikawag7:1541427343216738414> Giveaway **${giveaway.prize || 'phần thưởng'}** đã kết thúc nhưng không có người tham gia hợp lệ.`
                 });
 
-            if (winners.length > 0) {
+            if (!announcementPending && winners.length > 0 && resultMessage) {
                 giveaway.winnerPingMessageId = resultMessage.id;
                 await saveGiveaway(client, interaction.guildId, giveaway);
             }
@@ -213,7 +215,7 @@ export const giveawayEndHandler = {
                 embeds: [
                     successEmbed(
                         `Giveaway Ended ✅`,
-                        `The giveaway has been ended and ${winners.length} winner(s) have been selected!`
+                        announcementPending ? 'Giveaway đã kết thúc. Chưa công bố người thắng; dùng /gannounce để công bố sau.' : `Giveaway đã kết thúc và đã chọn ${winners.length} người thắng!`
                     )
                 ],
                 flags: MessageFlags.Ephemeral
