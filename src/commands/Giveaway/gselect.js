@@ -37,9 +37,9 @@ export default {
             throw new TitanBotError('Giveaway not found', ErrorTypes.VALIDATION,
                 'Không tìm thấy giveaway theo Message ID này.', { messageId });
         }
-        if (giveaway.ended || giveaway.isEnded) {
+        if ((giveaway.ended || giveaway.isEnded) && !giveaway.announcementPending) {
             throw new TitanBotError('Giveaway already ended', ErrorTypes.VALIDATION,
-                'Giveaway đã kết thúc. Hãy chọn người trước khi kết thúc.', { messageId });
+                'Giveaway đã kết thúc và kết quả đã được công bố; không thể đổi người thắng.', { messageId });
         }
         if (!(giveaway.participants || []).includes(winner.id)) {
             throw new TitanBotError('Selected user is not a participant', ErrorTypes.VALIDATION,
