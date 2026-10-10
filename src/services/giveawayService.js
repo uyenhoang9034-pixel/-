@@ -176,7 +176,9 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             `${statusEmoji} ${giveaway.prize}`);
 
         const description =
-            status === 'ended'
+            status === 'pending'
+        ? '🎊 Giveaway đã kết thúc! Kết quả sẽ được công bố sau.'
+        : status === 'ended'
         ? '🎊 Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
         : status === 'reroll'
             ? '✨ Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia'
@@ -387,13 +389,15 @@ export async function endGiveaway(client, giveaway, guildId, endedBy) {
         }
 
         const participants = giveaway.participants || [];
-        const winners = selectWinners(participants, giveaway.winnerCount || 1);
+        const announcementPending = giveaway.delayAnnouncement === true;
+        const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1);
 
         const updatedGiveaway = {
             ...giveaway,
             ended: true,
             isEnded: true,
             winnerIds: winners,
+            announcementPending,
             endedAt: new Date().toISOString(),
             endedBy: endedBy,
             participantCount: participants.length
@@ -466,14 +470,14 @@ export async function checkGiveaways(client) {
           ? winners.map(id => `<@${id}>`).join(', ')
           : 'No valid entries!';
 
-        const endedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
+        const endedEmbed = createGiveawayEmbed(giveaway, giveaway.delayAnnouncement ? 'pending' : 'ended', winners);
 
         await message.edit({
             content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
           embeds: [endedEmbed],
           components: [createGiveawayButtons(true)]
         });
-          if (winners.length > 0) {
+          if (!giveaway.delayAnnouncement && winners.length > 0) {
     await channel.send({
         content:
             `<a:chiikawag7:1541427343216738414> **Chúc mừng ${winnerMentions}!**\n` +
@@ -485,6 +489,7 @@ export async function checkGiveaways(client) {
         giveaway.ended = true;
         giveaway.isEnded = true;
         giveaway.winnerIds = winners;
+        giveaway.announcementPending = giveaway.delayAnnouncement === true;
         giveaway.endedAt = new Date().toISOString();
 
         const markedSuccess = await markGiveawayEnded(client, giveawayId, giveaway);
