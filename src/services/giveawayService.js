@@ -464,7 +464,8 @@ export async function checkGiveaways(client) {
         }
 
         const participants = giveaway.participants || [];
-        const winners = selectWinners(participants, giveaway.winnerCount || 1);
+        const announcementPending = giveaway.delayAnnouncement === true;
+        const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1);
 
         const winnerMentions = winners.length > 0
           ? winners.map(id => `<@${id}>`).join(', ')
