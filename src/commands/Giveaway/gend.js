@@ -117,7 +117,7 @@ export default {
             updatedGiveaway,
         );
 
-        const newEmbed = createGiveawayEmbed(updatedGiveaway, "ended", winners);
+        const newEmbed = createGiveawayEmbed(updatedGiveaway, updatedGiveaway.announcementPending ? "pending" : "ended", winners);
         const newRow = createGiveawayButtons(true);
 
         await message.edit({
@@ -126,7 +126,9 @@ export default {
             components: [newRow],
         });
 
-        if (winners.length > 0) {
+        if (updatedGiveaway.announcementPending) {
+            logger.info(`Giveaway ended with announcement delayed: ${messageId}`);
+        } else if (winners.length > 0) {
             const winnerMentions = winners
                 .map((id) => `<@${id}>`)
                 .join(",");
@@ -182,7 +184,7 @@ export default {
             embeds: [
                 successEmbed(
                     "Giveaway Ended ✅",
-                    `Successfully ended the giveaway for **${updatedGiveaway.prize}** in ${channel}. Selected ${winners.length} winner(s) from ${endResult.participantCount} entries.`,
+                    updatedGiveaway.announcementPending ? `Đã kết thúc giveaway **${updatedGiveaway.prize}** tại ${channel}. Chưa công bố người thắng; dùng /gannounce để công bố sau.` : `Successfully ended the giveaway for **${updatedGiveaway.prize}** in ${channel}. Selected ${winners.length} winner(s) from ${endResult.participantCount} entries.`,
                 ),
             ],
             flags: MessageFlags.Ephemeral,
