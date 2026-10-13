@@ -38,6 +38,12 @@ export const commandAliases = {
     'gdelete': 'gdelete',
     'greroll': 'greroll',
     'groll': 'greroll',
+    'gparticipants': 'gparticipants',
+    'gparticipant': 'gparticipants',
+    'gremoveparticipant': 'gremoveparticipant',
+    'gremove': 'gremoveparticipant',
+    'grempart': 'gremoveparticipant',
+    'gkickparticipant': 'gremoveparticipant',
 
     'ticket': 'ticket',
     't': 'ticket',

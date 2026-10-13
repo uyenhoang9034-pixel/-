@@ -52,6 +52,14 @@ export const giveawayJoinHandler = {
                 const participants = giveaway.participants || [];
                 const userId = interaction.user.id;
 
+                const disqualified = Array.isArray(giveaway.disqualified) ? giveaway.disqualified : [];
+                if (disqualified.includes(userId)) {
+                    return replyUserError(interaction, {
+                        type: ErrorTypes.PERMISSION,
+                        message: '❌ Bạn đã bị loại khỏi giveaway này và không thể tham gia lại.',
+                    });
+                }
+
                 if (participants.includes(userId)) {
                     return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You have already entered this giveaway! 🎉' });
                 }
