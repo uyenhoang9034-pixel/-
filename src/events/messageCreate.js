@@ -106,6 +106,11 @@ import {
   findMatchingAutoReacts,
 } from '../services/autoreact/autoreactService.js';
 
+import {
+  handleEastMention,
+} from '../services/eastMentionService.js';
+
+
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
 const XIN_ITEM_THREAD_ID = '1547890357105070130';
@@ -131,6 +136,8 @@ export default {
       }
 
       await handleAutoReact(message, client);
+
+      await handleEastMention(message);
 
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
