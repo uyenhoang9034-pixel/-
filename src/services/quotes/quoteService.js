@@ -156,8 +156,9 @@ export async function handleQuoteTrigger(message, client) {
       });
 
     await message.reply({
+      content: `${message.author}`,
       embeds: [embed],
-      allowedMentions: { repliedUser: false }, // không ping người dùng
+      allowedMentions: { repliedUser: true }, // @tag người đó trực tiếp
     });
 
     return true;
