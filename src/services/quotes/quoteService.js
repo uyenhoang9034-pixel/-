@@ -145,13 +145,10 @@ export async function handleQuoteTrigger(message, client) {
 
     const embed = new EmbedBuilder()
       .setColor('#FFB7D5') // Màu hồng tai thỏ Usagi múp rụp pastel
-      .setAuthor({
-        name: '🐰 Usagi Quotes',
-        iconURL: client.user?.displayAvatarURL?.({ dynamic: true }) || undefined,
-      })
+      .setTitle('<a:trangtrig2:1546040703375904801> 𝓤𝓼𝓪𝓰𝓲 𝓠𝓾𝓸𝓽𝓮𝓼 <a:trangtrig3:1546040818261954610>')
       .setDescription(quote)
       .setFooter({
-        text: `Gõ "quote" để nhận thêm câu mới nha 🌸 (${total} câu trong bể)`,
+        text: `Gõ "quote" để nhận thêm câu mới nha 🐰 (${total} câu trong bể)`,
         iconURL: message.author.displayAvatarURL?.({ dynamic: true }) || undefined,
       });
 
