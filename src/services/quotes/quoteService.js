@@ -1,23 +1,26 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const QUOTES_FILE_PATH = path.join(__dirname, '../../data/quotes.txt');
+const ASSETS_QUOTES_DIR = path.join(__dirname, '../../../assets/quotes');
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp']);
 
 // In-memory cache for fast random access
-let quotesCache = [];
+let textQuotesCache = [];
+let imageQuotesCache = [];
 
 // Rate limiter / cooldown per user (1.5 seconds) to prevent spamming
 const COOLDOWN_MS = 1500;
 const userCooldowns = new Map();
 
 /**
- * Phân tích nội dung file quotes.txt thành danh sách các quote.
+ * Phân tích nội dung file quotes.txt thành danh sách các quote chữ.
  * Quy ước:
  * - Mỗi câu quote được phân cách bằng một hoặc nhiều dòng trống (Enter 2 lần).
  * - Hỗ trợ quote nhiều dòng (ví dụ tiếng Trung + tiếng dịch tiếng Việt).
@@ -47,61 +50,112 @@ export function parseQuotes(content) {
 /**
  * Đọc file quotes.txt và nạp vào bộ nhớ RAM
  */
-export function loadQuotes() {
+export function loadTextQuotes() {
   try {
     if (!fs.existsSync(QUOTES_FILE_PATH)) {
       logger.warn(`[QuoteService] File quotes không tồn tại tại: ${QUOTES_FILE_PATH}`);
-      quotesCache = [];
+      textQuotesCache = [];
       return 0;
     }
 
     const content = fs.readFileSync(QUOTES_FILE_PATH, 'utf-8');
-    quotesCache = parseQuotes(content);
-    logger.info(`[QuoteService] Đã tải thành công ${quotesCache.length} câu quote vào bộ nhớ.`);
-    return quotesCache.length;
+    textQuotesCache = parseQuotes(content);
+    logger.info(`[QuoteService] Đã tải thành công ${textQuotesCache.length} câu quote chữ vào bộ nhớ.`);
+    return textQuotesCache.length;
   } catch (error) {
     logger.error('[QuoteService] Lỗi khi nạp file quotes.txt:', error);
-    quotesCache = [];
+    textQuotesCache = [];
     return 0;
   }
 }
 
 /**
- * Tải lại bể quote từ ổ đĩa (Hot-reload)
+ * Quét thư mục assets/quotes và nạp danh sách ảnh quote vào bộ nhớ RAM
+ */
+export function loadImageQuotes() {
+  try {
+    if (!fs.existsSync(ASSETS_QUOTES_DIR)) {
+      imageQuotesCache = [];
+      return 0;
+    }
+
+    const files = fs.readdirSync(ASSETS_QUOTES_DIR);
+    imageQuotesCache = files.filter((file) => {
+      const ext = path.extname(file).toLowerCase();
+      return IMAGE_EXTENSIONS.has(ext);
+    });
+
+    logger.info(`[QuoteService] Đã tải thành công ${imageQuotesCache.length} ảnh quote từ ${ASSETS_QUOTES_DIR}`);
+    return imageQuotesCache.length;
+  } catch (error) {
+    logger.error('[QuoteService] Lỗi khi quét thư mục assets/quotes:', error);
+    imageQuotesCache = [];
+    return 0;
+  }
+}
+
+/**
+ * Nạp đồng thời cả quote chữ và quote ảnh (Hot-reload)
+ */
+export function loadQuotes() {
+  loadTextQuotes();
+  loadImageQuotes();
+  return getQuoteCount();
+}
+
+/**
+ * Tải lại toàn bộ bể quote từ ổ đĩa
  */
 export function reloadQuotes() {
   return loadQuotes();
 }
 
 /**
- * Lấy ngẫu nhiên 1 câu quote từ bể
+ * Lấy tổng số lượng quote (chữ + ảnh) trong bể
  */
-export function getRandomQuote() {
-  if (quotesCache.length === 0) {
-    loadQuotes();
-  }
-
-  if (quotesCache.length === 0) {
-    return {
-      quote: '🐰 Bể quote hiện đang trống! Hãy thêm câu mới vào `src/data/quotes.txt` nha~',
-      total: 0,
-      index: 0,
-    };
-  }
-
-  const index = Math.floor(Math.random() * quotesCache.length);
-  return {
-    quote: quotesCache[index],
-    total: quotesCache.length,
-    index: index + 1,
-  };
+export function getQuoteCount() {
+  return textQuotesCache.length + imageQuotesCache.length;
 }
 
 /**
- * Lấy tổng số lượng câu quote hiện có
+ * Lấy ngẫu nhiên 1 quote (có thể là quote chữ hoặc quote ảnh) từ bể tổng hợp
  */
-export function getQuoteCount() {
-  return quotesCache.length;
+export function getRandomQuote() {
+  const total = getQuoteCount();
+  if (total === 0) {
+    loadQuotes();
+  }
+
+  const currentTotal = getQuoteCount();
+  if (currentTotal === 0) {
+    return {
+      type: 'text',
+      content: '🐰 Bể quote hiện đang trống! Hãy thêm câu mới vào `src/data/quotes.txt` hoặc ảnh vào `assets/quotes/` nha~',
+      total: 0,
+    };
+  }
+
+  // Bốc ngẫu nhiên 1 phần tử trong toàn bộ bể quote tổng hợp
+  const randomIndex = Math.floor(Math.random() * currentTotal);
+
+  if (randomIndex < textQuotesCache.length) {
+    // Trúng Quote chữ
+    return {
+      type: 'text',
+      content: textQuotesCache[randomIndex],
+      total: currentTotal,
+    };
+  } else {
+    // Trúng Quote ảnh
+    const imageFilename = imageQuotesCache[randomIndex - textQuotesCache.length];
+    const imagePath = path.join(ASSETS_QUOTES_DIR, imageFilename);
+    return {
+      type: 'image',
+      filename: imageFilename,
+      filePath: imagePath,
+      total: currentTotal,
+    };
+  }
 }
 
 /**
@@ -141,22 +195,31 @@ export async function handleQuoteTrigger(message, client) {
       }
     }
 
-    const { quote, total } = getRandomQuote();
+    const quoteItem = getRandomQuote();
 
     const embed = new EmbedBuilder()
       .setColor('#FFB7D5') // Màu hồng tai thỏ Usagi múp rụp pastel
       .setTitle('<a:trangtrig2:1546040703375904801> 𝓤𝓼𝓪𝓰𝓲 𝓠𝓾𝓸𝓽𝓮𝓼 <a:trangtrig3:1546040818261954610>')
-      .setDescription(quote)
       .setFooter({
-        text: `Gõ "quote" để nhận thêm câu mới nha 🐰 (${total} câu trong bể)`,
+        text: `Gõ "quote" để nhận thêm câu mới nha 🐰 (${quoteItem.total} quote trong bể)`,
         iconURL: message.author.displayAvatarURL?.({ dynamic: true }) || undefined,
       });
 
-    await message.reply({
+    const replyPayload = {
       content: `${message.author}`,
       embeds: [embed],
       allowedMentions: { repliedUser: true }, // @tag người đó trực tiếp
-    });
+    };
+
+    if (quoteItem.type === 'image' && quoteItem.filePath && fs.existsSync(quoteItem.filePath)) {
+      const attachment = new AttachmentBuilder(quoteItem.filePath, { name: quoteItem.filename });
+      embed.setImage(`attachment://${quoteItem.filename}`);
+      replyPayload.files = [attachment];
+    } else {
+      embed.setDescription(quoteItem.content);
+    }
+
+    await message.reply(replyPayload);
 
     return true;
   } catch (error) {
