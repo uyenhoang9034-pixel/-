@@ -1,0 +1,15 @@
+# ==========================================
+# 🐰 BỂ QUOTE CỦA USAGI MÚP RỤP
+# Hướng dẫn:
+# - Mỗi câu quote cách nhau bằng 1 dòng trống (Enter 2 lần).
+# - Câu quote có thể gồm nhiều dòng (ví dụ tiếng Trung + tiếng Việt).
+# - Các dòng bắt đầu bằng dấu '#' sẽ là ghi chú (bot không đọc).
+# ==========================================
+
+雨停了，撑伞的人来不来，也不重要了。<a:hachiwareg1:1541427296777408552>
+Mưa tạnh rồi, người che ô có tới hay không, cũng không còn quan trọng nữa.
+
+Đã tuổi nhất tuần nhưng chẳng là duy nhất, đêm đêm thức giấc chỉ nghĩ về em. <a:chiikawag13:1541429102668554250>
+
+北方的冬天太长，却长不过一个想你的夜。
+Mùa đông phương Bắc thật sự rất dài, nhưng cũng không thể dài bằng một đêm nhớ đến anh.

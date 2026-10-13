@@ -53,13 +53,13 @@ export default {
             return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/autorole`.' });
         }
 
-    const { options, guild, client } = interaction;
+        const { options, guild, client } = interaction;
         const subcommand = options.getSubcommand();
 
         if (subcommand === 'add') {
             const role = options.getRole('role');
 
-            
+
             if (role.position >= guild.members.me.roles.highest.position) {
                 logger.warn(`[Autorole] User ${interaction.user.tag} tried to add role ${role.name} (${role.id}) higher than bot's highest role in ${guild.name}`);
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'I can\'t assign roles that are higher than my highest role.' });
@@ -92,22 +92,22 @@ export default {
                 logger.error(`[Autorole] Failed to add role for guild ${guild.id}:`, error);
                 await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while adding the role. Please try again.' });
             }
-        } 
-        
+        }
+
         else if (subcommand === 'remove') {
             const role = options.getRole('role');
 
             try {
                 const config = await getWelcomeConfig(client, guild.id);
                 const existingRoles = config.roleIds || [];
-                
+
                 if (!existingRoles.includes(role.id)) {
                     logger.info(`[Autorole] User ${interaction.user.tag} tried to remove non-existent role ${role.name} (${role.id}) in ${guild.name}`);
                     return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `The role ${role} is not set to be auto-assigned.` });
                 }
 
                 const updatedRoles = existingRoles.filter(id => id !== role.id);
-                
+
                 await updateWelcomeConfig(client, guild.id, {
                     roleIds: updatedRoles
                 });
@@ -122,7 +122,7 @@ export default {
                 await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while removing the role. Please try again.' });
             }
         }
-        
+
         else if (subcommand === 'list') {
             try {
                 const config = await getWelcomeConfig(client, guild.id);
@@ -146,7 +146,7 @@ export default {
                 const roles = await guild.roles.fetch();
                 const validRoles = [];
                 const invalidRoleIds = [];
-                
+
                 for (const roleId of singleRoleIds) {
                     const role = roles.get(roleId);
                     if (role) {

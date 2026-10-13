@@ -81,6 +81,10 @@ import {
 } from '../services/autoresponder/responseBuilder.js';
 
 import {
+  handleQuoteTrigger,
+} from '../services/quotes/quoteService.js';
+
+import {
   WORD_CHAIN_CHANNELS,
   getWordChainModeForChannel,
   getWordChainGame,
@@ -147,13 +151,20 @@ export default {
       }
 
       if (!countingProcessed && !wordChainProcessed) {
-        const autoresponderProcessed = await handleAutoresponder(
+        const quoteProcessed = await handleQuoteTrigger(
           message,
           client,
         );
 
-        if (!autoresponderProcessed) {
-          await handlePrefixCommand(message, client);
+        if (!quoteProcessed) {
+          const autoresponderProcessed = await handleAutoresponder(
+            message,
+            client,
+          );
+
+          if (!autoresponderProcessed) {
+            await handlePrefixCommand(message, client);
+          }
         }
 
         await handleLeveling(message, client);
