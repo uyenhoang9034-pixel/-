@@ -6,13 +6,13 @@
 # - Các dòng bắt đầu bằng dấu '#' sẽ là ghi chú (bot không đọc).
 # ==========================================
 
-"雨停了，撑伞的人来不来，也不重要了。<a:hachiwareg1:1541427296777408552>
-Mưa tạnh rồi, người che ô có tới hay không, cũng không còn quan trọng nữa."
+"雨停了，撑伞的人来不来，也不重要了。"<a:hachiwareg1:1541427296777408552>
+> Mưa tạnh rồi, người che ô có tới hay không, cũng không còn quan trọng nữa.
 
 "Đã tuổi nhất tuần nhưng chẳng là duy nhất, đêm đêm thức giấc chỉ nghĩ về em. <a:chiikawag13:1541429102668554250>"
 
-"北方的冬天太长，却长不过一个想你的夜。
-Mùa đông phương Bắc thật sự rất dài, nhưng cũng không thể dài bằng một đêm nhớ đến anh."
+"北方的冬天太长，却长不过一个想你的夜。"
+> Mùa đông phương Bắc thật sự rất dài, nhưng cũng không thể dài bằng một đêm nhớ đến anh.
 
 "Nhân duyên luôn kỳ lạ nhưng chưa từng bạc đãi những ai hết mình tìm kiếm tình yêu."
 
@@ -71,12 +71,12 @@ Nhưng mà gáy sớm thì nhanh nhất làng."
 
 "八岁的你和九十岁的你都在看着你，
 一个希望你大胆去做，
-一个希望你不留遗憾。
-Em của năm 8 tuổi và em của năm 90 tuổi đều đang nhìn vào em bây giờ đấy. Một người mong em gan dạ tiến lên, một người mong em không phải nuối tiếc."
+一个希望你不留遗憾。"
+> Em của năm 8 tuổi và em của năm 90 tuổi đều đang nhìn vào em bây giờ đấy. Một người mong em gan dạ tiến lên, một người mong em không phải nuối tiếc.
 
 "我要苦练七十二变，
-笑对人间八十一劫。
-Tôi phải khắc khổ luyện tập 72 phép biến hoá để mỉm cười đối mặt với tám mươi mốt kiếp nạn của cuộc đời."
+笑对人间八十一劫。"
+> Tôi phải khắc khổ luyện tập 72 phép biến hoá để mỉm cười đối mặt với tám mươi mốt kiếp nạn của cuộc đời.
 
 “Ta từng muốn đi hết núi cao biển rộng, ngắm hết nhân gian vạn cảnh. Sau này gặp em rồi mới hiểu, phong cảnh đẹp đến đâu cũng chỉ là phong cảnh, nếu người đứng cạnh ta không phải người ta thương.”
 
@@ -202,31 +202,31 @@ Xuân tắm hồ sen, hạ tắm ao."
 Rừng phong thu đã nhuốm màu quan san."
 
 "死生契阔，与子成说。
-执子之手，与子偕老。
-Dẫu sinh tử chia lìa, ta vẫn cùng nhau hẹn ước. Nắm tay người, cùng người đi đến bạc đầu."
+执子之手，与子偕老。"
+> Dẫu sinh tử chia lìa, ta vẫn cùng nhau hẹn ước. Nắm tay người, cùng người đi đến bạc đầu."
 
 "有一美人兮，见之不忘。
-一日不见兮，思之如狂。
-Có một người đẹp, chỉ gặp một lần đã chẳng thể quên. Một ngày không gặp, nỗi nhớ hóa cuồng si."
+一日不见兮，思之如狂。"
+> Có một người đẹp, chỉ gặp một lần đã chẳng thể quên. Một ngày không gặp, nỗi nhớ hóa cuồng si.
 
 "山无陵，江水为竭，
 冬雷震震，夏雨雪，
-天地合，乃敢与君绝！
-Núi không còn đỉnh, sông cạn dòng; mùa đông sấm vang, mùa hạ tuyết rơi; trời đất hợp làm một — khi ấy thiếp mới đành đoạn tuyệt cùng chàng."
+天地合，乃敢与君绝！"
+> Núi không còn đỉnh, sông cạn dòng; mùa đông sấm vang, mùa hạ tuyết rơi; trời đất hợp làm một — khi ấy thiếp mới đành đoạn tuyệt cùng chàng.
 
 "我住长江头，君住长江尾。
-日日思君不见君，共饮长江水。
-Thiếp ở đầu Trường Giang, chàng ở cuối Trường Giang. Ngày ngày nhớ chàng chẳng thể gặp, chỉ cùng uống chung dòng nước sông."
+日日思君不见君，共饮长江水。"
+> Thiếp ở đầu Trường Giang, chàng ở cuối Trường Giang. Ngày ngày nhớ chàng chẳng thể gặp, chỉ cùng uống chung dòng nước sông.
 
-"两情若是久长时，又岂在朝朝暮暮。
-Nếu tình yêu của hai người có thể bền lâu, hà cớ gì phải ở bên nhau sớm tối mỗi ngày?"
+"两情若是久长时，又岂在朝朝暮暮。"
+> Nếu tình yêu của hai người có thể bền lâu, hà cớ gì phải ở bên nhau sớm tối mỗi ngày?
 
-"曾经沧海难为水，除却巫山不是云。
-Đã từng thấy biển lớn thì nước nơi khác chẳng còn đáng kể; đã thấy mây Vu Sơn thì mây nơi khác chẳng còn sánh được."
+"曾经沧海难为水，除却巫山不是云。"
+> Đã từng thấy biển lớn thì nước nơi khác chẳng còn đáng kể; đã thấy mây Vu Sơn thì mây nơi khác chẳng còn sánh được.
 
 "此水几时休，此恨何时已。
-只愿君心似我心，定不负相思意。
-Dòng nước này bao giờ mới ngừng chảy, nỗi nhớ này đến bao giờ mới dứt? Chỉ mong lòng chàng giống lòng thiếp, để không phụ tấm chân tình nhớ thương nhau."
+只愿君心似我心，定不负相思意。"
+> Dòng nước này bao giờ mới ngừng chảy, nỗi nhớ này đến bao giờ mới dứt? Chỉ mong lòng chàng giống lòng thiếp, để không phụ tấm chân tình nhớ thương nhau.
 
 "Xin chào bạn, tôi là nhà tuyển dụng của tập đoàn giải trí Rạp xiếc Trung Ương Group. Trong quá trình tìm kiếm và đào tạo những người hài hước của chúng tôi (đi săn chất xám và nhân tài) tôi nhận thấy bạn là người có khiếu hài hước, tập đoàn chúng tôi thật sự cần một chú hề đúng nghĩa, tôi đã thấy bạn vừa mở mồm là mọi người đã cười ầm lên, không cần phải biểu diễn. Đặc biệt đối với chúng tôi thì những vị trí lãnh đạo rạp xiếc cấp cao phải tìm người "có tâm, có tầm". Một môi trường của những thiên tài hề, xung quanh bạn là những nhân vật: cha đẻ của tiếng cười, nhà khoa học hề, chúa hề địa phương, bait đồ tể, chúa tể rạp xiết. Môi trường làm việc năng động, hài hước."
 
