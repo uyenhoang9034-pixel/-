@@ -59,6 +59,9 @@ const XIN_NGHI_REGEX =
 
 const DOT_VIA_REGEX = /(đốt vía|thắp hương|dot via|thap huong)/i;
 
+const TRA_CHIEU_REGEX =
+  /(trà chiều|tra chieu|lên đơn nước|len don nuoc|order nước|order nuoc|gom đơn nước|gom don nuoc|bơm đường|bom duong|báo động sập nguồn)/i;
+
 const RAGE_MANUAL_CHECK_REGEX =
   /(nộ khí|thước đo nộ khí|rage meter|xem nộ khí|kiem tra no khi|no khi)/i;
 
@@ -782,6 +785,137 @@ export function buildDotViaEmbed(user, target = null) {
 }
 
 // ==========================================
+// 6. TÍNH NĂNG GIỜ TRÀ CHIỀU / LÊN ĐƠN NƯỚC
+// ==========================================
+
+const orderSessions = new Map(); // messageId -> Map<userId, choiceKey>
+
+export function getOrCreateSession(messageId) {
+  if (!orderSessions.has(messageId)) {
+    orderSessions.set(messageId, new Map());
+  }
+  return orderSessions.get(messageId);
+}
+
+export function voteDrink(messageId, userId, choiceKey) {
+  const session = getOrCreateSession(messageId);
+  const currentVote = session.get(userId);
+
+  if (currentVote === choiceKey) {
+    session.delete(userId);
+    return { action: 'hủy chọn', choice: choiceKey };
+  } else {
+    session.set(userId, choiceKey);
+    return { action: 'đã chọn', choice: choiceKey };
+  }
+}
+
+export function getSessionTally(messageId) {
+  const session = getOrCreateSession(messageId);
+  const trasua = [];
+  const caphe = [];
+  const nuocloc = [];
+
+  for (const [userId, choice] of session.entries()) {
+    if (choice === 'trasua') trasua.push(userId);
+    else if (choice === 'caphe') caphe.push(userId);
+    else if (choice === 'nuocloc') nuocloc.push(userId);
+  }
+
+  return { trasua, caphe, nuocloc, total: session.size };
+}
+
+export function buildTraChieuEmbed(messageId = null) {
+  const tally = messageId
+    ? getSessionTally(messageId)
+    : { trasua: [], caphe: [], nuocloc: [], total: 0 };
+
+  const formatList = (users) => {
+    if (!users || users.length === 0) return '*Chưa có ai*';
+    if (users.length <= 8) {
+      return users.map((id) => `<@${id}>`).join(', ');
+    }
+    const firstEight = users.slice(0, 8).map((id) => `<@${id}>`).join(', ');
+    return `${firstEight} *(+${users.length - 8} người khác)*`;
+  };
+
+  const description = [
+    `Đã 14:30, não bộ của anh em chính thức ngừng hoạt động. Ai mở app gom đơn trà sữa / cà phê cứu rỗi linh hồn nào!`,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `📋 **DANH SÁCH LÊN ĐƠN HIỆN TẠI:**`,
+    ``,
+    `🧋 **Trà sữa 50% đường** (${tally.trasua.length}): ${formatList(tally.trasua)}`,
+    ``,
+    `☕ **Cà phê muối** (${tally.caphe.length}): ${formatList(tally.caphe)}`,
+    ``,
+    `💧 **Ví hết tiền, uống nước lọc** (${tally.nuocloc.length}): ${formatList(tally.nuocloc)}`,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Tổng cộng: **${tally.total}** đồng chí đã chốt món!`,
+  ].join('\n');
+
+  return new EmbedBuilder()
+    .setTitle('🧋 BÁO ĐỘNG SẬP NGUỒN: TỚI GIỜ BƠM ĐƯỜNG!')
+    .setColor('#FFB6C1')
+    .setDescription(description)
+    .setFooter({
+      text: 'Bấm nút bên dưới để chọn món hoặc bấm lại để hủy món nhé!',
+    });
+}
+
+export function buildTraChieuActionRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('order_drink:trasua')
+      .setLabel('Trà sữa 50% đường')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('🧋'),
+    new ButtonBuilder()
+      .setCustomId('order_drink:caphe')
+      .setLabel('Cà phê muối')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('☕'),
+    new ButtonBuilder()
+      .setCustomId('order_drink:nuocloc')
+      .setLabel('Ví hết tiền, uống nước lọc')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('💧'),
+  );
+}
+
+export async function sendTraChieuAlert(client) {
+  try {
+    const channel = await client.channels
+      .fetch(THAN_VAN_CHANNEL_ID)
+      .catch(() => null);
+
+    if (!channel) {
+      logger.warn(`[TraChieu] Không tìm thấy kênh ${THAN_VAN_CHANNEL_ID}`);
+      return null;
+    }
+
+    const embed = buildTraChieuEmbed();
+    const row = buildTraChieuActionRow();
+
+    const msg = await channel.send({
+      embeds: [embed],
+      components: [row],
+    });
+
+    getOrCreateSession(msg.id);
+
+    logger.info(
+      `[TraChieu] Đã gửi thông báo giờ trà chiều tự động vào kênh ${THAN_VAN_CHANNEL_ID}`,
+    );
+    return msg;
+  } catch (error) {
+    logger.error('[TraChieu] Lỗi khi gửi thông báo trà chiều:', error);
+    return null;
+  }
+}
+
+// ==========================================
 // BỘ ĐIỀU PHỐI AUTORESPONDER MESSAGE_CREATE
 // ==========================================
 
@@ -988,7 +1122,44 @@ export async function handleThanVanTuBan(message) {
     }
 
     // ----------------------------------------------------
-    // 6. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
+    // 6. Keyword: Giờ Trà Chiều / Lên Đơn Nước
+    // ----------------------------------------------------
+    const isTraChieu =
+      TRA_CHIEU_REGEX.test(content) || TRA_CHIEU_REGEX.test(unaccented);
+
+    if (isTraChieu) {
+      if (checkCooldown('trachieu', message.channelId, 30000)) {
+        logger.debug('[ThanVanTuBan] Trà chiều đang trong cooldown 30s.');
+        return true;
+      }
+
+      const embed = buildTraChieuEmbed();
+      const row = buildTraChieuActionRow();
+
+      const msg = await message
+        .reply({
+          embeds: [embed],
+          components: [row],
+          allowedMentions: { repliedUser: false },
+        })
+        .catch(async () => {
+          return message.channel
+            .send({ embeds: [embed], components: [row] })
+            .catch(() => null);
+        });
+
+      if (msg) {
+        getOrCreateSession(msg.id);
+      }
+
+      logger.info(
+        `[ThanVanTuBan] ${message.author.tag} đã gọi đơn trà chiều tại ${message.channelId}`,
+      );
+      return true;
+    }
+
+    // ----------------------------------------------------
+    // 7. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
     // ----------------------------------------------------
     const isManualRageCheck =
       RAGE_MANUAL_CHECK_REGEX.test(content) ||
