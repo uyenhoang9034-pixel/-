@@ -350,7 +350,7 @@ export function buildTanLamEmbed(nowVN = getVietnamTime()) {
 
   if (diffMs <= 0) {
     remainingText =
-      '🎉 **ĐÃ HẾT GIỜ HÀNH CHÍNH!** Còn ngồi đó làm gì nữa, xách xe về ngay!';
+      '# **ĐÃ HẾT GIỜ HÀNH CHÍNH!!!**\n# Còn ngồi đó làm gì nữa, xách xe về ngayyyyy <a:hamsterg1:1546057526905405512>';
     percent = 100;
   } else {
     const hours = Math.floor(diffMs / 3600000);
@@ -371,13 +371,22 @@ export function buildTanLamEmbed(nowVN = getVietnamTime()) {
 
   const progressBar = formatProgressBar(percent, 10);
 
-  const description = [
-    `Giờ chuẩn tan làm: 17:30:00`,
-    ``,
-    `Còn lại: ${remainingText}`,
-    ``,
-    `Tiến độ ngày cày cuốc: [${progressBar}] ${percent}%`,
-  ].join('\n');
+  const description =
+    diffMs <= 0
+      ? [
+          `Giờ chuẩn tan làm: 17:30:00`,
+          ``,
+          `${remainingText}`,
+          ``,
+          `Tiến độ ngày cày cuốc: [${progressBar}] ${percent}%`,
+        ].join('\n')
+      : [
+          `Giờ chuẩn tan làm: 17:30:00`,
+          ``,
+          `Còn lại: ${remainingText}`,
+          ``,
+          `Tiến độ ngày cày cuốc: [${progressBar}] ${percent}%`,
+        ].join('\n');
 
   return new EmbedBuilder()
     .setTitle(
@@ -421,7 +430,7 @@ export function buildLuongEmbed(nowVN = getVietnamTime()) {
 
   if (currentDate === payday) {
     remainingText =
-      '🎉 **HÔM NAY LÀ NGÀY TING TING!** Mau mở app ngân hàng hồi sinh tài khoản thôi!';
+      '# **HÔM NAY LÀ NGÀY TING TING!!!**\n# Mau mở app ngân hàng hồi sinh tài khoản nàooooo <a:trangtrig27:1546093546178748426>';
     percent = 100;
   } else {
     const diffMs = targetDate.getTime() - nowVN.getTime();
@@ -438,13 +447,22 @@ export function buildLuongEmbed(nowVN = getVietnamTime()) {
 
   const progressBar = formatProgressBar(percent, 10);
 
-  const description = [
-    `Dự kiến ngày ting ting: Ngày 10 hàng tháng`,
-    ``,
-    `Còn lại: ${remainingText}`,
-    ``,
-    `Thời gian tồn tại bằng mì gói: [${progressBar}] ${percent}% chặng đường`,
-  ].join('\n');
+  const description =
+    currentDate === payday
+      ? [
+          `Dự kiến ngày ting ting: Ngày 10 hàng tháng`,
+          ``,
+          `${remainingText}`,
+          ``,
+          `Thời gian tồn tại bằng mì gói: [${progressBar}] ${percent}% chặng đường`,
+        ].join('\n')
+      : [
+          `Dự kiến ngày ting ting: Ngày 10 hàng tháng`,
+          ``,
+          `Còn lại: ${remainingText}`,
+          ``,
+          `Thời gian tồn tại bằng mì gói: [${progressBar}] ${percent}% chặng đường`,
+        ].join('\n');
 
   return new EmbedBuilder()
     .setTitle(
