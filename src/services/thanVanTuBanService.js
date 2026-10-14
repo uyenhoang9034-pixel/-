@@ -514,7 +514,7 @@ export function buildFortuneEmbed(user, fortune, alreadyDrawn = false) {
   const avatarUrl = user.displayAvatarURL ? user.displayAvatarURL({ dynamic: true }) : null;
 
   const embed = new EmbedBuilder()
-    .setColor('#9B59B6') // Tím huyền bí
+    .setColor('#FFB6C1') // Hồng pastel
     .setAuthor({
       name: `Quẻ Xăm Công Sở Của: @${userName}`,
       iconURL: avatarUrl || undefined,
@@ -670,7 +670,7 @@ export function buildExcuseEmbed(excuseData) {
     .setTitle(
       '<a:trangtrig30:1546905942476464178> **ĐƠN XIN NGHỈ PHÉP "BAO DUYỆT"** <a:trangtrig30:1546905942476464178>',
     )
-    .setColor('#3498DB')
+    .setColor('#FFB6C1') // Hồng pastel
     .setDescription(description);
 }
 
