@@ -110,6 +110,10 @@ import {
   handleEastMention,
 } from '../services/eastMentionService.js';
 
+import {
+  handleThanVanTuBan,
+} from '../services/thanVanTuBanService.js';
+
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -138,6 +142,12 @@ export default {
       await handleAutoReact(message, client);
 
       await handleEastMention(message);
+
+      const thanVanProcessed = await handleThanVanTuBan(message);
+      if (thanVanProcessed) {
+        await handleLeveling(message, client);
+        return;
+      }
 
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
