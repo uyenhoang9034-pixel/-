@@ -85,8 +85,6 @@ Tôi phải khắc khổ luyện tập 72 phép biến hoá để mỉm cười 
 "Love is not love which alters when it alteration finds.
 Tình yêu chẳng còn là tình yêu nếu đổi thay khi gặp đổi thay."
 
-“Love looks not with the eyes, but with the mind.”
-
 "Shall I compare thee to a summer's day? Thou art more lovely and more temperate.
 Anh có nên ví em với một ngày hè? Em còn dịu dàng và đáng yêu hơn thế."
 
@@ -230,9 +228,6 @@ Nếu tình yêu của hai người có thể bền lâu, hà cớ gì phải �
 只愿君心似我心，定不负相思意。
 Dòng nước này bao giờ mới ngừng chảy, nỗi nhớ này đến bao giờ mới dứt? Chỉ mong lòng chàng giống lòng thiếp, để không phụ tấm chân tình nhớ thương nhau."
 
-"人生若只如初见，何事秋风悲画扇。
-Giá như đời người chỉ mãi đẹp như buổi đầu gặp gỡ, thì đâu cần có ngày chiếc quạt vẽ hoa phải buồn trong gió thu?"
-
 "Xin chào bạn, tôi là nhà tuyển dụng của tập đoàn giải trí Rạp xiếc Trung Ương Group. Trong quá trình tìm kiếm và đào tạo những người hài hước của chúng tôi (đi săn chất xám và nhân tài) tôi nhận thấy bạn là người có khiếu hài hước, tập đoàn chúng tôi thật sự cần một chú hề đúng nghĩa, tôi đã thấy bạn vừa mở mồm là mọi người đã cười ầm lên, không cần phải biểu diễn. Đặc biệt đối với chúng tôi thì những vị trí lãnh đạo rạp xiếc cấp cao phải tìm người "có tâm, có tầm". Một môi trường của những thiên tài hề, xung quanh bạn là những nhân vật: cha đẻ của tiếng cười, nhà khoa học hề, chúa hề địa phương, bait đồ tể, chúa tể rạp xiết. Môi trường làm việc năng động, hài hước."
 
 "Bạn thực sự là một quái vật nhà quê, kẻ hủy diệt lòng tự trọng, tổng tư lệnh xấu hổ, chiến thần hề, country god, chúa tể đội quần, tù trưởng hài hước, đại đội trưởng trung đoàn nông thôn, thần thoại nhục nhã, huyền thoại quê mùa, thần đồng quê kệch, lãnh chúa của các thế hệ đội giỏ Việt, người viết lên kịch bản phim người nhà quê, trùm chui xuống lỗ, tướng quân gáy lớn, thầy dạy phản biện, ông tổ ngành cãi, trùm trường luật, thiên tài tranh biện, người đột biến hệ nhột."
@@ -343,3 +338,149 @@ Tại hạ lại nghe nói có một loại bao da, sâu tầm tấc bảy, mề
 
 "Văn mẫu dành cho ai thất nghiệp:
 Vị cô nương! Tại hạ có một thanh đoản côn, dài tầm tấc rưỡi, đầu không nhọn không sắc, xung quanh phát khí chí dương, vật này cương nhu tùy lúc. Lúc nhu nhìn yếu ớt vô hại, thực ra đang ẩn giấu sát khí, tích tụ công lực để lúc cương thì uy lực vô cùng, dũng mãnh vô song, giết người ngoài quan ải, có thể cách sơn đả ngưu, dẫn dụ kẻ địch vào bồng lai tiên cảnh hoặc địa ngục a tỳ, là bảo bối thần kì, vật bất ly thân, người còn vật còn, người vong vật mất. Nhược điểm là vật này có thần tính riêng,  thường thì tùy nghi sử dụng nhưng khi đến cực hạn lại tự ý sát địch không thể kìm hãm... Có thể gọi nó là “tuyệt thế thần binh”, vị cô nương đây muốn dùng thử một lần chăng?"
+
+# ==========================================
+# 🌸 BỂ QUOTES MỚI CỦA VỢ CỦA KIM NONG
+# ==========================================
+
+"Người với người sống để yêu nhau."
+
+"Đời người chỉ sống có một lần. Phải sống sao cho khỏi xót xa, ân hận vì những năm tháng đã sống hoài, sống phí..."
+
+"Nghệ thuật không cần phải là ánh trăng lừa dối, nghệ thuật không nên là ánh trăng lừa dối; nghệ thuật có thể chỉ là tiếng đau khổ kia, thoát ra từ những kiếp lầm than."
+
+"Cái đẹp cứu rỗi thế giới, nhưng trước hết con người phải có lòng trắc ẩn để nhìn thấy nó."
+
+"Kẻ mạnh không phải là kẻ giẫm lên vai kẻ khác để thỏa mãn lòng ích kỉ. Kẻ mạnh chính là kẻ giúp đỡ kẻ khác trên đôi vai mình."
+
+"Hôm nay trời nhẹ lên cao
+Tôi buồn không hiểu vì sao tôi buồn."
+
+"To live is the rarest thing in the world. Most people exist, that is all."
+> Sống là điều hiếm hoi nhất trên thế giới này. Đa số mọi người chỉ đơn thuần là đang tồn tại mà thôi.
+
+"We accept the love we think we deserve."
+> Chúng ta chấp nhận thứ tình cảm mà ta nghĩ mình xứng đáng nhận được.
+
+"Whatever our souls are made of, his and mine are the same."
+> Dù tâm hồn của chúng ta được tạo nên từ điều gì, thì của chàng và của em đều cùng một bản thể.
+
+"In the depth of winter, I finally learned that within me there lay an invincible summer."
+> Giữa mùa đông buốt giá nhất, cuối cùng tôi nhận ra bên trong mình vẫn ngự trị một mùa hè bất khả chiến bại.
+
+"Not all those who wander are lost."
+> Không phải bất kỳ ai lang thang cũng đều lạc lối.
+
+"It does not do to dwell on dreams and forget to live."
+> Đừng chìm đắm mãi trong những giấc mơ mà quên mất phải sống.
+
+"愿得一人心，白首不相离。"
+> Nguyện có được trái tim một người, để bạc đầu cũng chẳng rời xa.
+
+"人生若只如初见，何事秋风悲画扇。"
+> Đời người nếu chỉ đẹp như thuở ban đầu gặp gỡ, thì cớ sao gió thu lại làm buồn chiếc quạt vẽ.
+
+"斯人若彩虹，遇上方知有。"
+> Người ấy tựa như dải cầu vồng, gặp gỡ rồi mới hay trên đời thực sự có điều kỳ diệu đến thế.
+
+"世间所有的相遇，都是久别重逢。"
+> Mọi cuộc hội ngộ trên nhân gian thực chất đều là tái ngộ sau những tháng ngày xa cách dài đằng đẵng.
+
+"千里之行，始于足下。"
+> Hành trình ngàn dặm bắt đầu từ một bước chân.
+
+"山有木兮木有枝，心悦君兮君不知。"
+> Núi có cây rồi cây có cành, lòng ta hướng về người mà người chẳng hề hay biết.
+
+"Tiền không tự sinh ra và cũng không tự mất đi, nó chỉ chuyển từ ví của mình sang tài khoản shopee."
+
+"Người ta bảo tình yêu là mù quáng, nhưng nghèo thì mắt sáng ra ngay."
+
+"Behind every great person is a substantial amount of coffee."
+> Đứng sau mỗi con người vĩ đại là một lượng cà phê khổng lồ.
+
+"Người không vì mình trời tru đất diệt, người ăn hoài không mập chắc chắn là có phước."
+
+"Học, học nữa, học mãi, mệt thì đi ngủ."
+
+"Tình cảm chỉ là một phần, số dư tài khoản mới giúp tâm hồn bình an."
+
+"Em trở về đúng nghĩa trái-tim-em
+Là máu thịt, đời thường ai chẳng có
+Vẫn ngừng đập lúc cuộc đời không còn nữa
+Nhưng biết yêu anh cả khi chết đi rồi."
+
+"Người đi một nửa hồn tôi mất
+Một nửa hồn tôi bỗng dại khờ."
+
+"Tôi yêu người khác rồi, đừng chờ đợi tôi nữa
+Một người chỉ vừa đủ làm tôi quên đi quá khứ."
+
+"Người ta khổ vì cố chen chân vào thế giới của kẻ khác, rồi lại quên mất tự xây lấy khu vườn bình yên của chính mình."
+
+"Ta yêu người bằng tất cả những gì vụn vặt nhất của đời thường, không màu mè, không hứa hẹn viển vông."
+
+"Trăm năm bia đá thì mòn
+Nghìn năm bia miệng vẫn còn trơ trơ."
+
+"Có những ngày mây xám giăng ngang đầu, ta chỉ thèm một bàn tay nắm chặt để biết mình không đơn độc giữa phố xá thênh thang."
+
+"You only live once, but if you do it right, once is enough." — Mae West
+> Bạn chỉ sống một lần, nhưng nếu sống trọn vẹn thì một lần là quá đủ rồi.
+
+"The only way out of the labyrinth of suffering is to forgive."
+> Cách duy nhất để thoát khỏi mê cung của nỗi đau chính là tha thứ.
+
+"There is some good in this world, and it's worth fighting for."
+> Thế giới này vẫn còn những điều tốt đẹp, và chúng hoàn toàn xứng đáng để ta chiến đấu bảo vệ.
+
+"Until I feared I would lose it, I never loved to read. One does not love breathing."
+> Cho đến khi sợ đánh mất nó, tôi chưa từng nghĩ mình yêu việc đọc sách. Người ta đâu có ý thức rằng mình yêu hơi thở.
+
+"If you want to know what a man's like, take a good look at how he treats his inferiors, not his equals."
+> Muốn biết nhân cách một con người, hãy nhìn cách họ đối xử với những kẻ yếu thế hơn mình, chứ không phải với người ngang hàng.
+
+"So we beat on, boats against the current, borne back ceaselessly into the past."
+> Thế là chúng tôi cứ tiếp tục chèo, những con thuyền ngược dòng nước xiết, không ngừng bị đẩy lùi về quá khứ.
+
+"Love looks not with the eyes, but with the mind, and therefore is winged Cupid painted blind."
+> Tình yêu không nhìn bằng mắt mà cảm bằng tâm tưởng, bởi thế thần Cupid có cánh mới được vẽ với đôi mắt mù lòa.
+
+"The heart wants what it wants - or else it does not care."
+> Trái tim chỉ muốn thứ nó muốn – bằng không, nó chẳng mảy may bận tâm.
+
+"玲珑骰子安红豆，入骨相思知不知。"
+> Xúc xắc khảm hồng đậu tinh xảo, nỗi tương tư thấm vào tận xương tủy người có thấu chăng.
+
+"与君初相识，犹如故人归。"
+> Mới đầu gặp gỡ người, mà ngỡ như tri kỷ xưa trở về.
+
+"静以修身，俭以养德。"
+> Lấy sự tĩnh lặng để tu dưỡng thân tâm, lấy đức tính cần kiệm để bồi dưỡng đạo đức.
+
+"知人者智，自知者明。胜人者有力，自胜者强。"
+> Hiểu được người là kẻ có trí, tự hiểu mình mới là bậc sáng suốt. Thắng được người là có sức mạnh, tự chiến thắng chính mình mới thực sự là kẻ mạnh.
+
+"不乱于心，不困于情。不畏将来，不念过往。如此，安好。"
+> Tâm không rối loạn, tình chẳng vướng vương. Không sợ tương lai, không hoài niệm quá khứ. Được như thế, ắt bình an.
+
+"愿你历尽千帆，归来仍是少年。"
+> Mong bạn trải qua ngàn trùng sóng gió, ngày trở về lòng vẫn vẹn nguyên nét thiếu niên.
+
+"Người ta bảo im lặng là vàng, nhưng khi tôi im lặng thì người ta tưởng tôi bị rớt mạng."
+
+"Gần mực thì đen, gần người hay ngủ thì buồn ngủ lây."
+
+"Không có việc gì khó, chỉ sợ lòng không bền... và không có tiền."
+
+"I’m not lazy, I’m just on energy saving mode."
+> Tôi không có lười đâu, tôi chỉ đang bật chế độ tiết kiệm năng lượng thôi.
+
+"Cuộc sống có hai điều khó khăn nhất: Một là nhét tiền vào ví mình, hai là nhét kiến thức vào đầu mình."
+
+"Đừng buồn vì bản thân chưa giàu, vì ít nhất bạn vẫn còn nghèo đều đặn mỗi tháng."
+
+"My wallet is like an onion, opening it makes me cry."
+> Cái ví của tôi y hệt củ hành tây, mỗi lần mở ra là một lần rơi nước mắt.
+
+"Người thành công luôn có lối đi riêng, còn tôi thì đi lạc."
