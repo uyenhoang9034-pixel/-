@@ -61,6 +61,10 @@ const RAGE_MANUAL_CHECK_REGEX =
   /(nộ khí|thước đo nộ khí|rage meter|xem nộ khí|kiem tra no khi|no khi)/i;
 
 const RAGE_KEYWORDS = [
+  'đồng nghiệp rắn',
+  'dong nghiep ran',
+  'rắn',
+  'ran',
   'sếp',
   'sep',
   'đì',
@@ -882,7 +886,8 @@ export async function handleThanVanTuBan(message) {
     // Quét các từ cay cú để tích lũy nộ khí
     let matchCount = 0;
     for (const kw of RAGE_KEYWORDS) {
-      const regex = new RegExp(`\\b${kw}\\b`, 'i');
+      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}([^\\p{L}\\p{N}]|$)`, 'iu');
       if (regex.test(content) || regex.test(unaccented)) {
         matchCount++;
       }
