@@ -62,6 +62,9 @@ const DOT_VIA_REGEX = /(đốt vía|thắp hương|dot via|thap huong)/i;
 const TRA_CHIEU_REGEX =
   /(trà chiều|tra chieu|lên đơn nước|len don nuoc|order nước|order nuoc|gom đơn nước|gom don nuoc|bơm đường|bom duong|báo động sập nguồn)/i;
 
+const TRANSLATOR_REGEX =
+  /(\b(asap|fyi)\b|sắp xong chưa|sap xong chua|tin tưởng em|tin tuong em|tiềm năng|tiem nang|công ty là gia đình|cong ty la gia dinh|tối ưu chi phí|toi uu chi phi|cắt giảm chi phí|cat giam chi phi|nhờ chút xíu|nho chut xiu|dịch lời sếp|dich loi sep|kính giải mã|kinh giai ma|giải mã sếp|giai ma sep)/i;
+
 const RAGE_MANUAL_CHECK_REGEX =
   /(nộ khí|thước đo nộ khí|rage meter|xem nộ khí|kiem tra no khi|no khi)/i;
 
@@ -916,6 +919,202 @@ export async function sendTraChieuAlert(client) {
 }
 
 // ==========================================
+// KHO TỪ ĐIỂN DỊCH LỜI SẾP & KHÁCH HÀNG (CORPORATE BULLSHIT TRANSLATOR)
+// ==========================================
+
+export const BULLSHIT_DICTIONARY = [
+  {
+    id: 'tiem_nang',
+    keywords: [
+      'tiềm năng',
+      'tiem nang',
+      'tin tưởng em',
+      'tin tuong em',
+      'anh tin tưởng em',
+      'anh tin tuong em',
+      'anh giao việc này',
+      'anh giao viec nay',
+    ],
+    cauGoc: 'Anh giao việc này cho em vì anh thấy em có tiềm năng nhất.',
+    nghiaThucTe:
+      'Mấy đứa kia từ chối hết rồi, chỉ còn mỗi em là dễ ép làm thêm giờ nhất thôi.',
+  },
+  {
+    id: 'asap',
+    keywords: ['asap', 'cần gấp', 'can gap', 'gấp lắm', 'gap lam'],
+    cauGoc: 'Cái này cần gấp lắm em nhé, ASAP!',
+    nghiaThucTe:
+      'Thực ra anh quên khuấy mất từ tuần trước, giờ đối tác dí sát đít nên bắt em cày bục mặt cứu anh.',
+  },
+  {
+    id: 'fyi',
+    keywords: ['fyi'],
+    cauGoc: 'FYI (For your information) em nhé.',
+    nghiaThucTe:
+      'Anh quăng cục nợ này cho em rồi đấy, sau này có sự cố gì xảy ra thì là do em không đọc mail chứ không phải lỗi của anh.',
+  },
+  {
+    id: 'sap_xong_chua',
+    keywords: ['sắp xong chưa', 'sap xong chua', 'xong chưa em', 'xong chua em'],
+    cauGoc: 'Em ơi, task này sắp xong chưa?',
+    nghiaThucTe:
+      'Anh biết thừa em mới nhận task 10 phút trước, nhưng anh muốn tạo áp lực để em không dám đi vệ sinh hay ngẩng đầu lên.',
+  },
+  {
+    id: 'cong_ty_la_gia_dinh',
+    keywords: [
+      'công ty là gia đình',
+      'cong ty la gia dinh',
+      'gia đình thứ hai',
+      'gia dinh thu hai',
+      'xem nhau như gia đình',
+      'xem nhau nhu gia dinh',
+    ],
+    cauGoc: 'Ở công ty chúng ta xem nhau như một gia đình!',
+    nghiaThucTe:
+      'Vì là người nhà nên tăng ca không tính tiền OT, ngày nghỉ cũng phải trực tin nhắn, nhưng lúc khó khăn thì người nhà bị cho ra rìa đầu tiên.',
+  },
+  {
+    id: 'toi_uu_chi_phi',
+    keywords: [
+      'tối ưu chi phí',
+      'toi uu chi phi',
+      'cắt giảm chi phí',
+      'cat giam chi phi',
+      'tối ưu hóa',
+      'toi uu hoa',
+    ],
+    cauGoc: 'Giai đoạn này công ty đang tập trung tối ưu hóa chi phí.',
+    nghiaThucTe:
+      'Năm nay cắt thưởng, không xét tăng lương, bớt trà bánh và sắp bắt đầu ép 1 người gánh việc của 3 người.',
+  },
+  {
+    id: 'nho_chut_xiu',
+    keywords: [
+      'nhờ chút xíu',
+      'nho chut xiu',
+      'nhờ tí',
+      'nho ti',
+      'nhờ tí việc',
+      '5 phút là xong',
+      '5 phut la xong',
+    ],
+    cauGoc: 'Anh nhờ chút xíu, cái này đơn giản tầm 5 phút là xong à em.',
+    nghiaThucTe:
+      'Mất ít nhất 3 tiếng và làm xong sẽ kéo theo một chuỗi drama phát sinh không có hồi kết.',
+  },
+  {
+    id: 'co_hoi_hoc_hoi',
+    keywords: [
+      'cơ hội học hỏi',
+      'co hoi hoc hoi',
+      'làm vì đam mê',
+      'lam vi dam me',
+      'cọ xát',
+      'co xat',
+      'nâng cao năng lực',
+      'nang cao nang luc',
+    ],
+    cauGoc: 'Dự án này là cơ hội vàng để em cọ xát và học hỏi thêm nhiều điều mới.',
+    nghiaThucTe:
+      'Dự án không có budget, không có hoa hồng, làm sml nhưng nhận về toàn sự mệt mỏi và kinh nghiệm đau thương.',
+  },
+  {
+    id: 'khach_hang_doi',
+    keywords: [
+      'khách muốn đổi',
+      'khach muon doi',
+      'chỉnh chút xíu',
+      'chinh chut xiu',
+      'theo phong thủy',
+      'theo phong thuy',
+      'khách hàng muốn',
+      'khach hang muon',
+    ],
+    cauGoc: 'Khách hàng muốn điều chỉnh một chút xíu xiu cho hợp mắt hơn thôi.',
+    nghiaThucTe:
+      'Khách muốn đập đi làm lại từ đầu nhưng deadline vẫn là 5 giờ chiều nay.',
+  },
+  {
+    id: 'ban_lai_sau',
+    keywords: [
+      'bàn lại sau',
+      'ban lai sau',
+      'ghi nhận ý kiến',
+      'ghi nhan y kien',
+      'sẽ xem xét',
+      'se xem xet',
+    ],
+    cauGoc: 'Ý kiến đóng góp của em rất hay, anh sẽ ghi nhận để chúng ta bàn lại sau nhé.',
+    nghiaThucTe:
+      'Anh sẽ vờ như chưa từng nghe thấy gì cho đến khi em tự quên luôn ý kiến đó.',
+  },
+];
+
+/**
+ * Tra cứu bản dịch cho câu nói của sếp/khách hàng.
+ * @param {string} text
+ * @returns {{ id: string, cauGoc: string, nghiaThucTe: string }}
+ */
+export function getTranslatorEntry(text = '') {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    const randomIndex = Math.floor(Math.random() * BULLSHIT_DICTIONARY.length);
+    return BULLSHIT_DICTIONARY[randomIndex];
+  }
+
+  const lower = trimmed.toLowerCase();
+  const unaccented = removeAccents(lower);
+
+  // Nếu là gọi lệnh dịch chung chung ("dịch lời sếp", "kính giải mã") mà không kèm keyword cụ thể
+  const isGeneralTrigger =
+    /^(dịch lời sếp|dich loi sep|kính giải mã|kinh giai ma|giải mã sếp|giai ma sep)[\s!?.]*$/i.test(lower) ||
+    /^(dich loi sep|kinh giai ma|giai ma sep)[\s!?.]*$/i.test(unaccented);
+
+  if (isGeneralTrigger) {
+    const randomIndex = Math.floor(Math.random() * BULLSHIT_DICTIONARY.length);
+    return BULLSHIT_DICTIONARY[randomIndex];
+  }
+
+  for (const entry of BULLSHIT_DICTIONARY) {
+    for (const kw of entry.keywords) {
+      if (lower.includes(kw) || unaccented.includes(kw)) {
+        return entry;
+      }
+    }
+  }
+
+  // Trường hợp người dùng nhập một câu tùy ý trong slash command
+  return {
+    id: 'custom',
+    cauGoc: trimmed,
+    nghiaThucTe:
+      'Dù cấp trên hay khách hàng dùng từ ngữ hoa mỹ nào thì bản chất vẫn là: "Em hãy tự giác gánh vác, đừng hỏi thêm tiền và cố mà cày xong trước deadline!"',
+  };
+}
+
+/**
+ * Tạo Embed Kính Giải Mã Lời Nói Của Sếp
+ * @param {{ cauGoc: string, nghiaThucTe: string }} entry
+ * @returns {EmbedBuilder}
+ */
+export function buildTranslatorEmbed(entry) {
+  const description = [
+    `**Câu gốc:** "${entry.cauGoc}"`,
+    ``,
+    `**Nghĩa thực tế:** "${entry.nghiaThucTe}"`,
+  ].join('\n');
+
+  return new EmbedBuilder()
+    .setTitle('🕶️ KÍNH GIẢI MÃ LỜI NÓI CỦA SẾP')
+    .setColor('#FFB6C1')
+    .setDescription(description)
+    .setFooter({
+      text: 'Đừng để những lời đường mật của tư bản đánh lừa! • Usagi Múp Rụp 🐰',
+    });
+}
+
+// ==========================================
 // BỘ ĐIỀU PHỐI AUTORESPONDER MESSAGE_CREATE
 // ==========================================
 
@@ -1159,7 +1358,37 @@ export async function handleThanVanTuBan(message) {
     }
 
     // ----------------------------------------------------
-    // 7. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
+    // 7. Keyword: Máy Thông Dịch Ngôn Ngữ Sếp & Khách Hàng (Corporate Bullshit Translator)
+    // ----------------------------------------------------
+    const isTranslator =
+      TRANSLATOR_REGEX.test(content) || TRANSLATOR_REGEX.test(unaccented);
+
+    if (isTranslator) {
+      if (checkCooldown('translator', message.channelId, 15000)) {
+        logger.debug('[ThanVanTuBan] Kính giải mã đang trong cooldown 15s.');
+        return true;
+      }
+
+      const entry = getTranslatorEntry(content);
+      const embed = buildTranslatorEmbed(entry);
+
+      await message
+        .reply({
+          embeds: [embed],
+          allowedMentions: { repliedUser: false },
+        })
+        .catch(async () => {
+          await message.channel.send({ embeds: [embed] }).catch(() => {});
+        });
+
+      logger.info(
+        `[ThanVanTuBan] ${message.author.tag} đã giải mã câu nói sếp [${entry.id}] tại ${message.channelId}`,
+      );
+      return true;
+    }
+
+    // ----------------------------------------------------
+    // 8. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
     // ----------------------------------------------------
     const isManualRageCheck =
       RAGE_MANUAL_CHECK_REGEX.test(content) ||
