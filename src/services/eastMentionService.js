@@ -3,6 +3,8 @@ import { logger } from '../utils/logger.js';
 
 export const EAST_USER_ID = '872792190651334707';
 
+const EAST_MENTION_REGEX = new RegExp(`<@!?${EAST_USER_ID}>`);
+
 // Cooldown 3 giây giữa mỗi lần một người dùng ping để chống spam
 const COOLDOWN_MS = 3000;
 const userCooldowns = new Map();
@@ -23,7 +25,13 @@ export async function handleEastMention(message) {
       return false;
     }
 
-    // Kiểm tra xem tin nhắn có ping trực tiếp tới East không
+    // Chỉ kích hoạt khi người dùng thực sự gõ @East trong nội dung tin nhắn (<@ID> hoặc <@!ID>),
+    // tuyệt đối KHÔNG kích hoạt khi người dùng chỉ đơn thuần reply (trả lời) tin nhắn của East.
+    if (!EAST_MENTION_REGEX.test(message.content || '')) {
+      return false;
+    }
+
+    // Kiểm tra xem Discord có nhận diện hợp lệ ping tới East không
     if (!message.mentions.users.has(EAST_USER_ID)) {
       return false;
     }
