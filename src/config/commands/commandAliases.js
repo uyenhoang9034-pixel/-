@@ -80,6 +80,8 @@ export const commandAliases = {
     'dichsep': 'dich-loi-sep',
     'giaimasep': 'dich-loi-sep',
     'dich-sep': 'dich-loi-sep',
+    'hopvotri': 'hop-vo-tri',
+    'hop': 'hop-vo-tri',
 };
 
 export const subcommandAliases = {

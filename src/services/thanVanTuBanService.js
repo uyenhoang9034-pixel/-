@@ -65,6 +65,9 @@ const TRA_CHIEU_REGEX =
 const TRANSLATOR_REGEX =
   /(\b(asap|fyi)\b|sắp xong chưa|sap xong chua|tin tưởng em|tin tuong em|tiềm năng|tiem nang|công ty là gia đình|cong ty la gia dinh|tối ưu chi phí|toi uu chi phi|cắt giảm chi phí|cat giam chi phi|nhờ chút xíu|nho chut xiu|dịch lời sếp|dich loi sep|kính giải mã|kinh giai ma|giải mã sếp|giai ma sep)/i;
 
+const HOP_VO_TRI_REGEX =
+  /(đi họp|di hop|lại họp|lai hop|họp chán|hop chan|họp mệt|hop met|họp miết|hop miet|suốt ngày họp|suot ngay hop|họp hành|hop hanh|họp vô tri|hop vo tri|phòng họp gây mê|phong hop gay me|bị bắt đi họp|bi bat di hop)/i;
+
 const RAGE_MANUAL_CHECK_REGEX =
   /(nộ khí|thước đo nộ khí|rage meter|xem nộ khí|kiem tra no khi|no khi)/i;
 
@@ -1115,6 +1118,123 @@ export function buildTranslatorEmbed(entry) {
 }
 
 // ==========================================
+// TÍNH NĂNG NÚT BẤM "HỌP VÔ TRI" (MEETING SUCKS ALERT)
+// ==========================================
+
+const meetingSessions = new Map(); // messageId -> session data
+
+const WASTED_TIME_VARIANTS = [
+  '1.5 giờ cuộc đời',
+  '2 giờ thanh xuân trôi về miền xa xôi',
+  '1 cuộc họp giải quyết được bằng 1 email',
+  '45 phút nghe sếp hồi tưởng thời khởi nghiệp',
+  '2 giờ nhìn slide chữ chi chít nhưng không hiểu gì',
+];
+
+export function getOrCreateMeetingSession(messageId, victimUser = null) {
+  if (!meetingSessions.has(messageId)) {
+    const randomWasted =
+      WASTED_TIME_VARIANTS[
+        Math.floor(Math.random() * WASTED_TIME_VARIANTS.length)
+      ];
+    meetingSessions.set(messageId, {
+      victimId: victimUser?.id || null,
+      victimTag: victimUser?.username || 'Đồng chí vô danh',
+      wastedTime: randomWasted,
+      nodCount: 42,
+      candles: new Set(),
+      createdAt: Date.now(),
+    });
+  }
+  return meetingSessions.get(messageId);
+}
+
+export function interactMeetingSession(messageId, userId, action) {
+  const session = getOrCreateMeetingSession(messageId);
+
+  if (action === 'gat_dau') {
+    session.nodCount += 1;
+    return { type: 'gat_dau', count: session.nodCount };
+  } else if (action === 'thap_nen') {
+    if (session.candles.has(userId)) {
+      session.candles.delete(userId);
+      return { type: 'thap_nen', action: 'hủy', count: session.candles.size };
+    } else {
+      session.candles.add(userId);
+      return { type: 'thap_nen', action: 'thắp', count: session.candles.size };
+    }
+  }
+
+  return { type: 'unknown' };
+}
+
+export function buildMeetingEmbed(messageId = null, initialVictim = null) {
+  const session = messageId
+    ? getOrCreateMeetingSession(messageId, initialVictim)
+    : {
+        victimId: initialVictim?.id || null,
+        victimTag: initialVictim?.username || 'Đồng chí',
+        wastedTime: '1.5 giờ cuộc đời',
+        nodCount: 42,
+        candles: new Set(),
+      };
+
+  const victimLine = session.victimId
+    ? `Đang có 1 đồng chí (<@${session.victimId}>) bị giam cầm trong phòng họp.`
+    : `Đang có 1 đồng chí bị giam cầm trong phòng họp.`;
+
+  const candleList = Array.from(session.candles);
+  let candleSection = '';
+  if (candleList.length > 0) {
+    let listStr = '';
+    if (candleList.length <= 5) {
+      listStr = candleList.map((id) => `<@${id}>`).join(', ');
+    } else {
+      const firstFive = candleList
+        .slice(0, 5)
+        .map((id) => `<@${id}>`)
+        .join(', ');
+      listStr = `${firstFive} *(+${candleList.length - 5} người khác)*`;
+    }
+    candleSection = `\n\n🕯️ **Lời an ủi tâm linh:** ${candleList.length} ngọn nến (${listStr})`;
+  }
+
+  const description = [
+    victimLine,
+    ``,
+    `⏳ **Thời gian lãng phí ước tính:** ${session.wastedTime}`,
+    ``,
+    `😴 **Số lần gật đầu vô thức:** ${session.nodCount} lần${candleSection}`,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Bấm nút bên dưới để gửi 1 lời an ủi tâm linh tới nạn nhân!`,
+  ].join('\n');
+
+  return new EmbedBuilder()
+    .setTitle('💤 PHÒNG HỌP GÂY MÊ')
+    .setColor('#FFB6C1')
+    .setDescription(description)
+    .setFooter({
+      text: 'Cuộc họp kéo dài 2 tiếng nhưng nội dung giải quyết trong 1 email là xong! • Usagi 🐰',
+    });
+}
+
+export function buildMeetingActionRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('meeting_sucks:gat_dau')
+      .setLabel('Bấm để bấm ngón tay giả vờ gật đầu')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji('😴'),
+    new ButtonBuilder()
+      .setCustomId('meeting_sucks:thap_nen')
+      .setLabel('Thắp nến cầu giải thoát')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('🕯️'),
+  );
+}
+
+// ==========================================
 // BỘ ĐIỀU PHỐI AUTORESPONDER MESSAGE_CREATE
 // ==========================================
 
@@ -1388,7 +1508,44 @@ export async function handleThanVanTuBan(message) {
     }
 
     // ----------------------------------------------------
-    // 8. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
+    // 8. Keyword: Nút bấm "Họp Vô Tri" (Meeting Sucks Alert)
+    // ----------------------------------------------------
+    const isHopVoTri =
+      HOP_VO_TRI_REGEX.test(content) || HOP_VO_TRI_REGEX.test(unaccented);
+
+    if (isHopVoTri) {
+      if (checkCooldown('hopvotri', message.channelId, 30000)) {
+        logger.debug('[ThanVanTuBan] Họp vô tri đang trong cooldown 30s.');
+        return true;
+      }
+
+      const embed = buildMeetingEmbed(null, message.author);
+      const row = buildMeetingActionRow();
+
+      const msg = await message
+        .reply({
+          embeds: [embed],
+          components: [row],
+          allowedMentions: { repliedUser: false },
+        })
+        .catch(async () => {
+          return message.channel
+            .send({ embeds: [embed], components: [row] })
+            .catch(() => null);
+        });
+
+      if (msg) {
+        getOrCreateMeetingSession(msg.id, message.author);
+      }
+
+      logger.info(
+        `[ThanVanTuBan] ${message.author.tag} đã kích hoạt cảnh báo họp vô tri tại ${message.channelId}`,
+      );
+      return true;
+    }
+
+    // ----------------------------------------------------
+    // 9. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
     // ----------------------------------------------------
     const isManualRageCheck =
       RAGE_MANUAL_CHECK_REGEX.test(content) ||
