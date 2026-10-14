@@ -57,6 +57,8 @@ const BOC_QUE_REGEX = /(bốc quẻ|xin quẻ|quẻ hôm nay|boc que|xin que)/i;
 const XIN_NGHI_REGEX =
   /(xin nghỉ|nghỉ phép|lý do xin nghỉ|đơn xin nghỉ|xin nghi|nghi phep|ly do xin nghi)/i;
 
+const DOT_VIA_REGEX = /(đốt vía|thắp hương|dot via|thap huong)/i;
+
 const RAGE_MANUAL_CHECK_REGEX =
   /(nộ khí|thước đo nộ khí|rage meter|xem nộ khí|kiem tra no khi|no khi)/i;
 
@@ -694,6 +696,92 @@ export function buildExcuseActionRow(styleKey = 'luon_leo') {
 }
 
 // ==========================================
+// 5. TÍNH NĂNG ĐỐT VÍA / THẮP HƯƠNG PHONG THỦY
+// ==========================================
+
+export const OFFICE_PRAYERS_BASE = [
+  'Xua tan vía OT đêm muộn.',
+  'Khách hàng duyệt file v1, không có v1_final, v1_final_chot.',
+  'Sếp vui tính ký duyệt tăng lương.',
+  'Code chạy mượt một phát ăn ngay, localhost sao thì Production y vậy.',
+  'Đồng nghiệp rắn tự động quay đầu hướng thiện, bớt đâm sau lưng.',
+  'Máy in văn phòng không kẹt giấy, wifi không sập giữa cuộc họp.',
+  'Đúng 17:30 bấm vân tay êm đẹp, không có cuộc họp khẩn bất ngờ.',
+  'Sếp đi công tác cả tuần, cả phòng tự do hít thở không khí hòa bình.',
+  'Trà sữa order về kịp giờ ngủ trưa, trân châu mềm dẻo không bị sượng.',
+  'Deadline tự động lùi lại 3 ngày mà không cần mở lời năn nỉ.',
+  'Không bị tag vào group chat công ty sau 18:00.',
+  'Đơn xin nghỉ phép gửi đi sếp bấm duyệt trong vòng 1 nốt nhạc.',
+  'Tránh xa mọi drama văn phòng, tâm thanh tịnh nhận ting ting mùng 10.',
+  'Khách hàng thanh toán hợp đồng đúng hạn, không kì kèo trừ tiền.',
+];
+
+export const TARGET_SPECIFIC_PRAYERS = {
+  sếp: 'Sếp bớt khó tính, bớt dí task và hoan hỉ ký duyệt tăng lương.',
+  bug: 'Xua đuổi sạch sẽ mọi con bug quái ác, deploy Production êm ru.',
+  deadline: 'Đè bẹp deadline, khách hàng tự nguyện lùi hạn chót thêm 1 tuần.',
+  'đồng nghiệp rắn': 'Trừ tà trừ ám, xua tan vía đồng nghiệp rắn hay soi mói đâm chọt.',
+  ot: 'Tiễn vong OT đêm muộn, 17:30 xách balo phóng xe về nhà.',
+  'khách hàng': 'Khách hàng duyệt file v1 êm đẹp, không bắt sửa lại màu sắc phong thủy.',
+};
+
+export function getRandomPrayers(count = 3, target = null) {
+  const prayers = [];
+  const pool = [...OFFICE_PRAYERS_BASE];
+
+  if (target) {
+    const key = target.toLowerCase();
+    for (const [tKey, pText] of Object.entries(TARGET_SPECIFIC_PRAYERS)) {
+      if (key.includes(tKey) || tKey.includes(key)) {
+        prayers.push(pText);
+        break;
+      }
+    }
+  }
+
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  for (const item of pool) {
+    if (prayers.length >= count) break;
+    if (!prayers.includes(item)) {
+      prayers.push(item);
+    }
+  }
+
+  return prayers;
+}
+
+export function buildDotViaEmbed(user, target = null) {
+  const userMention = `<@${user.id}>`;
+  const prayers = getRandomPrayers(3, target);
+
+  const description = [
+    `Đồng chí ${userMention} vừa châm 3 nén nhang cầu xin:`,
+    ``,
+    `💨 ${prayers[0]}`,
+    ``,
+    `💨 ${prayers[1]}`,
+    ``,
+    `💨 ${prayers[2]}`,
+    ``,
+    `( ( ( 🕯️ 🕯️ 🕯️ ) ) )`,
+    ``,
+    `Thành tâm thì linh, không thành tâm thì tối nay ở lại làm tiếp!`,
+  ].join('\n');
+
+  return new EmbedBuilder()
+    .setTitle('🕯️ BÀN THỜ PHONG THỦY CÔNG SỞ')
+    .setColor('#FFB6C1')
+    .setDescription(description)
+    .setFooter({
+      text: 'Khói hương nghi ngút, xua tan ám khí tư bản!',
+    });
+}
+
+// ==========================================
 // BỘ ĐIỀU PHỐI AUTORESPONDER MESSAGE_CREATE
 // ==========================================
 
@@ -862,7 +950,45 @@ export async function handleThanVanTuBan(message) {
     }
 
     // ----------------------------------------------------
-    // 5. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
+    // 5. Keyword: Đốt Vía / Thắp Hương Xua Đuổi Bug & Deadline
+    // ----------------------------------------------------
+    const isDotVia =
+      DOT_VIA_REGEX.test(content) || DOT_VIA_REGEX.test(unaccented);
+
+    if (isDotVia) {
+      if (checkCooldown('dotvia', message.channelId, 15000)) {
+        logger.debug('[ThanVanTuBan] Đốt vía đang trong cooldown 15s.');
+        return true;
+      }
+
+      let target = null;
+      if (/sếp|sep/i.test(content)) target = 'sếp';
+      else if (/bug/i.test(content)) target = 'bug';
+      else if (/deadline/i.test(content)) target = 'deadline';
+      else if (/đồng nghiệp|dong nghiep|rắn|ran/i.test(content))
+        target = 'đồng nghiệp rắn';
+      else if (/ot|overtime/i.test(content)) target = 'ot';
+      else if (/khách hàng|khach hang/i.test(content)) target = 'khách hàng';
+
+      const embed = buildDotViaEmbed(message.author, target);
+
+      await message
+        .reply({
+          embeds: [embed],
+          allowedMentions: { repliedUser: false },
+        })
+        .catch(async () => {
+          await message.channel.send({ embeds: [embed] }).catch(() => {});
+        });
+
+      logger.info(
+        `[ThanVanTuBan] ${message.author.tag} đã đốt vía ${target || 'công sở'} tại ${message.channelId}`,
+      );
+      return true;
+    }
+
+    // ----------------------------------------------------
+    // 6. Keyword & Scan: Thước Đo Nộ Khí Tư Bản
     // ----------------------------------------------------
     const isManualRageCheck =
       RAGE_MANUAL_CHECK_REGEX.test(content) ||
