@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, Partials, Options } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
@@ -23,7 +23,6 @@ class TitanBot extends Client {
   constructor() {
     super({
       intents: [
-        
         GatewayIntentBits.Guilds,                        
         GatewayIntentBits.GuildMembers,                 
 
@@ -43,6 +42,60 @@ class TitanBot extends Client {
         Partials.Channel,
         Partials.Reaction,
       ],
+      makeCache: Options.cacheWithLimits({
+        ...Options.DefaultMakeCacheSettings,
+        // Cắt giảm cache tin nhắn từ 200/channel xuống còn 25 để tiết kiệm tối đa RAM
+        MessageManager: 25,
+        // Loại bỏ hoàn toàn cache của các module không sử dụng hoặc fetch khi cần
+        ApplicationCommandManager: 0,
+        AutoModerationRuleManager: 0,
+        BaseGuildEmojiManager: 0,
+        GuildBanManager: 0,
+        GuildInviteManager: 0,
+        GuildScheduledEventManager: 0,
+        GuildStickerManager: 0,
+        PresenceManager: 0,
+        ReactionManager: 0,
+        ReactionUserManager: 0,
+        StageInstanceManager: 0,
+        ThreadManager: 0,
+        ThreadMemberManager: 0,
+        // Giới hạn số lượng thành viên và người dùng trong RAM (bảo lưu bot và người đang trong voice)
+        GuildMemberManager: {
+          maxSize: 200,
+          keepOverLimit: (member) => member.id === member.client.user?.id || Boolean(member.voice?.channelId),
+        },
+        UserManager: {
+          maxSize: 200,
+          keepOverLimit: (user) => user.id === user.client.user?.id,
+        },
+      }),
+      sweepers: {
+        ...Options.DefaultSweeperSettings,
+        // Tự động quét dọn tin nhắn cũ sau 10 phút
+        messages: {
+          interval: 300,
+          lifetime: 600,
+        },
+        // Tự động giải phóng guild member không hoạt động (trừ bot và người đang voice)
+        guildMembers: {
+          interval: 600,
+          filter: () => (member) => member.id !== member.client.user?.id && !member.voice?.channelId,
+        },
+        // Dọn dẹp user cache không cần thiết
+        users: {
+          interval: 600,
+          filter: () => (user) => user.id !== user.client.user?.id,
+        },
+        threads: {
+          interval: 1800,
+          lifetime: 1800,
+        },
+        threadMembers: {
+          interval: 1800,
+          filter: () => () => true,
+        },
+      },
     });
 
     this.config = config;
@@ -166,6 +219,19 @@ class TitanBot extends Client {
       
       times.push(now);
       requestCounts.set(ip, times);
+
+      // Định kỳ dọn dẹp các IP đã hết hạn để tránh rò rỉ RAM
+      if (requestCounts.size > 100) {
+        for (const [keyIp, ipTimes] of requestCounts.entries()) {
+          const validTimes = ipTimes.filter(t => t > windowStart);
+          if (validTimes.length === 0) {
+            requestCounts.delete(keyIp);
+          } else {
+            requestCounts.set(keyIp, validTimes);
+          }
+        }
+      }
+
       next();
     });
 
@@ -265,6 +331,34 @@ class TitanBot extends Client {
     cron.schedule('* * * * *', runSafeTask('giveaway_check', () => checkGiveaways(this)));
     cron.schedule('*/15 * * * *', runSafeTask('counter_update', () => this.updateAllCounters()));
     cron.schedule('30 14 * * 1-5', runSafeTask('tra_chieu_alert', () => sendTraChieuAlert(this)), { timezone: 'Asia/Ho_Chi_Minh' });
+    // Tối ưu RAM định kỳ mỗi 30 phút: dọn dẹp cache hết hạn & thu hồi rác GC
+    cron.schedule('*/30 * * * *', runSafeTask('memory_cleanup', () => this.cleanupMemory()));
+  }
+
+  cleanupMemory() {
+    try {
+      // 1. Dọn dẹp cache hết hạn trong memory storage fallback nếu có
+      if (this.db?.cleanupExpired) {
+        this.db.cleanupExpired();
+      } else if (this.db?.db?.cleanupExpired) {
+        this.db.db.cleanupExpired();
+      }
+
+      // 2. Kích hoạt V8 Garbage Collection thu hồi RAM thực tế về hệ điều hành
+      if (typeof global.gc === 'function') {
+        const memBefore = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+        global.gc();
+        const memAfter = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+        const rss = Math.round(process.memoryUsage().rss / 1024 / 1024);
+        logger.info(`[Memory] Usagi thu dọn rác GC: Heap ${memBefore}MB -> ${memAfter}MB (RSS: ${rss}MB)`);
+      } else {
+        const memUsed = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+        const rss = Math.round(process.memoryUsage().rss / 1024 / 1024);
+        logger.debug(`[Memory] Thông số RAM: Heap ${memUsed}MB | RSS ${rss}MB`);
+      }
+    } catch (err) {
+      logger.warn('[Memory] Lỗi trong quá trình dọn dẹp RAM:', err?.message || err);
+    }
   }
 
   async updateAllCounters() {

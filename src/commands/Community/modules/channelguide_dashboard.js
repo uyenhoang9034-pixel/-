@@ -28,10 +28,19 @@ function createSession(interaction) {
         page: 0,
     };
 
+    if (sessions.size >= 50) {
+        const oldestKey = sessions.keys().next().value;
+        if (oldestKey) sessions.delete(oldestKey);
+    }
+
     sessions.set(
         sessionId,
         session,
     );
+
+    setTimeout(() => {
+        sessions.delete(sessionId);
+    }, 30 * 60 * 1000);
 
     return session;
 }

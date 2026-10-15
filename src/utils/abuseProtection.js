@@ -76,6 +76,14 @@ function recordBlockedAttempt(key, commandName, interaction, command, remainingM
   const anomalyPolicy = getAnomalyPolicy(command);
   const current = blockedAttemptStore.get(key);
 
+  if (blockedAttemptStore.size > 100) {
+    for (const [storedKey, storedVal] of blockedAttemptStore.entries()) {
+      if (now - storedVal.windowStart > anomalyPolicy.windowMs) {
+        blockedAttemptStore.delete(storedKey);
+      }
+    }
+  }
+
   if (!current || now - current.windowStart > anomalyPolicy.windowMs) {
     blockedAttemptStore.set(key, {
       count: 1,

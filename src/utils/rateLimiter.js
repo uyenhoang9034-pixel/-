@@ -9,6 +9,15 @@ export async function checkRateLimit(key, maxAttempts = 5, windowMs = 60000) {
     const now = Date.now();
     const entry = rateLimitStore.get(key);
 
+    // Định kỳ dọn dẹp các key đã hết hạn để tránh tích tụ rác trong RAM
+    if (rateLimitStore.size > 200) {
+      for (const [storedKey, storedEntry] of rateLimitStore.entries()) {
+        if (now - storedEntry.windowStart > windowMs) {
+          rateLimitStore.delete(storedKey);
+        }
+      }
+    }
+
     if (!entry || now - entry.windowStart > windowMs) {
       rateLimitStore.set(key, {
         count: 1,

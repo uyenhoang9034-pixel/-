@@ -33,11 +33,6 @@ const cooldowns = new Map();
  */
 const serverRageMeters = new Map();
 
-/**
- * Cache lưu quẻ đã bốc trong ngày theo user: `${userId}:${dateStr}`
- */
-const fortuneHistoryCache = new Map();
-
 // ==========================================
 // REGEX ĐỐI SOÁT TỪ KHÓA
 // ==========================================
@@ -798,6 +793,11 @@ const orderSessions = new Map(); // messageId -> Map<userId, choiceKey>
 
 export function getOrCreateSession(messageId) {
   if (!orderSessions.has(messageId)) {
+    // Giới hạn tối đa 50 order session gần nhất trong bộ nhớ
+    if (orderSessions.size >= 50) {
+      const oldestKey = orderSessions.keys().next().value;
+      if (oldestKey) orderSessions.delete(oldestKey);
+    }
     orderSessions.set(messageId, new Map());
   }
   return orderSessions.get(messageId);
@@ -1133,6 +1133,11 @@ const WASTED_TIME_VARIANTS = [
 
 export function getOrCreateMeetingSession(messageId, victimUser = null) {
   if (!meetingSessions.has(messageId)) {
+    // Giới hạn tối đa 50 session họp gần nhất
+    if (meetingSessions.size >= 50) {
+      const oldestKey = meetingSessions.keys().next().value;
+      if (oldestKey) meetingSessions.delete(oldestKey);
+    }
     const randomWasted =
       WASTED_TIME_VARIANTS[
         Math.floor(Math.random() * WASTED_TIME_VARIANTS.length)

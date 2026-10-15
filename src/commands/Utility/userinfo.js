@@ -24,7 +24,7 @@ export default {
     }
 
     const user = interaction.options.getUser("target") || interaction.user;
-    const member = interaction.guild.members.cache.get(user.id);
+    const member = interaction.guild ? (interaction.guild.members.cache.get(user.id) || await interaction.guild.members.fetch(user.id).catch(() => null)) : null;
 
     const createdTimestamp = Math.floor(user.createdAt.getTime() / 1000);
     const joinedTimestamp = member?.joinedAt ? Math.floor(member.joinedAt.getTime() / 1000) : null;

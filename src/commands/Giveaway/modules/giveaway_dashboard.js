@@ -44,6 +44,10 @@ function getSession(interaction) {
     const key = getSessionKey(interaction);
 
     if (!sessions.has(key)) {
+        if (sessions.size >= 50) {
+            const oldestKey = sessions.keys().next().value;
+            if (oldestKey) sessions.delete(oldestKey);
+        }
         sessions.set(key, {
             ...DEFAULTS,
         });

@@ -168,30 +168,30 @@ const logger = createLogger({
     new transports.DailyRotateFile({
       filename: path.join(__dirname, '../../logs/error-%DATE%.log'),
       level: 'error',
-      maxSize: '20m',
-      maxFiles: '14d',
+      maxSize: '10m',
+      maxFiles: '5d',
       zippedArchive: true,
     }),
     new transports.DailyRotateFile({
       filename: path.join(__dirname, '../../logs/combined-%DATE%.log'),
-      maxSize: '20m',
-      maxFiles: '7d',
+      maxSize: '10m',
+      maxFiles: '3d',
       zippedArchive: true,
     }),
   ],
   exceptionHandlers: [
     new transports.DailyRotateFile({
       filename: path.join(__dirname, '../../logs/exceptions-%DATE%.log'),
-      maxSize: '20m',
-      maxFiles: '14d',
+      maxSize: '10m',
+      maxFiles: '5d',
       zippedArchive: true,
     }),
   ],
   rejectionHandlers: [
     new transports.DailyRotateFile({
       filename: path.join(__dirname, '../../logs/rejections-%DATE%.log'),
-      maxSize: '20m',
-      maxFiles: '14d',
+      maxSize: '10m',
+      maxFiles: '5d',
       zippedArchive: true,
     }),
   ],

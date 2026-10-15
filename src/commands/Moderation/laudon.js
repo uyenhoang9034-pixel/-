@@ -45,6 +45,11 @@ export default {
 
     // Lock immediately so double interactions cannot count twice.
     laborCooldowns.set(cooldownKey, now);
+    setTimeout(() => {
+      if (laborCooldowns.get(cooldownKey) === now) {
+        laborCooldowns.delete(cooldownKey);
+      }
+    }, LABOR_COOLDOWN_MS + 1000);
 
     await InteractionHelper.safeDefer(interaction);
     let result;

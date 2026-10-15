@@ -20,8 +20,6 @@ const DEFAULT_CONFIG = {
     responders: [],
 };
 
-const builderSessions = new Map();
-
 function normalizeConfig(data) {
     if (
         !data ||

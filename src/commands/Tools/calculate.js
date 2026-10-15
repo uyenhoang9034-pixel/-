@@ -105,6 +105,10 @@ export default {
 
             const userId = interaction.user.id;
             if (!calculationHistory.has(userId)) {
+                if (calculationHistory.size >= 50) {
+                    const oldestUser = calculationHistory.keys().next().value;
+                    if (oldestUser) calculationHistory.delete(oldestUser);
+                }
                 calculationHistory.set(userId, []);
             }
 
@@ -218,6 +222,10 @@ export default {
 
                     try {
                         const contextKey = `${i.user.id}_${operation}`;
+                        if (calculationContexts.size >= 50) {
+                            const oldestKey = calculationContexts.keys().next().value;
+                            if (oldestKey) calculationContexts.delete(oldestKey);
+                        }
                         calculationContexts.set(contextKey, {
                             expression,
                             formattedResult,
@@ -226,6 +234,7 @@ export default {
                             channelId: interaction.channelId,
                             userId: i.user.id
                         });
+                        setTimeout(() => calculationContexts.delete(contextKey), 5 * 60 * 1000);
 
                         await i.showModal({
                             customId: `calc_modal:${operation}`,

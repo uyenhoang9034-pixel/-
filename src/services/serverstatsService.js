@@ -87,11 +87,15 @@ export async function getGuildCounterStats(guild) {
 }
 
 export async function getCounterCount(guild, type) {
+  // Đối với bộ đếm thành viên thông thường ('members'), Discord guild đã có sẵn `guild.memberCount`.
+  // Tuyệt đối không gọi getGuildCounterStats / guild.members.fetch() để tránh nạp hàng nghìn GuildMember vào RAM!
+  if (type === 'members') {
+    return typeof guild.memberCount === 'number' ? guild.memberCount : guild.members.cache.size;
+  }
+
   const stats = await getGuildCounterStats(guild);
 
   switch (type) {
-    case 'members':
-      return stats.totalCount;
     case 'bots':
       return stats.botCount;
     case 'members_only':

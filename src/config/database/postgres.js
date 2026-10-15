@@ -71,8 +71,8 @@ export function resolvePostgresPoolConfig() {
     const ssl = resolveSslConfig();
     const url = (process.env.POSTGRES_URL || process.env.DATABASE_URL || '').trim();
     const sharedOptions = {
-        max: parseInt(process.env.POSTGRES_MAX_CONNECTIONS) || 20,
-        min: parseInt(process.env.POSTGRES_MIN_CONNECTIONS) || 2,
+        max: parseInt(process.env.POSTGRES_MAX_CONNECTIONS) || 5,
+        min: parseInt(process.env.POSTGRES_MIN_CONNECTIONS) || 1,
         idleTimeoutMillis: parseInt(process.env.POSTGRES_IDLE_TIMEOUT) || 30000,
         connectionTimeoutMillis: parseInt(process.env.POSTGRES_CONNECTION_TIMEOUT) || 10000,
         application_name: 'titanbot',
@@ -108,8 +108,8 @@ export const pgConfig = {
         password: (process.env.POSTGRES_PASSWORD || '').toString(),
         ssl: resolveSslConfig(),
 
-        max: parseInt(process.env.POSTGRES_MAX_CONNECTIONS) || 20,
-        min: parseInt(process.env.POSTGRES_MIN_CONNECTIONS) || 2,
+        max: parseInt(process.env.POSTGRES_MAX_CONNECTIONS) || 5,
+        min: parseInt(process.env.POSTGRES_MIN_CONNECTIONS) || 1,
         idleTimeoutMillis: parseInt(process.env.POSTGRES_IDLE_TIMEOUT) || 30000,
         connectionTimeoutMillis: parseInt(process.env.POSTGRES_CONNECTION_TIMEOUT) || 10000,
 

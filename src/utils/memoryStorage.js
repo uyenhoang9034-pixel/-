@@ -91,6 +91,16 @@ class MemoryStorage {
         this.expirationTimes.clear();
         return true;
     }
+
+    cleanupExpired() {
+        const now = Date.now();
+        for (const [key, expirationTime] of this.expirationTimes.entries()) {
+            if (now > expirationTime) {
+                this.data.delete(key);
+                this.expirationTimes.delete(key);
+            }
+        }
+    }
 }
 
 export { MemoryStorage };
