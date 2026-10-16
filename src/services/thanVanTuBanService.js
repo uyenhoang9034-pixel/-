@@ -765,11 +765,11 @@ export function buildDotViaEmbed(user, target = null) {
   const description = [
     `Đồng chí ${userMention} vừa châm 3 nén nhang cầu xin:`,
     ``,
-    `💨 ${prayers[0]}`,
+    `<a:bang1:1546891405371117668> ${prayers[0]}`,
     ``,
-    `💨 ${prayers[1]}`,
+    `<a:bang1:1546891405371117668> ${prayers[1]}`,
     ``,
-    `💨 ${prayers[2]}`,
+    `<a:bang1:1546891405371117668> ${prayers[2]}`,
     ``,
     `( ( ( 🕯️ 🕯️ 🕯️ ) ) )`,
     ``,
@@ -807,34 +807,39 @@ export function voteDrink(messageId, userId, choiceKey) {
   const session = getOrCreateSession(messageId);
   const currentVote = session.get(userId);
 
-  if (currentVote === choiceKey) {
+  if (
+    currentVote === choiceKey ||
+    (choiceKey === 'matcha' && currentVote === 'caphe') ||
+    (choiceKey === 'caphe' && currentVote === 'matcha')
+  ) {
     session.delete(userId);
     return { action: 'hủy chọn', choice: choiceKey };
   } else {
-    session.set(userId, choiceKey);
-    return { action: 'đã chọn', choice: choiceKey };
+    const actualChoice = choiceKey === 'caphe' ? 'matcha' : choiceKey;
+    session.set(userId, actualChoice);
+    return { action: 'đã chọn', choice: actualChoice };
   }
 }
 
 export function getSessionTally(messageId) {
   const session = getOrCreateSession(messageId);
   const trasua = [];
-  const caphe = [];
+  const matcha = [];
   const nuocloc = [];
 
   for (const [userId, choice] of session.entries()) {
     if (choice === 'trasua') trasua.push(userId);
-    else if (choice === 'caphe') caphe.push(userId);
+    else if (choice === 'matcha' || choice === 'caphe') matcha.push(userId);
     else if (choice === 'nuocloc') nuocloc.push(userId);
   }
 
-  return { trasua, caphe, nuocloc, total: session.size };
+  return { trasua, matcha, caphe: matcha, nuocloc, total: session.size };
 }
 
 export function buildTraChieuEmbed(messageId = null) {
   const tally = messageId
     ? getSessionTally(messageId)
-    : { trasua: [], caphe: [], nuocloc: [], total: 0 };
+    : { trasua: [], matcha: [], caphe: [], nuocloc: [], total: 0 };
 
   const formatList = (users) => {
     if (!users || users.length === 0) return '*Chưa có ai*';
@@ -846,14 +851,14 @@ export function buildTraChieuEmbed(messageId = null) {
   };
 
   const description = [
-    `Đã 14:30, não bộ của anh em chính thức ngừng hoạt động. Ai mở app gom đơn trà sữa / cà phê cứu rỗi linh hồn nào!`,
+    `Đã 14:30, não bộ của anh em chính thức ngừng hoạt động. Ai mở app gom đơn trà sữa / matcha latte cứu rỗi linh hồn nào!`,
     ``,
     `━━━━━━━━━━━━━━━━━━━━━━`,
     `📋 **DANH SÁCH LÊN ĐƠN HIỆN TẠI:**`,
     ``,
     `🧋 **Trà sữa 50% đường** (${tally.trasua.length}): ${formatList(tally.trasua)}`,
     ``,
-    `☕ **Cà phê muối** (${tally.caphe.length}): ${formatList(tally.caphe)}`,
+    `🍵 **Matcha latte** (${tally.matcha.length}): ${formatList(tally.matcha)}`,
     ``,
     `💧 **Ví hết tiền, uống nước lọc** (${tally.nuocloc.length}): ${formatList(tally.nuocloc)}`,
     ``,
@@ -875,13 +880,13 @@ export function buildTraChieuActionRow() {
     new ButtonBuilder()
       .setCustomId('order_drink:trasua')
       .setLabel('Trà sữa 50% đường')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🧋'),
     new ButtonBuilder()
-      .setCustomId('order_drink:caphe')
-      .setLabel('Cà phê muối')
-      .setStyle(ButtonStyle.Success)
-      .setEmoji('☕'),
+      .setCustomId('order_drink:matcha')
+      .setLabel('Matcha latte')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('🍵'),
     new ButtonBuilder()
       .setCustomId('order_drink:nuocloc')
       .setLabel('Ví hết tiền, uống nước lọc')
@@ -1229,12 +1234,12 @@ export function buildMeetingActionRow() {
     new ButtonBuilder()
       .setCustomId('meeting_sucks:gat_dau')
       .setLabel('Bấm để bấm ngón tay giả vờ gật đầu')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('😴'),
     new ButtonBuilder()
       .setCustomId('meeting_sucks:thap_nen')
       .setLabel('Thắp nến cầu giải thoát')
-      .setStyle(ButtonStyle.Danger)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('🕯️'),
   );
 }
