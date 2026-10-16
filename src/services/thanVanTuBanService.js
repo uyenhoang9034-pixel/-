@@ -1108,13 +1108,13 @@ export function getTranslatorEntry(text = '') {
  */
 export function buildTranslatorEmbed(entry) {
   const description = [
-    `**Câu gốc:** "${entry.cauGoc}"`,
+    `*Câu gốc:* "${entry.cauGoc}"`,
     ``,
-    `**Nghĩa thực tế:** "${entry.nghiaThucTe}"`,
+    `*Nghĩa thực tế:* **"${entry.nghiaThucTe}"**`,
   ].join('\n');
 
   return new EmbedBuilder()
-    .setTitle('🕶️ KÍNH GIẢI MÃ LỜI NÓI CỦA SẾP')
+    .setTitle('🕶️ **KÍNH GIẢI MÃ LỜI NÓI CỦA SẾP**')
     .setColor('#FFB6C1')
     .setDescription(description)
     .setFooter({
