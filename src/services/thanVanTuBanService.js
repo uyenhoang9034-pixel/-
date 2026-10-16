@@ -1190,11 +1190,11 @@ export function buildMeetingEmbed(messageId = null, initialVictim = null) {
       };
 
   const victimLine = session.victimId
-    ? `Đang có 1 đồng chí (<@${session.victimId}>) bị giam cầm trong phòng họp.`
-    : `Đang có 1 đồng chí bị giam cầm trong phòng họp.`;
+    ? `Đang có một đồng chí (<@${session.victimId}>) bị giam cầm trong phòng họp.`
+    : `Đang có một đồng chí bị giam cầm trong phòng họp.`;
 
   const candleList = Array.from(session.candles);
-  let candleSection = '';
+  let candleText = '0 ngọn nến (*Chưa có ai*)';
   if (candleList.length > 0) {
     let listStr = '';
     if (candleList.length <= 5) {
@@ -1206,22 +1206,24 @@ export function buildMeetingEmbed(messageId = null, initialVictim = null) {
         .join(', ');
       listStr = `${firstFive} *(+${candleList.length - 5} người khác)*`;
     }
-    candleSection = `\n\n🕯️ **Lời an ủi tâm linh:** ${candleList.length} ngọn nến (${listStr})`;
+    candleText = `${candleList.length} ngọn nến (${listStr})`;
   }
 
   const description = [
     victimLine,
     ``,
-    `⏳ **Thời gian lãng phí ước tính:** ${session.wastedTime}`,
+    `<a:chiikawag13:1541429102668554250> Thời gian lãng phí ước tính: ${session.wastedTime}`,
     ``,
-    `😴 **Số lần gật đầu vô thức:** ${session.nodCount} lần${candleSection}`,
+    `<a:chiikawag13:1541429102668554250> Số lần gật đầu vô thức: ${session.nodCount} lần`,
+    ``,
+    `🕯️ Lời an ủi tâm linh: ${candleText}`,
     ``,
     `━━━━━━━━━━━━━━━━━━━━━━`,
     `Bấm nút bên dưới để gửi 1 lời an ủi tâm linh tới nạn nhân!`,
   ].join('\n');
 
   return new EmbedBuilder()
-    .setTitle('💤 PHÒNG HỌP GÂY MÊ')
+    .setTitle('<a:hachiwareg2:1541427324812005449>  **PHÒNG HỌP GÂY MÊ**')
     .setColor('#FFB6C1')
     .setDescription(description)
     .setFooter({
