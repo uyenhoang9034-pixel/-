@@ -99,14 +99,17 @@ const VOICE_CHECK_INTERVAL_MS =
  * value:
  *
  * {
- *     member,
- *     lastCheckedAt,
- *     interval
+ *     guildId,
+ *     userId,
+ *     lastCheckedAt
  * }
  */
 
 const activeSessions =
     new Map();
+
+let voiceLevelTicker =
+    null;
 
 /**
  * =========================================================
@@ -229,6 +232,180 @@ function isMemberInVoice(
 
 /**
  * =========================================================
+ * SINGLE CENTRALIZED TICKER
+ * =========================================================
+ *
+ * Chỉ dùng 1 interval duy nhất cho toàn bộ bot,
+ * tuyệt đối không tạo interval riêng cho từng user.
+ */
+
+function ensureVoiceTicker(
+    client,
+) {
+    if (
+        voiceLevelTicker
+    ) {
+        return;
+    }
+
+    voiceLevelTicker =
+        setInterval(
+            async () => {
+                try {
+                    await processAllVoiceSessions(
+                        client,
+                    );
+                } catch (
+                    error
+                ) {
+                    logger.error(
+                        '[VOICE LEVEL] Centralized ticker error:',
+                        error,
+                    );
+                }
+            },
+            VOICE_CHECK_INTERVAL_MS,
+        );
+
+    voiceLevelTicker
+        ?.unref?.();
+}
+
+function stopVoiceTickerIfEmpty() {
+    if (
+        activeSessions.size === 0 &&
+        voiceLevelTicker
+    ) {
+        clearInterval(
+            voiceLevelTicker,
+        );
+
+        voiceLevelTicker =
+            null;
+    }
+}
+
+/**
+ * =========================================================
+ * PROCESS ALL ACTIVE SESSIONS
+ * =========================================================
+ */
+
+async function processAllVoiceSessions(
+    client,
+) {
+    if (
+        !client ||
+        activeSessions.size === 0
+    ) {
+        stopVoiceTickerIfEmpty();
+        return;
+    }
+
+    const now =
+        Date.now();
+
+    const entries =
+        Array.from(
+            activeSessions.entries(),
+        );
+
+    for (
+        const [
+            sessionKey,
+            session,
+        ] of entries
+    ) {
+        try {
+            if (
+                !activeSessions.has(
+                    sessionKey,
+                )
+            ) {
+                continue;
+            }
+
+            const guild =
+                client.guilds.cache
+                    .get(
+                        session.guildId,
+                    );
+
+            if (
+                !guild
+            ) {
+                activeSessions.delete(
+                    sessionKey,
+                );
+                continue;
+            }
+
+            const member =
+                guild.members.cache
+                    .get(
+                        session.userId,
+                    ) ||
+                await guild.members
+                    .fetch(
+                        session.userId,
+                    )
+                    .catch(
+                        () => null,
+                    );
+
+            if (
+                !member ||
+                !isMemberInVoice(
+                    member,
+                )
+            ) {
+                await stopVoiceLevelSession(
+                    client,
+                    member || {
+                        id: session.userId,
+                        guild,
+                    },
+                );
+
+                continue;
+            }
+
+            const elapsed =
+                Math.max(
+                    0,
+                    now -
+                        session.lastCheckedAt,
+                );
+
+            if (
+                elapsed <= 0
+            ) {
+                continue;
+            }
+
+            session.lastCheckedAt =
+                now;
+
+            await addVoiceDuration(
+                client,
+                member,
+                elapsed,
+            );
+        } catch (
+            error
+        ) {
+            logger.error(
+                `[VOICE LEVEL] Error processing voice session for ${sessionKey}:`,
+                error,
+            );
+        }
+    }
+
+    stopVoiceTickerIfEmpty();
+}
+
+/**
+ * =========================================================
  * START SESSION
  * =========================================================
  */
@@ -248,15 +425,18 @@ export function startVoiceLevelSession(
         return;
     }
 
+    const guildId =
+        member.guild.id;
+
+    const userId =
+        member.id;
+
     const key =
         getSessionKey(
-            member.guild.id,
-            member.id,
+            guildId,
+            userId,
         );
 
-    /**
-     * Session đã có rồi.
-     */
     if (
         activeSessions.has(
             key,
@@ -265,130 +445,25 @@ export function startVoiceLevelSession(
         return;
     }
 
+    // Chỉ lưu String IDs và timestamp, tuyệt đối không lưu GuildMember object
     const session = {
-        member,
-
+        guildId,
+        userId,
         lastCheckedAt:
             Date.now(),
-
-        interval:
-            null,
     };
-
-    /**
-     * =====================================================
-     * TIMER
-     * =====================================================
-     */
-
-    session.interval =
-        setInterval(
-            async () => {
-                try {
-                    await processVoiceSession(
-                        client,
-                        key,
-                    );
-                } catch (
-                    error
-                ) {
-                    logger.error(
-                        `[VOICE LEVEL] Timer error for ${key}:`,
-                        error,
-                    );
-                }
-            },
-            VOICE_CHECK_INTERVAL_MS,
-        );
-
-    /**
-     * Timer này không được giữ
-     * Node process sống một mình.
-     */
-
-    session.interval
-        ?.unref?.();
 
     activeSessions.set(
         key,
         session,
     );
 
-    logger.debug(
-        `[VOICE LEVEL] Started session for ${member.user.tag}`,
-    );
-}
-
-/**
- * =========================================================
- * PROCESS ACTIVE SESSION
- * =========================================================
- */
-
-async function processVoiceSession(
-    client,
-    sessionKey,
-) {
-    const session =
-        activeSessions.get(
-            sessionKey,
-        );
-
-    if (
-        !session
-    ) {
-        return;
-    }
-
-    const member =
-        session.member;
-
-    /**
-     * Member đã rời Voice nhưng
-     * voiceStateUpdate chưa xử lý kịp.
-     */
-
-    if (
-        !isMemberInVoice(
-            member,
-        )
-    ) {
-        await stopVoiceLevelSession(
-            client,
-            member,
-        );
-
-        return;
-    }
-
-    const now =
-        Date.now();
-
-    const elapsed =
-        Math.max(
-            0,
-            now -
-                session.lastCheckedAt,
-        );
-
-    if (
-        elapsed <= 0
-    ) {
-        return;
-    }
-
-    /**
-     * Update trước để tránh
-     * tính trùng nếu DB chậm.
-     */
-
-    session.lastCheckedAt =
-        now;
-
-    await addVoiceDuration(
+    ensureVoiceTicker(
         client,
-        member,
-        elapsed,
+    );
+
+    logger.debug(
+        `[VOICE LEVEL] Started session for ${member.user?.tag || userId}`,
     );
 }
 
@@ -410,10 +485,23 @@ export async function stopVoiceLevelSession(
         return;
     }
 
+    const guildId =
+        member.guild?.id;
+
+    const userId =
+        member.id;
+
+    if (
+        !guildId ||
+        !userId
+    ) {
+        return;
+    }
+
     const sessionKey =
         getSessionKey(
-            member.guild.id,
-            member.id,
+            guildId,
+            userId,
         );
 
     const session =
@@ -427,26 +515,11 @@ export async function stopVoiceLevelSession(
         return;
     }
 
-    /**
-     * Xóa khỏi map trước.
-     */
-
     activeSessions.delete(
         sessionKey,
     );
 
-    if (
-        session.interval
-    ) {
-        clearInterval(
-            session.interval,
-        );
-    }
-
-    /**
-     * Tính phần thời gian từ
-     * lần check cuối tới lúc rời.
-     */
+    stopVoiceTickerIfEmpty();
 
     const now =
         Date.now();
@@ -462,23 +535,54 @@ export async function stopVoiceLevelSession(
         elapsed > 0
     ) {
         try {
-            await addVoiceDuration(
-                client,
-                member,
-                elapsed,
-            );
+            let targetMember =
+                member;
+
+            if (
+                !targetMember.guild ||
+                !targetMember.user
+            ) {
+                const guild =
+                    client.guilds.cache
+                        .get(
+                            guildId,
+                        );
+
+                targetMember =
+                    guild?.members.cache
+                        .get(
+                            userId,
+                        ) ||
+                    await guild?.members
+                        .fetch(
+                            userId,
+                        )
+                        .catch(
+                            () => null,
+                        );
+            }
+
+            if (
+                targetMember
+            ) {
+                await addVoiceDuration(
+                    client,
+                    targetMember,
+                    elapsed,
+                );
+            }
         } catch (
             error
         ) {
             logger.error(
-                `[VOICE LEVEL] Failed saving final duration for ${member.user.tag}:`,
+                `[VOICE LEVEL] Failed saving final duration for user ${userId}:`,
                 error,
             );
         }
     }
 
     logger.debug(
-        `[VOICE LEVEL] Stopped session for ${member.user.tag}`,
+        `[VOICE LEVEL] Stopped session for user ${userId}`,
     );
 }
 
@@ -977,9 +1081,6 @@ export async function handleVoiceLevelState(
         if (
             session
         ) {
-            session.member =
-                member;
-
             return;
         }
 
@@ -1061,21 +1162,72 @@ export function restoreVoiceLevelSessions(
 export async function stopAllVoiceLevelSessions(
     client,
 ) {
+    if (
+        voiceLevelTicker
+    ) {
+        clearInterval(
+            voiceLevelTicker,
+        );
+
+        voiceLevelTicker =
+            null;
+    }
+
     const sessions =
         [
             ...activeSessions
                 .values(),
         ];
 
+    activeSessions.clear();
+
     for (
         const session
         of sessions
     ) {
         try {
-            await stopVoiceLevelSession(
-                client,
-                session.member,
-            );
+            const guild =
+                client.guilds.cache
+                    .get(
+                        session.guildId,
+                    );
+
+            const member =
+                guild?.members.cache
+                    .get(
+                        session.userId,
+                    ) ||
+                await guild?.members
+                    .fetch(
+                        session.userId,
+                    )
+                    .catch(
+                        () => null,
+                    );
+
+            if (
+                member
+            ) {
+                const now =
+                    Date.now();
+
+                const elapsed =
+                    Math.max(
+                        0,
+                        now -
+                            session.lastCheckedAt,
+                    );
+
+                if (
+                    elapsed > 0
+                ) {
+                    await addVoiceDuration(
+                        client,
+                        member,
+                        elapsed,
+                    );
+                }
+            }
         } catch (
             error
         ) {

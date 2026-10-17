@@ -175,36 +175,43 @@ export async function reconcileLevelRoles(
             1;
 
         try {
-            const userIds =
-                await listLevelUserIds(
-                    client,
-                    guild.id,
-                );
-
+            /**
+             * =============================================
+             * LAZY RECONCILIATION
+             * =============================================
+             *
+             * Chỉ kiểm tra và sync role cho các member
+             * đang có sẵn trong cache (voice / active).
+             *
+             * TUYỆT ĐỐI KHÔNG fetch hàng loạt hàng nghìn user
+             * offline từ database khi boot để tránh:
+             * - Spike RAM làm sập ngưỡng 384MB
+             * - Nghẽn rate limit của Discord REST API
+             *
+             * Các user offline khi hoạt động trở lại (chat, voice)
+             * sẽ tự động được sync role khi nhận XP hoặc lên cấp.
+             */
             for (
-                const userId
-                of userIds
+                const member
+                of guild.members.cache.values()
             ) {
+                if (
+                    member.user?.bot
+                ) {
+                    continue;
+                }
+
                 try {
                     const levelData =
                         await getUserLevelData(
                             client,
                             guild.id,
-                            userId,
+                            member.id,
                         );
 
-                    const member =
-                        await guild.members
-                            .fetch(
-                                userId,
-                            )
-                            .catch(
-                                () =>
-                                    null,
-                            );
-
                     if (
-                        !member
+                        !levelData ||
+                        !levelData.level
                     ) {
                         continue;
                     }
@@ -216,13 +223,9 @@ export async function reconcileLevelRoles(
                         );
 
                     /**
-                     * Không phụ thuộc hoàn toàn
-                     * vào kiểu return của service.
-                     *
                      * Nếu sync thành công thì
                      * coi như đã reconcile member.
                      */
-
                     if (
                         result !==
                         false
@@ -237,7 +240,7 @@ export async function reconcileLevelRoles(
                         1;
 
                     logger.warn(
-                        `Could not reconcile level role for ${userId} in guild ${guild.id}:`,
+                        `Could not reconcile level role for ${member.id} in guild ${guild.id}:`,
                         userError
                             ?.message ||
                             userError,

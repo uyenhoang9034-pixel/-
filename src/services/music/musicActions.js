@@ -27,6 +27,7 @@ import {
 import {
   refreshPlayerMessage,
 } from './playerHandler.js';
+import audioManager from '../audio/audioManager.js';
 
 const YOUTUBE_URL_PATTERN = /(?:youtube\.com|youtu\.be)/i;
 const PLAYER_CONNECT_TIMEOUT_MS = 12_000;
@@ -839,6 +840,8 @@ export async function destroyPlayerSession(
   } = {},
 ) {
   clearUpdateInterval(guildData);
+
+  audioManager.deleteSession(guildId);
 
   if (guildData.idleTimeout) {
     clearTimeout(guildData.idleTimeout);

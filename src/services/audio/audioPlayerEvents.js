@@ -380,13 +380,13 @@ session.currentTrack =
           session,
         );
 
-      if (!message) {
-        return;
+      if (message) {
+        await message.edit(
+          buildAudioSearchDashboard(),
+        ).catch(() => {});
       }
 
-      await message.edit(
-        buildAudioSearchDashboard(),
-      );
+      audioManager.deleteSession(player.guildId);
     },
   );
 
@@ -408,6 +408,7 @@ session.currentTrack =
         getSession(player);
 
       if (!session) {
+        audioManager.deleteSession(player.guildId);
         return;
       }
 
@@ -430,13 +431,13 @@ session.currentTrack =
           session,
         );
 
-      if (!message) {
-        return;
+      if (message) {
+        await message.edit(
+          buildAudioSearchDashboard(),
+        ).catch(() => {});
       }
 
-      await message.edit(
-        buildAudioSearchDashboard(),
-      );
+      audioManager.deleteSession(player.guildId);
     },
   );
 

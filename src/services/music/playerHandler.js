@@ -11,6 +11,7 @@ import {
     buildNowPlayingEmbed,
     buildPlayerButtonRows,
 } from './musicEmbeds.js';
+import audioManager from '../audio/audioManager.js';
 
 const UPDATE_INTERVAL_MS = 15 * 1000;
 const IDLE_DISCONNECT_MS = 30 * 1000;
@@ -643,6 +644,10 @@ export function setupPlayerHandler(
                     guildData.idleTimeout =
                         null;
                 }
+
+                audioManager.deleteSession(
+                    player.guildId,
+                );
             } catch (error) {
                 logger.error(
                     'Music playerDisconnect error:',
@@ -819,6 +824,9 @@ export async function shutdownMusic(
             client.riffy.players.values()
     ) {
         try {
+            audioManager.deleteSession(
+                player.guildId,
+            );
             player.destroy();
         } catch (error) {
             logger.debug(

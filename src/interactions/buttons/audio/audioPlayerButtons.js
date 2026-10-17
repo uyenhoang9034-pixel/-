@@ -383,6 +383,8 @@ session.queue = [];
   session.isPaused = false;
   session.loopMode = 'none';
 
+  audioManager.deleteSession(interaction.guildId);
+
   return interaction.editReply(
     buildAudioSearchDashboard(),
   );

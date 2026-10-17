@@ -77,14 +77,12 @@ export default {
 
                             `**ID:** \`${newMember.user.id}\``,
 
-                            `**Before:** ${
-                                oldMember.nickname ||
-                                '*(no nickname)*'
+                            `**Before:** ${oldMember.nickname ||
+                            '*(no nickname)*'
                             }`,
 
-                            `**After:** ${
-                                newMember.nickname ||
-                                '*(no nickname)*'
+                            `**After:** ${newMember.nickname ||
+                            '*(no nickname)*'
                             }`,
                         ],
 
