@@ -44,8 +44,8 @@ class TitanBot extends Client {
       ],
       makeCache: Options.cacheWithLimits({
         ...Options.DefaultMakeCacheSettings,
-        // Cắt giảm cache tin nhắn từ 200/channel xuống còn 25 để tiết kiệm tối đa RAM
-        MessageManager: 25,
+        // Tối ưu cache tin nhắn: 15 tin nhắn/channel là hoàn hảo cho các game chat & prefix mà cực nhẹ RAM
+        MessageManager: 15,
         // Loại bỏ hoàn toàn cache của các module không sử dụng hoặc fetch khi cần
         ApplicationCommandManager: 0,
         AutoModerationRuleManager: 0,
@@ -72,19 +72,19 @@ class TitanBot extends Client {
       }),
       sweepers: {
         ...Options.DefaultSweeperSettings,
-        // Tự động quét dọn tin nhắn cũ sau 10 phút
+        // Quét tin nhắn không hoạt động sau 4 phút (chu kỳ 2 phút một lần)
         messages: {
-          interval: 300,
-          lifetime: 600,
+          interval: 120,
+          lifetime: 240,
         },
-        // Tự động giải phóng guild member không hoạt động (trừ bot và người đang voice)
+        // Tự động giải phóng guild member không hoạt động sau mỗi 5 phút (trừ bot và người đang voice)
         guildMembers: {
-          interval: 600,
+          interval: 300,
           filter: () => (member) => member.id !== member.client.user?.id && !member.voice?.channelId,
         },
-        // Dọn dẹp user cache không cần thiết
+        // Dọn dẹp user cache không cần thiết sau mỗi 5 phút
         users: {
-          interval: 600,
+          interval: 300,
           filter: () => (user) => user.id !== user.client.user?.id,
         },
         threads: {

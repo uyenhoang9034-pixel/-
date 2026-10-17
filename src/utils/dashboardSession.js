@@ -48,7 +48,7 @@ export async function startDashboardSession({
     embeds,
     components,
     flags,
-    timeoutMs = 600_000,
+    timeoutMs = 180_000,
     selectMenuId,
     buttonMatcher,
     onSelect,
@@ -64,27 +64,42 @@ export async function startDashboardSession({
         componentInteraction.user.id === interaction.user.id &&
         (!replyMessageId || componentInteraction.message.id === replyMessageId);
 
+    // Ưu tiên lắng nghe trên chính tin nhắn dashboard để không tốn RAM bắt toàn bộ kênh
+    const collectorSource = replyMessage && typeof replyMessage.createMessageComponentCollector === 'function'
+        ? replyMessage
+        : interaction.channel;
+
     const collectors = [];
 
+    const handleSelectWithReset = wrapHandler(async (componentInteraction) => {
+        collectors.forEach(c => c.resetTimer?.());
+        await onSelect(componentInteraction);
+    }, 'dashboard select');
+
+    const handleButtonWithReset = wrapHandler(async (componentInteraction) => {
+        collectors.forEach(c => c.resetTimer?.());
+        await onButton(componentInteraction);
+    }, 'dashboard button');
+
     if (selectMenuId && onSelect) {
-        const selectCollector = interaction.channel.createMessageComponentCollector({
+        const selectCollector = collectorSource.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             filter: (i) => belongsToDashboard(i) && i.customId === selectMenuId,
             time: timeoutMs,
         });
 
-        selectCollector.on('collect', wrapHandler(onSelect, 'dashboard select'));
+        selectCollector.on('collect', handleSelectWithReset);
         collectors.push(selectCollector);
     }
 
     if (buttonMatcher && onButton) {
-        const buttonCollector = interaction.channel.createMessageComponentCollector({
+        const buttonCollector = collectorSource.createMessageComponentCollector({
             componentType: ComponentType.Button,
             filter: (i) => belongsToDashboard(i) && matchesCustomId(i.customId, buttonMatcher),
             time: timeoutMs,
         });
 
-        buttonCollector.on('collect', wrapHandler(onButton, 'dashboard button'));
+        buttonCollector.on('collect', handleButtonWithReset);
         collectors.push(buttonCollector);
     }
 

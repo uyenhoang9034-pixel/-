@@ -54,6 +54,33 @@ class DatabaseWrapper {
         logger.warn('⚠️ Please check PostgreSQL connection and restart the bot when fixed');
         this.initialized = true;
         this.degradedModeWarningShown = true;
+        this.startBackgroundReconnect();
+    }
+
+    startBackgroundReconnect() {
+        if (this.reconnectTimer) return;
+        this.reconnectTimer = setInterval(async () => {
+            if (!this.useFallback) {
+                clearInterval(this.reconnectTimer);
+                this.reconnectTimer = null;
+                return;
+            }
+            try {
+                const connected = await pgDb.connect();
+                if (connected) {
+                    this.db = pgDb;
+                    this.useFallback = false;
+                    this.connectionType = 'postgresql';
+                    this.degradedReason = null;
+                    logger.info('✅ PostgreSQL đã kết nối lại thành công! Tự động chuyển về Persistent Database.');
+                    clearInterval(this.reconnectTimer);
+                    this.reconnectTimer = null;
+                }
+            } catch {
+                // Đợi lần thử tiếp theo trong yên lặng
+            }
+        }, 60000);
+        this.reconnectTimer?.unref?.();
     }
 
     async set(key, value, ttl = null) {

@@ -191,7 +191,7 @@ async function handleNameTemplateChange(interaction, triggerChannel, currentConf
 
     const collector = interaction.channel.createMessageCollector({
         filter: (m) => m.author.id === interaction.user.id,
-time: 600_000,
+        time: 120_000,
         max: 1
     });
 
@@ -269,7 +269,7 @@ async function handleUserLimitChange(interaction, triggerChannel, currentConfig,
 
     const collector = interaction.channel.createMessageCollector({
         filter: (m) => m.author.id === interaction.user.id && /^\d+$/.test(m.content.trim()),
-        time: 600_000,
+        time: 120_000,
         max: 1
     });
 
@@ -352,7 +352,7 @@ async function handleBitrateChange(interaction, triggerChannel, currentConfig, c
 
     const collector = interaction.channel.createMessageCollector({
         filter: (m) => m.author.id === interaction.user.id && /^\d+$/.test(m.content.trim()),
-        time: 600_000,
+        time: 120_000,
         max: 1
     });
 
