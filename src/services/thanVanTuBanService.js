@@ -384,19 +384,19 @@ export function buildTanLamEmbed(nowVN = getVietnamTime()) {
   const description =
     diffMs <= 0
       ? [
-          `Giờ chuẩn tan làm: 17:30:00`,
-          ``,
-          `${remainingText}`,
-          ``,
-          `Tiến độ ngày cày cuốc: [${progressBar}] ${percent}%`,
-        ].join('\n')
+        `Giờ chuẩn tan làm: 17:30:00`,
+        ``,
+        `${remainingText}`,
+        ``,
+        `Tiến độ ngày cày cuốc: [${progressBar}] ${percent}%`,
+      ].join('\n')
       : [
-          `Giờ chuẩn tan làm: 17:30:00`,
-          ``,
-          `Còn lại: ${remainingText}`,
-          ``,
-          `Tiến độ ngày cày cuốc: [${progressBar}] ${percent}%`,
-        ].join('\n');
+        `Giờ chuẩn tan làm: 17:30:00`,
+        ``,
+        `Còn lại: ${remainingText}`,
+        ``,
+        `Tiến độ ngày cày cuốc: [${progressBar}] ${percent}%`,
+      ].join('\n');
 
   return new EmbedBuilder()
     .setTitle(
@@ -460,19 +460,19 @@ export function buildLuongEmbed(nowVN = getVietnamTime()) {
   const description =
     currentDate === payday
       ? [
-          `Dự kiến ngày ting ting: Ngày 10 hàng tháng`,
-          ``,
-          `${remainingText}`,
-          ``,
-          `Thời gian tồn tại bằng mì gói: [${progressBar}] ${percent}% chặng đường`,
-        ].join('\n')
+        `Dự kiến ngày ting ting: Ngày 10 hàng tháng`,
+        ``,
+        `${remainingText}`,
+        ``,
+        `Thời gian tồn tại bằng mì gói: [${progressBar}] ${percent}% chặng đường`,
+      ].join('\n')
       : [
-          `Dự kiến ngày ting ting: Ngày 10 hàng tháng`,
-          ``,
-          `Còn lại: ${remainingText}`,
-          ``,
-          `Thời gian tồn tại bằng mì gói: [${progressBar}] ${percent}% chặng đường`,
-        ].join('\n');
+        `Dự kiến ngày ting ting: Ngày 10 hàng tháng`,
+        ``,
+        `Còn lại: ${remainingText}`,
+        ``,
+        `Thời gian tồn tại bằng mì gói: [${progressBar}] ${percent}% chặng đường`,
+      ].join('\n');
 
   return new EmbedBuilder()
     .setTitle(
@@ -576,7 +576,7 @@ export async function getRageMeter(client, guildId) {
         serverRageMeters.set(guildId, saved);
         return saved;
       }
-    } catch {}
+    } catch { }
   }
 
   serverRageMeters.set(guildId, 0);
@@ -590,7 +590,7 @@ export async function saveRageMeter(client, guildId, points) {
   if (client?.db?.set) {
     try {
       await client.db.set(`thanvan:rage:${guildId}`, clamped);
-    } catch {}
+    } catch { }
   }
   return clamped;
 }
@@ -635,10 +635,10 @@ export function buildVoDePayload() {
     .setColor('#E74C3C')
     .setDescription(
       `Toàn bộ anh em culi trong server đã đạt tới cảnh giới tẩu hỏa nhập ma vì tư bản!\n\n` +
-        `📢 **LỆNH GIẢI CỨU KHẨN CẤP:**\n` +
-        `• Kêu gọi toàn thể anh em gác task lại, order ngay một ly trà sữa full topping size L 70% đường 100% đá!\n` +
-        `• Tạm thời alt-tab sang ngắm meme chế giễu sếp để hạ hỏa nào!\n` +
-        `• Ghi nhớ: *Task có thể delay, bug có thể sửa sau, nhưng tiền đình thì không đùa được!*`,
+      `📢 **LỆNH GIẢI CỨU KHẨN CẤP:**\n` +
+      `• Kêu gọi toàn thể anh em gác task lại, order ngay một ly trà sữa full topping size L 70% đường 100% đá!\n` +
+      `• Tạm thời alt-tab sang ngắm meme chế giễu sếp để hạ hỏa nào!\n` +
+      `• Ghi nhớ: *Task có thể delay, bug có thể sửa sau, nhưng tiền đình thì không đùa được!*`,
     )
     .setImage(
       'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z0NWhzbXh4aWlsZzJ6ZnQ2bXFoc2s1c3E3dGVobGV5ZWRubzRpayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKSjRrfIPjeiVyM/giphy.gif',
@@ -1145,7 +1145,7 @@ export function getOrCreateMeetingSession(messageId, victimUser = null) {
     }
     const randomWasted =
       WASTED_TIME_VARIANTS[
-        Math.floor(Math.random() * WASTED_TIME_VARIANTS.length)
+      Math.floor(Math.random() * WASTED_TIME_VARIANTS.length)
       ];
     meetingSessions.set(messageId, {
       victimId: victimUser?.id || null,
@@ -1182,12 +1182,12 @@ export function buildMeetingEmbed(messageId = null, initialVictim = null) {
   const session = messageId
     ? getOrCreateMeetingSession(messageId, initialVictim)
     : {
-        victimId: initialVictim?.id || null,
-        victimTag: initialVictim?.username || 'Đồng chí',
-        wastedTime: '1.5 giờ cuộc đời',
-        nodCount: 42,
-        candles: new Set(),
-      };
+      victimId: initialVictim?.id || null,
+      victimTag: initialVictim?.username || 'Đồng chí',
+      wastedTime: '1.5 giờ cuộc đời',
+      nodCount: 42,
+      candles: new Set(),
+    };
 
   const victimLine = session.victimId
     ? `Đang có một đồng chí (<@${session.victimId}>) bị giam cầm trong phòng họp.`
@@ -1292,7 +1292,7 @@ export async function handleThanVanTuBan(message) {
           allowedMentions: { repliedUser: false },
         })
         .catch(async () => {
-          await message.channel.send({ embeds: [embed] }).catch(() => {});
+          await message.channel.send({ embeds: [embed] }).catch(() => { });
         });
 
       logger.info(
@@ -1320,7 +1320,7 @@ export async function handleThanVanTuBan(message) {
           allowedMentions: { repliedUser: false },
         })
         .catch(async () => {
-          await message.channel.send({ embeds: [embed] }).catch(() => {});
+          await message.channel.send({ embeds: [embed] }).catch(() => { });
         });
 
       logger.info(
@@ -1351,7 +1351,7 @@ export async function handleThanVanTuBan(message) {
             allowedMentions: { repliedUser: false },
           })
           .catch(async () => {
-            await message.channel.send({ embeds: [embed] }).catch(() => {});
+            await message.channel.send({ embeds: [embed] }).catch(() => { });
           });
         return true;
       }
@@ -1371,7 +1371,7 @@ export async function handleThanVanTuBan(message) {
           allowedMentions: { repliedUser: false },
         })
         .catch(async () => {
-          await message.channel.send({ embeds: [embed] }).catch(() => {});
+          await message.channel.send({ embeds: [embed] }).catch(() => { });
         });
 
       logger.info(
@@ -1405,7 +1405,7 @@ export async function handleThanVanTuBan(message) {
         .catch(async () => {
           await message.channel
             .send({ embeds: [embed], components: [row] })
-            .catch(() => {});
+            .catch(() => { });
         });
 
       logger.info(
@@ -1443,7 +1443,7 @@ export async function handleThanVanTuBan(message) {
           allowedMentions: { repliedUser: false },
         })
         .catch(async () => {
-          await message.channel.send({ embeds: [embed] }).catch(() => {});
+          await message.channel.send({ embeds: [embed] }).catch(() => { });
         });
 
       logger.info(
@@ -1510,7 +1510,7 @@ export async function handleThanVanTuBan(message) {
           allowedMentions: { repliedUser: false },
         })
         .catch(async () => {
-          await message.channel.send({ embeds: [embed] }).catch(() => {});
+          await message.channel.send({ embeds: [embed] }).catch(() => { });
         });
 
       logger.info(
@@ -1573,7 +1573,7 @@ export async function handleThanVanTuBan(message) {
           allowedMentions: { repliedUser: false },
         })
         .catch(async () => {
-          await message.channel.send({ embeds: [embed] }).catch(() => {});
+          await message.channel.send({ embeds: [embed] }).catch(() => { });
         });
       return true;
     }
@@ -1607,7 +1607,7 @@ export async function handleThanVanTuBan(message) {
       // Đạt đỉnh 100/100: Kích hoạt VỠ ĐÊ ngay lập tức!
       if (newRage >= 100) {
         const voDePayload = buildVoDeMessage();
-        await message.channel.send(voDePayload).catch(() => {});
+        await message.channel.send(voDePayload).catch(() => { });
         await saveRageMeter(message.client, message.guild.id, 0);
 
         logger.info(
@@ -1629,7 +1629,7 @@ export async function handleThanVanTuBan(message) {
 
         if (canAnnounce) {
           const embed = buildRageMeterEmbed(newRage);
-          await message.channel.send({ embeds: [embed] }).catch(() => {});
+          await message.channel.send({ embeds: [embed] }).catch(() => { });
         }
       }
     }

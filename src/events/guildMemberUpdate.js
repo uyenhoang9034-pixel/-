@@ -8,14 +8,6 @@ import {
 } from '../services/boost/boostService.js';
 
 import {
-    GAME_ROLE_IDS,
-} from '../config/gameRoles.js';
-
-import {
-    sendGameRoleNotification,
-} from '../services/gameRoleService.js';
-
-import {
     logEvent,
     EVENT_TYPES,
 } from '../services/loggingService.js';
@@ -43,6 +35,15 @@ export default {
             if (
                 !newMember?.guild
             ) {
+                return;
+            }
+
+            /**
+             * Nếu oldMember là partial (không nằm trong cache từ trước do sweeper/giới hạn RAM),
+             * discord.js không lưu các trường cũ (nickname, roles, premiumSince...) dẫn đến giá trị null/rỗng.
+             * Bỏ qua để tránh nhận diện nhầm khi member thay đổi avatar, bio hoặc thông tin hồ sơ khác.
+             */
+            if (oldMember?.partial) {
                 return;
             }
 
@@ -146,70 +147,6 @@ export default {
                 await handleBoostEnded(
                     newMember,
                 );
-            }
-
-
-            /**
-             * =================================================
-             * GAME ROLE ADDED
-             * =================================================
-             *
-             * Bắt cả:
-             *
-             * - Admin cấp role
-             * - Mod cấp role
-             * - Command cấp role
-             * - Reaction cấp role
-             *
-             * Reaction đã gửi notification trực tiếp,
-             * dedupe bên service sẽ ngăn gửi lần 2.
-             */
-
-            if (
-                !newMember.user?.bot
-            ) {
-
-                const addedGameRoleIds =
-                    GAME_ROLE_IDS.filter(
-                        (
-                            roleId,
-                        ) =>
-                            !oldMember.roles.cache.has(
-                                roleId,
-                            ) &&
-                            newMember.roles.cache.has(
-                                roleId,
-                            ),
-                    );
-
-
-                if (
-                    addedGameRoleIds.length >
-                    0
-                ) {
-                    logger.info(
-                        `Detected ${addedGameRoleIds.length} new Game Role(s) for ${newMember.user.tag}: ${addedGameRoleIds.join(', ')}`,
-                    );
-                }
-
-
-                for (
-                    const roleId
-                    of addedGameRoleIds
-                ) {
-                    try {
-                        await sendGameRoleNotification(
-                            newMember,
-                            roleId,
-                        );
-
-                    } catch (error) {
-                        logger.error(
-                            `Failed Game Role notification from GuildMemberUpdate: user=${newMember.user.tag}, role=${roleId}`,
-                            error,
-                        );
-                    }
-                }
             }
 
         } catch (error) {

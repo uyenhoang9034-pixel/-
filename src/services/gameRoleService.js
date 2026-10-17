@@ -78,12 +78,8 @@ function getPanelKey(
  * NOTIFICATION DEDUPE
  * =========================================================
  *
- * Có 2 nguồn notification:
- *
- * 1. Reaction -> add role -> gửi trực tiếp
- * 2. GuildMemberUpdate -> phát hiện role mới
- *
- * Dedupe để không gửi 2 lần.
+ * Chỉ gửi notification khi member chủ động pick role qua Reaction Panel.
+ * Dedupe để ngăn spam/click nhanh nhiều lần liên tục.
  */
 
 const recentRoleNotifications =
