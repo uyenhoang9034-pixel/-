@@ -20,6 +20,18 @@ const DEFAULT_CONFIG = {
     responders: [],
 };
 
+const builderSessions = new Map();
+const BUILDER_SESSION_TTL_MS = 15 * 60 * 1000;
+
+function sweepExpiredSessions() {
+    const now = Date.now();
+    for (const [sessionId, session] of builderSessions.entries()) {
+        if (now - (session.createdAt || 0) > BUILDER_SESSION_TTL_MS) {
+            builderSessions.delete(sessionId);
+        }
+    }
+}
+
 function normalizeConfig(data) {
     if (
         !data ||
@@ -133,6 +145,8 @@ export function createBuilderSession({
     type = 'everyone',
     response = {},
 }) {
+    sweepExpiredSessions();
+
     const sessionId =
         `${Date.now()}_${userId}_${Math.random()
             .toString(36)
@@ -164,6 +178,7 @@ export function createBuilderSession({
 export function getBuilderSession(
     sessionId,
 ) {
+    sweepExpiredSessions();
     return builderSessions.get(
         sessionId,
     );
@@ -181,6 +196,7 @@ export function updateBuilderSession(
     sessionId,
     updates = {},
 ) {
+    sweepExpiredSessions();
     const session =
         builderSessions.get(
             sessionId,
