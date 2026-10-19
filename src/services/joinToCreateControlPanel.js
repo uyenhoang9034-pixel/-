@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  AttachmentBuilder,
 } from 'discord.js';
 
 import {
@@ -181,7 +182,7 @@ export function buildJoinToCreateControlPanel() {
       )
 
       .setImage(
-        JTC_PANEL_IMAGE_URL,
+        'attachment://jointocreate.png',
       )
 
       .setFooter({
@@ -475,6 +476,15 @@ export function buildJoinToCreateControlPanel() {
       row1,
       row2,
       row3,
+    ],
+
+    files: [
+      new AttachmentBuilder(
+        JTC_PANEL_IMAGE_URL,
+        {
+          name: 'jointocreate.png',
+        },
+      ),
     ],
   };
 }

@@ -15,6 +15,7 @@ import {
     MessageFlags,
     ComponentType,
     EmbedBuilder,
+    AttachmentBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { successEmbed, infoEmbed } from '../../../utils/embeds.js';
@@ -102,9 +103,12 @@ function buildPanelEmbed(config) {
             config.ticketPanelColor ||
             getColor('info'),
         )
-        .setImage(
-            config.ticketImage || TICKET_IMAGE_URL,
-        );
+    const imageUrl = config.ticketImage || TICKET_IMAGE_URL;
+    if (imageUrl) {
+        embed.setImage('attachment://ticket.png');
+    }
+
+    return embed;
 }
 
 function buildPanelButtonRow(config) {
@@ -136,6 +140,11 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
         );
     }
 
+    const imageUrl = guildConfig.ticketImage || TICKET_IMAGE_URL;
+    const files = imageUrl
+        ? [new AttachmentBuilder(imageUrl, { name: 'ticket.png' })]
+        : [];
+
     const sentPanel =
         await channel.send({
             embeds: [
@@ -143,6 +152,8 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
                     guildConfig,
                 ),
             ],
+
+            files,
 
             components: [
                 buildPanelButtonRow(
@@ -1625,11 +1636,17 @@ async function handlePanelChannel(
 
         guildConfig.ticketPanelMessageId = null;
 
+        const imageUrl = guildConfig.ticketImage || TICKET_IMAGE_URL;
+        const files = imageUrl
+            ? [new AttachmentBuilder(imageUrl, { name: 'ticket.png' })]
+            : [];
+
         // Tạo panel mới
         const sentPanel = await newChannel.send({
             embeds: [
                 buildPanelEmbed(guildConfig)
             ],
+            files,
             components: [
                 buildPanelButtonRow(guildConfig)
             ],

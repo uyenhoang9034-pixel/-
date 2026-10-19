@@ -3,6 +3,7 @@ import {
     PermissionFlagsBits,
     EmbedBuilder,
     MessageFlags,
+    AttachmentBuilder,
 } from 'discord.js';
 
 
@@ -159,15 +160,25 @@ export default {
                     ),
                 )
                 .setImage(
-                    MODERATION_IMAGE_URL,
+                    'attachment://ban.webp',
                 )
                 .setTimestamp();
 
+
+        const files = [
+            new AttachmentBuilder(
+                MODERATION_IMAGE_URL,
+                {
+                    name: 'ban.webp',
+                },
+            ),
+        ];
 
         await channel.send({
             embeds: [
                 embed,
             ],
+            files,
         });
 
 

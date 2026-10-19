@@ -39,37 +39,54 @@ async function createLevelImageAttachment(
 ) {
     if (
         !image ||
-        !image.path ||
         !image.name
     ) {
         return null;
     }
 
-    const imagePath =
-        path.resolve(
-            process.cwd(),
-            image.path,
+    if (
+        image.url
+    ) {
+        return new AttachmentBuilder(
+            image.url,
+            {
+                name:
+                    image.name,
+            },
         );
-
-    try {
-        await fs.access(
-            imagePath,
-        );
-    } catch {
-        logger.warn(
-            `[LEVEL] Image not found: ${imagePath}`,
-        );
-
-        return null;
     }
 
-    return new AttachmentBuilder(
-        imagePath,
-        {
-            name:
-                image.name,
-        },
-    );
+    if (
+        image.path
+    ) {
+        const imagePath =
+            path.resolve(
+                process.cwd(),
+                image.path,
+            );
+
+        try {
+            await fs.access(
+                imagePath,
+            );
+
+            return new AttachmentBuilder(
+                imagePath,
+                {
+                    name:
+                        image.name,
+                },
+            );
+        } catch {
+            logger.warn(
+                `[LEVEL] Image not found: ${imagePath}`,
+            );
+
+            return null;
+        }
+    }
+
+    return null;
 }
 
 /**
@@ -340,16 +357,16 @@ export function buildMilestoneLevelEmbed(
      */
 
     if (
-        milestone.image?.url
-    ) {
-        embed.setImage(
-            milestone.image.url,
-        );
-    } else if (
         milestone.image?.name
     ) {
         embed.setImage(
             `attachment://${milestone.image.name}`,
+        );
+    } else if (
+        milestone.image?.url
+    ) {
+        embed.setImage(
+            milestone.image.url,
         );
     }
 
@@ -636,13 +653,7 @@ export async function sendLevelAnnouncement({
          */
 
         if (
-            milestone?.image?.url
-        ) {
-            embed.setImage(
-                milestone.image.url,
-            );
-        } else if (
-            milestone?.image?.path
+            milestone?.image
         ) {
             const attachment =
                 await createLevelImageAttachment(
@@ -654,6 +665,10 @@ export async function sendLevelAnnouncement({
             ) {
                 files.push(
                     attachment,
+                );
+
+                embed.setImage(
+                    `attachment://${milestone.image.name}`,
                 );
             } else {
                 embed.setImage(

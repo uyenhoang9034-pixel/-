@@ -1,4 +1,4 @@
-import { MessageFlags,ActionRowBuilder,ButtonBuilder,ButtonStyle,EmbedBuilder } from 'discord.js';
+import { MessageFlags,ActionRowBuilder,ButtonBuilder,ButtonStyle,EmbedBuilder,AttachmentBuilder } from 'discord.js';
 import { CONFESSION,getConfession,saveConfession,publishConfession,infoEmbed } from '../../services/confessionService.js';
 const CFS_IMAGE='https://files.catbox.moe/wlet8p.png';
 export default {name:'confession_approve',async execute(interaction,client,args){
@@ -15,8 +15,8 @@ export default {name:'confession_approve',async execute(interaction,client,args)
    `${CONFESSION.emojiHeart} Confession #${d.number} đã được đăng.\n\n`+
    `**Chế độ:** ${CONFESSION.emojiMode} ${d.mode==='public'?'Public':'Ẩn danh'}`+
    `${d.anonymousCode?`\n**Mã ẩn danh:** ${d.anonymousCode}`:''}`
-  ).setImage(CFS_IMAGE);
-  await u.send({embeds:[dmEmbed],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${d.guildId}/${thread.id}`).setLabel('Xem confession').setEmoji('1546047657963819048'))]});
+  ).setImage('attachment://cfs.png');
+  await u.send({embeds:[dmEmbed],files:[new AttachmentBuilder(CFS_IMAGE,{name:'cfs.png'})],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${d.guildId}/${thread.id}`).setLabel('Xem confession').setEmoji('1546047657963819048'))]});
  }catch{}
  await interaction.editReply(`${CONFESSION.emojiApproved} Đã duyệt Confession #${d.number}.`);
 }};

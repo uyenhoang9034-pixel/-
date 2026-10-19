@@ -8,6 +8,7 @@ import {
     ButtonBuilder,
     ButtonStyle,
     MessageFlags,
+    AttachmentBuilder,
 } from 'discord.js';
 
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
@@ -186,7 +187,7 @@ const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 });
 
 setupEmbed.setImage(
-    TICKET_IMAGE_URL,
+    'attachment://ticket.png',
 );
 
             const ticketButton = new ActionRowBuilder().addComponents(
@@ -198,11 +199,17 @@ setupEmbed.setImage(
             );
 
             try {
+               const files = [
+                   new AttachmentBuilder(TICKET_IMAGE_URL, { name: 'ticket.png' }),
+               ];
+
                const sentPanel =
     await panelChannel.send({
         embeds: [
             setupEmbed,
         ],
+
+        files,
 
         components: [
             ticketButton,

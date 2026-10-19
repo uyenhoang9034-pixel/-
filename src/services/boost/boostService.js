@@ -456,7 +456,7 @@ export function buildBoostEmbed(
                 ),
             )
             .setImage(
-                BOOST_IMAGE_URL,
+                'attachment://boost.webp',
             );
 
 
@@ -803,11 +803,21 @@ export async function sendBoostNotification(
         );
 
 
+    const files = [
+        new AttachmentBuilder(
+            BOOST_IMAGE_URL,
+            {
+                name: 'boost.webp',
+            },
+        ),
+    ];
+
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
+            files,
         });
 
 
@@ -953,11 +963,21 @@ export async function sendTestBoost(
         );
 
 
+    const files = [
+        new AttachmentBuilder(
+            BOOST_IMAGE_URL,
+            {
+                name: 'boost.webp',
+            },
+        ),
+    ];
+
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
+            files,
         });
 
 

@@ -6,6 +6,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   PermissionFlagsBits,
+  AttachmentBuilder,
 } from 'discord.js';
 
 import {
@@ -570,8 +571,10 @@ export async function createTicket(
           color:
             '#FFB6C9',
 
-          image:
-            TICKET_IMAGE_URL,
+          image: {
+            url:
+              'attachment://ticket.png',
+          },
 
           fields: [
             {
@@ -637,6 +640,15 @@ export async function createTicket(
       `${member.toString()}${staffMention}`;
 
 
+    const ticketFiles = [
+      new AttachmentBuilder(
+        TICKET_IMAGE_URL,
+        {
+          name: 'ticket.png',
+        },
+      ),
+    ];
+
     const ticketMessage =
       await channel.send(
         {
@@ -646,6 +658,8 @@ export async function createTicket(
           embeds: [
             embed,
           ],
+
+          files: ticketFiles,
 
           components: [
             row,
@@ -903,8 +917,10 @@ export async function closeTicket(
                   color:
                     '#F1C40F',
 
-                  image:
-                    TICKET_IMAGE_URL,
+                  image: {
+                    url:
+                      'attachment://ticket.png',
+                  },
 
                   footer: {
                     text:
@@ -1011,6 +1027,15 @@ export async function closeTicket(
               {
                 embeds: [
                   feedbackEmbed,
+                ],
+
+                files: [
+                  new AttachmentBuilder(
+                    TICKET_IMAGE_URL,
+                    {
+                      name: 'ticket.png',
+                    },
+                  ),
                 ],
 
                 components: [
