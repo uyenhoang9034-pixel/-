@@ -172,12 +172,16 @@ const logger = createLogger({
       maxFiles: '5d',
       zippedArchive: true,
     }),
-    new transports.DailyRotateFile({
-      filename: path.join(__dirname, '../../logs/combined-%DATE%.log'),
-      maxSize: '10m',
-      maxFiles: '3d',
-      zippedArchive: true,
-    }),
+    ...(process.env.ENABLE_COMBINED_LOG === 'true'
+      ? [
+          new transports.DailyRotateFile({
+            filename: path.join(__dirname, '../../logs/combined-%DATE%.log'),
+            maxSize: '10m',
+            maxFiles: '3d',
+            zippedArchive: true,
+          }),
+        ]
+      : []),
   ],
   exceptionHandlers: [
     new transports.DailyRotateFile({

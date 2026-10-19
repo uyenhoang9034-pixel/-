@@ -63,6 +63,58 @@ function withStateLock(guildId, mode, task) {
 let validWordsSet = new Set();
 let startWordMap = new Map();
 let dictionaryLoaded = false;
+let dictionaryIdleTimer = null;
+const DICTIONARY_IDLE_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 giờ không có hoạt động sẽ giải phóng RAM
+
+function resetDictionaryIdleTimer() {
+  if (dictionaryIdleTimer) {
+    clearTimeout(dictionaryIdleTimer);
+  }
+  dictionaryIdleTimer = setTimeout(() => {
+    unloadDictionary();
+  }, DICTIONARY_IDLE_TIMEOUT_MS);
+
+  if (typeof dictionaryIdleTimer?.unref === 'function') {
+    dictionaryIdleTimer.unref();
+  }
+}
+
+export function unloadDictionary() {
+  if (!dictionaryLoaded && validWordsSet.size === 0) {
+    return;
+  }
+
+  validWordsSet.clear();
+  startWordMap.clear();
+  validWordsSet = new Set();
+  startWordMap = new Map();
+  dictionaryLoaded = false;
+
+  if (dictionaryIdleTimer) {
+    clearTimeout(dictionaryIdleTimer);
+    dictionaryIdleTimer = null;
+  }
+
+  logger.info(
+    '[WordChain] Không có lượt chơi nối từ trong 2 giờ. Đã giải phóng từ điển khỏi RAM (~30MB - 50MB) để dọn dẹp bộ nhớ.',
+  );
+
+  if (typeof global.gc === 'function') {
+    try {
+      global.gc();
+    } catch {}
+  }
+}
+
+export function ensureDictionaryLoaded() {
+  if (!dictionaryLoaded) {
+    initDictionary();
+  } else {
+    resetDictionaryIdleTimer();
+  }
+
+  return dictionaryLoaded;
+}
 
 export function normalizeWord(word) {
   if (typeof word !== 'string') {
@@ -78,6 +130,7 @@ export function normalizeWord(word) {
 
 export function initDictionary() {
   if (dictionaryLoaded) {
+    resetDictionaryIdleTimer();
     return true;
   }
 
@@ -141,17 +194,22 @@ export function initDictionary() {
     validWordsSet = nextValidWords;
     startWordMap = nextStartWordMap;
     dictionaryLoaded = true;
+    resetDictionaryIdleTimer();
 
     logger.info(
-      `[WordChain] Dictionary loaded: ${validWordsSet.size} words | source: src/data/vietnamese_words.json`,
+      `[WordChain] Lazy-loaded dictionary: ${validWordsSet.size} words | source: src/data/vietnamese_words.json`,
     );
-
 
     return true;
   } catch (error) {
     validWordsSet = new Set();
     startWordMap = new Map();
     dictionaryLoaded = false;
+
+    if (dictionaryIdleTimer) {
+      clearTimeout(dictionaryIdleTimer);
+      dictionaryIdleTimer = null;
+    }
 
     logger.error(
       '[WordChain] Dictionary load error:',
@@ -162,10 +220,8 @@ export function initDictionary() {
   }
 }
 
-// Load once at startup, but never crash the entire Discord bot if the
-// dictionary is temporarily unavailable. isValidWord/findBotNextWord will
-// retry initDictionary() when Word Chain is actually used.
-initDictionary();
+// KHÔNG nạp từ điển khi bot khởi động (Lazy-Loading).
+// Từ điển sẽ được nạp vào RAM khi người chơi dùng /noitu hoặc gửi tin nhắn vào kênh nối từ.
 
 function createDefaultGame(mode) {
   return {
@@ -582,7 +638,7 @@ export function getLastSyllable(word) {
 }
 
 export function isValidWord(word) {
-  if (!dictionaryLoaded && !initDictionary()) {
+  if (!ensureDictionaryLoaded()) {
     return false;
   }
 
@@ -640,7 +696,7 @@ export function findBotNextWord(
   prevWord,
   usedWords = [],
 ) {
-  if (!dictionaryLoaded && !initDictionary()) {
+  if (!ensureDictionaryLoaded()) {
     return null;
   }
 
@@ -697,7 +753,7 @@ export function findBotNextWord(
 export function getRandomStartWord(
   excludeWords = [],
 ) {
-  if (!dictionaryLoaded && !initDictionary()) {
+  if (!ensureDictionaryLoaded()) {
     return null;
   }
 
@@ -924,7 +980,7 @@ export async function activateWordChain(
     guildId,
     resolvedMode,
     async () => {
-      initDictionary();
+      ensureDictionaryLoaded();
 
       const current =
         await getWordChainConfig(
@@ -1071,7 +1127,7 @@ export async function resetWordChainGame(
     guildId,
     resolvedMode,
     async () => {
-      initDictionary();
+      ensureDictionaryLoaded();
 
       const current =
         await getWordChainConfig(
@@ -1671,7 +1727,7 @@ export async function recordBreak(
     guildId,
     resolvedMode,
     async () => {
-      initDictionary();
+      ensureDictionaryLoaded();
 
       const current =
         await getWordChainConfig(

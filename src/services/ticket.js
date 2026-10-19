@@ -668,6 +668,13 @@ export async function createTicket(
       );
 
 
+    ticketData.messageId = ticketMessage.id;
+    await saveTicketData(
+      guild.id,
+      channel.id,
+      ticketData,
+    );
+
     await ticketMessage
       .pin()
       .catch(
@@ -739,6 +746,34 @@ export async function createTicket(
   }
 }
 
+/**
+ * =========================================================
+ * FETCH TICKET EMBED MESSAGE (OPTIMIZED)
+ * =========================================================
+ */
+async function fetchTicketMessage(channel, ticketData) {
+  if (ticketData?.messageId) {
+    const directMessage = await channel.messages.fetch(ticketData.messageId).catch(() => null);
+    if (directMessage) {
+      return directMessage;
+    }
+  }
+
+  // Luôn giới hạn nhỏ nhất ({ limit: 5 }) thay vì fetch 50 tin nhắn mặc định để tiết kiệm tối đa Egress & RAM
+  const messages = await channel.messages.fetch({ limit: 5 }).catch(() => null);
+  const found = messages?.find(
+    message =>
+      message.embeds?.length > 0 &&
+      message.embeds[0].title?.startsWith('Ticket #'),
+  );
+
+  if (found && ticketData) {
+    ticketData.messageId = found.id;
+    await saveTicketData(channel.guild.id, channel.id, ticketData).catch(() => null);
+  }
+
+  return found || null;
+}
 
 /**
  * =========================================================
@@ -1154,20 +1189,10 @@ export async function closeTicket(
      * =====================================================
      */
 
-    const messages =
-      await channel.messages.fetch();
-
-
     const ticketMessage =
-      messages.find(
-        message =>
-          message.embeds.length >
-            0 &&
-          message.embeds[0]
-            .title
-            ?.startsWith(
-              'Ticket #',
-            ),
+      await fetchTicketMessage(
+        channel,
+        ticketData,
       );
 
 
@@ -1439,20 +1464,10 @@ export async function claimTicket(
     );
 
 
-    const messages =
-      await channel.messages.fetch();
-
-
     const ticketMessage =
-      messages.find(
-        message =>
-          message.embeds.length >
-            0 &&
-          message.embeds[0]
-            .title
-            ?.startsWith(
-              'Ticket #',
-            ),
+      await fetchTicketMessage(
+        channel,
+        ticketData,
       );
 
 
@@ -1819,20 +1834,10 @@ export async function reopenTicket(
     }
 
 
-    const messages =
-      await channel.messages.fetch();
-
-
     const ticketMessage =
-      messages.find(
-        message =>
-          message.embeds.length >
-            0 &&
-          message.embeds[0]
-            .title
-            ?.startsWith(
-              'Ticket #',
-            ),
+      await fetchTicketMessage(
+        channel,
+        ticketData,
       );
 
 
@@ -2765,20 +2770,10 @@ export async function unclaimTicket(
     );
 
 
-    const messages =
-      await channel.messages.fetch();
-
-
     const ticketMessage =
-      messages.find(
-        message =>
-          message.embeds.length >
-            0 &&
-          message.embeds[0]
-            .title
-            ?.startsWith(
-              'Ticket #',
-            ),
+      await fetchTicketMessage(
+        channel,
+        ticketData,
       );
 
 

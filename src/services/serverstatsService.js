@@ -64,19 +64,41 @@ export function getCounterActionMessage(action, values = {}) {
   );
 }
 
-export async function getGuildCounterStats(guild) {
-  let memberCollection = guild.members.cache;
-
-  try {
-    memberCollection = await guild.members.fetch();
-  } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      logger.debug(`Failed to fetch all guild members for ${guild.id}, using cache only`, error);
-    }
+export async function getGuildBotCount(guild) {
+  const dbKey = `guild:${guild.id}:stats:bot_count`;
+  if (guild.client?.db) {
+    try {
+      const stored = await guild.client.db.get(dbKey);
+      if (typeof stored === 'number') {
+        return stored;
+      }
+    } catch {}
   }
 
-  const botCount = memberCollection.filter((member) => member.user.bot).size;
-  const totalCount = typeof guild.memberCount === 'number' ? guild.memberCount : memberCollection.size;
+  // Đếm nhanh từ cache hiện tại mà không fetch REST từ Discord để triệt tiêu Egress
+  const cachedBots = guild.members.cache.filter((member) => member.user?.bot).size;
+  if (guild.client?.db) {
+    guild.client.db.set(dbKey, cachedBots).catch(() => null);
+  }
+  return cachedBots;
+}
+
+export async function updateGuildBotCount(client, guildId, delta) {
+  if (!client?.db) return;
+  const dbKey = `guild:${guildId}:stats:bot_count`;
+  try {
+    const current = (await client.db.get(dbKey)) || 0;
+    const next = Math.max(0, current + delta);
+    await client.db.set(dbKey, next);
+    return next;
+  } catch (error) {
+    logger.debug(`[ServerStats] Failed to update bot count for guild ${guildId}:`, error);
+  }
+}
+
+export async function getGuildCounterStats(guild) {
+  const totalCount = typeof guild.memberCount === 'number' ? guild.memberCount : guild.members.cache.size;
+  const botCount = await getGuildBotCount(guild);
   const humanCount = Math.max(totalCount - botCount, 0);
 
   return {
@@ -87,8 +109,7 @@ export async function getGuildCounterStats(guild) {
 }
 
 export async function getCounterCount(guild, type) {
-  // Đối với bộ đếm thành viên thông thường ('members'), Discord guild đã có sẵn `guild.memberCount`.
-  // Tuyệt đối không gọi getGuildCounterStats / guild.members.fetch() để tránh nạp hàng nghìn GuildMember vào RAM!
+  // Tuyệt đối không gọi guild.members.fetch(). Dùng guild.memberCount có sẵn của Discord (0 bytes REST)
   if (type === 'members') {
     return typeof guild.memberCount === 'number' ? guild.memberCount : guild.members.cache.size;
   }

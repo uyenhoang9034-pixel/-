@@ -2,7 +2,7 @@
 
 import { logger } from './logger.js';
 
-const MAX_MEMORY_STORAGE_ENTRIES = 3000;
+const MAX_MEMORY_STORAGE_ENTRIES = parseInt(process.env.MAX_MEMORY_STORAGE_ENTRIES, 10) || 500;
 
 class MemoryStorage {
     constructor() {
@@ -26,15 +26,14 @@ class MemoryStorage {
     }
 
     async set(key, value, ttl = null) {
-        // Giới hạn an toàn: tự dọn dẹp key hết hạn hoặc key cũ nhất để bảo vệ trần RAM 384MB
+        // Giới hạn an toàn: tự dọn dẹp key hết hạn hoặc key cũ nhất để bảo vệ trần RAM khi mất kết nối PostgreSQL
         if (this.data.size >= MAX_MEMORY_STORAGE_ENTRIES && !this.data.has(key)) {
             this.cleanupExpired();
-            if (this.data.size >= MAX_MEMORY_STORAGE_ENTRIES) {
+            while (this.data.size >= MAX_MEMORY_STORAGE_ENTRIES) {
                 const oldestKey = this.data.keys().next().value;
-                if (oldestKey) {
-                    this.data.delete(oldestKey);
-                    this.expirationTimes.delete(oldestKey);
-                }
+                if (!oldestKey) break;
+                this.data.delete(oldestKey);
+                this.expirationTimes.delete(oldestKey);
             }
         }
 

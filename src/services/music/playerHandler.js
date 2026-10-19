@@ -13,7 +13,10 @@ import {
 } from './musicEmbeds.js';
 import audioManager from '../audio/audioManager.js';
 
-const UPDATE_INTERVAL_MS = 15 * 1000;
+// Tắt hẳn vòng lặp setInterval cập nhật thanh tiến trình chạy ngầm để triệt tiêu lãng phí băng thông Discord REST Egress.
+// Embed bài hát vẫn được cập nhật tức thì khi chuyển bài (trackStart), khi tương tác nút (pause/resume/skip/volume), hoặc khi bài kết thúc.
+// Nếu muốn bật lại, có thể đặt biến môi trường MUSIC_UPDATE_INTERVAL_MS (ví dụ: 60000).
+const UPDATE_INTERVAL_MS = parseInt(process.env.MUSIC_UPDATE_INTERVAL_MS || '0', 10);
 const IDLE_DISCONNECT_MS = 30 * 1000;
 
 /**
@@ -175,6 +178,10 @@ function startUpdateInterval(
     clearUpdateInterval(
         guildData,
     );
+
+    if (!UPDATE_INTERVAL_MS || UPDATE_INTERVAL_MS <= 0) {
+        return;
+    }
 
     guildData.updateInterval =
         setInterval(

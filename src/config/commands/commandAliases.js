@@ -76,12 +76,6 @@ export const commandAliases = {
     'bocque': 'boc-que',
     'xinnghi': 'xin-nghi',
     'dotvia': 'dot-via',
-    'trachieu': 'tra-chieu',
-    'dichsep': 'dich-loi-sep',
-    'giaimasep': 'dich-loi-sep',
-    'dich-sep': 'dich-loi-sep',
-    'hopvotri': 'hop-vo-tri',
-    'hop': 'hop-vo-tri',
 };
 
 export const subcommandAliases = {
