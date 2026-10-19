@@ -41,6 +41,9 @@ export const GAME_ROLES = [
         image:
             'tft.png',
 
+        imageUrl:
+            'https://files.catbox.moe/amsyle.png',
+
         emoji: {
             name: 'TFT',
             id: '1547141653498962030',
@@ -65,6 +68,9 @@ export const GAME_ROLES = [
 
         image:
             'valo.png',
+
+        imageUrl:
+            'https://files.catbox.moe/dzorcu.png',
 
         emoji: {
             name: 'VALORANT',
@@ -91,6 +97,9 @@ export const GAME_ROLES = [
         image:
             'ggd.png',
 
+        imageUrl:
+            'https://files.catbox.moe/b9vd0r.png',
+
         emoji: {
             name: 'GOOSEGOOSEDUCK',
             id: '1547141717143191623',
@@ -115,6 +124,9 @@ export const GAME_ROLES = [
 
         image:
             'lqm.png',
+
+        imageUrl:
+            'https://files.catbox.moe/oqpg7z.png',
 
         emoji: {
             name: 'LIENQUANMOBILE',
@@ -141,6 +153,9 @@ export const GAME_ROLES = [
         image:
             'ww.png',
 
+        imageUrl:
+            'https://files.catbox.moe/9vq23t.png',
+
         emoji: {
             name: 'WUTHERINGWAVES',
             id: '1547141897590411304',
@@ -165,6 +180,9 @@ export const GAME_ROLES = [
 
         image:
             'genshin.png',
+
+        imageUrl:
+            'https://files.catbox.moe/a170yr.png',
 
         emoji: {
             name: 'GENSHINIMPACT',
@@ -191,6 +209,9 @@ export const GAME_ROLES = [
         image:
             'pubg.png',
 
+        imageUrl:
+            'https://files.catbox.moe/78jzkz.png',
+
         emoji: {
             name: 'PUBG',
             id: '1547142137576038410',
@@ -215,6 +236,9 @@ export const GAME_ROLES = [
 
         image:
             'roblox.png',
+
+        imageUrl:
+            'https://files.catbox.moe/52ty9h.png',
 
         emoji: {
             name: 'ROBLOX',
@@ -241,6 +265,9 @@ export const GAME_ROLES = [
         image:
             'minecraft.png',
 
+        imageUrl:
+            'https://files.catbox.moe/1wxe77.png',
+
         emoji: {
             name: 'MINECRAFT',
             id: '1547142255800885258',
@@ -265,6 +292,9 @@ export const GAME_ROLES = [
 
         image:
             'cacgamekhac.png',
+
+        imageUrl:
+            'https://files.catbox.moe/hpgebz.png',
 
         emoji: {
             name: 'cacgamekhac',
@@ -299,6 +329,9 @@ export const GAME_ROLES = [
 
         image:
             'khongthichchoigame.png',
+
+        imageUrl:
+            'https://files.catbox.moe/786ieo.png',
 
         emoji: {
             name:

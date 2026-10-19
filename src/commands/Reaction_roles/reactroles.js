@@ -48,17 +48,12 @@ const __dirname =
 
 /**
  * =========================================================
- * GET ROLE IMAGE
+ * GET ROLE IMAGE (Catbox CDN)
  * =========================================================
- *
- * assets/role/getrole.png
  */
 
-const GET_ROLE_IMAGE_PATH =
-    path.resolve(
-        __dirname,
-        '../../../assets/role/getrole.png',
-    );
+const GET_ROLE_IMAGE_URL =
+    'https://files.catbox.moe/39y3wa.png';
 
 
 /**
@@ -557,23 +552,6 @@ export default {
 
             /**
              * =============================================
-             * IMAGE
-             * =============================================
-             */
-
-            if (
-                !fs.existsSync(
-                    GET_ROLE_IMAGE_PATH,
-                )
-            ) {
-                throw new Error(
-                    'Không tìm thấy file `assets/role/getrole.png`.',
-                );
-            }
-
-
-            /**
-             * =============================================
              * ROLE VALIDATION
              * =============================================
              */
@@ -648,24 +626,8 @@ export default {
                         GAME_ROLE_EMBED_COLOR,
                     )
                     .setImage(
-                        'attachment://getrole.png',
+                        GET_ROLE_IMAGE_URL,
                     );
-
-
-            /**
-             * =============================================
-             * ATTACHMENT
-             * =============================================
-             */
-
-            const attachment =
-                new AttachmentBuilder(
-                    GET_ROLE_IMAGE_PATH,
-                    {
-                        name:
-                            'getrole.png',
-                    },
-                );
 
 
             /**
@@ -678,10 +640,6 @@ export default {
                 await channel.send({
                     embeds: [
                         embed,
-                    ],
-
-                    files: [
-                        attachment,
                     ],
 
                     allowedMentions: {

@@ -968,10 +968,6 @@ function getRoleImagePath(
             imagePath,
         )
     ) {
-        logger.warn(
-            `Game Role image not found: ${imagePath}`,
-        );
-
         return null;
     }
 
@@ -1134,11 +1130,12 @@ export async function sendGameRoleNotification(
                 PermissionFlagsBits.EmbedLinks,
                 'Embed Links',
             ],
-
-            [
-                PermissionFlagsBits.AttachFiles,
-                'Attach Files',
-            ],
+            ...(config?.imageUrl ? [] : [
+                [
+                    PermissionFlagsBits.AttachFiles,
+                    'Attach Files',
+                ],
+            ]),
         ];
 
 
@@ -1228,36 +1225,40 @@ export async function sendGameRoleNotification(
          * =============================================
          */
 
-        const imagePath =
-            getRoleImagePath(
-                config,
-            );
-
-
         const files = [];
 
-
         if (
-            imagePath
+            config?.imageUrl
         ) {
-            const attachmentName =
-                `game-role-${config.key}.png`;
-
-
-            files.push(
-                new AttachmentBuilder(
-                    imagePath,
-                    {
-                        name:
-                            attachmentName,
-                    },
-                ),
-            );
-
-
             embed.setImage(
-                `attachment://${attachmentName}`,
+                config.imageUrl,
             );
+        } else {
+            const imagePath =
+                getRoleImagePath(
+                    config,
+                );
+
+            if (
+                imagePath
+            ) {
+                const attachmentName =
+                    `game-role-${config.key}.png`;
+
+                files.push(
+                    new AttachmentBuilder(
+                        imagePath,
+                        {
+                            name:
+                                attachmentName,
+                        },
+                    ),
+                );
+
+                embed.setImage(
+                    `attachment://${attachmentName}`,
+                );
+            }
         }
 
 
