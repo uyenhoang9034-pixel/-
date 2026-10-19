@@ -1,6 +1,6 @@
 import { MessageFlags,ActionRowBuilder,ButtonBuilder,ButtonStyle,EmbedBuilder } from 'discord.js';
 import { CONFESSION,getConfession,saveConfession,publishConfession,infoEmbed } from '../../services/confessionService.js';
-const CFS_IMAGE='https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/confessions/cfs.png';
+const CFS_IMAGE='https://files.catbox.moe/wlet8p.png';
 export default {name:'confession_approve',async execute(interaction,client,args){
  if(!interaction.member?.roles?.cache?.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Bạn không có role duyệt confession.',flags:MessageFlags.Ephemeral});
  const d=await getConfession(client,args[0]);if(!d||d.status!=='pending')return interaction.reply({content:'ℹ️ Confession này đã được xử lý hoặc không tồn tại.',flags:MessageFlags.Ephemeral});

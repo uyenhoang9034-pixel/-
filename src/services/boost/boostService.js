@@ -24,19 +24,11 @@ const DATA_FILE = path.join(
 
 
 // ============================================================
-// LOCAL BOOST IMAGE
+// BOOST CDN IMAGE (Catbox)
 // ============================================================
 
-const BOOST_IMAGE_NAME =
-    'boost.webp';
-
-const BOOST_IMAGE_PATH =
-    path.resolve(
-        process.cwd(),
-        'assets',
-        'boost',
-        BOOST_IMAGE_NAME,
-    );
+export const BOOST_IMAGE_URL =
+    'https://files.catbox.moe/i0bq7c.webp';
 
 
 // ============================================================
@@ -179,26 +171,11 @@ export async function setBoostConfig(
 
 
 // ============================================================
-// LOCAL BOOST IMAGE
+// BOOST IMAGE ATTACHMENT (DEPRECATED)
 // ============================================================
 
 async function createBoostImageAttachment() {
-    try {
-        await fs.access(
-            BOOST_IMAGE_PATH,
-        );
-    } catch {
-        return null;
-    }
-
-
-    return new AttachmentBuilder(
-        BOOST_IMAGE_PATH,
-        {
-            name:
-                BOOST_IMAGE_NAME,
-        },
-    );
+    return null;
 }
 
 
@@ -479,7 +456,7 @@ export function buildBoostEmbed(
                 ),
             )
             .setImage(
-                `attachment://${BOOST_IMAGE_NAME}`,
+                BOOST_IMAGE_URL,
             );
 
 
@@ -819,22 +796,6 @@ export async function sendBoostNotification(
     }
 
 
-    const imageAttachment =
-        await createBoostImageAttachment();
-
-
-    if (
-        !imageAttachment
-    ) {
-        return {
-            success: false,
-
-            reason:
-                'BOOST_IMAGE_NOT_FOUND',
-        };
-    }
-
-
     const embed =
         buildBoostEmbed(
             config,
@@ -846,10 +807,6 @@ export async function sendBoostNotification(
         await channel.send({
             embeds: [
                 embed,
-            ],
-
-            files: [
-                imageAttachment,
             ],
         });
 
@@ -988,22 +945,6 @@ export async function sendTestBoost(
     }
 
 
-    const imageAttachment =
-        await createBoostImageAttachment();
-
-
-    if (
-        !imageAttachment
-    ) {
-        return {
-            success: false,
-
-            reason:
-                'BOOST_IMAGE_NOT_FOUND',
-        };
-    }
-
-
     const embed =
         buildBoostEmbed(
             config,
@@ -1016,10 +957,6 @@ export async function sendTestBoost(
         await channel.send({
             embeds: [
                 embed,
-            ],
-
-            files: [
-                imageAttachment,
             ],
         });
 

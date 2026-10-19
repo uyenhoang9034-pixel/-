@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from 'discord.js';
 import { CONFESSION, getConfessionByNumber, infoEmbed } from '../../services/confessionService.js';
 
-const CFS_IMAGE='https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/confessions/cfs.png';
+const CFS_IMAGE='https://files.catbox.moe/wlet8p.png';
 
 export default {
  slashOnly:true,

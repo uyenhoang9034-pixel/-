@@ -368,7 +368,7 @@ export async function checkBirthdays(client) {
                 `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`,
               color: 0xFCEEC9,
               image: {
-                url: 'https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/birthday/birthday.jpg'
+                url: 'https://files.catbox.moe/ltt5jf.jpg'
               },
               footer: {
                 text: `Birthday Bot • ${footerTime}`

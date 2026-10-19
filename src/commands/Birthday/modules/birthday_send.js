@@ -33,7 +33,7 @@ function buildBirthdayEmbed(member, birthday) {
             `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
             'Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!'
         )
-        .setImage('https://raw.githubusercontent.com/uyenhoang9034-pixel/-/main/assets/birthday/birthday.jpg')
+        .setImage('https://files.catbox.moe/ltt5jf.jpg')
         .setFooter({ text: `Birthday Bot • ${footerTime}` });
 }
 

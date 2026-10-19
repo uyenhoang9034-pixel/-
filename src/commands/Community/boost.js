@@ -247,7 +247,7 @@ export default {
 
                             '',
 
-                            '**Boost Image:** `assets/boost/boost.webp`',
+                            '**Boost Image:** https://files.catbox.moe/i0bq7c.webp',
                         ].join(
                             '\n',
                         ),
