@@ -335,18 +335,17 @@ export function buildMilestoneLevelEmbed(
             );
 
     /**
-     * Attachment URL phải dùng đúng filename.
-     *
-     * PNG:
-     * lv1999.png
-     * lv3999.png
-     * lv6999.png
-     *
-     * GIF:
-     * lv9999.gif
+     * Ưu tiên URL từ CDN (Catbox) để triệt tiêu Egress.
+     * Fallback sang attachment cục bộ nếu có.
      */
 
     if (
+        milestone.image?.url
+    ) {
+        embed.setImage(
+            milestone.image.url,
+        );
+    } else if (
         milestone.image?.name
     ) {
         embed.setImage(
@@ -632,11 +631,18 @@ export async function sendLevelAnnouncement({
         const files = [];
 
         /**
-         * Chỉ milestone có ảnh mới attach.
+         * Nếu ảnh là remote URL (CDN), embed đã tự trỏ link trực tiếp nên không cần attach file.
+         * Chỉ attach file nếu có đường dẫn cục bộ (path).
          */
 
         if (
-            milestone?.image
+            milestone?.image?.url
+        ) {
+            embed.setImage(
+                milestone.image.url,
+            );
+        } else if (
+            milestone?.image?.path
         ) {
             const attachment =
                 await createLevelImageAttachment(
@@ -650,13 +656,6 @@ export async function sendLevelAnnouncement({
                     attachment,
                 );
             } else {
-                /**
-                 * Nếu file ảnh bị thiếu,
-                 * vẫn gửi embed nhưng bỏ image
-                 * để Discord không báo
-                 * Invalid Form Body.
-                 */
-
                 embed.setImage(
                     null,
                 );

@@ -457,7 +457,7 @@ export default {
                 'voice'
         ) {
             imageInfo =
-                `Ảnh: \`${milestone.image.path}\``;
+                `Ảnh: \`${milestone.image.url || milestone.image.path || milestone.image.name}\``;
         }
 
         /**

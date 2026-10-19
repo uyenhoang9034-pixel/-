@@ -50,89 +50,81 @@ export const LEVEL_EMOJIS = {
 
 /**
  * =========================================================
- * ASSET FILES
+ * ASSET FILES / CDN URLs
  * =========================================================
  *
- * Các file này nằm ở:
+ * Chuyển đổi toàn bộ sang link Catbox CDN để triệt tiêu Egress:
  *
- * assets/level/
- *
- * ĐÚNG extension trong repo:
- *
- * lv1-70.webp
- * lv100-300.webp
- * lv500.webp
- * lv999.webp
- *
- * lv1999.png
- * lv3999.png
- * lv6999.png
- * lv9999.gif
- *
- * KHÔNG đổi PNG thành WEBP.
- * KHÔNG đổi GIF Lv.9999 thành ảnh tĩnh.
+ * lv1-70.webp:    https://files.catbox.moe/w764yl.webp
+ * lv100-300.webp: https://files.catbox.moe/q8kbl6.webp
+ * lv500.webp:     https://files.catbox.moe/kxnca8.webp
+ * lv999.webp:     https://files.catbox.moe/vhsky9.webp
+ * lv1999.png:     https://files.catbox.moe/e84z5r.png
+ * lv3999.png:     https://files.catbox.moe/tajj5l.png
+ * lv6999.png:     https://files.catbox.moe/7sv9ge.png
+ * lv9999.gif:     https://files.catbox.moe/ynhifg.gif
  */
 
 export const LEVEL_IMAGES = {
     early: {
-        path:
-            'assets/level/lv1-70.webp',
+        url:
+            'https://files.catbox.moe/w764yl.webp',
 
         name:
             'lv1-70.webp',
     },
 
     level100: {
-        path:
-            'assets/level/lv100-300.webp',
+        url:
+            'https://files.catbox.moe/q8kbl6.webp',
 
         name:
             'lv100-300.webp',
     },
 
     level500: {
-        path:
-            'assets/level/lv500.webp',
+        url:
+            'https://files.catbox.moe/kxnca8.webp',
 
         name:
             'lv500.webp',
     },
 
     level999: {
-        path:
-            'assets/level/lv999.webp',
+        url:
+            'https://files.catbox.moe/vhsky9.webp',
 
         name:
             'lv999.webp',
     },
 
     level1999: {
-        path:
-            'assets/level/lv1999.png',
+        url:
+            'https://files.catbox.moe/e84z5r.png',
 
         name:
             'lv1999.png',
     },
 
     level3999: {
-        path:
-            'assets/level/lv3999.png',
+        url:
+            'https://files.catbox.moe/tajj5l.png',
 
         name:
             'lv3999.png',
     },
 
     level6999: {
-        path:
-            'assets/level/lv6999.png',
+        url:
+            'https://files.catbox.moe/7sv9ge.png',
 
         name:
             'lv6999.png',
     },
 
     level9999: {
-        path:
-            'assets/level/lv9999.gif',
+        url:
+            'https://files.catbox.moe/ynhifg.gif',
 
         name:
             'lv9999.gif',
