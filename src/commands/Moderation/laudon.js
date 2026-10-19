@@ -1,10 +1,8 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags, AttachmentBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import path from 'node:path';
 import { getPrisonRecord, performLabor, progressBar, PRISON_CHANNEL_ID } from '../../services/prisonService.js';
 
-const PRISON_IMAGE_NAME = 'nhatu.png';
-const PRISON_IMAGE_PATH = path.resolve(process.cwd(), 'assets', 'nhatu', PRISON_IMAGE_NAME);
+const PRISON_IMAGE_URL = 'https://files.catbox.moe/sv428x.png';
 const LABOR_COOLDOWN_MS = 5_000;
 const laborCooldowns = new Map();
 
@@ -80,9 +78,8 @@ export default {
           '',
           '<a:catg11:1546058047393239151> Quản Ngục Usagi: *Lần sau ngoan nhé, không là vào lau tiếp đấy!*',
         ].join('\n'))
-        .setImage(`attachment://${PRISON_IMAGE_NAME}`);
-      const image = new AttachmentBuilder(PRISON_IMAGE_PATH, { name: PRISON_IMAGE_NAME });
-      return InteractionHelper.safeEditReply(interaction, { embeds: [embed], files: [image] });
+        .setImage(PRISON_IMAGE_URL);
+      return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }
 
     const bar = progressBar(record.completedLabor, record.totalLabor);

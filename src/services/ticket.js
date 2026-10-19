@@ -6,7 +6,6 @@ import {
   ButtonBuilder,
   ButtonStyle,
   PermissionFlagsBits,
-  AttachmentBuilder,
 } from 'discord.js';
 
 import {
@@ -51,10 +50,6 @@ import {
 } from '../utils/serviceErrorBoundary.js';
 
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
-
-
 const TICKET_DELETE_DELAY_MS =
   3000;
 
@@ -70,43 +65,12 @@ const TICKET_SERVICE =
 
 /**
  * =========================================================
- * LOCAL TICKET IMAGE
+ * TICKET IMAGE
  * =========================================================
  */
 
-const TICKET_IMAGE_NAME =
-  'ticket.png';
-
-const TICKET_IMAGE_PATH =
-  path.resolve(
-    process.cwd(),
-    'assets',
-    'ticket',
-    TICKET_IMAGE_NAME,
-  );
-
-
-async function createTicketImageAttachment() {
-  try {
-    await fs.access(
-      TICKET_IMAGE_PATH,
-    );
-  } catch {
-    logger.warn(
-      `[TICKET] Image not found: ${TICKET_IMAGE_PATH}`,
-    );
-
-    return null;
-  }
-
-  return new AttachmentBuilder(
-    TICKET_IMAGE_PATH,
-    {
-      name:
-        TICKET_IMAGE_NAME,
-    },
-  );
-}
+export const TICKET_IMAGE_URL =
+  'https://files.catbox.moe/xdd9hc.png';
 
 
 /**
@@ -607,7 +571,7 @@ export async function createTicket(
             '#FFB6C9',
 
           image:
-            `attachment://${TICKET_IMAGE_NAME}`,
+            TICKET_IMAGE_URL,
 
           fields: [
             {
@@ -673,10 +637,6 @@ export async function createTicket(
       `${member.toString()}${staffMention}`;
 
 
-    const ticketImage =
-      await createTicketImageAttachment();
-
-
     const ticketMessage =
       await channel.send(
         {
@@ -690,13 +650,6 @@ export async function createTicket(
           components: [
             row,
           ],
-
-          files:
-            ticketImage
-              ? [
-                  ticketImage,
-                ]
-              : [],
         },
       );
 
@@ -935,10 +888,6 @@ export async function closeTicket(
           ticketCreator
         ) {
           try {
-            const feedbackImage =
-              await createTicketImageAttachment();
-
-
             const feedbackEmbed =
               createEmbed(
                 {
@@ -954,14 +903,8 @@ export async function closeTicket(
                   color:
                     '#F1C40F',
 
-                  ...(
-                    feedbackImage
-                      ? {
-                          image:
-                            `attachment://${TICKET_IMAGE_NAME}`,
-                        }
-                      : {}
-                  ),
+                  image:
+                    TICKET_IMAGE_URL,
 
                   footer: {
                     text:
@@ -1074,13 +1017,6 @@ export async function closeTicket(
                   starsRow,
                   declineRow,
                 ],
-
-                files:
-                  feedbackImage
-                    ? [
-                        feedbackImage,
-                      ]
-                    : [],
               },
             );
 

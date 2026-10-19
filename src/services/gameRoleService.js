@@ -1,15 +1,7 @@
 import {
-    AttachmentBuilder,
     EmbedBuilder,
     PermissionFlagsBits,
 } from 'discord.js';
-
-import fs from 'fs';
-import path from 'path';
-
-import {
-    fileURLToPath,
-} from 'url';
 
 import {
     GAME_ROLES,
@@ -23,37 +15,6 @@ import {
 import {
     logger,
 } from '../utils/logger.js';
-
-
-const __filename =
-    fileURLToPath(
-        import.meta.url,
-    );
-
-const __dirname =
-    path.dirname(
-        __filename,
-    );
-
-
-/**
- * =========================================================
- * PATHS
- * =========================================================
- */
-
-const PROJECT_ROOT =
-    path.resolve(
-        __dirname,
-        '../..',
-    );
-
-const ROLE_ASSET_DIRECTORY =
-    path.join(
-        PROJECT_ROOT,
-        'assets',
-        'role',
-    );
 
 
 /**

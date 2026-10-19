@@ -15,7 +15,6 @@ import {
     MessageFlags,
     ComponentType,
     EmbedBuilder,
-    AttachmentBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { successEmbed, infoEmbed } from '../../../utils/embeds.js';
@@ -30,48 +29,15 @@ import {
     formatPanelStatusField,
 } from '../../../utils/panelStatus.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
-import fs from 'node:fs/promises';
-import path from 'node:path';
+
 /**
  * =========================================================
- * LOCAL TICKET IMAGE
+ * TICKET IMAGE
  * =========================================================
  */
 
-const TICKET_IMAGE_NAME =
-    'ticket.png';
-
-const TICKET_IMAGE_PATH =
-    path.resolve(
-        process.cwd(),
-        'assets',
-        'ticket',
-        TICKET_IMAGE_NAME,
-    );
-
-
-async function createTicketImageAttachment() {
-    try {
-        await fs.access(
-            TICKET_IMAGE_PATH,
-        );
-    } catch {
-        logger.warn(
-            `[TICKET] Panel image not found: ${TICKET_IMAGE_PATH}`,
-        );
-
-        return null;
-    }
-
-
-    return new AttachmentBuilder(
-        TICKET_IMAGE_PATH,
-        {
-            name:
-                TICKET_IMAGE_NAME,
-        },
-    );
-}
+const TICKET_IMAGE_URL =
+    'https://files.catbox.moe/xdd9hc.png';
 
 function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = null) {
     const dmEnabled = guildConfig.dmOnClose !== false;
@@ -137,7 +103,7 @@ function buildPanelEmbed(config) {
             getColor('info'),
         )
         .setImage(
-            `attachment://${TICKET_IMAGE_NAME}`,
+            config.ticketImage || TICKET_IMAGE_URL,
         );
 }
 
@@ -170,29 +136,20 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
         );
     }
 
-   const ticketImage =
-    await createTicketImageAttachment();
+    const sentPanel =
+        await channel.send({
+            embeds: [
+                buildPanelEmbed(
+                    guildConfig,
+                ),
+            ],
 
-
-const sentPanel =
-    await channel.send({
-        embeds: [
-            buildPanelEmbed(
-                guildConfig,
-            ),
-        ],
-
-        components: [
-            buildPanelButtonRow(
-                guildConfig,
-            ),
-        ],
-
-        files:
-            ticketImage
-                ? [ticketImage]
-                : [],
-    });
+            components: [
+                buildPanelButtonRow(
+                    guildConfig,
+                ),
+            ],
+        });
 
     await persistPanelMessageId(client, guildId, guildConfig, sentPanel.id);
     return sentPanel;
@@ -360,31 +317,22 @@ async function updateLivePanel(client, guild, config, guildId) {
         }
         if (!panelStatus.exists || !panelStatus.message) return false;
 
-       const ticketImage =
-    await createTicketImageAttachment();
+        await panelStatus.message.edit({
+            embeds: [
+                buildPanelEmbed(
+                    config,
+                ),
+            ],
 
+            components: [
+                buildPanelButtonRow(
+                    config,
+                ),
+            ],
 
-await panelStatus.message.edit({
-    embeds: [
-        buildPanelEmbed(
-            config,
-        ),
-    ],
-
-    components: [
-        buildPanelButtonRow(
-            config,
-        ),
-    ],
-
-    attachments:
-        [],
-
-    files:
-        ticketImage
-            ? [ticketImage]
-            : [],
-});
+            attachments:
+                [],
+        });
         return true;
     } catch (error) {
         logger.warn('Failed to update live ticket panel:', error.message);

@@ -1,11 +1,9 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import path from 'node:path';
 import { jailMember, PRISON_CHANNEL_ID } from '../../services/prisonService.js';
 
 const PRISON_ROLE_ID = '1541818610639446066';
-const PRISON_IMAGE_NAME = 'nhatu.png';
-const PRISON_IMAGE_PATH = path.resolve(process.cwd(), 'assets', 'nhatu', PRISON_IMAGE_NAME);
+const PRISON_IMAGE_URL = 'https://files.catbox.moe/sv428x.png';
 
 export default {
   data: new SlashCommandBuilder()
@@ -72,10 +70,9 @@ export default {
         '',
         '<a:catg11:1546058047393239151> *Quản ngục Usagi đang canh cửa. Đừng hòng trốn!*',
       ].join('\n'))
-      .setImage(`attachment://${PRISON_IMAGE_NAME}`);
+      .setImage(PRISON_IMAGE_URL);
 
-    const image = new AttachmentBuilder(PRISON_IMAGE_PATH, { name: PRISON_IMAGE_NAME });
-    await channel.send({ embeds: [embed], files: [image] });
+    await channel.send({ embeds: [embed] });
     await InteractionHelper.safeEditReply(interaction, {
       content: `Đã phạt tù <@${user.id}>. Thông báo đã gửi tại <#${PRISON_CHANNEL_ID}>.`,
     });

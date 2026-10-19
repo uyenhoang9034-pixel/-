@@ -2,11 +2,7 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
-    AttachmentBuilder,
 } from 'discord.js';
-
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import {
     successEmbed,
@@ -32,20 +28,12 @@ const MODERATION_CHANNEL_ID =
 
 /**
  * =========================================================
- * LOCAL MODERATION IMAGE
+ * MODERATION IMAGE
  * =========================================================
  */
 
-const MODERATION_IMAGE_NAME =
-    'ban.webp';
-
-const MODERATION_IMAGE_PATH =
-    path.resolve(
-        process.cwd(),
-        'assets',
-        'moderation',
-        MODERATION_IMAGE_NAME,
-    );
+const MODERATION_IMAGE_URL =
+    'https://files.catbox.moe/6mx2kd.webp';
 
 
 /**
@@ -64,32 +52,6 @@ const EMOJIS = {
     reasonEnd:
         '<a:bang1:1546891405371117668>',
 };
-
-
-/**
- * =========================================================
- * CREATE LOCAL IMAGE
- * =========================================================
- */
-
-async function createModerationImageAttachment() {
-    try {
-        await fs.access(
-            MODERATION_IMAGE_PATH,
-        );
-    } catch {
-        return null;
-    }
-
-
-    return new AttachmentBuilder(
-        MODERATION_IMAGE_PATH,
-        {
-            name:
-                MODERATION_IMAGE_NAME,
-        },
-    );
-}
 
 
 /**
@@ -121,10 +83,6 @@ async function sendUsagiBanLog({
     ) {
         return;
     }
-
-
-    const image =
-        await createModerationImageAttachment();
 
 
     const embed =
@@ -162,27 +120,16 @@ async function sendUsagiBanLog({
                     '\n',
                 ),
             )
+            .setImage(
+                MODERATION_IMAGE_URL,
+            )
             .setTimestamp();
-
-
-    if (
-        image
-    ) {
-        embed.setImage(
-            `attachment://${MODERATION_IMAGE_NAME}`,
-        );
-    }
 
 
     await channel.send({
         embeds: [
             embed,
         ],
-
-        files:
-            image
-                ? [image]
-                : [],
     });
 }
 

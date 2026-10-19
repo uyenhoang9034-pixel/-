@@ -3,27 +3,15 @@ import {
     PermissionFlagsBits,
     EmbedBuilder,
     MessageFlags,
-    AttachmentBuilder,
 } from 'discord.js';
-
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
 
 const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
 
-const MODERATION_IMAGE_NAME =
-    'ban.webp';
-
-const MODERATION_IMAGE_PATH =
-    path.resolve(
-        process.cwd(),
-        'assets',
-        'moderation',
-        MODERATION_IMAGE_NAME,
-    );
+const MODERATION_IMAGE_URL =
+    'https://files.catbox.moe/6mx2kd.webp';
 
 
 const EMOJIS = {
@@ -36,26 +24,6 @@ const EMOJIS = {
     reasonEnd:
         '<a:bang1:1546891405371117668>',
 };
-
-
-async function createModerationImageAttachment() {
-    try {
-        await fs.access(
-            MODERATION_IMAGE_PATH,
-        );
-    } catch {
-        return null;
-    }
-
-
-    return new AttachmentBuilder(
-        MODERATION_IMAGE_PATH,
-        {
-            name:
-                MODERATION_IMAGE_NAME,
-        },
-    );
-}
 
 
 export default {
@@ -146,23 +114,6 @@ export default {
         }
 
 
-        const image =
-            await createModerationImageAttachment();
-
-
-        if (!image) {
-            await interaction.reply({
-                content:
-                    'Không tìm thấy file `assets/moderation/ban.webp`.',
-
-                flags:
-                    MessageFlags.Ephemeral,
-            });
-
-            return;
-        }
-
-
         const fakeCaseId =
             'TEST-001';
 
@@ -203,7 +154,7 @@ export default {
                     ),
                 )
                 .setImage(
-                    `attachment://${MODERATION_IMAGE_NAME}`,
+                    MODERATION_IMAGE_URL,
                 )
                 .setTimestamp();
 
@@ -211,10 +162,6 @@ export default {
         await channel.send({
             embeds: [
                 embed,
-            ],
-
-            files: [
-                image,
             ],
         });
 

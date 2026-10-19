@@ -2,11 +2,7 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
-    AttachmentBuilder,
 } from 'discord.js';
-
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import {
     successEmbed,
@@ -48,16 +44,8 @@ const MODERATION_CHANNEL_ID =
     '1546893787123556404';
 
 
-const MODERATION_IMAGE_NAME =
-    'ban.webp';
-
-const MODERATION_IMAGE_PATH =
-    path.resolve(
-        process.cwd(),
-        'assets',
-        'moderation',
-        MODERATION_IMAGE_NAME,
-    );
+const MODERATION_IMAGE_URL =
+    'https://files.catbox.moe/6mx2kd.webp';
 
 
 const EMOJIS = {
@@ -73,36 +61,6 @@ const EMOJIS = {
     field:
         '<a:bang2:1546891483250954290>',
 };
-
-
-/**
- * =========================================================
- * CREATE LOCAL IMAGE
- * =========================================================
- */
-
-async function createModerationImageAttachment() {
-    try {
-        await fs.access(
-            MODERATION_IMAGE_PATH,
-        );
-    } catch {
-        logger.warn(
-            `[WARN] Moderation image not found: ${MODERATION_IMAGE_PATH}`,
-        );
-
-        return null;
-    }
-
-
-    return new AttachmentBuilder(
-        MODERATION_IMAGE_PATH,
-        {
-            name:
-                MODERATION_IMAGE_NAME,
-        },
-    );
-}
 
 
 /**
@@ -139,10 +97,6 @@ async function sendUsagiWarnLog({
 
         return;
     }
-
-
-    const image =
-        await createModerationImageAttachment();
 
 
     const embed =
@@ -185,27 +139,16 @@ async function sendUsagiWarnLog({
                     '\n',
                 ),
             )
+            .setImage(
+                MODERATION_IMAGE_URL,
+            )
             .setTimestamp();
-
-
-    if (
-        image
-    ) {
-        embed.setImage(
-            `attachment://${MODERATION_IMAGE_NAME}`,
-        );
-    }
 
 
     await channel.send({
         embeds: [
             embed,
         ],
-
-        files:
-            image
-                ? [image]
-                : [],
     });
 }
 

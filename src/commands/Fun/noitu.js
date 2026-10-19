@@ -2,11 +2,7 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
-  AttachmentBuilder,
 } from 'discord.js';
-
-import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import {
   createEmbed,
@@ -52,58 +48,11 @@ import {
  * =========================================================
  */
 
-const WORD_CHAIN_SETUP_IMAGE_NAME =
-  'noitu.webp';
+const WORD_CHAIN_SETUP_IMAGE_URL =
+  'https://files.catbox.moe/5zr3vm.webp';
 
-const WORD_CHAIN_LEADERBOARD_IMAGE_NAME =
-  'noituleaderboard.webp';
-
-const WORD_CHAIN_SETUP_IMAGE_PATH =
-  path.resolve(
-    process.cwd(),
-    'assets',
-    'noitu',
-    WORD_CHAIN_SETUP_IMAGE_NAME,
-  );
-
-const WORD_CHAIN_LEADERBOARD_IMAGE_PATH =
-  path.resolve(
-    process.cwd(),
-    'assets',
-    'noitu',
-    WORD_CHAIN_LEADERBOARD_IMAGE_NAME,
-  );
-
-/**
- * =========================================================
- * IMAGE ATTACHMENT
- * =========================================================
- */
-
-async function createWordChainImageAttachment(
-  imagePath,
-  imageName,
-) {
-  try {
-    await fs.access(
-      imagePath,
-    );
-  } catch {
-    logger.warn(
-      `[NOITU] Image not found: ${imagePath}`,
-    );
-
-    return null;
-  }
-
-  return new AttachmentBuilder(
-    imagePath,
-    {
-      name:
-        imageName,
-    },
-  );
-}
+const WORD_CHAIN_LEADERBOARD_IMAGE_URL =
+  'https://files.catbox.moe/2152b8.webp';
 
 /**
  * =========================================================
@@ -569,31 +518,7 @@ export default {
          * ===================================================
          */
 
-        const setupImageExists =
-          await fs.access(
-            WORD_CHAIN_SETUP_IMAGE_PATH,
-          )
-            .then(
-              () => true,
-            )
-            .catch(
-              () => false,
-            );
 
-        if (
-          !setupImageExists
-        ) {
-          return await replyUserError(
-            interaction,
-            {
-              type:
-                ErrorTypes.UNKNOWN,
-
-              message:
-                'Không tìm thấy file `assets/noitu/noitu.webp`.',
-            },
-          );
-        }
 
         /**
          * ===================================================
@@ -674,37 +599,23 @@ export default {
           });
 
         pvpEmbed.setImage(
-          `attachment://${WORD_CHAIN_SETUP_IMAGE_NAME}`,
+          WORD_CHAIN_SETUP_IMAGE_URL,
         );
 
-        const pvpImage =
-          await createWordChainImageAttachment(
-            WORD_CHAIN_SETUP_IMAGE_PATH,
-            WORD_CHAIN_SETUP_IMAGE_NAME,
+        await pvpChannel
+          .send({
+            embeds: [
+              pvpEmbed,
+            ],
+          })
+          .catch(
+            error => {
+              logger.warn(
+                'Failed to send PvP setup embed:',
+                error,
+              );
+            },
           );
-
-        if (
-          pvpImage
-        ) {
-          await pvpChannel
-            .send({
-              embeds: [
-                pvpEmbed,
-              ],
-
-              files: [
-                pvpImage,
-              ],
-            })
-            .catch(
-              error => {
-                logger.warn(
-                  'Failed to send PvP setup embed:',
-                  error,
-                );
-              },
-            );
-        }
 
         /**
          * ===================================================
@@ -728,37 +639,23 @@ export default {
           });
 
         botEmbed.setImage(
-          `attachment://${WORD_CHAIN_SETUP_IMAGE_NAME}`,
+          WORD_CHAIN_SETUP_IMAGE_URL,
         );
 
-        const botImage =
-          await createWordChainImageAttachment(
-            WORD_CHAIN_SETUP_IMAGE_PATH,
-            WORD_CHAIN_SETUP_IMAGE_NAME,
+        await botChannel
+          .send({
+            embeds: [
+              botEmbed,
+            ],
+          })
+          .catch(
+            error => {
+              logger.warn(
+                'Failed to send PvE setup embed:',
+                error,
+              );
+            },
           );
-
-        if (
-          botImage
-        ) {
-          await botChannel
-            .send({
-              embeds: [
-                botEmbed,
-              ],
-
-              files: [
-                botImage,
-              ],
-            })
-            .catch(
-              error => {
-                logger.warn(
-                  'Failed to send PvE setup embed:',
-                  error,
-                );
-              },
-            );
-        }
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -1364,39 +1261,14 @@ export default {
           });
 
         embed.setImage(
-          `attachment://${WORD_CHAIN_LEADERBOARD_IMAGE_NAME}`,
+          WORD_CHAIN_LEADERBOARD_IMAGE_URL,
         );
-
-        const leaderboardImage =
-          await createWordChainImageAttachment(
-            WORD_CHAIN_LEADERBOARD_IMAGE_PATH,
-            WORD_CHAIN_LEADERBOARD_IMAGE_NAME,
-          );
-
-        if (
-          !leaderboardImage
-        ) {
-          return await replyUserError(
-            interaction,
-            {
-              type:
-                ErrorTypes.UNKNOWN,
-
-              message:
-                'Không tìm thấy file `assets/noitu/noituleaderboard.webp`.',
-            },
-          );
-        }
 
         return await InteractionHelper.safeEditReply(
           interaction,
           {
             embeds: [
               embed,
-            ],
-
-            files: [
-              leaderboardImage,
             ],
           },
         );

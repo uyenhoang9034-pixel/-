@@ -8,11 +8,8 @@ import {
     ButtonBuilder,
     ButtonStyle,
     MessageFlags,
-    AttachmentBuilder,
 } from 'discord.js';
 
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfig.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -20,46 +17,15 @@ import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 
 import ticketConfig from './modules/ticket_dashboard.js';
+
 /**
  * =========================================================
- * LOCAL TICKET IMAGE
+ * TICKET IMAGE
  * =========================================================
  */
 
-const TICKET_IMAGE_NAME =
-    'ticket.png';
-
-const TICKET_IMAGE_PATH =
-    path.resolve(
-        process.cwd(),
-        'assets',
-        'ticket',
-        TICKET_IMAGE_NAME,
-    );
-
-
-async function createTicketImageAttachment() {
-    try {
-        await fs.access(
-            TICKET_IMAGE_PATH,
-        );
-    } catch {
-        logger.warn(
-            `[TICKET] Panel image not found: ${TICKET_IMAGE_PATH}`,
-        );
-
-        return null;
-    }
-
-
-    return new AttachmentBuilder(
-        TICKET_IMAGE_PATH,
-        {
-            name:
-                TICKET_IMAGE_NAME,
-        },
-    );
-}
+const TICKET_IMAGE_URL =
+    'https://files.catbox.moe/xdd9hc.png';
 export default {
     data: new SlashCommandBuilder()
         .setName("ticket")
@@ -220,26 +186,8 @@ const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 });
 
 setupEmbed.setImage(
-    `attachment://${TICKET_IMAGE_NAME}`,
+    TICKET_IMAGE_URL,
 );
-
-
-const ticketImage =
-    await createTicketImageAttachment();
-
-
-if (!ticketImage) {
-    return await replyUserError(
-        interaction,
-        {
-            type:
-                ErrorTypes.UNKNOWN,
-
-            message:
-                'Không tìm thấy file `assets/ticket/ticket.png`.',
-        },
-    );
-}
 
             const ticketButton = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
@@ -259,10 +207,6 @@ if (!ticketImage) {
         components: [
             ticketButton,
         ],
-
-        files: [
-            ticketImage,
-        ],
     });
 
                 if (client.db && interaction.guildId) {
@@ -276,7 +220,7 @@ if (!ticketImage) {
                     currentConfig.ticketPanelTitle = panelTitle;
                     currentConfig.ticketPanelColor = panelColor;
                     currentConfig.ticketImage =
-    'local:ticket.png';
+    TICKET_IMAGE_URL;
                     currentConfig.ticketButtonLabel = buttonLabel;
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;
                     currentConfig.dmOnClose = dmOnClose;

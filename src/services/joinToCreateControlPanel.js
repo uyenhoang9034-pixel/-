@@ -1,13 +1,9 @@
 import {
   ActionRowBuilder,
-  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
 } from 'discord.js';
-
-import path from 'node:path';
-import fs from 'node:fs/promises';
 
 import {
   getJoinToCreateConfig,
@@ -21,50 +17,12 @@ import {
 
 /**
  * =========================================================
- * LOCAL PANEL IMAGE
+ * PANEL IMAGE
  * =========================================================
  */
 
-export const JTC_PANEL_IMAGE_NAME =
-  'jointocreate.png';
-
-export const JTC_PANEL_IMAGE_PATH =
-  path.resolve(
-    process.cwd(),
-    'assets',
-    'jointocreate',
-    JTC_PANEL_IMAGE_NAME,
-  );
-
-
-/**
- * =========================================================
- * CREATE PANEL IMAGE ATTACHMENT
- * =========================================================
- */
-
-async function createJoinToCreateImageAttachment() {
-  try {
-    await fs.access(
-      JTC_PANEL_IMAGE_PATH,
-    );
-  } catch {
-    logger.warn(
-      `[JTC] Panel image not found: ${JTC_PANEL_IMAGE_PATH}`,
-    );
-
-    return null;
-  }
-
-
-  return new AttachmentBuilder(
-    JTC_PANEL_IMAGE_PATH,
-    {
-      name:
-        JTC_PANEL_IMAGE_NAME,
-    },
-  );
-}
+export const JTC_PANEL_IMAGE_URL =
+  'https://files.catbox.moe/ob4lqy.png';
 
 
 /**
@@ -222,11 +180,8 @@ export function buildJoinToCreateControlPanel() {
         ),
       )
 
-      /**
-       * Ảnh local từ repo.
-       */
       .setImage(
-        `attachment://${JTC_PANEL_IMAGE_NAME}`,
+        JTC_PANEL_IMAGE_URL,
       )
 
       .setFooter({
@@ -601,25 +556,6 @@ export async function createJoinToCreateControlPanel(
 
   /**
    * =======================================================
-   * LOAD LOCAL IMAGE
-   * =======================================================
-   */
-
-  const imageAttachment =
-    await createJoinToCreateImageAttachment();
-
-
-  if (
-    !imageAttachment
-  ) {
-    throw new Error(
-      `[JTC] Missing panel image: ${JTC_PANEL_IMAGE_PATH}`,
-    );
-  }
-
-
-  /**
-   * =======================================================
    * SEND PANEL
    * =======================================================
    */
@@ -627,10 +563,6 @@ export async function createJoinToCreateControlPanel(
   const panelMessage =
     await channel.send({
       ...payload,
-
-      files: [
-        imageAttachment,
-      ],
     });
 
 
