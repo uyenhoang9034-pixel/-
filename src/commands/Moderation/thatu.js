@@ -18,7 +18,7 @@ export default {
     await interaction.deferReply({ ephemeral: true });
 
     const user = interaction.options.getUser('thanhvien');
-    const member = interaction.options.getMember('thanhvien');
+    const member = interaction.options.getMember('thanhvien') || (user ? await interaction.guild.members.fetch(user.id).catch(() => null) : null);
 
     if (!member || !user) {
       return InteractionHelper.safeEditReply(interaction, {

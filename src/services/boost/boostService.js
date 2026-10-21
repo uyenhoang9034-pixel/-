@@ -6,6 +6,7 @@ import {
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { logger } from '../../utils/logger.js';
 
 
 // ============================================================
@@ -50,7 +51,7 @@ const DEFAULT_CONFIG = {
 
     channelId: null,
 
-    tyPhuRoleId: null,
+    tyPhuRoleId: '1541305195512856627',
 
     title: DEFAULT_TITLE,
 
@@ -543,6 +544,11 @@ export async function grantTyPhuRole(
     const role =
         member.guild.roles.cache.get(
             roleId,
+        ) ||
+        await member.guild.roles.fetch(
+            roleId,
+        ).catch(
+            () => null,
         );
 
 
@@ -557,7 +563,10 @@ export async function grantTyPhuRole(
 
 
     const botMember =
-        member.guild.members.me;
+        member.guild.members.me ||
+        await member.guild.members.fetchMe().catch(
+            () => null,
+        );
 
 
     if (!botMember) {
@@ -704,14 +713,15 @@ async function resolveBoostChannel(
     guild,
     channelId,
 ) {
-    if (!channelId) {
+    const targetId = channelId || guild.systemChannelId;
+    if (!targetId) {
         return null;
     }
 
 
     const cachedChannel =
         guild.channels.cache.get(
-            channelId,
+            targetId,
         );
 
 
@@ -723,7 +733,7 @@ async function resolveBoostChannel(
 
 
     return guild.channels.fetch(
-        channelId,
+        targetId,
     ).catch(
         () => null,
     );
@@ -755,8 +765,13 @@ export async function sendBoostNotification(
     }
 
 
+    const targetChannelId =
+        config.channelId ||
+        member.guild.systemChannelId;
+
+
     if (
-        !config.channelId
+        !targetChannelId
     ) {
         return {
             success: false,
@@ -770,7 +785,7 @@ export async function sendBoostNotification(
     const channel =
         await resolveBoostChannel(
             member.guild,
-            config.channelId,
+            targetChannelId,
         );
 
 
@@ -838,12 +853,55 @@ export async function sendBoostNotification(
 
 
 // ============================================================
+// DEBOUNCE MAP (ZERO RAM LEAK)
+// ============================================================
+
+const recentBoostTriggers = new Map();
+const BOOST_DEBOUNCE_MS = 60_000;
+
+function isRecentlyTriggered(guildId, userId) {
+    const key = `${guildId}:${userId}`;
+    const now = Date.now();
+    const lastTime = recentBoostTriggers.get(key);
+
+    if (recentBoostTriggers.size > 50) {
+        for (const [k, time] of recentBoostTriggers.entries()) {
+            if (now - time > BOOST_DEBOUNCE_MS) {
+                recentBoostTriggers.delete(k);
+            }
+        }
+    }
+
+    if (lastTime && (now - lastTime < BOOST_DEBOUNCE_MS)) {
+        return true;
+    }
+
+    recentBoostTriggers.set(key, now);
+    return false;
+}
+
+
+// ============================================================
 // HANDLE BOOST START
 // ============================================================
 
 export async function handleBoostStarted(
     member,
 ) {
+    if (isRecentlyTriggered(member.guild.id, member.id)) {
+        logger.debug(
+            `[Boost] Debounced boost event for ${member.user?.tag || member.id} (already triggered recently).`,
+        );
+        return {
+            roleResult: { success: true, alreadyHandled: true },
+            messageResult: { success: true, alreadyHandled: true },
+        };
+    }
+
+    logger.info(
+        `[Boost] Handling boost start for ${member.user?.tag || member.id} in ${member.guild.name} (${member.guild.id})`,
+    );
+
     const config =
         await getBoostConfig(
             member.guild.id,
@@ -856,11 +914,37 @@ export async function handleBoostStarted(
             config.tyPhuRoleId,
         );
 
+    if (roleResult.success) {
+        if (roleResult.alreadyHadRole) {
+            logger.info(
+                `[Boost] Member ${member.user?.tag} already had TỶ PHÚ role.`,
+            );
+        } else {
+            logger.info(
+                `[Boost] Successfully granted TỶ PHÚ role (${config.tyPhuRoleId}) to ${member.user?.tag}.`,
+            );
+        }
+    } else {
+        logger.warn(
+            `[Boost] Could not grant TỶ PHÚ role to ${member.user?.tag}: ${roleResult.reason}`,
+        );
+    }
+
 
     const messageResult =
         await sendBoostNotification(
             member,
         );
+
+    if (messageResult.success) {
+        logger.info(
+            `[Boost] Successfully sent boost notification for ${member.user?.tag}.`,
+        );
+    } else {
+        logger.warn(
+            `[Boost] Could not send boost notification for ${member.user?.tag}: ${messageResult.reason}`,
+        );
+    }
 
 
     return {
@@ -878,16 +962,30 @@ export async function handleBoostStarted(
 export async function handleBoostEnded(
     member,
 ) {
+    recentBoostTriggers.delete(`${member.guild.id}:${member.id}`);
+
+    logger.info(
+        `[Boost] Handling boost end for ${member.user?.tag || member.id} in ${member.guild.name}`,
+    );
+
     const config =
         await getBoostConfig(
             member.guild.id,
         );
 
 
-    return removeTyPhuRole(
+    const result = await removeTyPhuRole(
         member,
         config.tyPhuRoleId,
     );
+
+    if (result) {
+        logger.info(
+            `[Boost] Successfully removed TỶ PHÚ role from ${member.user?.tag}.`,
+        );
+    }
+
+    return result;
 }
 
 
@@ -913,8 +1011,12 @@ export async function sendTestBoost(
     if (
         !channel
     ) {
+        const targetId =
+            config.channelId ||
+            member.guild.systemChannelId;
+
         if (
-            !config.channelId
+            !targetId
         ) {
             return {
                 success: false,
@@ -928,7 +1030,7 @@ export async function sendTestBoost(
         channel =
             await resolveBoostChannel(
                 member.guild,
-                config.channelId,
+                targetId,
             );
     }
 

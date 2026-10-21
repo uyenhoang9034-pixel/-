@@ -7,6 +7,7 @@ import {
 import {
     handleBoostStarted,
     handleBoostEnded,
+    getBoostConfig,
 } from '../services/boost/boostService.js';
 
 import {
@@ -107,50 +108,43 @@ export default {
              * =================================================
              * BOOST DETECTION
              * =================================================
-             * Chỉ kiểm tra khi oldMember đã có trong cache (không partial)
+             * Hỗ trợ cả 2 trường hợp:
+             * 1. Member trong cache (không partial): So sánh oldMember vs newMember
+             * 2. Member bị quét khỏi RAM cache (partial): Kiểm tra thời gian bắt đầu
+             *    boost gần nhất (< 2 phút) hoặc thành viên đang boost nhưng chưa có role TỶ PHÚ.
              */
 
+            const wasBoosting = Boolean(oldMember?.premiumSince);
+            const isBoosting = Boolean(newMember.premiumSince);
+
             if (!oldMember?.partial) {
-                const wasBoosting =
-                    Boolean(
-                        oldMember.premiumSince,
-                    );
-
-                const isBoosting =
-                    Boolean(
-                        newMember.premiumSince,
-                    );
-
-
-                /**
-                 * =================================================
-                 * BOOST STARTED
-                 * =================================================
-                 */
-
-                if (
-                    !wasBoosting &&
-                    isBoosting
-                ) {
-                    await handleBoostStarted(
-                        newMember,
-                    );
+                if (!wasBoosting && isBoosting) {
+                    await handleBoostStarted(newMember);
+                } else if (wasBoosting && !isBoosting) {
+                    await handleBoostEnded(newMember);
                 }
+            } else {
+                if (isBoosting) {
+                    const boostTimestamp = newMember.premiumSince?.getTime?.() ?? 0;
+                    const isRecentBoost = boostTimestamp > 0 && (Date.now() - boostTimestamp < 120_000);
 
-
-                /**
-                 * =================================================
-                 * BOOST ENDED
-                 * =================================================
-                 */
-
-                if (
-                    wasBoosting &&
-                    !isBoosting
-                ) {
-                    await handleBoostEnded(
-                        newMember,
+                    const boostConfig = await getBoostConfig(newMember.guild.id);
+                    const missingBoostRole = Boolean(
+                        boostConfig?.tyPhuRoleId &&
+                        !newMember.roles.cache.has(boostConfig.tyPhuRoleId),
                     );
+
+                    if (isRecentBoost || missingBoostRole) {
+                        await handleBoostStarted(newMember);
+                    }
+                } else {
+                    const boostConfig = await getBoostConfig(newMember.guild.id);
+                    if (
+                        boostConfig?.tyPhuRoleId &&
+                        newMember.roles.cache.has(boostConfig.tyPhuRoleId)
+                    ) {
+                        await handleBoostEnded(newMember);
+                    }
                 }
             }
 

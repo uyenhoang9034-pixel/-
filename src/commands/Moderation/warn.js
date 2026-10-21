@@ -252,7 +252,10 @@ export default {
         const member =
             interaction.options.getMember(
                 'target',
-            );
+            ) ||
+            (target
+                ? await interaction.guild.members.fetch(target.id).catch(() => null)
+                : null);
 
 
         const reason =

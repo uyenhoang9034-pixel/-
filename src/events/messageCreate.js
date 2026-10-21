@@ -1,6 +1,7 @@
-import { Events } from 'discord.js';
+import { Events, MessageType } from 'discord.js';
 
 import { logger } from '../utils/logger.js';
+import { handleBoostStarted } from '../services/boost/boostService.js';
 
 import {
   getLevelingConfig,
@@ -130,12 +131,30 @@ const WORD_CHAIN_EMOJIS = {
   wrongChain: '<a:meongg14:1546092766826864661>',
 };
 
+const BOOST_MESSAGE_TYPES = new Set([
+  MessageType.UserPremiumGuildSubscription,
+  MessageType.Tier1UserPremiumGuildSubscription,
+  MessageType.Tier2UserPremiumGuildSubscription,
+  MessageType.Tier3UserPremiumGuildSubscription,
+  8, 9, 10, 11,
+]);
+
 export default {
   name: Events.MessageCreate,
 
   async execute(message, client) {
     try {
-      if (message.author.bot || !message.guild) {
+      if (!message.guild) {
+        return;
+      }
+
+      // Bắt sự kiện tin nhắn hệ thống Discord Boost (MessageType: 8, 9, 10, 11)
+      if (BOOST_MESSAGE_TYPES.has(message.type)) {
+        await handleBoostSystemMessage(message);
+        return;
+      }
+
+      if (message.author.bot) {
         return;
       }
 
@@ -1007,5 +1026,28 @@ async function handleAutoReact(message, client) {
     }
   } catch (error) {
     logger.error('Error handling auto-react:', error);
+  }
+}
+
+async function handleBoostSystemMessage(message) {
+  try {
+    const member =
+      message.member ||
+      (await message.guild.members.fetch(message.author.id).catch(() => null));
+
+    if (!member) {
+      logger.warn(
+        `[Boost] Received boost system message but could not resolve member ${message.author?.id}`,
+      );
+      return;
+    }
+
+    logger.info(
+      `[Boost] Detected boost system message (type: ${message.type}) from ${member.user.tag} (${member.id}) in ${message.guild.name}`,
+    );
+
+    await handleBoostStarted(member);
+  } catch (err) {
+    logger.error('[Boost] Error processing boost system message:', err);
   }
 }

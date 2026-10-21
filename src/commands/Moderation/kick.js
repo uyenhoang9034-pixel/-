@@ -22,7 +22,7 @@ export default {
 
     async execute(interaction, config, client) {
         const targetUser = interaction.options.getUser("target");
-        const member = interaction.options.getMember("target");
+        const member = interaction.options.getMember("target") || (targetUser ? await interaction.guild.members.fetch(targetUser.id).catch(() => null) : null);
         const reason = interaction.options.getString("reason") || "No reason provided";
 
         if (!targetUser) {
