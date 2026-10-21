@@ -44,6 +44,9 @@ export const commandAliases = {
     'gremove': 'gremoveparticipant',
     'grempart': 'gremoveparticipant',
     'gkickparticipant': 'gremoveparticipant',
+    'gblacklist': 'gblacklist',
+    'gexclude': 'gblacklist',
+    'gshadowban': 'gblacklist',
 
     'ticket': 'ticket',
     't': 'ticket',

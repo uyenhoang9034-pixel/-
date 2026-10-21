@@ -5,7 +5,8 @@ import { TitanBotError, ErrorTypes, handleInteractionError, replyUserError } fro
 import { 
     getGuildGiveaways, 
     saveGiveaway, 
-    isGiveawayEnded 
+    isGiveawayEnded,
+    getEffectiveExcludedWinners
 } from '../utils/giveaways.js';
 import { Mutex } from '../utils/mutex.js';
 import { 
@@ -141,7 +142,8 @@ export const giveawayEndHandler = {
 
             const participants = giveaway.participants || [];
             const announcementPending = giveaway.delayAnnouncement === true;
-            const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1);
+            const excludedUserIds = await getEffectiveExcludedWinners(client, interaction.guildId, giveaway);
+            const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1, excludedUserIds);
 
             giveaway.ended = true;
             giveaway.isEnded = true;
@@ -290,7 +292,8 @@ export const giveawayRerollHandler = {
                 );
             }
 
-            const newWinners = selectWinners(participants, giveaway.winnerCount);
+            const excludedUserIds = await getEffectiveExcludedWinners(client, interaction.guildId, giveaway);
+            const newWinners = selectWinners(participants, giveaway.winnerCount, excludedUserIds);
 
             giveaway.winnerIds = newWinners;
             giveaway.rerolledAt = new Date().toISOString();

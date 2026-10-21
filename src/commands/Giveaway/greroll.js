@@ -2,7 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
-import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
+import { getGuildGiveaways, saveGiveaway, getEffectiveExcludedWinners } from '../../utils/giveaways.js';
 import { 
     selectWinners,
     createGiveawayEmbed, 
@@ -82,18 +82,32 @@ export default {
 
         const participants = giveaway.participants || [];
 
-        if (participants.length < giveaway.winnerCount) {
+        if (participants.length === 0) {
             throw new TitanBotError(
-                `Insufficient participants for reroll: ${participants.length} < ${giveaway.winnerCount}`,
+                `No participants for reroll: ${messageId}`,
                 ErrorTypes.VALIDATION,
-                "Not enough entries to pick the required number of winners.",
-                { participantsCount: participants.length, winnersNeeded: giveaway.winnerCount }
+                "Không có ai tham gia giveaway này để reroll.",
+                { participantsCount: 0 }
+            );
+        }
+
+        const excludedUserIds = await getEffectiveExcludedWinners(interaction.client, interaction.guildId, giveaway);
+        const excludedSet = new Set(excludedUserIds);
+        const eligible = [...new Set(participants)].filter(id => !excludedSet.has(id));
+
+        if (eligible.length === 0) {
+            throw new TitanBotError(
+                `No eligible participants for reroll in giveaway ${messageId}`,
+                ErrorTypes.VALIDATION,
+                "Không có người tham gia hợp lệ nào để quay thưởng (hoặc tất cả người tham gia đều thuộc danh sách loại trừ).",
+                { participantsCount: participants.length }
             );
         }
 
         const newWinners = selectWinners(
             participants,
             giveaway.winnerCount,
+            excludedUserIds,
         );
 
         const updatedGiveaway = {

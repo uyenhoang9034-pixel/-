@@ -7,6 +7,7 @@ import { botConfig } from '../config/bot.js';
 import { getEndedGiveaways, markGiveawayEnded } from '../utils/database.js';
 import { checkRateLimit, getRateLimitStatus } from '../utils/rateLimiter.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
+import { getEffectiveExcludedWinners } from '../utils/giveaways.js';
 
 const GIVEAWAY_CONFIG = botConfig.giveaways || {};
 const GIVEAWAY_INTERACTION_COOLDOWN = 1000;
@@ -315,12 +316,17 @@ export function createGiveawayButtons(ended = false) {
     }
 }
 
-export function selectWinners(participants, winnerCount) {
+export function selectWinners(participants, winnerCount, excludedUserIds = []) {
     if (!Array.isArray(participants) || participants.length === 0) {
         return [];
     }
 
-    const uniqueParticipants = [...new Set(participants)];
+    const excludedSet = new Set(Array.isArray(excludedUserIds) ? excludedUserIds : []);
+    const uniqueParticipants = [...new Set(participants)].filter(id => !excludedSet.has(id));
+
+    if (uniqueParticipants.length === 0) {
+        return [];
+    }
 
     if (!Number.isInteger(winnerCount) || winnerCount < 1) {
         throw new TitanBotError(
@@ -334,7 +340,6 @@ export function selectWinners(participants, winnerCount) {
     const requested = Math.min(winnerCount, uniqueParticipants.length);
     
     try {
-        
         const shuffled = [...uniqueParticipants];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -390,7 +395,8 @@ export async function endGiveaway(client, giveaway, guildId, endedBy) {
 
         const participants = giveaway.participants || [];
         const announcementPending = giveaway.delayAnnouncement === true;
-        const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1);
+        const excludedUserIds = await getEffectiveExcludedWinners(client, guildId, giveaway);
+        const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1, excludedUserIds);
 
         const updatedGiveaway = {
             ...giveaway,
@@ -465,7 +471,8 @@ export async function checkGiveaways(client) {
 
         const participants = giveaway.participants || [];
         const announcementPending = giveaway.delayAnnouncement === true;
-        const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1);
+        const excludedUserIds = await getEffectiveExcludedWinners(client, guildId, giveaway);
+        const winners = announcementPending ? [] : selectWinners(participants, giveaway.winnerCount || 1, excludedUserIds);
 
         const winnerMentions = winners.length > 0
           ? winners.map(id => `<@${id}>`).join(', ')
