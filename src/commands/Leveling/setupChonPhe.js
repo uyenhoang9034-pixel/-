@@ -72,9 +72,9 @@ export default {
           `Vòng xoay định mệnh giữa hai thế lực ngàn năm lại một lần nữa mở ra...\n` +
           `Trước mắt bạn là bản **Khế Ước Cổ Đại**. Hãy chọn 1 trong 2 phe để tham chiến và dấn thân vào con đường tranh đoạt vinh quang ma thuật!\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `⚔️ **PHE THỢ SĂN (W.H. ASSOCIATION):**\n` +
+          `<a:trangtrig36:1563065680922808340> **PHE THỢ SĂN (W.H. ASSOCIATION):**\n` +
           `> Những chiến binh quả cảm tôi luyện ý chí sắt đá, săn lùng và phong ấn hắc ma thuật. Tích lũy chiến công Bí Ngô để từng bước thăng cấp từ **C-Rank Hunter** lên huyền thoại **SS-Rank Hunter**!\n\n` +
-          `🔮 **PHE PHÙ THỦY (WITCHES):**\n` +
+          `<a:trangtrig32:1546906170994856026> **PHE PHÙ THỦY (WITCHES):**\n` +
           `> Những bậc thầy cổ thuật bí ẩn, thao túng bóng đêm và bùa chú cấm kỵ. Khởi đầu từ một **Apprentice Witch**, tích lũy tinh hoa Bí Ngô để thức tỉnh thành **Great Witch** tối cao!\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `📜 **5 BẬC CẤP BẬC & MỐC BÍ NGÔ TÍCH LŨY:**\n` +
