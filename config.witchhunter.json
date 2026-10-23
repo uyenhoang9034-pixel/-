@@ -2,7 +2,8 @@
   "adminRoleId": "1541303749916754001",
   "channels": {
     "selectionChannelId": "1563069959658143894",
-    "announcementChannelId": "1563069218214121513"
+    "announcementChannelId": "1563069218214121513",
+    "dailyReportChannelId": "1563168363541176351"
   },
   "emojis": {
     "pumpkin": "<a:bingo:1563061901800243253>",

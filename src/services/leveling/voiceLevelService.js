@@ -26,6 +26,8 @@ import {
     Mutex,
 } from '../../utils/mutex.js';
 
+import { pumpkinGrowthTracker } from '../pumpkinGrowthTracker.js';
+
 /**
  * =========================================================
  * USAGI VOICE LEVEL SERVICE
@@ -611,6 +613,8 @@ async function addVoiceDuration(
         return;
     }
 
+    pumpkinGrowthTracker.recordVoiceDuration(member.id, safeDuration);
+
     const guild =
         member.guild;
 
@@ -733,6 +737,8 @@ async function addVoiceDuration(
             ) {
                 return;
             }
+
+            pumpkinGrowthTracker.recordVoiceLevelUp(member.id, levelsEarned);
 
             await awardVoiceLevels(
                 client,

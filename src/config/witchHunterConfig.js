@@ -14,6 +14,8 @@ export const WITCH_HUNTER_CONFIG = {
     selectionChannelId: process.env.WITCH_HUNTER_SELECTION_CHANNEL_ID || '1563069959658143894',
     // Kênh gửi Embed vinh danh chốt BXH tháng
     announcementChannelId: process.env.WITCH_HUNTER_ANNOUNCEMENT_CHANNEL_ID || '1563069218214121513',
+    // Kênh báo cáo hoạt động hằng ngày bí mật cho Admin
+    dailyReportChannelId: process.env.WITCH_HUNTER_DAILY_REPORT_CHANNEL_ID || '1563168363541176351',
   },
 
   // Danh mục Emojis động độc quyền của Server

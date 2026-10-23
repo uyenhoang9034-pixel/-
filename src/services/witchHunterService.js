@@ -125,6 +125,25 @@ class WitchHunterStorage {
     return null;
   }
 
+  getAllUsers() {
+    if (this.isSqlite && this.sqliteDb) {
+      try {
+        const stmt = this.sqliteDb.prepare('SELECT * FROM witch_hunter_members ORDER BY pumpkins DESC');
+        return stmt.all().map((row) => ({
+          user_id: row.user_id,
+          faction: row.faction,
+          current_rank: Number(row.current_rank) || 1,
+          pumpkins: Number(row.pumpkins) || 0,
+          updated_at: Number(row.updated_at) || Date.now(),
+        }));
+      } catch (err) {
+        logger.error('❌ [WitchHunter] SQLite getAllUsers error:', err);
+      }
+    }
+
+    return Array.from(this.memoryCache.values()).sort((a, b) => (b.pumpkins || 0) - (a.pumpkins || 0));
+  }
+
   saveUser(userObj, immediate = false) {
     userObj.updated_at = Date.now();
     this.memoryCache.set(userObj.user_id, userObj);
@@ -265,6 +284,44 @@ export class WitchHunterService {
    */
   static getUserProfile(userId) {
     return witchHunterStorage.getUser(userId);
+  }
+
+  /**
+   * Lấy Bảng Xếp Hạng Bí Ngô theo điểm tích lũy
+   */
+  static getPumpkinLeaderboard(limit = 10, faction = null) {
+    let users = witchHunterStorage.getAllUsers();
+    if (faction) {
+      users = users.filter((u) => u.faction === faction);
+    }
+    return users.slice(0, limit);
+  }
+
+  /**
+   * Thống kê tổng hợp số lượng và điểm Bí Ngô giữa 2 phe
+   */
+  static getFactionStats() {
+    const all = witchHunterStorage.getAllUsers();
+    let hunterPumpkins = 0;
+    let witchPumpkins = 0;
+    let hunterCount = 0;
+    let witchCount = 0;
+
+    for (const u of all) {
+      if (u.faction === 'hunter') {
+        hunterPumpkins += u.pumpkins || 0;
+        hunterCount += 1;
+      } else if (u.faction === 'witch') {
+        witchPumpkins += u.pumpkins || 0;
+        witchCount += 1;
+      }
+    }
+
+    return {
+      hunter: { count: hunterCount, pumpkins: hunterPumpkins },
+      witch: { count: witchCount, pumpkins: witchPumpkins },
+      totalUsers: all.length,
+    };
   }
 
   /**

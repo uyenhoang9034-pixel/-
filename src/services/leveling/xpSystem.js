@@ -30,6 +30,8 @@ import {
     wrapServiceBoundary,
 } from '../../utils/errorHandler.js';
 
+import { pumpkinGrowthTracker } from '../pumpkinGrowthTracker.js';
+
 /**
  * =========================================================
  * ADD XP
@@ -318,6 +320,8 @@ export const addXp =
                     if (
                         didLevelUp
                     ) {
+                        const chatLevelsGained = Math.max(1, finalLevel - initialLevel);
+                        pumpkinGrowthTracker.recordChatLevelUp(member.user.id, chatLevelsGained);
                         /**
                          * -------------------------------------
                          * ROLE

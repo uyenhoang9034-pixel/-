@@ -54,19 +54,31 @@ export default {
       const botClient = client || interaction.client;
       const guildId = interaction.guildId;
 
-      // 2. TỐI ƯU RAM: Chỉ chạy khi Admin gõ lệnh (On-demand), không chạy ngầm
-      // Ưu tiên đọc trực tiếp từ Database (tránh fetch toàn bộ member máy chủ vào cache RAM)
+      // 2. TỐI ƯU RAM: Đọc dữ liệu tổng hợp tháng từ pumpkinGrowthTracker (Stream JSONL)
+      let isMonthlyGrowth = true;
       let leaderboard = [];
+
       try {
-        const { getLeaderboard: getDbLeaderboard } = await import('../../utils/database.js');
-        leaderboard = await getDbLeaderboard(botClient, guildId, 20);
+        const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
+        leaderboard = await pumpkinGrowthTracker.getMonthlyLeaderboard();
       } catch (e) {
-        // Fallback
+        logger.error('❌ [WitchHunter] Lỗi khi lấy monthly leaderboard:', e);
       }
 
+      // Fallback: Nếu đầu tháng chưa có ai tích lũy trong log tháng, đọc từ BXH Leveling tổng
       if (!leaderboard || leaderboard.length === 0) {
-        const { getLeaderboard: getServiceLeaderboard } = await import('../../services/leveling/leveling.js');
-        leaderboard = await getServiceLeaderboard(botClient, guildId, 20);
+        isMonthlyGrowth = false;
+        try {
+          const { getLeaderboard: getDbLeaderboard } = await import('../../utils/database.js');
+          leaderboard = await getDbLeaderboard(botClient, guildId, 20);
+        } catch (e) {
+          // Fallback tiếp
+        }
+
+        if (!leaderboard || leaderboard.length === 0) {
+          const { getLeaderboard: getServiceLeaderboard } = await import('../../services/leveling/leveling.js');
+          leaderboard = await getServiceLeaderboard(botClient, guildId, 20);
+        }
       }
 
       if (!leaderboard || leaderboard.length === 0) {
@@ -93,19 +105,33 @@ export default {
                 : `[${emojis.witchButton} Phù Thủy]`
               : `*(Chưa chọn phe)*`;
 
-            return `**#${rank}.** <@${item.userId}> ${factionTag}\n` +
-                   `> 🎖️ Lv.**${item.level || 0}** • Tổng XP: **${(item.totalXp || 0).toLocaleString('vi-VN')}**`;
+            if (isMonthlyGrowth) {
+              return (
+                `**#${rank}.** <@${item.userId}> ${factionTag}\n` +
+                `> ⭐ **+${item.totalLevels} Cấp Ma Thuật Tháng**\n` +
+                `> 🎙️ Voice: \`${(item.voiceMinutes || 0).toLocaleString('vi-VN')}p\` (+${item.voiceLevels || 0}) • 💬 Chat: \`${(item.messageCount || 0).toLocaleString('vi-VN')} tin\` (+${item.chatLevels || 0})`
+              );
+            }
+
+            return (
+              `**#${rank}.** <@${item.userId}> ${factionTag}\n` +
+              `> 🎖️ Lv.**${item.level || 0}** • Tổng XP: **${(item.totalXp || 0).toLocaleString('vi-VN')}**`
+            );
           })
-          .join('\n');
+          .join('\n\n');
       };
 
       const embed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} 𝓟𝓻𝓮𝓿𝓲𝓮𝔀 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓛𝓮𝓿𝓮𝓵 (𝓒𝓱𝓪𝓽 + 𝓥𝓸𝓲𝓬𝓮) ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} 𝓟𝓻𝓮𝓿𝓲𝓮𝔀 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓛𝓮𝓿𝓮𝓵 𝓣𝓱𝓪́𝓷𝓰 ${emojis.titleRight}`)
         .setDescription(
-          `Dưới đây là kết quả **Top 20 thành viên tích cực nhất** được tổng hợp tự động từ hệ thống Tu Tiên Leveling (bao gồm kinh nghiệm Chat và số phút Voice):\n` +
-          `*(Bảng này hiển thị ẩn ở chế độ xem trước, chỉ có Admin mới nhìn thấy)*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+          isMonthlyGrowth
+            ? `Dưới đây là kết quả **Top 20 thành viên có mức tăng trưởng Cấp Ma Thuật cao nhất trong tháng** (tính theo cấp thực tế tăng từ Voice 30p = +1 cấp và Chat theo hệ thống Tu Tiên Leveling):\n` +
+              `*(Bảng này hiển thị ẩn ở chế độ xem trước, chỉ có Admin mới nhìn thấy)*\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+            : `Dưới đây là kết quả **Top 20 thành viên tích cực nhất** từ hệ thống Tu Tiên Leveling (chế độ dự phòng do log tháng chưa có dữ liệu tích lũy):\n` +
+              `*(Bảng này hiển thị ẩn ở chế độ xem trước, chỉ có Admin mới nhìn thấy)*\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         )
         .addFields(
           {

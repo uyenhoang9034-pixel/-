@@ -115,6 +115,8 @@ import {
   handleThanVanTuBan,
 } from '../services/thanVanTuBanService.js';
 
+import { pumpkinGrowthTracker } from '../services/pumpkinGrowthTracker.js';
+
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -157,6 +159,8 @@ export default {
       if (message.author.bot) {
         return;
       }
+
+      pumpkinGrowthTracker.recordChatMessage(message.author.id);
 
       await handleAutoReact(message, client);
 

@@ -11,6 +11,7 @@ import { getServerCounters, saveServerCounters, updateCounter } from './services
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
+import { pumpkinGrowthTracker } from './services/pumpkinGrowthTracker.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
 import { runSafeTask, handleTaskError, ErrorCodes } from './utils/errorHandler.js';
 import { initializeMusic, initRiffyAfterReady } from './services/music/riffySetup.js';
@@ -334,6 +335,7 @@ class TitanBot extends Client {
 
   setupCronJobs() {
     cron.schedule('0 0 * * *', runSafeTask('birthday_check', () => checkBirthdays(this)), { timezone: 'Asia/Ho_Chi_Minh' });
+    cron.schedule('0 0 * * *', runSafeTask('pumpkin_daily_flush', () => pumpkinGrowthTracker.flushDailyReport(this)), { timezone: 'Asia/Ho_Chi_Minh' });
     cron.schedule('* * * * *', runSafeTask('giveaway_check', () => checkGiveaways(this)));
     cron.schedule('*/15 * * * *', runSafeTask('counter_update', () => this.updateAllCounters()));
     // Tối ưu RAM định kỳ mỗi 30 phút: dọn dẹp cache hết hạn & thu hồi rác GC

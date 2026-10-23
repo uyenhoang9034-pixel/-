@@ -83,7 +83,22 @@ export default {
       const guild = interaction.guild;
       const botClient = client || interaction.client;
 
-      // Nếu không nhập thủ công, tự động lấy từ hệ thống Leveling (Chat + Voice) của server
+      // Nếu không nhập thủ công, tự động lấy từ hệ thống tăng trưởng tháng (Voice 30p = +1 cấp, Chat theo XP thực tế)
+      if (!top1_3Raw) {
+        try {
+          const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
+          const monthlyLb = await pumpkinGrowthTracker.getMonthlyLeaderboard();
+          if (monthlyLb && monthlyLb.length > 0) {
+            top1_3Raw = monthlyLb.slice(0, 3).map((u) => u.userId).join(' ');
+            top4_10Raw = monthlyLb.slice(3, 10).map((u) => u.userId).join(' ');
+            top11_20Raw = monthlyLb.slice(10, 20).map((u) => u.userId).join(' ');
+          }
+        } catch (e) {
+          logger.error('❌ [WitchHunter] Lỗi khi lấy auto lb từ pumpkinGrowthTracker:', e);
+        }
+      }
+
+      // Fallback về BXH Level tổng nếu log tháng chưa có dữ liệu
       if (!top1_3Raw) {
         const { getLeaderboard } = await import('../../services/leveling/leveling.js');
         const autoLb = await getLeaderboard(botClient, guild.id, 20);
@@ -191,8 +206,16 @@ export default {
         await announcementChannel.send({ embeds: [embed] });
       }
 
+      // 5. Lưu trữ log tháng cũ & làm mới bộ nhớ để sẵn sàng cho tháng tiếp theo
+      try {
+        const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
+        pumpkinGrowthTracker.archiveAndResetMonth(thang);
+      } catch (archiveErr) {
+        logger.error('⚠️ [WitchHunter] Lỗi khi lưu trữ log tháng:', archiveErr);
+      }
+
       return interaction.editReply({
-        content: `✅ Em bot Usagi múp rụp đã chốt BXH **${thang}** thành công và gửi thông báo vinh danh tới kênh <#${announcementChannel?.id || channels.announcementChannelId}> rồi nè vợ của Kim Nong ơi! 💕`,
+        content: `✅ Em bot Usagi múp rụp đã chốt BXH **${thang}** thành công, gửi thông báo vinh danh tới kênh <#${announcementChannel?.id || channels.announcementChannelId}> và dọn dẹp bộ nhớ log tháng sẵn sàng cho tháng mới rồi nè vợ của Kim Nong ơi! 💕`,
       });
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi lệnh chot-bxh:', error);
