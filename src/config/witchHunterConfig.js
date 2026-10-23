@@ -25,6 +25,7 @@ export const WITCH_HUNTER_CONFIG = {
     witchButton: '<a:trangtrig32:1546906170994856026>',
     rankUp: '<a:trangtrig45:1547239010190237819>',
     maxRank: '<a:trangtrig14:1546047912969113622>',
+    heart: '<a:heartg1:1545307544808071258>',
     hunterBadge: '⚔️',
     witchBadge: '🔮',
     sparkles: '✨',

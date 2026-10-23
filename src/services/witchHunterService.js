@@ -385,15 +385,15 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-      .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: 𝓑𝓲́ 𝓝𝓰𝓸̂ Đ𝓪̃ Đ𝓮̂́𝓷! ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
       .setDescription(
-        `Chào bạn **${user.username}** thân mến! Em bot **Usagi múp rụp** mang tin vui tới cho bạn nè 💕\n\n` +
-        `🏆 Trong kỳ tổng kết Bảng Xếp Hạng **${thang}**, bạn đã đạt thành tích hoạt động xuất sắc và được ban thưởng:\n` +
+        `Chào bạn **${user.username}** thân mến! Em phù thủy nóng bỏng Usagi múp rụp mang tin vui tới cho bạn nè! ${emojis.heart || '<a:heartg1:1545307544808071258>'}\n\n` +
+        `${emojis.pumpkin} Trong kỳ tổng kết Bảng Xếp Hạng **${thang}**, bạn đã đạt thành tích hoạt động xuất sắc và được ban thưởng:\n` +
         `> ${emojis.pumpkin} **+${pointsAwarded} Bí Ngô** (Hiện tổng tích lũy: **${totalPumpkins}** ${emojis.pumpkin})\n\n` +
-        `📜 **LƯU Ý QUAN TRỌNG TỪ HỘI ĐỒNG MA THUẬT:**\n` +
-        `Linh hồn của bạn hiện vẫn **chưa ký khế ước gia nhập phe phái** trong thế giới **Witch Hunter**!\n\n` +
-        `⚔️ **Hiệp Hội Thợ Săn (W.H. Association)**\n` +
-        `🔮 **Hội Phù Thủy (Witches)**\n\n` +
+        `${emojis.pumpkin} **LƯU Ý QUAN TRỌNG TỪ HỘI ĐỒNG MA THUẬT**\n` +
+        `Linh hồn của bạn hiện vẫn chưa ký khế ước gia nhập phe phái trong thế giới Witch Hunter!\n\n` +
+        `${emojis.hunterButton} Hiệp Hội Thợ Săn (W.H. Association)\n` +
+        `${emojis.witchButton} Hội Phù Thủy (Witches)\n\n` +
         `Hãy mau chóng ghé qua kênh <#${channels.selectionChannelId}> và bấm nút ký khế ước để nhận ngay Role danh hiệu và khai mở toàn bộ đặc quyền cấp bậc của bạn nhé!`
       )
       .setFooter({
