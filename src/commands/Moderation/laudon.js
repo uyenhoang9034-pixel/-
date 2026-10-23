@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, MessageFlags, AttachmentBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getPrisonRecord, performLabor, progressBar, PRISON_CHANNEL_ID } from '../../services/prisonService.js';
 
@@ -78,9 +78,8 @@ export default {
           '',
           '<a:catg11:1546058047393239151> Quản Ngục Usagi: *Lần sau ngoan nhé, không là vào lau tiếp đấy!*',
         ].join('\n'))
-        .setImage('attachment://nhatu.png');
-      const files = [new AttachmentBuilder(PRISON_IMAGE_URL, { name: 'nhatu.png' })];
-      return InteractionHelper.safeEditReply(interaction, { embeds: [embed], files });
+        .setImage(PRISON_IMAGE_URL);
+      return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }
 
     const bar = progressBar(record.completedLabor, record.totalLabor);

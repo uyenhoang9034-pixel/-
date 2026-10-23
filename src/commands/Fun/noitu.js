@@ -2,7 +2,6 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
-  AttachmentBuilder,
 } from 'discord.js';
 
 import {
@@ -600,24 +599,14 @@ export default {
           });
 
         pvpEmbed.setImage(
-          'attachment://noitu.webp',
+          WORD_CHAIN_SETUP_IMAGE_URL,
         );
-
-        const pvpFiles = [
-          new AttachmentBuilder(
-            WORD_CHAIN_SETUP_IMAGE_URL,
-            {
-              name: 'noitu.webp',
-            },
-          ),
-        ];
 
         await pvpChannel
           .send({
             embeds: [
               pvpEmbed,
             ],
-            files: pvpFiles,
           })
           .catch(
             error => {
@@ -650,24 +639,14 @@ export default {
           });
 
         botEmbed.setImage(
-          'attachment://noitu.webp',
+          WORD_CHAIN_SETUP_IMAGE_URL,
         );
-
-        const botFiles = [
-          new AttachmentBuilder(
-            WORD_CHAIN_SETUP_IMAGE_URL,
-            {
-              name: 'noitu.webp',
-            },
-          ),
-        ];
 
         await botChannel
           .send({
             embeds: [
               botEmbed,
             ],
-            files: botFiles,
           })
           .catch(
             error => {
@@ -1282,17 +1261,8 @@ export default {
           });
 
         embed.setImage(
-          'attachment://noituleaderboard.webp',
+          WORD_CHAIN_LEADERBOARD_IMAGE_URL,
         );
-
-        const lbFiles = [
-          new AttachmentBuilder(
-            WORD_CHAIN_LEADERBOARD_IMAGE_URL,
-            {
-              name: 'noituleaderboard.webp',
-            },
-          ),
-        ];
 
         return await InteractionHelper.safeEditReply(
           interaction,
@@ -1300,7 +1270,6 @@ export default {
             embeds: [
               embed,
             ],
-            files: lbFiles,
           },
         );
       }

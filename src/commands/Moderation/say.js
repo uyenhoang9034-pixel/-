@@ -7,6 +7,7 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    AttachmentBuilder,
 } from 'discord.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
@@ -152,11 +153,6 @@ export default {
         }
 
         const sendPayload = {};
-        const files = [];
-        if (attachment) {
-            files.push(attachment);
-            sendPayload.files = files;
-        }
 
         if (isEmbed) {
             const embedTitle = customTitle
@@ -173,13 +169,28 @@ export default {
                 })
                 .setTimestamp();
 
-            if (attachment && attachment.contentType?.startsWith('image/')) {
-                sayEmbed.setImage(attachment.url);
+            if (attachment) {
+                if (attachment.contentType?.startsWith('image/')) {
+                    sayEmbed.setImage(attachment.url);
+                } else {
+                    sendPayload.files = [
+                        new AttachmentBuilder(attachment.url, {
+                            name: attachment.name,
+                        }),
+                    ];
+                }
             }
 
             sendPayload.embeds = [sayEmbed];
         } else {
             sendPayload.content = message;
+            if (attachment) {
+                sendPayload.files = [
+                    new AttachmentBuilder(attachment.url, {
+                        name: attachment.name,
+                    }),
+                ];
+            }
         }
 
         const sentMessage = await channel.send(sendPayload);

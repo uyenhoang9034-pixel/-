@@ -1,7 +1,6 @@
 import {
     EmbedBuilder,
     PermissionFlagsBits,
-    AttachmentBuilder,
 } from 'discord.js';
 
 import {
@@ -1186,26 +1185,11 @@ export async function sendGameRoleNotification(
          * =============================================
          */
 
-        const files = [];
-
         if (
             config?.imageUrl
         ) {
-            const fileName =
-                `game-role-${config.key}.png`;
-
-            files.push(
-                new AttachmentBuilder(
-                    config.imageUrl,
-                    {
-                        name:
-                            fileName,
-                    },
-                ),
-            );
-
             embed.setImage(
-                `attachment://${fileName}`,
+                config.imageUrl,
             );
         }
 
@@ -1220,8 +1204,6 @@ export async function sendGameRoleNotification(
             embeds: [
                 embed,
             ],
-
-            files,
 
             allowedMentions: {
                 users: [

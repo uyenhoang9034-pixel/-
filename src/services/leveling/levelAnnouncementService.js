@@ -39,54 +39,37 @@ async function createLevelImageAttachment(
 ) {
     if (
         !image ||
+        !image.path ||
         !image.name
     ) {
         return null;
     }
 
-    if (
-        image.url
-    ) {
+    const imagePath =
+        path.resolve(
+            process.cwd(),
+            image.path,
+        );
+
+    try {
+        await fs.access(
+            imagePath,
+        );
+
         return new AttachmentBuilder(
-            image.url,
+            imagePath,
             {
                 name:
                     image.name,
             },
         );
+    } catch {
+        logger.warn(
+            `[LEVEL] Image not found: ${imagePath}`,
+        );
+
+        return null;
     }
-
-    if (
-        image.path
-    ) {
-        const imagePath =
-            path.resolve(
-                process.cwd(),
-                image.path,
-            );
-
-        try {
-            await fs.access(
-                imagePath,
-            );
-
-            return new AttachmentBuilder(
-                imagePath,
-                {
-                    name:
-                        image.name,
-                },
-            );
-        } catch {
-            logger.warn(
-                `[LEVEL] Image not found: ${imagePath}`,
-            );
-
-            return null;
-        }
-    }
-
-    return null;
 }
 
 /**
@@ -357,16 +340,16 @@ export function buildMilestoneLevelEmbed(
      */
 
     if (
-        milestone.image?.name
-    ) {
-        embed.setImage(
-            `attachment://${milestone.image.name}`,
-        );
-    } else if (
         milestone.image?.url
     ) {
         embed.setImage(
             milestone.image.url,
+        );
+    } else if (
+        milestone.image?.name
+    ) {
+        embed.setImage(
+            `attachment://${milestone.image.name}`,
         );
     }
 
@@ -653,7 +636,13 @@ export async function sendLevelAnnouncement({
          */
 
         if (
-            milestone?.image
+            milestone?.image?.url
+        ) {
+            embed.setImage(
+                milestone.image.url,
+            );
+        } else if (
+            milestone?.image?.path
         ) {
             const attachment =
                 await createLevelImageAttachment(
@@ -676,18 +665,35 @@ export async function sendLevelAnnouncement({
                 );
 
                 logger.warn(
-                    `[LEVEL] Milestone image unavailable for Lv.${level}`,
+                    `[LEVEL] Milestone local image unavailable for Lv.${level}`,
                 );
             }
         }
 
-        await channel.send({
-            embeds: [
-                embed,
-            ],
+        try {
+            await channel.send({
+                embeds: [
+                    embed,
+                ],
 
-            files,
-        });
+                files,
+            });
+        } catch (sendError) {
+            if (files.length > 0) {
+                logger.warn(
+                    '[LEVEL] Failed sending announcement with files, retrying without files:',
+                    sendError,
+                );
+
+                await channel.send({
+                    embeds: [
+                        embed,
+                    ],
+                });
+            } else {
+                throw sendError;
+            }
+        }
 
         return true;
     } catch (

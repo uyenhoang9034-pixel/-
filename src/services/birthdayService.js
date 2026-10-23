@@ -1,6 +1,6 @@
 // birthdayService.js
 
-import { AttachmentBuilder } from 'discord.js';
+
 import { getGuildConfig } from './config/guildConfig.js';
 import { getGuildBirthdays, setBirthday as dbSetBirthday, deleteBirthday as dbDeleteBirthday, getMonthName, getBirthdayTrackingKey } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
@@ -357,10 +357,6 @@ export async function checkBirthdays(client) {
             timeZone: 'Asia/Ho_Chi_Minh'
           });
 
-          const birthdayFiles = [
-            new AttachmentBuilder('https://files.catbox.moe/ltt5jf.jpg', { name: 'birthday.jpg' })
-          ];
-
           await channel.send({
             embeds: [{
               description:
@@ -373,13 +369,12 @@ export async function checkBirthdays(client) {
                 `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`,
               color: 0xFCEEC9,
               image: {
-                url: 'attachment://birthday.jpg'
+                url: 'https://files.catbox.moe/ltt5jf.jpg'
               },
               footer: {
                 text: `Birthday Bot • ${footerTime}`
               }
-            }],
-            files: birthdayFiles
+            }]
           });
         }
       }

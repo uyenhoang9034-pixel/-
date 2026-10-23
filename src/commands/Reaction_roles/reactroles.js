@@ -1,5 +1,4 @@
 import {
-    AttachmentBuilder,
     ChannelType,
     EmbedBuilder,
     MessageFlags,
@@ -626,7 +625,7 @@ export default {
                         GAME_ROLE_EMBED_COLOR,
                     )
                     .setImage(
-                        'attachment://getrole.png',
+                        GET_ROLE_IMAGE_URL,
                     );
 
 
@@ -636,22 +635,11 @@ export default {
              * =============================================
              */
 
-            const files = [
-                new AttachmentBuilder(
-                    GET_ROLE_IMAGE_URL,
-                    {
-                        name: 'getrole.png',
-                    },
-                ),
-            ];
-
             const message =
                 await channel.send({
                     embeds: [
                         embed,
                     ],
-
-                    files,
 
                     allowedMentions: {
                         parse: [],

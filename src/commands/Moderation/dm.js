@@ -3,6 +3,7 @@ import {
     PermissionFlagsBits,
     EmbedBuilder,
     MessageFlags,
+    AttachmentBuilder,
 } from 'discord.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
@@ -155,9 +156,14 @@ export default {
 
             const dmFiles = [];
             if (attachment) {
-                dmFiles.push(attachment);
                 if (attachment.contentType?.startsWith('image/')) {
                     dmEmbed.setImage(attachment.url);
+                } else {
+                    dmFiles.push(
+                        new AttachmentBuilder(attachment.url, {
+                            name: attachment.name,
+                        }),
+                    );
                 }
             }
 

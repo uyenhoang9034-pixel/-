@@ -2,7 +2,6 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
-    AttachmentBuilder,
 } from 'discord.js';
 
 import {
@@ -122,25 +121,15 @@ async function sendUsagiBanLog({
                 ),
             )
             .setImage(
-                'attachment://ban.webp',
+                MODERATION_IMAGE_URL,
             )
             .setTimestamp();
 
-
-    const files = [
-        new AttachmentBuilder(
-            MODERATION_IMAGE_URL,
-            {
-                name: 'ban.webp',
-            },
-        ),
-    ];
 
     await channel.send({
         embeds: [
             embed,
         ],
-        files,
     });
 }
 

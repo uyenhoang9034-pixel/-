@@ -573,7 +573,7 @@ export async function createTicket(
 
           image: {
             url:
-              'attachment://ticket.png',
+              TICKET_IMAGE_URL,
           },
 
           fields: [
@@ -640,15 +640,6 @@ export async function createTicket(
       `${member.toString()}${staffMention}`;
 
 
-    const ticketFiles = [
-      new AttachmentBuilder(
-        TICKET_IMAGE_URL,
-        {
-          name: 'ticket.png',
-        },
-      ),
-    ];
-
     const ticketMessage =
       await channel.send(
         {
@@ -658,8 +649,6 @@ export async function createTicket(
           embeds: [
             embed,
           ],
-
-          files: ticketFiles,
 
           components: [
             row,
@@ -954,7 +943,7 @@ export async function closeTicket(
 
                   image: {
                     url:
-                      'attachment://ticket.png',
+                      TICKET_IMAGE_URL,
                   },
 
                   footer: {
@@ -1062,15 +1051,6 @@ export async function closeTicket(
               {
                 embeds: [
                   feedbackEmbed,
-                ],
-
-                files: [
-                  new AttachmentBuilder(
-                    TICKET_IMAGE_URL,
-                    {
-                      name: 'ticket.png',
-                    },
-                  ),
                 ],
 
                 components: [

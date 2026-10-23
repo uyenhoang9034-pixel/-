@@ -1,7 +1,6 @@
 import {
     EmbedBuilder,
     PermissionFlagsBits,
-    AttachmentBuilder,
 } from 'discord.js';
 
 import fs from 'node:fs/promises';
@@ -457,7 +456,7 @@ export function buildBoostEmbed(
                 ),
             )
             .setImage(
-                'attachment://boost.webp',
+                BOOST_IMAGE_URL,
             );
 
 
@@ -818,21 +817,11 @@ export async function sendBoostNotification(
         );
 
 
-    const files = [
-        new AttachmentBuilder(
-            BOOST_IMAGE_URL,
-            {
-                name: 'boost.webp',
-            },
-        ),
-    ];
-
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
-            files,
         });
 
 
@@ -1065,21 +1054,11 @@ export async function sendTestBoost(
         );
 
 
-    const files = [
-        new AttachmentBuilder(
-            BOOST_IMAGE_URL,
-            {
-                name: 'boost.webp',
-            },
-        ),
-    ];
-
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
-            files,
         });
 
 

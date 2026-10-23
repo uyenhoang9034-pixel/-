@@ -1,4 +1,4 @@
-import { MessageFlags,EmbedBuilder,AttachmentBuilder } from 'discord.js';
+import { MessageFlags,EmbedBuilder } from 'discord.js';
 import { CONFESSION,getConfession,saveConfession,infoEmbed } from '../../services/confessionService.js';
 const CFS_IMAGE='https://files.catbox.moe/wlet8p.png';
 export default {name:'confession_reject_submit',async execute(interaction,client,args){
@@ -13,8 +13,8 @@ export default {name:'confession_reject_submit',async execute(interaction,client
    `Confession #${d.number} đã bị từ chối.\n\n`+
    `**Lý do:**\n*${reason}*\n\n`+
    `*Bạn có thể chỉnh lại nội dung và gửi confession mới.*`
-  ).setImage('attachment://cfs.png');
-  await u.send({embeds:[dmEmbed],files:[new AttachmentBuilder(CFS_IMAGE,{name:'cfs.png'})]});
+  ).setImage(CFS_IMAGE);
+  await u.send({embeds:[dmEmbed]});
  }catch{}
  await interaction.reply({content:`${CONFESSION.emojiReject} Đã từ chối Confession #${d.number}.`,flags:MessageFlags.Ephemeral});
 }};

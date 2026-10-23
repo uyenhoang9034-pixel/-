@@ -1,4 +1,4 @@
-import { EmbedBuilder, MessageFlags, PermissionsBitField, AttachmentBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
 import { getGuildBirthdays } from '../../../utils/database.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
@@ -33,7 +33,7 @@ function buildBirthdayEmbed(member, birthday) {
             `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
             'Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!'
         )
-        .setImage('attachment://birthday.jpg')
+        .setImage('https://files.catbox.moe/ltt5jf.jpg')
         .setFooter({ text: `Birthday Bot • ${footerTime}` });
 }
 
@@ -105,8 +105,7 @@ export default {
                 if (!member) continue;
 
                 await channel.send({
-                    embeds: [buildBirthdayEmbed(member, birthdays[userId])],
-                    files: [new AttachmentBuilder('https://files.catbox.moe/ltt5jf.jpg', { name: 'birthday.jpg' })]
+                    embeds: [buildBirthdayEmbed(member, birthdays[userId])]
                 });
                 sent++;
             }
