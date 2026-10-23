@@ -45,19 +45,19 @@ export default {
     .addStringOption((opt) =>
       opt
         .setName('top_1_3')
-        .setDescription('Danh sách mention/ID của Top 1 đến Top 3 (cách nhau bởi dấu cách hoặc phẩy)')
-        .setRequired(true)
+        .setDescription('Danh sách mention/ID Top 1-3 (để trống nếu muốn bot tự động lấy từ BXH Level server)')
+        .setRequired(false)
     )
     .addStringOption((opt) =>
       opt
         .setName('top_4_10')
-        .setDescription('Danh sách mention/ID của Top 4 đến Top 10')
+        .setDescription('Danh sách mention/ID Top 4-10 (để trống nếu muốn bot tự động lấy)')
         .setRequired(false)
     )
     .addStringOption((opt) =>
       opt
         .setName('top_11_20')
-        .setDescription('Danh sách mention/ID của Top 11 đến Top 20')
+        .setDescription('Danh sách mention/ID Top 11-20 (để trống nếu muốn bot tự động lấy)')
         .setRequired(false)
     ),
 
@@ -76,12 +76,29 @@ export default {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const thang = interaction.options.getString('thang', true);
-      const top1_3Raw = interaction.options.getString('top_1_3', true);
-      const top4_10Raw = interaction.options.getString('top_4_10') || '';
-      const top11_20Raw = interaction.options.getString('top_11_20') || '';
+      let top1_3Raw = interaction.options.getString('top_1_3') || '';
+      let top4_10Raw = interaction.options.getString('top_4_10') || '';
+      let top11_20Raw = interaction.options.getString('top_11_20') || '';
 
       const guild = interaction.guild;
       const botClient = client || interaction.client;
+
+      // Nếu không nhập thủ công, tự động lấy từ hệ thống Leveling (Chat + Voice) của server
+      if (!top1_3Raw) {
+        const { getLeaderboard } = await import('../../services/leveling/leveling.js');
+        const autoLb = await getLeaderboard(botClient, guild.id, 20);
+        if (autoLb && autoLb.length > 0) {
+          top1_3Raw = autoLb.slice(0, 3).map((u) => u.userId).join(' ');
+          top4_10Raw = autoLb.slice(3, 10).map((u) => u.userId).join(' ');
+          top11_20Raw = autoLb.slice(10, 20).map((u) => u.userId).join(' ');
+        }
+      }
+
+      if (!top1_3Raw) {
+        return interaction.editReply({
+          content: '⚠️ Không tìm thấy danh sách thành viên hợp lệ (cả thủ công lẫn tự động từ BXH Level). Vui lòng nhập danh sách hoặc kiểm tra hệ thống Leveling!',
+        });
+      }
 
       // 2. Xử lý qua Service: Lưu điểm, DM người chưa chọn phe, kiểm tra thăng cấp & đổi role
       const results = await WitchHunterService.processMonthlyLeaderboard(guild, botClient, {
