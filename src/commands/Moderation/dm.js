@@ -36,7 +36,7 @@ export default {
         .addStringOption((option) =>
             option
                 .setName('message')
-                .setDescription('Nội dung tin nhắn muốn gửi')
+                .setDescription('Nội dung tin nhắn muốn gửi (hỗ trợ xuống dòng hoặc gõ \\n)')
                 .setRequired(true)
                 .setMaxLength(2000),
         )
@@ -115,7 +115,11 @@ export default {
                 });
             }
 
-            const sanitized = sanitizeMarkdown(rawMessage);
+            const unescapedMessage = rawMessage
+                .replace(/\\r\\n/g, '\n')
+                .replace(/\\n/g, '\n');
+
+            const sanitized = sanitizeMarkdown(unescapedMessage);
 
             const dmTitle = customTitle
                 ? `${EMOJIS.titleLeft} ${customTitle} ${EMOJIS.titleRight}`

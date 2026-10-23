@@ -135,13 +135,17 @@ export function sanitizeMarkdown(text) {
     .replace(/~/g, '\\~');
 }
 
-export function sanitizeInput(input, maxLength = 2000) {
+export function sanitizeInput(input, maxLength = 2000, allowNewlines = true) {
   if (typeof input !== 'string') return '';
   
+  const regex = allowNewlines
+    ? /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g
+    : /[\x00-\x1F\x7F]/g;
+
   return input
     .trim()
     .substring(0, maxLength)
-    .replace(/[\x00-\x1F\x7F]/g, '');
+    .replace(regex, '');
 }
 
 export function sanitizeMention(mention) {

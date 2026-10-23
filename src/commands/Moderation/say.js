@@ -52,7 +52,7 @@ export default {
         .addStringOption((option) =>
             option
                 .setName('message')
-                .setDescription('Nội dung tin nhắn bot cần nói')
+                .setDescription('Nội dung tin nhắn bot cần nói (hỗ trợ xuống dòng hoặc gõ \\n)')
                 .setRequired(true)
                 .setMaxLength(2000),
         )
@@ -100,8 +100,11 @@ export default {
             return;
         }
 
-        const rawMessage = interaction.options.getString('message');
-        const message = sanitizeInput(rawMessage, 2000);
+        const rawMessage = interaction.options.getString('message') || '';
+        const unescapedMessage = rawMessage
+            .replace(/\\r\\n/g, '\n')
+            .replace(/\\n/g, '\n');
+        const message = sanitizeInput(unescapedMessage, 2000, true);
         const isEmbed = interaction.options.getBoolean('embed') || false;
         const customTitle = interaction.options.getString('title');
         const attachment = interaction.options.getAttachment('image');
@@ -217,6 +220,14 @@ export default {
             },
         });
 
+        const previewMessage = message.length > 250
+            ? `${message.slice(0, 247)}...`
+            : message;
+        const quotedPreview = previewMessage
+            .split('\n')
+            .map((line) => `> ${line}`)
+            .join('\n');
+
         const confirmDescription = [
             `Em đã gửi tin nhắn của chị vào ${channel} thành công mĩ mãn rồi nha! ${EMOJIS.heart}`,
             '',
@@ -227,7 +238,7 @@ export default {
             `${EMOJIS.link} **Xem tin nhắn:** [Bấm vào đây để tới tin nhắn](${sentMessage.url})`,
             '',
             '**Nội dung đã gửi:**',
-            `> ${message.length > 250 ? `${message.slice(0, 247)}...` : message}`,
+            quotedPreview,
         ]
             .filter(Boolean)
             .join('\n');
