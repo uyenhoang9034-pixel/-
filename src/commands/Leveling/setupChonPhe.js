@@ -77,16 +77,16 @@ export default {
           `<a:trangtrig32:1546906170994856026> **PHE PHÙ THỦY (WITCHES):**\n` +
           `> Những bậc thầy cổ thuật bí ẩn, thao túng bóng đêm và bùa chú cấm kỵ. Khởi đầu từ một **Apprentice Witch**, tích lũy tinh hoa Bí Ngô để thức tỉnh thành **Great Witch** tối cao!\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `📜 **5 BẬC CẤP BẬC & MỐC BÍ NGÔ TÍCH LŨY:**\n` +
+          `<a:trangtrig18:1546068102817775626> **5 BẬC CẤP BẬC & MỐC BÍ NGÔ TÍCH LŨY:**\n` +
           `• **Bậc 1 (0 ${emojis.pumpkin}):** C-Rank Hunter | Apprentice Witch\n` +
           `• **Bậc 2 (100 ${emojis.pumpkin}):** B-Rank Hunter | Coven Witch\n` +
           `• **Bậc 3 (500 ${emojis.pumpkin}):** A-Rank Hunter | High Witch\n` +
           `• **Bậc 4 (3.000 ${emojis.pumpkin}):** S-Rank Hunter | Archwitch\n` +
           `• **Bậc 5 (10.000 ${emojis.pumpkin}):** SS-Rank Hunter | Great Witch\n\n` +
-          `⚠️ **LƯU Ý:** Một khi đã chọn phe, khế ước sẽ được phong ấn vĩnh viễn và bạn **không thể đổi phe**!`
+          `<a:trangtrig4:1546041273813827645> **LƯU Ý:** Một khi đã chọn phe, khế ước sẽ được phong ấn vĩnh viễn và bạn **không thể đổi phe**!`
         )
         .setFooter({
-          text: 'Nhấn vào nút bên dưới để chính thức ký kết khế ước • Em bot Usagi múp rụp 💕',
+          text: 'Nhấn vào nút bên dưới để chính thức ký kết khế ước',
         })
         .setTimestamp();
 

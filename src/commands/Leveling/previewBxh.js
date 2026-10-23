@@ -5,7 +5,6 @@ import {
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
 import { WitchHunterService } from '../../services/witchHunterService.js';
-import { getLeaderboard } from '../../services/leveling/leveling.js';
 import { logger } from '../../utils/logger.js';
 
 function isWitchHunterAdmin(interaction) {
@@ -55,8 +54,20 @@ export default {
       const botClient = client || interaction.client;
       const guildId = interaction.guildId;
 
-      // 2. Lấy dữ liệu Top 20 từ hệ thống Leveling (tổng hợp Chat XP + Voice Level)
-      const leaderboard = await getLeaderboard(botClient, guildId, 20);
+      // 2. TỐI ƯU RAM: Chỉ chạy khi Admin gõ lệnh (On-demand), không chạy ngầm
+      // Ưu tiên đọc trực tiếp từ Database (tránh fetch toàn bộ member máy chủ vào cache RAM)
+      let leaderboard = [];
+      try {
+        const { getLeaderboard: getDbLeaderboard } = await import('../../utils/database.js');
+        leaderboard = await getDbLeaderboard(botClient, guildId, 20);
+      } catch (e) {
+        // Fallback
+      }
+
+      if (!leaderboard || leaderboard.length === 0) {
+        const { getLeaderboard: getServiceLeaderboard } = await import('../../services/leveling/leveling.js');
+        leaderboard = await getServiceLeaderboard(botClient, guildId, 20);
+      }
 
       if (!leaderboard || leaderboard.length === 0) {
         return interaction.editReply({
