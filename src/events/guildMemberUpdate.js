@@ -27,6 +27,10 @@ import {
     logger,
 } from '../utils/logger.js';
 
+import {
+    WitchHunterService,
+} from '../services/witchHunterService.js';
+
 
 export default {
 
@@ -291,6 +295,15 @@ export default {
                     }
                 }
             }
+
+            /**
+             * =================================================
+             * WITCH HUNTER ROLES (CHỌN PHE & QUẢN LÝ ROLE THỦ CÔNG)
+             * =================================================
+             * Ghi nhận khi Admin cấp role hoặc xóa role thủ công qua Discord
+             * Đồng bộ dữ liệu Database, gửi DM riêng và thông báo nội bộ kênh Admin.
+             */
+            await WitchHunterService.handleGuildMemberRoleUpdate(oldMember, newMember);
 
         } catch (error) {
             logger.error(

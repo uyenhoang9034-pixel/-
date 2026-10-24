@@ -83,7 +83,7 @@ export default {
           `• **Bậc 3 (500 ${emojis.pumpkin}):** A-Rank Hunter | High Witch\n` +
           `• **Bậc 4 (3.000 ${emojis.pumpkin}):** S-Rank Hunter | Archwitch\n` +
           `• **Bậc 5 (10.000 ${emojis.pumpkin}):** SS-Rank Hunter | Great Witch\n\n` +
-          `<a:trangtrig4:1546041273813827645> **LƯU Ý:** Một khi đã chọn phe, khế ước sẽ được phong ấn vĩnh viễn và bạn **không thể đổi phe**!`
+          `<a:trangtrig4:1546041273813827645> **LƯU Ý:** Một khi đã chọn phe, thành viên không thể tự ý đổi phe (Admin sở hữu role đặc quyền có thể đổi phe). Ban Quản Trị có toàn quyền cấp hoặc thu hồi role phe thủ công khi cần thiết!`
         )
         .setFooter({
           text: 'Nhấn vào nút bên dưới để chính thức ký kết khế ước',

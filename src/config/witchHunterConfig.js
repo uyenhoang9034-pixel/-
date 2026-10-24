@@ -16,6 +16,8 @@ export const WITCH_HUNTER_CONFIG = {
     announcementChannelId: process.env.WITCH_HUNTER_ANNOUNCEMENT_CHANNEL_ID || '1563069218214121513',
     // Kênh báo cáo hoạt động hằng ngày bí mật cho Admin
     dailyReportChannelId: process.env.WITCH_HUNTER_DAILY_REPORT_CHANNEL_ID || '1563168363541176351',
+    // Kênh thông báo nội bộ cho Admin khi có người pick role, cấp role thủ công, xóa role thủ công
+    adminLogChannelId: process.env.WITCH_HUNTER_ADMIN_LOG_CHANNEL_ID || '1563382678378643487',
   },
 
   // Danh mục Emojis động độc quyền của Server
@@ -114,4 +116,59 @@ export const WITCH_HUNTER_CONFIG = {
   },
 };
 
+/**
+ * Tra cứu thông tin phe và bậc rank từ Role ID
+ * @param {string} roleId
+ * @returns {{ faction: 'hunter' | 'witch', factionName: string, rank: number, name: string, title: string, emoji: string, roleId: string } | null}
+ */
+export function getWitchHunterRoleInfo(roleId) {
+  if (!roleId) return null;
+
+  for (const [rankStr, id] of Object.entries(WITCH_HUNTER_CONFIG.roles.hunter)) {
+    if (id === roleId) {
+      const rankNum = Number(rankStr);
+      const rankObj = WITCH_HUNTER_CONFIG.ranks.hunter.find((r) => r.rank === rankNum);
+      return {
+        faction: 'hunter',
+        factionName: 'Hiệp Hội Thợ Săn (W.H. Association)',
+        rank: rankNum,
+        name: rankObj?.name || `Cấp ${rankNum}`,
+        title: rankObj?.title || 'Thợ Săn',
+        emoji: WITCH_HUNTER_CONFIG.emojis.hunterBadge,
+        roleId,
+      };
+    }
+  }
+
+  for (const [rankStr, id] of Object.entries(WITCH_HUNTER_CONFIG.roles.witch)) {
+    if (id === roleId) {
+      const rankNum = Number(rankStr);
+      const rankObj = WITCH_HUNTER_CONFIG.ranks.witch.find((r) => r.rank === rankNum);
+      return {
+        faction: 'witch',
+        factionName: 'Hội Phù Thủy (Witches)',
+        rank: rankNum,
+        name: rankObj?.name || `Cấp ${rankNum}`,
+        title: rankObj?.title || 'Phù Thủy',
+        emoji: WITCH_HUNTER_CONFIG.emojis.witchBadge,
+        roleId,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Lấy toàn bộ danh sách Role IDs của cả 2 phe
+ * @returns {Set<string>}
+ */
+export function getAllWitchHunterRoleIds() {
+  const set = new Set();
+  Object.values(WITCH_HUNTER_CONFIG.roles.hunter).forEach((id) => id && set.add(id));
+  Object.values(WITCH_HUNTER_CONFIG.roles.witch).forEach((id) => id && set.add(id));
+  return set;
+}
+
 export default WITCH_HUNTER_CONFIG;
+
