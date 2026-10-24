@@ -177,18 +177,22 @@ class WitchHunterQuestStorage {
   seedQuestions() {
     if (!this.isSqlite || !this.sqliteDb) return;
     try {
-      const countStmt = this.sqliteDb.prepare('SELECT COUNT(*) as count FROM puzzle_questions');
-      const row = countStmt.get();
-      if (!row || row.count === 0) {
-        if (Array.isArray(this.memoryData.questions) && this.memoryData.questions.length > 0) {
-          const insertStmt = this.sqliteDb.prepare(`
-            INSERT INTO puzzle_questions (question, option_a, option_b, option_c, option_d, correct_option)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `);
-          for (const q of this.memoryData.questions) {
+      if (Array.isArray(this.memoryData.questions) && this.memoryData.questions.length > 0) {
+        const checkStmt = this.sqliteDb.prepare('SELECT id FROM puzzle_questions WHERE question = ?');
+        const insertStmt = this.sqliteDb.prepare(`
+          INSERT INTO puzzle_questions (question, option_a, option_b, option_c, option_d, correct_option)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `);
+        let inserted = 0;
+        for (const q of this.memoryData.questions) {
+          const exists = checkStmt.get(q.question);
+          if (!exists) {
             insertStmt.run(q.question, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option);
+            inserted++;
           }
-          logger.info(`🔮 [WitchHunterQuest] Đã seed ${this.memoryData.questions.length} câu hỏi vào SQLite.`);
+        }
+        if (inserted > 0) {
+          logger.info(`🔮 [WitchHunterQuest] Đã nạp thêm ${inserted} câu hỏi mới vào SQLite.`);
         }
       }
     } catch (err) {

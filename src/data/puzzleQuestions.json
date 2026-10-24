@@ -88,5 +88,95 @@
     "option_c": "Giác ngộ chân lý",
     "option_d": "Bị ma ám thật sự",
     "correct_option": "B"
+  },
+  {
+    "id": 11,
+    "question": "Trong các thực thể sau, sinh vật nào ký kết bảo hộ thông qua khế ước danh dự hoặc huyết mạch tự nguyện thay vì bị cưỡng chế hay sinh từ oán niệm?",
+    "option_a": "Zodiac - Đao Phủ Răng Cưa",
+    "option_b": "Bastion - Trấn Ngục Pháo Đài",
+    "option_c": "Corvus - Dạ Quạ Điềm Gở",
+    "option_d": "Malice - Hắc Thỏ Gỗ",
+    "correct_option": "C"
+  },
+  {
+    "id": 12,
+    "question": "Đoản Đao Răng Bạc (Silver Fang Dagger) mang nguồn năng lượng nào để triệt tiêu bùa chú khi cận chiến?",
+    "option_a": "Băng Hàn & Thanh Tẩy",
+    "option_b": "Kim Cơ & Xung Chấn",
+    "option_c": "Thứ Nguyên & Không Gian",
+    "option_d": "Địa Thạch & Tán Xạ",
+    "correct_option": "A"
+  },
+  {
+    "id": 13,
+    "question": "Pháp bảo Kitsune Fox-Lantern (Đèn Lồng Ảo Ảnh) của Tamamo giải phóng hiện tượng gì trên chiến trường?",
+    "option_a": "Phun ra đạn bạc nén áp suất hơi nước",
+    "option_b": "Tỏa khói đỏ mang điện tích mê hoặc bóp méo thị giác và phương hướng",
+    "option_c": "Phóng tơ kim loại đen đâm xuyên khớp xương",
+    "option_d": "Triệu hồi hố sụp thứ nguyên nghiền nát vật cản",
+    "correct_option": "B"
+  },
+  {
+    "id": 14,
+    "question": "Khi phù thủy cạn kiệt ma lực hoặc cận kề cái chết, thần điểu Vermilion (Xích Điểu Bất Tử) sẽ kích hoạt năng lực gì?",
+    "option_a": "Bắn ra hàng vạn mũi kim độc rỉ sét",
+    "option_b": "Mở rương xích nuốt chửng kẻ thù vào hư không",
+    "option_c": "Tự thiêu đốt để truyền sinh mệnh hồi sinh chủ nhân rồi thu nhỏ thành trứng ma thạch",
+    "option_d": "Đóng băng toàn bộ không gian xung quanh trong 3 giây",
+    "correct_option": "C"
+  },
+  {
+    "id": 15,
+    "question": "Lưỡi Cưa Cơ Giới (Clockwork Saw-Blade) của thợ săn vận hành bằng cơ chế nào sau đây?",
+    "option_a": "Kết tinh từ lông vũ thủy tinh đen",
+    "option_b": "Nối trực tiếp với trục bánh răng và cót lưng của Zodiac qua áp suất hơi nước",
+    "option_c": "Rút ra từ đầu bí ngô ma hỏa",
+    "option_d": "Dệt từ các sợi chỉ gai tẩm độc rỉ sét",
+    "correct_option": "B"
+  },
+  {
+    "id": 16,
+    "question": "Cây nỏ cơ học Chrono-Crossbow (Nỏ Máy Tiên Tri) có khả năng can thiệp vào yếu tố nào trước khi bóp cò?",
+    "option_a": "Hút cạn tuổi thọ của người bắn",
+    "option_b": "Biến mục tiêu thành hình nhân gỗ",
+    "option_c": "Khóa trước tọa độ và điểm rơi tương lai của mục tiêu trước 3 giây",
+    "option_d": "Đổi vị trí giữa người bắn và mục tiêu",
+    "correct_option": "C"
+  },
+  {
+    "id": 17,
+    "question": "Supporter nào dưới đây thuộc nhóm Cấm Khí – khí tài cơ giới cổ đại do con người rèn đúc để cưỡng chế ma lực?",
+    "option_a": "Abyssus - Hư Không Ma Khố",
+    "option_b": "Tamamo - Huyễn Hồ Huyết Vực",
+    "option_c": "Hallow - Vua Đầu Lửa",
+    "option_d": "Garmr - Ngân Khuyển",
+    "correct_option": "A"
+  },
+  {
+    "id": 18,
+    "question": "Điểm dị thường của lưỡi dao Raven Glass Blade (Dao Găm Lông Quạ) khi vung chém là gì?",
+    "option_a": "Phát ra tiếng sấm sét đinh tai",
+    "option_b": "Rực sáng ngọn lửa xanh ma hỏa",
+    "option_c": "Mỏng như lá lúa, không phản chiếu ánh sáng và không tạo tiếng rẽ gió",
+    "option_d": "Tự động phóng to gấp mười lần kích thước ban đầu",
+    "correct_option": "C"
+  },
+  {
+    "id": 19,
+    "question": "Cây kim Soul-Stitch Needle (Hắc Châm Khâu Hồn) của Malice được rút ra từ vị trí nào?",
+    "option_a": "Đường chỉ may sau gáy con thỏ gai nhồi bông",
+    "option_b": "Đỉnh lồng đèn bí ngô rực lửa",
+    "option_c": "Ổ đạn của khẩu ma pháo không gian",
+    "option_d": "Cành gỗ mục dưới đáy giếng cổ",
+    "correct_option": "A"
+  },
+  {
+    "id": 20,
+    "question": "Vũ khí tối thượng ở mốc 10.000 Bí Ngô của Hội Phù Thủy mang tên gọi và thuộc tính nào?",
+    "option_a": "Aegis Heavy Tower — Địa Thạch & Tinh Thể",
+    "option_b": "Dimension Breaker — Thứ Nguyên & Không Gian",
+    "option_c": "Soul-Harvest Scythe — Ma Hỏa & Đoạt Hồn",
+    "option_d": "Cinder Cane — Tàn Hỏa & Trùng Sinh",
+    "correct_option": "C"
   }
 ]
