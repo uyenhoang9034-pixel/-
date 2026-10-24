@@ -3,7 +3,7 @@ import {
   MessageFlags,
   SlashCommandBuilder,
 } from 'discord.js';
-import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
+import { WITCH_HUNTER_CONFIG, formatRankEmoji } from '../../config/witchHunterConfig.js';
 import { WitchHunterService } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
@@ -147,7 +147,7 @@ export default {
               : `*(Chưa chọn phe)*`;
 
             return (
-              `**#${rank}.** <@${item.userId}> ${factionTag}\n` +
+              `${formatRankEmoji(rank)} <@${item.userId}> ${factionTag}\n` +
               `> ⭐ **+${item.totalLevels} Cấp Ma Thuật Tháng**\n` +
               `> 🎙️ Voice: \`${(item.voiceMinutes || 0).toLocaleString('vi-VN')}p\` (+${item.voiceLevels || 0}) • 💬 Chat: \`${(item.messageCount || 0).toLocaleString('vi-VN')} tin\` (+${item.chatLevels || 0})`
             );
@@ -185,17 +185,17 @@ export default {
         )
         .addFields(
           {
-            name: `🏆 TOP 1 - 3 (+100 Bí Ngô ${emojis.pumpkin}):`,
+            name: `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 (+100 Bí Ngô ${emojis.pumpkin}):**`,
             value: top1_3Formatted,
             inline: false,
           },
           {
-            name: `⚔️ TOP 4 - 10 (+50 Bí Ngô ${emojis.pumpkin}):`,
+            name: `⚔️ **TOP 4 - 10 (+50 Bí Ngô ${emojis.pumpkin}):**`,
             value: top4_10Formatted,
             inline: false,
           },
           {
-            name: `🔮 TOP 11 - 20 (+25 Bí Ngô ${emojis.pumpkin}):`,
+            name: `🔮 **TOP 11 - 20 (+25 Bí Ngô ${emojis.pumpkin}):**`,
             value: top11_20Formatted,
             inline: false,
           }

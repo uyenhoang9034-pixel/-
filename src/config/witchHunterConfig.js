@@ -53,6 +53,19 @@ export const WITCH_HUNTER_CONFIG = {
     decor47: '<a:trangtrig47:1547249293944029308>',
     decor46: '<a:trangtrig46:1547240249761996812>',
     bang2: '<a:bang2:1546891483250954290>',
+    // Animated number emojis for BXH (0-9)
+    rankDigits: {
+      '0': '<a:0_:1563547154507767890>',
+      '1': '<a:1_:1563484001765949550>',
+      '2': '<a:2_:1563484061111156828>',
+      '3': '<a:3_:1563484342779388045>',
+      '4': '<a:4_:1563484724725424209>',
+      '5': '<a:5_:1563484794623365151>',
+      '6': '<a:6_:1563546730979663982>',
+      '7': '<a:7_:1563546852928913440>',
+      '8': '<a:8_:1563546943471226930>',
+      '9': '<a:9_:1563547068948156478>',
+    },
   },
 
   // Mapping Role ID cho 10 Cấp Bậc (5 bậc Thợ Săn & 5 bậc Phù Thủy)
@@ -567,6 +580,22 @@ export function getWeaponById(weaponId) {
 export function getWeaponByRank(faction, rank) {
   if (!faction || !rank) return null;
   return WITCH_HUNTER_CONFIG.weapons.list.find((w) => w.faction === faction && w.rank === Number(rank)) || null;
+}
+
+export const RANK_DIGIT_EMOJIS = WITCH_HUNTER_CONFIG.emojis.rankDigits;
+
+/**
+ * Chuyển đổi số thứ hạng (rank) sang chuỗi emoji số động.
+ * Ví dụ: 1 -> <a:1_:...>, 10 -> <a:1_:...><a:0_:...>
+ * @param {number|string} rank
+ * @returns {string}
+ */
+export function formatRankEmoji(rank) {
+  if (rank === null || rank === undefined) return '';
+  return String(rank)
+    .split('')
+    .map((digit) => RANK_DIGIT_EMOJIS[digit] || digit)
+    .join('');
 }
 
 export default WITCH_HUNTER_CONFIG;

@@ -3,7 +3,7 @@ import {
   MessageFlags,
   SlashCommandBuilder,
 } from 'discord.js';
-import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
+import { WITCH_HUNTER_CONFIG, formatRankEmoji } from '../../config/witchHunterConfig.js';
 import { WitchHunterService } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
@@ -127,32 +127,33 @@ export default {
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         );
 
-      const formatUserList = (items) => {
+      const formatUserList = (items, startRank = 1) => {
         if (!items || items.length === 0) return '*Không có thành viên*';
         return items
           .map((item, idx) => {
+            const rank = startRank + idx;
             const factionTag = item.faction
               ? item.faction === 'hunter'
                 ? `[⚔️ Thợ Săn]`
                 : `[🔮 Phù Thủy]`
               : `*(Chưa chọn phe)*`;
-            return `**#${idx + 1}.** <@${item.userId}> ${factionTag} • Tổng: **${item.pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}`;
+            return `${formatRankEmoji(rank)} <@${item.userId}> ${factionTag} • Tổng: **${item.pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}`;
           })
           .join('\n');
       };
 
       // Top 1 - 3 (+100 Bí Ngô)
       embed.addFields({
-        name: `🏆 TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):`,
-        value: formatUserList(results.top1_3),
+        name: `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**`,
+        value: formatUserList(results.top1_3, 1),
         inline: false,
       });
 
       // Top 4 - 10 (+50 Bí Ngô)
       if (results.top4_10.length > 0) {
         embed.addFields({
-          name: `⚔️ TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):`,
-          value: formatUserList(results.top4_10),
+          name: `⚔️ **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**`,
+          value: formatUserList(results.top4_10, 4),
           inline: false,
         });
       }
@@ -160,8 +161,8 @@ export default {
       // Top 11 - 20 (+25 Bí Ngô)
       if (results.top11_20.length > 0) {
         embed.addFields({
-          name: `🔮 TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):`,
-          value: formatUserList(results.top11_20),
+          name: `🔮 **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**`,
+          value: formatUserList(results.top11_20, 11),
           inline: false,
         });
       }

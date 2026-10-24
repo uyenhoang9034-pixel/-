@@ -2,7 +2,7 @@ import {
   EmbedBuilder,
   SlashCommandBuilder,
 } from 'discord.js';
-import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
+import { WITCH_HUNTER_CONFIG, formatRankEmoji } from '../../config/witchHunterConfig.js';
 import { WitchHunterService } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
@@ -54,12 +54,12 @@ export default {
 
       if (topMembers.length === 0) {
         embed.addFields({
-          name: '🏆 DANH SÁCH BẢNG XẾP HẠNG:',
+          name: `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **DANH SÁCH BẢNG XẾP HẠNG:**`,
           value: '*Hiện tại chưa có thành viên nào có điểm Bí Ngô.*',
         });
       } else {
         const lines = topMembers.map((item, index) => {
-          const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `**#${index + 1}.**`;
+          const medal = formatRankEmoji(index + 1);
           const factionTag = item.faction
             ? item.faction === 'hunter'
               ? `[${emojis.hunterButton} Thợ Săn]`
@@ -75,7 +75,7 @@ export default {
         });
 
         embed.addFields({
-          name: `🏆 TOP ${topMembers.length} THÀNH VIÊN XUẤT SẮC NHẤT:`,
+          name: `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP ${topMembers.length} THÀNH VIÊN XUẤT SẮC NHẤT:**`,
           value: lines.join('\n\n'),
         });
       }
