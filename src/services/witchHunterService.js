@@ -602,6 +602,97 @@ export class WitchHunterService {
   }
 
   /**
+   * Tạo Embed thông báo nội bộ cho Admin khi có lượt phát Bí Ngô
+   */
+  static buildAwardPumpkinsAdminLogEmbed(member, amount, oldPumpkins, newPumpkins, isRankUp, newRank, rankInfo, reason, executor, source, faction) {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const isWitch = faction === 'witch';
+    const isHunter = faction === 'hunter';
+    let factionDisplay = '*Chưa ký khế ước (Tích lũy hồ sơ)*';
+    if (isWitch) factionDisplay = `${emojis.witchBadge} Hội Phù Thủy (Witches)`;
+    if (isHunter) factionDisplay = `${emojis.hunterBadge} Hiệp Hội Thợ Săn (W.H. Association)`;
+
+    const embed = new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 𝓝𝓸̣̂𝓲 𝓑𝓸̣̂: 𝓟𝓱𝓪́𝓽 𝓑𝓲́ 𝓝𝓰𝓸̂ ${emojis.titleRight}`)
+      .setDescription(`Hệ thống ghi nhận lượt ban thưởng Bí Ngô cho thành viên!`)
+      .addFields(
+        {
+          name: '👤 Người Nhận:',
+          value: `<@${member.id}> (\`${member.user?.tag || member.id}\` | ID: \`${member.id}\`)`,
+          inline: true,
+        },
+        {
+          name: '👑 Người Ban Thưởng:',
+          value: executor ? `<@${executor.id}> (\`${executor.tag || executor.id}\`)` : 'Ban Quản Trị / Hệ Thống',
+          inline: true,
+        },
+        {
+          name: `${emojis.pumpkin} Số Lượng Thưởng:`,
+          value: `**+${amount.toLocaleString('vi-VN')}** ${emojis.pumpkin}`,
+          inline: true,
+        },
+        {
+          name: '📊 Biến Động Số Dư:',
+          value: `${oldPumpkins.toLocaleString('vi-VN')} ➡️ **${newPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}`,
+          inline: true,
+        },
+        {
+          name: '⚔️ Phe Phái & Cấp Bậc:',
+          value: `${factionDisplay}\n${faction ? `**${rankInfo?.name || `Bậc ${newRank}`}** *(Bậc ${newRank})*` : '*Chưa phân định*'}`,
+          inline: true,
+        },
+        {
+          name: '📜 Nguồn / Lý Do:',
+          value: `**${reason || 'Ban thưởng trực tiếp'}**\n*(Nguồn: ${source || 'Lệnh Admin'})*`,
+          inline: true,
+        }
+      )
+      .setFooter({ text: 'Witch Hunter Admin System • Em bot Usagi múp rụp 💕' })
+      .setTimestamp();
+
+    if (isRankUp && rankInfo) {
+      embed.addFields({
+        name: '🎉 Đột Phá Cấp Bậc:',
+        value: `Thành viên đã tích lũy đủ điểm và thăng cấp lên **${rankInfo.name}** (Role: <@&${rankInfo.roleId}>)!`,
+        inline: false,
+      });
+    }
+
+    return embed;
+  }
+
+  /**
+   * Tạo Embed gửi tin nhắn riêng (DM) cho người được phát Bí Ngô
+   */
+  static buildAwardPumpkinsDM(user, amount, newPumpkins, isRankUp, rankInfo, quote, reason, executor) {
+    const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
+
+    let rankUpNotice = '';
+    if (isRankUp && rankInfo) {
+      rankUpNotice =
+        `\n\n${emojis.rankUp || '🎉'} **CHÚC MỪNG BẠN ĐÃ ĐỘT PHÁ CẤP BẬC MỚI:**\n` +
+        `Chiến công Bí Ngô của bạn đã chạm mốc danh vị **${rankInfo.name}**!\n` +
+        `Danh hiệu và Role mới đã được kích hoạt trực tiếp trên server.\n` +
+        (quote ? `> *${quote}*\n` : '');
+    }
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple) // Màu tím pastel nhạt nhạt cố định
+      .setTitle(`${emojis.titleLeft} 𝓑𝓪𝓷 𝓣𝓱𝓾̛𝓸̛̉𝓷𝓰 𝓑𝓲́ 𝓝𝓰𝓸̂ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setDescription(
+        `Chào bạn **${user.username}** thân mến! Em bot Usagi múp rụp mang tin vui tới cho bạn nè! ${emojis.heart || '💕'}\n\n` +
+        `Bạn vừa nhận được **+${amount.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} được ban thưởng từ ${executor ? `<@${executor.id}>` : 'Ban Quản Trị'}!\n` +
+        (reason ? `> 📝 **Lý do / Nhiệm vụ:** ${reason}\n\n` : '\n') +
+        `📊 **Tổng Bí Ngô tích lũy hiện tại:** **${newPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+        `Số Bí Ngô này sẽ được bảo lưu vĩnh viễn và là hành trang quý giá cho các nhiệm vụ, sự kiện đua top và nâng cấp danh vị ma thuật về sau!` +
+        rankUpNotice
+      )
+      .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+      .setTimestamp();
+  }
+
+  /**
    * Đăng ký gia nhập phe phái (Hỗ trợ Admin role 1541303749916754001 được đổi role)
    */
   static async joinFaction(guild, member, chosenFaction) {
@@ -693,6 +784,130 @@ export class WitchHunterService {
       rank: calculatedRank,
       pumpkins: currentPumpkins,
       roleSyncResult,
+    };
+  }
+
+  /**
+   * Ban thưởng Bí Ngô cho thành viên hoặc Admin (Hỗ trợ từ lệnh Admin hoặc các module nhiệm vụ về sau)
+   * Tự động cộng dồn, kiểm tra điều kiện thăng cấp và cập nhật Role nếu đủ điểm.
+   * 
+   * @param {import('discord.js').Guild} guild 
+   * @param {string|import('discord.js').GuildMember} memberOrId 
+   * @param {number} amount 
+   * @param {object} options 
+   */
+  static async awardPumpkins(guild, memberOrId, amount, options = {}) {
+    const {
+      reason = 'Ban thưởng trực tiếp từ Admin',
+      executor = null,
+      source = 'Lệnh /phat-bi-ngo',
+      notifyDM = true,
+      notifyAdminLog = true,
+    } = options;
+
+    const numAmount = parseInt(amount, 10);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return {
+        success: false,
+        reason: 'INVALID_AMOUNT',
+        message: 'Số lượng Bí Ngô ban thưởng phải là một số nguyên dương lớn hơn 0!',
+      };
+    }
+
+    const userId = typeof memberOrId === 'string' ? memberOrId : memberOrId.id;
+    let member = typeof memberOrId === 'object' && memberOrId?.roles ? memberOrId : null;
+    if (!member && guild) {
+      member = await guild.members.fetch({ user: userId, cache: false }).catch(() => null);
+    }
+
+    let userData = witchHunterStorage.getUser(userId);
+    const oldPumpkins = userData?.pumpkins || 0;
+    const oldRank = userData?.current_rank || 1;
+    const newPumpkins = oldPumpkins + numAmount;
+    const hasFaction = Boolean(userData?.faction);
+
+    let isRankUp = false;
+    let newRank = oldRank;
+    let rankInfo = null;
+    let quote = null;
+
+    if (!userData) {
+      userData = {
+        user_id: userId,
+        faction: null,
+        current_rank: 1,
+        pumpkins: newPumpkins,
+      };
+    } else {
+      userData.pumpkins = newPumpkins;
+    }
+
+    // Nếu người dùng ĐÃ CÓ PHE => Tính toán tự động thăng cấp nếu đủ điểm
+    if (hasFaction) {
+      newRank = this.calculateRank(newPumpkins);
+      userData.current_rank = newRank;
+
+      if (newRank > oldRank) {
+        isRankUp = true;
+        rankInfo = this.getRankInfo(userData.faction, newRank);
+        quote = this.getRankUpQuote(userId, userData.faction, newRank, rankInfo.name);
+
+        // Tự động cấp role bậc mới và gỡ role bậc cũ
+        if (guild) {
+          await this.syncRankRole(guild, member || userId, newRank, userData.faction);
+        }
+      } else {
+        rankInfo = this.getRankInfo(userData.faction, oldRank);
+      }
+    }
+
+    // Lưu ngay lập tức vào database
+    witchHunterStorage.saveUser(userData, true);
+
+    // Gửi tin nhắn riêng (DM) cho người nhận
+    if (notifyDM) {
+      try {
+        const userObj = member?.user || (guild?.client ? await guild.client.users.fetch(userId, { cache: false }).catch(() => null) : null);
+        if (userObj) {
+          const dmEmbed = this.buildAwardPumpkinsDM(userObj, numAmount, newPumpkins, isRankUp, rankInfo, quote, reason, executor);
+          await userObj.send({ embeds: [dmEmbed] }).catch(() => null);
+        }
+      } catch {}
+    }
+
+    // Gửi thông báo nội bộ cho Admin vào kênh 1563382678378643487
+    if (notifyAdminLog && guild) {
+      try {
+        const logEmbed = this.buildAwardPumpkinsAdminLogEmbed(
+          member || { id: userId, user: { tag: userId } },
+          numAmount,
+          oldPumpkins,
+          newPumpkins,
+          isRankUp,
+          newRank,
+          rankInfo,
+          reason,
+          executor,
+          source,
+          userData.faction
+        );
+        await this.sendAdminLog(guild, logEmbed);
+      } catch {}
+    }
+
+    return {
+      success: true,
+      userId,
+      amount: numAmount,
+      oldPumpkins,
+      newPumpkins,
+      oldRank,
+      newRank,
+      isRankUp,
+      rankInfo,
+      quote,
+      faction: userData.faction,
+      userData,
     };
   }
 
