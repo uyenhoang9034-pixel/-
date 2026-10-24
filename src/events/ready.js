@@ -31,6 +31,10 @@ import {
   initRiffyAfterReady,
 } from '../services/music/riffySetup.js';
 
+import {
+  WitchHunterService,
+} from '../services/witchHunterService.js';
+
 export default {
   name:
     Events.ClientReady,
@@ -155,6 +159,17 @@ export default {
       startupLog(
         `Level role sync: scanned ${levelRoleSummary.scannedGuilds} guilds, pruned ${levelRoleSummary.prunedRewardEntries} stale rewards, re-awarded ${levelRoleSummary.rolesReAwarded} roles, errors ${levelRoleSummary.errors}`,
       );
+
+      /**
+       * =====================================================
+       * WITCH HUNTER: GỬI BÙ SUPPORTER BẬC 1 CHO MEMBER CŨ
+       * =====================================================
+       */
+      for (const guild of client.guilds.cache.values()) {
+        WitchHunterService.syncInitialRank1Supporters(guild).catch((err) => {
+          logger.warn(`⚠️ [WitchHunter] Không thể chạy syncInitialRank1Supporters cho guild ${guild.id}:`, err.message);
+        });
+      }
     } catch (
       error
     ) {

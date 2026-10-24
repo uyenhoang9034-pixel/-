@@ -1,11 +1,19 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { AuditLogEvent, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import {
+  AuditLogEvent,
+  EmbedBuilder,
+  PermissionFlagsBits,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+} from 'discord.js';
 import {
   WITCH_HUNTER_CONFIG,
   getWitchHunterRoleInfo,
   getAllWitchHunterRoleIds,
+  getSupporterById,
+  getSupporterByRank,
 } from '../config/witchHunterConfig.js';
 import { logger } from '../utils/logger.js';
 
@@ -111,11 +119,16 @@ class WitchHunterStorage {
         const stmt = this.sqliteDb.prepare('SELECT * FROM witch_hunter_members WHERE user_id = ?');
         const row = stmt.get(userId);
         if (row) {
+          let unlockedSupporters = [];
+          try {
+            unlockedSupporters = row.unlocked_supporters ? JSON.parse(row.unlocked_supporters) : [];
+          } catch {}
           const userObj = {
             user_id: row.user_id,
             faction: row.faction,
             current_rank: Number(row.current_rank) || 1,
             pumpkins: Number(row.pumpkins) || 0,
+            unlocked_supporters: Array.isArray(unlockedSupporters) ? unlockedSupporters : [],
             updated_at: Number(row.updated_at) || Date.now(),
           };
           this.memoryCache.set(userId, userObj);
@@ -150,6 +163,7 @@ class WitchHunterStorage {
 
   saveUser(userObj, immediate = false) {
     userObj.updated_at = Date.now();
+    userObj.unlocked_supporters = Array.isArray(userObj.unlocked_supporters) ? userObj.unlocked_supporters : [];
     this.memoryCache.set(userObj.user_id, userObj);
 
     if (this.isSqlite && this.sqliteDb) {
@@ -773,6 +787,9 @@ export class WitchHunterService {
     // Đồng bộ Role bậc 1 (hoặc bậc tương ứng nếu đã tích lũy điểm từ trước)
     const roleSyncResult = await this.syncRankRole(guild, member, calculatedRank, chosenFaction);
 
+    // Gửi DM thông báo trao Supporter Bậc 1 khởi đầu (hoặc thức tỉnh nếu bậc cao hơn)
+    await this.notifySupporterUnlock(guild.client, userId, chosenFaction, calculatedRank, calculatedRank === 1);
+
     // Gửi thông báo nội bộ cho Admin vào kênh 1563382678378643487
     const adminLogEmbed = this.buildFactionJoinAdminLogEmbed(member, chosenFaction, calculatedRank, currentPumpkins, 'Tự ký khế ước (Selection Button)');
     await this.sendAdminLog(guild, adminLogEmbed);
@@ -873,6 +890,11 @@ export class WitchHunterService {
           await userObj.send({ embeds: [dmEmbed] }).catch(() => null);
         }
       } catch {}
+    }
+
+    // Nếu có thăng cấp (Rank Up), tự động gửi DM mở khóa Supporter mới thức tỉnh
+    if (isRankUp && userData.faction && guild?.client) {
+      await this.notifySupporterUnlock(guild.client, userId, userData.faction, newRank, false);
     }
 
     // Gửi thông báo nội bộ cho Admin vào kênh 1563382678378643487
@@ -1078,6 +1100,9 @@ export class WitchHunterService {
               await this.syncRankRole(guild, userId, newRank, userData.faction);
 
               const quote = this.getRankUpQuote(userId, userData.faction, newRank, rankInfo.name);
+
+              // Tự động gửi DM thức tỉnh Supporter bậc mới
+              await this.notifySupporterUnlock(client, userId, userData.faction, newRank, false);
 
               results.rankUps.push({
                 userId,
@@ -1300,6 +1325,9 @@ export class WitchHunterService {
           await newMember.send({ embeds: [dmEmbed] }).catch(() => null);
         } catch {}
 
+        // Tự động gửi DM trao/thức tỉnh Supporter tương ứng bậc vừa được cấp
+        await this.notifySupporterUnlock(guild.client, newMember.id, roleInfo.faction, roleInfo.rank, roleInfo.rank === 1);
+
         // Gửi thông báo nội bộ cho Admin vào kênh 1563382678378643487
         const adminEmbed = this.buildManualRoleAddAdminLogEmbed(newMember, roleInfo, executor);
         await this.sendAdminLog(guild, adminEmbed);
@@ -1307,6 +1335,282 @@ export class WitchHunterService {
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi khi xử lý handleGuildMemberRoleUpdate:', error);
     }
+  }
+
+  /**
+   * Tạo Embed trang tổng quan danh sách Supporter thế giới Witch Hunter
+   */
+  static buildSupporterOverviewEmbed() {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple) // Màu Tím Pastel #D8B4F8
+      .setTitle(`${emojis.titleLeft} 𝓦𝓲𝓽𝓬𝓱 𝓗𝓾𝓷𝓽𝓮𝓻: 𝓓𝓪𝓷𝓱 𝓢𝓪́𝓬𝓱 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 ${emojis.titleRight}`)
+      .setDescription(
+        `Trong thế giới Witch Hunter, mỗi Thợ Săn hay Phù Thủy khi đạt đến từng cảnh giới ma lực nhất định sẽ có thể ký khế ước để kết giao hoặc điều khiển một Supporter (Trợ thủ phò tá) riêng biệt.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${emojis.decor41 || '<a:trangtrig41:1547238037832863744>'} 3 ĐẠI HỆ BẢN CHẤT SUPPORTER:\n` +
+        `• ${emojis.nguyenthe || '<a:nguyentheg:1563399515732443177>'} Hệ Nguyền Thể (Cursed Entity): Thực thể sinh ra từ oán niệm, xác thịt bị nguyền rủa hoặc linh hồn bị phong ấn vào vật thể.\n` +
+        `• ${emojis.camkhi || '<a:camkhig:1563399321125134346>'} Hệ Cấm Khí (Forbidden Relic): Ma cụ, cơ quan cổ đại hoặc thiết bị không gian do con người rèn tạo để cưỡng chế ma lực.\n` +
+        `• ${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} Hệ Linh Tộc (Primordial Beast): Sinh vật thượng cổ có tri giác độc lập, chỉ liên kết qua khế ước danh dự hoặc máu tương thích.\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn một Supporter trong danh sách bên dưới để tra cứu chi tiết hình dạng và khế ước chiến đấu nha lữ khách!`
+      )
+      .setFooter({ text: 'Witch Hunter Archive' });
+  }
+
+  /**
+   * Tạo Embed chi tiết từng Supporter khi chọn từ menu
+   */
+  static buildSupporterDetailEmbed(supporter) {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const cat = WITCH_HUNTER_CONFIG.supporters.categories[supporter.categoryKey];
+    const catEmoji = cat?.emoji || emojis.sparkles;
+    const isWitch = supporter.faction === 'witch';
+    const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻: ${supporter.titleFancy} ${emojis.titleRight}`)
+      .setDescription(
+        `${factionBadge} **${supporter.factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${supporter.rankName}**\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${catEmoji} **SUPPORTER: ${supporter.fullName}**\n` +
+        `${catEmoji} ${cat?.name || 'Đại Hệ'}\n` +
+        `> ${cat?.desc || ''}\n\n` +
+        `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **HÌNH DÁNG ĐẶC TRƯNG:**\n` +
+        `${supporter.appearance}\n\n` +
+        `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **NGUỒN GỐC & KHẾ ƯỚC CHIẾN ĐẤU:**\n` +
+        `${supporter.lore}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn Supporter khác từ menu bên dưới để tiếp tục tra cứu khế ước nha lữ khách!`
+      )
+      .setFooter({ text: 'Witch Hunter Supporter' });
+  }
+
+  /**
+   * Tạo Embed gửi tin nhắn riêng (DM) mở khóa Supporter
+   * - Bậc 1: Dành cho tân binh vừa gia nhập
+   * - Bậc 2 trở lên: Dành cho Kẻ Mang Khế Ước khi thăng cấp
+   */
+  static buildSupporterUnlockDM(supporter, isInitialRank1 = false) {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const cat = WITCH_HUNTER_CONFIG.supporters.categories[supporter.categoryKey];
+    const catEmoji = cat?.emoji || emojis.sparkles;
+    const isWitch = supporter.faction === 'witch';
+    const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
+
+    if (isInitialRank1) {
+      // Bậc 1: Tân Binh
+      return new EmbedBuilder()
+        .setColor(colors.pastelPurple)
+        .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻: ${supporter.titleFancy} ${emojis.titleRight}`)
+        .setDescription(
+          `Chào **Tân Binh ${supporter.factionName}** thân mến! Em phù thủy nóng bỏng Usagi múp rụp gửi trao khế ước tới lữ khách nè!\n\n` +
+          `Hội Đồng Ma Thuật vừa hoàn tất nghi thức phong ấn Supporter thế giới **Witch Hunter**. Nhận thấy lữ khách đã mang trong mình danh hiệu **${supporter.rankName}**, Hội Đồng xin trân trọng trao gửi Supporter khởi đầu đồng hành cùng lữ khách:\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `${catEmoji} **SUPPORTER: ${supporter.fullName}**\n` +
+          `${catEmoji} ${cat?.name || 'Đại Hệ'}\n` +
+          `> ${cat?.desc || ''}\n\n` +
+          `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **HÌNH DÁNG ĐẶC TRƯNG:**\n` +
+          `${supporter.appearance}\n\n` +
+          `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **NGUỒN GỐC & KHẾ ƯỚC CHIẾN ĐẤU:**\n` +
+          `${supporter.lore}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `${emojis.heart || '<a:heartg1:1545307544808071258>'} Khế ước đã liên kết vào linh hồn lữ khách! Lữ khách có thể dùng lệnh \`/supporter\` bất cứ lúc nào để tra cứu danh sách toàn bộ Supporter của thế giới Witch Hunter nha!`
+        )
+        .setFooter({ text: 'Witch Hunter Supporter' });
+    }
+
+    // Bậc 2 trở lên: Kẻ Mang Khế Ước thức tỉnh Supporter mới
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻 𝓜𝓸̛́𝓲 𝓣𝓱𝓾̛́𝓬 𝓣𝓲̉𝓷𝓱 ${emojis.titleRight}`)
+      .setDescription(
+        `Chào **Kẻ Mang Khế Ước** thân mến! Em phù thủy nóng bỏng Usagi múp rụp mang tin vui chấn động tới cho **Kẻ Mang Khế Ước** nè!\n\n` +
+        `Lữ khách đã tích lũy đủ chiến công Bí Ngô và chính thức thăng cấp lên:\n` +
+        `> ${factionBadge} **${supporter.factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${supporter.rankName}**\n\n` +
+        `Khế ước cổ đại vừa rung chuyển dữ dội! Nhờ đạt đến ngưỡng ma lực mới, lữ khách đã chính thức mở khóa và nhận được sự phò tá của Supporter độc quyền:\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${catEmoji} **SUPPORTER: ${supporter.fullName}**\n` +
+        `${catEmoji} ${cat?.name || 'Đại Hệ'}\n` +
+        `> ${cat?.desc || ''}\n\n` +
+        `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **HÌNH DÁNG ĐẶC TRƯNG:**\n` +
+        `${supporter.appearance}\n\n` +
+        `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **NGUỒN GỐC & KHẾ ƯỚC CHIẾN ĐẤU:**\n` +
+        `${supporter.lore}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy mang theo Supporter này bên mình và tiếp tục tích lũy Bí Ngô để chinh phục các tầng danh vị tối cao tiếp theo nha!`
+      )
+      .setFooter({ text: 'Witch Hunter Supporter' });
+  }
+
+  /**
+   * Tự động gửi DM thông báo mở khóa Supporter cho thành viên
+   */
+  static async notifySupporterUnlock(client, userId, faction, rank, isInitialRank1 = false) {
+    try {
+      if (!client || !userId || !faction || !rank) return false;
+
+      const supporter = getSupporterByRank(faction, rank);
+      if (!supporter) return false;
+
+      let userData = witchHunterStorage.getUser(userId);
+      if (!userData) {
+        userData = { user_id: userId, faction, current_rank: rank, pumpkins: 0, unlocked_supporters: [] };
+      }
+      userData.unlocked_supporters = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
+
+      // Kiểm tra xem đã gửi DM cho bậc này chưa
+      const unlockKey = `${faction}:${rank}`;
+      if (userData.unlocked_supporters.includes(unlockKey)) {
+        return false;
+      }
+
+      // Fetch user và gửi DM
+      const discordUser = await client.users.fetch(userId, { cache: false }).catch(() => null);
+      if (!discordUser) return false;
+
+      const dmEmbed = this.buildSupporterUnlockDM(supporter, isInitialRank1);
+      await discordUser.send({ embeds: [dmEmbed] }).catch(() => {
+        logger.info(`ℹ️ [WitchHunter] Không thể gửi DM Supporter cho ${userId} (DM bị chặn/đóng).`);
+      });
+
+      // Đánh dấu đã nhận
+      userData.unlocked_supporters.push(unlockKey);
+      witchHunterStorage.saveUser(userData, true);
+      logger.info(`🔮 [WitchHunter] Đã gửi DM trao Supporter [${supporter.name}] cho thành viên ${userId}.`);
+      return true;
+    } catch (err) {
+      logger.error(`❌ [WitchHunter] Lỗi ngoại lệ trong notifySupporterUnlock cho ${userId}:`, err);
+      return false;
+    }
+  }
+
+  /**
+   * Quét và gửi bù thông báo Supporter Bậc 1 cho tất cả thành viên đã có Role Rank 1 trước đó
+   */
+  static async syncInitialRank1Supporters(guild) {
+    try {
+      if (!guild) return { syncedCount: 0 };
+
+      let syncedCount = 0;
+      const processedUserIds = new Set();
+
+      const hunterRank1RoleId = WITCH_HUNTER_CONFIG.roles.hunter[1];
+      const witchRank1RoleId = WITCH_HUNTER_CONFIG.roles.witch[1];
+
+      // 1. Quét trực tiếp các thành viên đang giữ Role Rank 1 Thợ Săn trên Discord
+      if (hunterRank1RoleId) {
+        const hunterRole = await guild.roles.fetch(hunterRank1RoleId).catch(() => null);
+        if (hunterRole) {
+          for (const [memberId, member] of hunterRole.members) {
+            if (member.user.bot) continue;
+            processedUserIds.add(memberId);
+            let userData = witchHunterStorage.getUser(memberId);
+            if (!userData) {
+              userData = { user_id: memberId, faction: 'hunter', current_rank: 1, pumpkins: 0, unlocked_supporters: [] };
+              witchHunterStorage.saveUser(userData);
+            }
+            const unlockedList = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
+            if (!unlockedList.includes('hunter:1')) {
+              const sent = await this.notifySupporterUnlock(guild.client, memberId, 'hunter', 1, true);
+              if (sent) syncedCount++;
+            }
+          }
+        }
+      }
+
+      // 2. Quét trực tiếp các thành viên đang giữ Role Rank 1 Phù Thủy trên Discord
+      if (witchRank1RoleId) {
+        const witchRole = await guild.roles.fetch(witchRank1RoleId).catch(() => null);
+        if (witchRole) {
+          for (const [memberId, member] of witchRole.members) {
+            if (member.user.bot) continue;
+            processedUserIds.add(memberId);
+            let userData = witchHunterStorage.getUser(memberId);
+            if (!userData) {
+              userData = { user_id: memberId, faction: 'witch', current_rank: 1, pumpkins: 0, unlocked_supporters: [] };
+              witchHunterStorage.saveUser(userData);
+            }
+            const unlockedList = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
+            if (!unlockedList.includes('witch:1')) {
+              const sent = await this.notifySupporterUnlock(guild.client, memberId, 'witch', 1, true);
+              if (sent) syncedCount++;
+            }
+          }
+        }
+      }
+
+      // 3. Quét kiểm tra thêm các thành viên đã lưu trong Database
+      const allUsers = witchHunterStorage.getAllUsers();
+      for (const u of allUsers) {
+        if (!u.faction || processedUserIds.has(u.user_id)) continue;
+        const unlockKey = `${u.faction}:1`;
+        const unlockedList = Array.isArray(u.unlocked_supporters) ? u.unlocked_supporters : [];
+        if (!unlockedList.includes(unlockKey)) {
+          const sent = await this.notifySupporterUnlock(guild.client, u.user_id, u.faction, 1, true);
+          if (sent) syncedCount++;
+        }
+      }
+
+      logger.info(`🔮 [WitchHunter] Quét đồng bộ gửi bù Supporter Bậc 1: Hoàn tất cho ${syncedCount} thành viên.`);
+      return { syncedCount };
+    } catch (err) {
+      logger.error('❌ [WitchHunter] Lỗi khi syncInitialRank1Supporters:', err);
+      return { syncedCount: 0, error: err.message };
+    }
+  }
+
+  /**
+   * Tạo ActionRow chứa StringSelectMenu tra cứu danh sách 10 Supporter
+   * @param {string} authorId ID của người dùng gõ lệnh
+   * @param {string|null} currentSelectedId ID của supporter đang được chọn (để set default)
+   */
+  static createSupporterSelectRow(authorId, currentSelectedId = null) {
+    const { supporters } = WITCH_HUNTER_CONFIG;
+
+    const parseEmoji = (emojiStr) => {
+      if (!emojiStr) return undefined;
+      const match = emojiStr.match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
+      if (match && match.groups) {
+        return {
+          id: match.groups.id,
+          name: match.groups.name,
+          animated: Boolean(match.groups.animated),
+        };
+      }
+      return emojiStr;
+    };
+
+    const options = [
+      {
+        label: '📜 Trang Tổng Quan (3 Đại Hệ)',
+        description: 'Bản chất 3 Đại Hệ: Nguyền Thể, Cấm Khí, Linh Tộc',
+        value: 'overview',
+        default: currentSelectedId === 'overview',
+        emoji: '🔮',
+      },
+      ...supporters.list.map((s) => {
+        const cat = supporters.categories[s.categoryKey];
+        const isHunter = s.faction === 'hunter';
+        const prefix = isHunter ? '[Thợ Săn]' : '[Phù Thủy]';
+        return {
+          label: `${prefix} ${s.name}`,
+          description: `${s.rankName} • ${cat?.shortName || ''}`,
+          value: s.id,
+          default: currentSelectedId === s.id,
+          emoji: parseEmoji(cat?.emoji),
+        };
+      }),
+    ];
+
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`supporter_select:${authorId}`)
+      .setPlaceholder('🔮 Chọn Supporter để tra cứu khế ước...')
+      .addOptions(options);
+
+    return new ActionRowBuilder().addComponents(selectMenu);
   }
 }
 
