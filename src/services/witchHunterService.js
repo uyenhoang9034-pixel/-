@@ -840,6 +840,144 @@ export class WitchHunterService {
   }
 
   /**
+   * Đổi phe cho thành viên do Admin thực hiện (Lệnh /doi-phe)
+   */
+  static async changeMemberFaction(guild, executor, member, newFaction) {
+    const userId = member.id;
+    let userData = witchHunterStorage.getUser(userId);
+
+    const oldFaction = userData?.faction || null;
+    const currentPumpkins = userData?.pumpkins || 0;
+    const calculatedRank = this.calculateRank(currentPumpkins);
+
+    if (oldFaction === newFaction) {
+      return {
+        success: false,
+        isSameFaction: true,
+        faction: newFaction,
+        message: `Thành viên <@${userId}> hiện đã thuộc hàng ngũ **${newFaction === 'witch' ? 'Hội Phù Thủy' : 'Hiệp Hội Thợ Săn'}** rồi nè!`,
+      };
+    }
+
+    if (!userData) {
+      userData = {
+        user_id: userId,
+        faction: newFaction,
+        current_rank: calculatedRank,
+        pumpkins: currentPumpkins,
+        unlocked_supporters: [`${newFaction}:${calculatedRank}`],
+      };
+    } else {
+      userData.faction = newFaction;
+      userData.current_rank = calculatedRank;
+      userData.unlocked_supporters = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
+      const supporterKey = `${newFaction}:${calculatedRank}`;
+      if (!userData.unlocked_supporters.includes(supporterKey)) {
+        userData.unlocked_supporters.push(supporterKey);
+      }
+    }
+
+    // Lưu Database ngay lập tức
+    witchHunterStorage.saveUser(userData, true);
+
+    // Gỡ tất cả role của cả 2 phe Witch Hunter hiện có trên Discord
+    const allRoleIds = getAllWitchHunterRoleIds();
+    const rolesToRemove = [];
+    for (const rId of allRoleIds) {
+      if (member.roles.cache.has(rId)) {
+        rolesToRemove.push(rId);
+        recordBotAction(userId, rId, 'remove');
+      }
+    }
+    if (rolesToRemove.length > 0) {
+      await member.roles.remove(rolesToRemove, 'Witch Hunter: Đổi phe do Admin thực hiện').catch(() => null);
+    }
+
+    // Cấp role mới tương ứng cấp bậc
+    const newRoleId = WITCH_HUNTER_CONFIG.roles[newFaction][calculatedRank];
+    if (newRoleId) {
+      recordBotAction(userId, newRoleId, 'add');
+      await member.roles.add(newRoleId, 'Witch Hunter: Cấp role phe mới do Admin thực hiện').catch(() => null);
+    }
+
+    const rankInfo = this.getRankInfo(newFaction, calculatedRank);
+    const newFactionName = newFaction === 'witch' ? 'Hội Phù Thủy (Witches)' : 'Hiệp Hội Thợ Săn (W.H. Association)';
+    const newEmoji = newFaction === 'witch' ? WITCH_HUNTER_CONFIG.emojis.witchButton : WITCH_HUNTER_CONFIG.emojis.hunterButton;
+
+    // Gửi DM riêng cho người chơi
+    try {
+      const dmEmbed = new EmbedBuilder()
+        .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
+        .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: 𝓒𝓱𝓾𝔂𝓮̂̉𝓷 Đ𝓸̂̉𝓲 𝓟𝓱𝓮 𝓟𝓱𝓪́𝓲 ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
+        .setDescription(
+          `Chào **${member.user?.username || member.displayName}** thân mến! Em phù thủy nóng bỏng Usagi múp rụp gửi thông báo tới lữ khách nè!\n\n` +
+          `Ban Quản Trị vừa tiến hành phê chuẩn chuyển đổi phe phái của bạn trong thế giới **Witch Hunter**:\n\n` +
+          `> ${newEmoji} **Phe phái mới:** **${newFactionName}**\n` +
+          `> 🎖️ **Cấp bậc tương ứng:** **${rankInfo.name}** *(Bậc ${calculatedRank})*\n` +
+          `> ${WITCH_HUNTER_CONFIG.emojis.pumpkin} **Bí Ngô tích lũy:** **${currentPumpkins.toLocaleString('vi-VN')}** ${WITCH_HUNTER_CONFIG.emojis.pumpkin}\n` +
+          `> 🛡️ **Role mới:** <@&${rankInfo.roleId}>\n\n` +
+          `*Toàn bộ role của phe cũ đã được thu hồi và role phe mới đã được trao gửi thành công!* 💕`
+        )
+        .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+        .setTimestamp();
+
+      await member.send({ embeds: [dmEmbed] }).catch(() => null);
+    } catch {}
+
+    // Gửi DM trao/thức tỉnh Supporter của phe mới
+    await this.notifySupporterUnlock(guild.client, userId, newFaction, calculatedRank, calculatedRank === 1, true);
+
+    // Gửi thông báo kênh Admin Log
+    const adminLogEmbed = new EmbedBuilder()
+      .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
+      .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸: 𝓐𝓭𝓶𝓲𝓷 Đ𝓸̂̉𝓲 𝓟𝓱𝓮 𝓒𝓱𝓸 𝓣𝓱𝓪̀𝓷𝓱 𝓥𝓲𝓮̂𝓷 ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
+      .setDescription(`Admin vừa thực hiện lệnh \`/doi-phe\` chuyển đổi phe phái cho thành viên!`)
+      .addFields(
+        {
+          name: '👑 Admin Thực Hiện:',
+          value: `<@${executor.id}> (\`${executor.tag || executor.username}\`)`,
+          inline: true,
+        },
+        {
+          name: '👤 Thành Viên Được Đổi:',
+          value: `<@${userId}> (\`${member.user?.tag || member.user?.username}\`)`,
+          inline: true,
+        },
+        {
+          name: '🔄 Chuyển Đổi:',
+          value: `Từ **${oldFaction ? (oldFaction === 'witch' ? 'Hội Phù Thủy' : 'Hiệp Hội Thợ Săn') : 'Chưa có phe'}** ➡️ ${newEmoji} **${newFactionName}**`,
+          inline: false,
+        },
+        {
+          name: '🎖️ Cấp Bậc & Role Mới:',
+          value: `**${rankInfo.name}** *(Bậc ${calculatedRank})* — <@&${rankInfo.roleId}>`,
+          inline: true,
+        },
+        {
+          name: `${WITCH_HUNTER_CONFIG.emojis.pumpkin} Bí Ngô Hiện Có:`,
+          value: `**${currentPumpkins.toLocaleString('vi-VN')}** ${WITCH_HUNTER_CONFIG.emojis.pumpkin}`,
+          inline: true,
+        }
+      )
+      .setFooter({ text: 'Witch Hunter System' })
+      .setTimestamp();
+
+    await this.sendAdminLog(guild, adminLogEmbed);
+
+    return {
+      success: true,
+      oldFaction,
+      newFaction,
+      newFactionName,
+      newEmoji,
+      rank: calculatedRank,
+      rankInfo,
+      pumpkins: currentPumpkins,
+      member,
+    };
+  }
+
+  /**
    * Ban thưởng Bí Ngô cho thành viên hoặc Admin (Hỗ trợ từ lệnh Admin hoặc các module nhiệm vụ về sau)
    * Tự động cộng dồn, kiểm tra điều kiện thăng cấp và cập nhật Role nếu đủ điểm.
    * 
@@ -1663,7 +1801,7 @@ export class WitchHunterService {
         } catch {}
 
         // Tự động gửi DM trao/thức tỉnh Supporter tương ứng bậc vừa được cấp
-        await this.notifySupporterUnlock(guild.client, newMember.id, roleInfo.faction, roleInfo.rank, roleInfo.rank === 1);
+        await this.notifySupporterUnlock(guild.client, newMember.id, roleInfo.faction, roleInfo.rank, roleInfo.rank === 1, true);
 
         // Gửi thông báo nội bộ cho Admin vào kênh 1563382678378643487
         const adminEmbed = this.buildManualRoleAddAdminLogEmbed(newMember, roleInfo, executor);
@@ -1785,7 +1923,7 @@ export class WitchHunterService {
   /**
    * Tự động gửi DM thông báo mở khóa Supporter cho thành viên
    */
-  static async notifySupporterUnlock(client, userId, faction, rank, isInitialRank1 = false) {
+  static async notifySupporterUnlock(client, userId, faction, rank, isInitialRank1 = false, force = false) {
     try {
       if (!client || !userId || !faction || !rank) return false;
 
@@ -1798,9 +1936,9 @@ export class WitchHunterService {
       }
       userData.unlocked_supporters = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
 
-      // Kiểm tra xem đã gửi DM cho bậc này chưa
+      // Kiểm tra xem đã gửi DM cho bậc này chưa (trừ khi force = true)
       const unlockKey = `${faction}:${rank}`;
-      if (userData.unlocked_supporters.includes(unlockKey)) {
+      if (!force && userData.unlocked_supporters.includes(unlockKey)) {
         return false;
       }
 

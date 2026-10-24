@@ -110,7 +110,7 @@ export const WITCH_HUNTER_CONFIG = {
       `Kết giới rung chuyển: Phù thủy <@${userId}> đã giải phóng cấm thuật thành công và chính thức bước vào hàng ngũ! Chiếc mũ chóp và quyền năng bóng tối của ngươi đã sẵn sàng reo rắc nỗi khiếp sợ mới.`,
     welcomeHunter: (userId) =>
       `Hiệp Hội xác nhận: Thợ săn <@${userId}> đã lập đủ chiến công và chính thức bước vào hàng ngũ! Khẩu súng của ngươi đã sẵn sàng cho những mục tiêu nguy hiểm hơn.`,
-    alreadyChosen: 'Khế ước đã được ký kết, bạn không thể phản bội phe của mình!',
+    alreadyChosen: 'Admin đã cấp role cho bạn rồi nè! Nếu muốn thay đổi phe phái, vui lòng liên hệ Admin để được hỗ trợ nha 💕',
 
     hunterRankUpQuotes: [
       (userId, rankName) =>
