@@ -2087,5 +2087,118 @@ export class WitchHunterService {
 
     return new ActionRowBuilder().addComponents(selectMenu);
   }
+
+  /**
+   * Tạo Embed trang tổng quan danh sách Thần Binh Vũ Khí thế giới Witch Hunter
+   */
+  static buildWeaponOverviewEmbed() {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple) // Màu Tím Pastel #D8B4F8
+      .setTitle(`${emojis.titleLeft} 𝓦𝓲𝓽𝓬𝓱 𝓗𝓾𝓷𝓽𝓮𝓻: 𝓚𝓱𝓸 𝓥𝓾̃ 𝓚𝓱𝓲́ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setDescription(
+        `Trong thế giới **Witch Hunter**, mỗi Thợ Săn hay Phù Thủy khi đột phá từng cảnh giới ma lực sẽ được trang bị một Thần Binh Vũ Khí độc quyền, liên kết cộng hưởng trực tiếp cùng Supporter khế ước để giải phóng sức mạnh tối thượng.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${emojis.hunterBadge || '<a:trangtrig36:1563065680922808340>'} **VŨ KHÍ HIỆP HỘI THỢ SĂN (W.H. ASSOCIATION):**\n` +
+        `• <:wh3:1563432304179945563> **Bậc 1 (0 ${emojis.pumpkin}):** Silver Fang Dagger (Đoản Đao Răng Bạc)\n` +
+        `• <a:camkhig:1563399321125134346> **Bậc 2 (100 ${emojis.pumpkin}):** Clockwork Saw-Blade (Lưỡi Cưa Cơ Giới)\n` +
+        `• <a:trangtrig46:1547240249761996812> **Bậc 3 (500 ${emojis.pumpkin}):** Aegis Heavy Tower (Đại Khiên Thành Trì)\n` +
+        `• <a:whg3:1563432043768189059> **Bậc 4 (3.000 ${emojis.pumpkin}):** Dimension Breaker (Pháo Kích Không Gian)\n` +
+        `• <:wh2:1563431832546967624> **Bậc 5 (10.000 ${emojis.pumpkin}):** Chrono-Crossbow (Nỏ Máy Tiên Tri)\n\n` +
+        `${emojis.witchBadge || '<a:trangtrig32:1546906170994856026>'} **VŨ KHÍ HỘI PHÙ THỦY (WITCHES):**\n` +
+        `• <a:whg2:1563431096501280819> **Bậc 1 (0 ${emojis.pumpkin}):** Soul-Stitch Needle (Hắc Châm Khâu Hồn)\n` +
+        `• <a:whg1:1563430946835931187> **Bậc 2 (100 ${emojis.pumpkin}):** Raven Glass Blade (Dao Găm Lông Quạ)\n` +
+        `• <:wh1:1563430728564351006> **Bậc 3 (500 ${emojis.pumpkin}):** Kitsune Fox-Lantern (Đèn Lồng Ảo Ảnh)\n` +
+        `• <a:trangtrig29:1546385117478527016> **Bậc 4 (3.000 ${emojis.pumpkin}):** Cinder Cane (Trượng Tàn Hỏa)\n` +
+        `• <a:nguyentheg:1563399515732443177> **Bậc 5 (10.000 ${emojis.pumpkin}):** Soul-Harvest Scythe (Lưỡi Hái Đoạt Hồn)\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn một Vũ Khí trong danh sách bên dưới để tra cứu chi tiết thuộc tính năng lượng và cụ thể sức mạnh nha lữ khách!`
+      )
+      .setFooter({ text: 'Witch Hunter System' });
+  }
+
+  /**
+   * Tạo Embed chi tiết từng Thần Binh Vũ Khí khi chọn từ menu
+   */
+  static buildWeaponDetailEmbed(weapon) {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const isWitch = weapon.faction === 'witch';
+    const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
+
+    const milestoneText =
+      weapon.rank === 1
+        ? `0 ${emojis.pumpkin} (Khởi đầu)`
+        : weapon.rank === 5
+        ? `10.000 ${emojis.pumpkin} (Tối thượng)`
+        : `${weapon.minPumpkins.toLocaleString('vi-VN')} ${emojis.pumpkin}`;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple) // Màu Tím Pastel #D8B4F8
+      .setTitle(`${emojis.titleLeft} 𝓥𝓾̃ 𝓚𝓱𝓲́ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${weapon.titleFancy} ${emojis.titleRight}`)
+      .setDescription(
+        `${factionBadge} **${weapon.factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${weapon.rankName}**\n` +
+        `${emojis.pumpkin} **Mốc kích hoạt:** **${milestoneText}**\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🗡️ **TÊN VŨ KHÍ:** **${weapon.name}**\n\n` +
+        `✨ **LIÊN KẾT SUPPORTER:**\n` +
+        `> ${weapon.supporterLink}\n\n` +
+        `${weapon.energyEmoji} **THUỘC TÍNH NĂNG LƯỢNG:**\n` +
+        `> ${weapon.energyAttribute}\n\n` +
+        `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **CỤ THỂ SỨC MẠNH:**\n` +
+        `${weapon.powerDetail}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn Vũ Khí khác từ menu bên dưới để tiếp tục tra cứu sức mạnh nha lữ khách!`
+      )
+      .setFooter({ text: 'Witch Hunter System' });
+  }
+
+  /**
+   * Tạo ActionRow Select Menu cho giao diện Vũ Khí
+   */
+  static createWeaponSelectRow(authorId, currentSelectedId = null) {
+    const { weapons } = WITCH_HUNTER_CONFIG;
+
+    const parseEmoji = (emojiStr) => {
+      if (!emojiStr) return undefined;
+      const match = emojiStr.match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
+      if (match && match.groups) {
+        return {
+          id: match.groups.id,
+          name: match.groups.name,
+          animated: Boolean(match.groups.animated),
+        };
+      }
+      return emojiStr;
+    };
+
+    const options = [
+      {
+        label: '[Tổng Quan] 10 Đại Thần Binh',
+        description: 'Kho vũ khí tối thượng của Hiệp Hội Thợ Săn & Hội Phù Thủy',
+        value: 'overview',
+        default: currentSelectedId === 'overview',
+        emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
+      },
+      ...weapons.list.map((w) => {
+        const isHunter = w.faction === 'hunter';
+        const prefix = isHunter ? '[Thợ Săn]' : '[Phù Thủy]';
+        return {
+          label: `${prefix} ${w.shortName}`,
+          description: `${w.rankName} • ${w.activationMilestone}`,
+          value: w.id,
+          default: currentSelectedId === w.id,
+          emoji: parseEmoji(w.energyEmoji),
+        };
+      }),
+    ];
+
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId(`weapon_select:${authorId}`)
+      .setPlaceholder('⚔️ Chọn Vũ Khí để tra cứu thuộc tính sức mạnh...')
+      .addOptions(options);
+
+    return new ActionRowBuilder().addComponents(selectMenu);
+  }
 }
 

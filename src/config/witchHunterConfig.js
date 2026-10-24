@@ -295,6 +295,185 @@ export const WITCH_HUNTER_CONFIG = {
       },
     ],
   },
+
+  // DANH SÁCH 10 THẦN BINH VŨ KHÍ THẾ GIỚI WITCH HUNTER
+  weapons: {
+    list: [
+      // I. PHE THỢ SĂN (W.H. ASSOCIATION)
+      {
+        id: 'wep_hunter_1',
+        name: 'Silver Fang Dagger (Đoản Đao Răng Bạc)',
+        shortName: 'Silver Fang Dagger',
+        viName: 'Đoản Đao Răng Bạc',
+        titleFancy: '𝓢𝓲𝓵𝓿𝓮𝓻 𝓕𝓪𝓷𝓰 𝓓𝓪𝓰𝓰𝓮𝓻',
+        faction: 'hunter',
+        factionName: 'Hiệp Hội Thợ Săn (W.H. Association)',
+        rank: 1,
+        rankName: 'C-Rank Hunter (Bậc 1)',
+        minPumpkins: 0,
+        activationMilestone: '0 Bí Ngô (Khởi đầu)',
+        supporterLink: 'Đúc từ một chiếc nanh rụng của linh thú Garmr (Ngân Khuyển).',
+        energyEmoji: '<:wh3:1563432304179945563>',
+        energyAttribute: 'Băng Hàn & Thanh Tẩy (Hàn khí thuần khiết triệt tiêu tà thuật)',
+        powerDetail: 'Lưỡi dao tự động rung động và phát ra ánh sáng bạc buốt giá khi tiến vào phạm vi có dấu vết ma thuật. Đòn đâm ở cự ly gần giải phóng luồng khí lạnh cực sâu, làm đông cứng dòng chảy năng lượng và thanh tẩy các ấn chú phòng ngự sơ cấp trên người đối thủ.',
+      },
+      {
+        id: 'wep_hunter_2',
+        name: 'Clockwork Saw-Blade (Lưỡi Cưa Cơ Giới)',
+        shortName: 'Clockwork Saw-Blade',
+        viName: 'Lưỡi Cưa Cơ Giới',
+        titleFancy: '𝓒𝓵𝓸𝓬𝓴𝔀𝓸𝓻𝓴 𝓢𝓪𝔀-𝓑𝓵𝓪𝓭𝓮',
+        faction: 'hunter',
+        factionName: 'Hiệp Hội Thợ Săn (W.H. Association)',
+        rank: 2,
+        rankName: 'B-Rank Hunter (Bậc 2)',
+        minPumpkins: 100,
+        activationMilestone: '100 Bí Ngô',
+        supporterLink: 'Nối trực tiếp với trục bánh răng và cót lưng của Zodiac (Đao Phủ Răng Cưa).',
+        energyEmoji: '<a:camkhig:1563399321125134346>',
+        energyAttribute: 'Kim Cơ & Xung Chấn (Áp suất cơ học nén xung lực hủy diệt)',
+        powerDetail: 'Vận hành bằng piston áp suất hơi nước và hệ thống bánh răng ma động lực. Khi kéo chốt, lưỡi cưa xích răng cưa xoay tròn với vận tốc cực hạn, phóng ra các đợt sóng xung chấn kim loại nặng có khả năng nghiền nát vật cản vật lý và cưa đứt các kết giới bùa chú diện hẹp.',
+      },
+      {
+        id: 'wep_hunter_3',
+        name: 'Aegis Heavy Tower (Đại Khiên Thành Trì)',
+        shortName: 'Aegis Heavy Tower',
+        viName: 'Đại Khiên Thành Trì',
+        titleFancy: '𝓐𝓮𝓰𝓲𝓼 𝓗𝓮𝓪𝓿𝔂 𝓣𝓸𝔀𝓮𝓻',
+        faction: 'hunter',
+        factionName: 'Hiệp Hội Thợ Săn (W.H. Association)',
+        rank: 3,
+        rankName: 'A-Rank Hunter (Bậc 3)',
+        minPumpkins: 500,
+        activationMilestone: '500 Bí Ngô',
+        supporterLink: 'Tách ra từ một mảng vách thành cơ quan của Bastion (Trấn Ngục Pháo Đài).',
+        energyEmoji: '<a:trangtrig46:1547240249761996812>',
+        energyAttribute: 'Địa Thạch & Tán Xạ Tinh Thể (Khoáng thạch cổ cưỡng chế hấp thu ma lực)',
+        powerDetail: 'Một khối trọng khiên hợp kim bọc tinh thể đen khổng lồ. Khi cắm phập xuống mặt đất, khiên tạo ra một từ trường bảo hộ vững như bàn thạch, chịu được sức công phá cơ học cực lớn đồng thời lõi pha lê lập tức hấp thụ, bẻ gãy và tán xạ ngược lại các tia phép thuật nhắm vào phòng tuyến.',
+      },
+      {
+        id: 'wep_hunter_4',
+        name: 'Dimension Breaker (Pháo Kích Không Gian)',
+        shortName: 'Dimension Breaker',
+        viName: 'Pháo Kích Không Gian',
+        titleFancy: '𝓓𝓲𝓶𝓮𝓷𝓼𝓲𝓸𝓷 𝓑𝓻𝓮𝓪𝓴𝓮𝓻',
+        faction: 'hunter',
+        factionName: 'Hiệp Hội Thợ Săn (W.H. Association)',
+        rank: 4,
+        rankName: 'S-Rank Hunter (Bậc 4)',
+        minPumpkins: 3000,
+        activationMilestone: '3.000 Bí Ngô',
+        supporterLink: 'Rút trực tiếp từ khe nứt rương xích của Abyssus (Hư Không Ma Khố).',
+        energyEmoji: '<a:whg3:1563432043768189059>',
+        energyAttribute: 'Thứ Nguyên & Không Gian (Nén ép thực tại và bẻ cong tọa độ)',
+        powerDetail: 'Khẩu trọng pháo mang cấu trúc cơ khí dị giới. Vũ khí này nén ma lực xung quanh thành những khối đạn không gian đặc quánh; khi khai hỏa, viên đạn xé toạc không gian thẳng tới mục tiêu mà không thể bị cản lại bởi khoảng cách vật lý hay giáp chắn thông thường, tạo hố sụp thứ nguyên nghiền nát mọi thứ bên trong.',
+      },
+      {
+        id: 'wep_hunter_5',
+        name: 'Chrono-Crossbow (Nỏ Máy Tiên Tri)',
+        shortName: 'Chrono-Crossbow',
+        viName: 'Nỏ Máy Tiên Tri',
+        titleFancy: '𝓒𝓱𝓻𝓸𝓷𝓸-𝓒𝓻𝓸𝓼𝓼𝓫𝓸𝔀',
+        faction: 'hunter',
+        factionName: 'Hiệp Hội Thợ Săn (W.H. Association)',
+        rank: 5,
+        rankName: 'SS-Rank Hunter (Bậc 5 - Tối thượng)',
+        minPumpkins: 10000,
+        activationMilestone: '10.000 Bí Ngô (Tối thượng)',
+        supporterLink: 'Đồng bộ với đôi mắt thiên văn xoay chuyển của thần thú Oculus (Thiên Nhãn Tri Kỷ).',
+        energyEmoji: '<:wh2:1563431832546967624>',
+        energyAttribute: 'Thời Không & Tinh Tú (Can thiệp dòng thời gian và điểm rơi xác suất)',
+        powerDetail: 'Cây nỏ cơ học mang hoa văn các chòm sao cổ đại. Năng lượng thời gian cho phép thấu thị và khóa chặt điểm đáp trong tương lai của mục tiêu trước 3 giây. Mũi tên bắn ra mang năng lượng tinh tú xuyên phá kết giới, tự động bẻ cong quỹ đạo để luôn trúng đích vào khoảnh khắc không thể né tránh.',
+      },
+
+      // II. PHE PHÙ THỦY (WITCHES)
+      {
+        id: 'wep_witch_1',
+        name: 'Soul-Stitch Needle (Hắc Châm Khâu Hồn)',
+        shortName: 'Soul-Stitch Needle',
+        viName: 'Hắc Châm Khâu Hồn',
+        titleFancy: '𝓢𝓸𝓾𝓵-𝓢𝓽𝓲𝓽𝓬𝓱 𝓝𝓮𝓮𝓭𝓵𝓮',
+        faction: 'witch',
+        factionName: 'Hội Phù Thủy (Witches)',
+        rank: 1,
+        rankName: 'Apprentice Witch (Bậc 1)',
+        minPumpkins: 0,
+        activationMilestone: '0 Bí Ngô (Khởi đầu)',
+        supporterLink: 'Rút ra từ đường chỉ may sau gáy của thỏ nguyền Malice (Hắc Thỏ Gỗ).',
+        energyEmoji: '<a:whg2:1563431096501280819>',
+        energyAttribute: 'Oán Độc & Hủ Thực (Tơ hắc ám ăn mòn và khóa mạch thần kinh)',
+        powerDetail: 'Cây kim sắt hoen rỉ dẫn theo sợi chỉ đen vô hình dệt từ oán khí. Khi phóng ra, mũi kim đâm xuyên lớp bảo hộ và tự động khâu chằng chịt các đường dẫn ma năng bên trong cơ thể kẻ địch, khiến đối phương tê liệt tạm thời và không thể kích hoạt bùa chú hay súng đạn ma thuật.',
+      },
+      {
+        id: 'wep_witch_2',
+        name: 'Raven Glass Blade (Dao Găm Lông Quạ)',
+        shortName: 'Raven Glass Blade',
+        viName: 'Dao Găm Lông Quạ',
+        titleFancy: '𝓡𝓪𝓿𝓮𝓷 𝓖𝓵𝓪𝓼𝓼 𝓑𝓵𝓪𝓭𝓮',
+        faction: 'witch',
+        factionName: 'Hội Phù Thủy (Witches)',
+        rank: 2,
+        rankName: 'Coven Witch (Bậc 2)',
+        minPumpkins: 100,
+        activationMilestone: '100 Bí Ngô',
+        supporterLink: 'Kết tinh từ lớp lông vũ thủy tinh đen của Corvus (Dạ Quạ Điềm Gở).',
+        energyEmoji: '<a:whg1:1563430946835931187>',
+        energyAttribute: 'U Ám & Hư Ảnh (Nuốt chửng ánh sáng và xóa bỏ tín hiệu âm thanh)',
+        powerDetail: 'Lưỡi dao đen mỏng như lá lúa, không phản chiếu ánh sáng và không tạo ra tiếng rẽ gió khi vung chém. Mỗi nhát cắt để lại một vệt rách u ám nuốt chửng mọi âm thanh xung quanh, làm mù giác quan truy vết và để lại vết thương rỉ máu ma lực liên tục không thể tự khép miệng.',
+      },
+      {
+        id: 'wep_witch_3',
+        name: 'Kitsune Fox-Lantern (Đèn Lồng Ảo Ảnh)',
+        shortName: 'Kitsune Fox-Lantern',
+        viName: 'Đèn Lồng Ảo Ảnh',
+        titleFancy: '𝓚𝓲𝓽𝓼𝓾𝓷𝓮 𝓕𝓸𝔁-𝓛𝓪𝓷𝓽𝓮𝓻𝓷',
+        faction: 'witch',
+        factionName: 'Hội Phù Thủy (Witches)',
+        rank: 3,
+        rankName: 'High Witch (Bậc 3)',
+        minPumpkins: 500,
+        activationMilestone: '500 Bí Ngô',
+        supporterLink: 'Nhận từ ngọn lửa hồ ly của cổ thú Tamamo (Huyễn Hồ Huyết Vực).',
+        energyEmoji: '<:wh1:1563430728564351006>',
+        energyAttribute: 'Mê Lôi & Huyễn Khói (Điện tích mê hoặc và ảo ảnh bóp méo thị giác)',
+        powerDetail: 'Chiếc đèn giấy bốc ra những luồng khói đỏ sẫm tích điện tích huyễn hoặc. Khi xoay nhẹ cán đèn, khói ma thuật lập tức bao phủ chiến trường, bóp méo hoàn toàn tầm nhìn, âm thanh và phương hướng của đối thủ, biến một đòn tấn công chuẩn xác thành cú bắn vào khoảng không vô định.',
+      },
+      {
+        id: 'wep_witch_4',
+        name: 'Cinder Cane (Trượng Tàn Hỏa)',
+        shortName: 'Cinder Cane',
+        viName: 'Trượng Tàn Hỏa',
+        titleFancy: '𝓒𝓲𝓷𝓭𝓮𝓻 𝓒𝓪𝓷𝓮',
+        faction: 'witch',
+        factionName: 'Hội Phù Thủy (Witches)',
+        rank: 4,
+        rankName: 'Archwitch (Bậc 4)',
+        minPumpkins: 3000,
+        activationMilestone: '3.000 Bí Ngô',
+        supporterLink: 'Quấn quanh bởi lông vũ rực lửa của thần điểu Vermilion (Xích Điểu Bất Tử).',
+        energyEmoji: '<a:trangtrig29:1546385117478527016>',
+        energyAttribute: 'Tàn Hỏa & Trùng Sinh (Lửa tro thiêu đốt rào cản và phục hồi sinh mệnh)',
+        powerDetail: 'Quyền trượng gỗ cổ tích tụ ngọn lửa ngún không bao giờ tắt. Vũ khí này giải phóng những làn sóng lửa tro quét sạch các bẫy rập và thiêu rụi rào cản của thợ săn; đồng thời ngọn lửa có tính chất bảo hộ, tự động truyền năng lượng hồi phục sinh mệnh và tái tạo ma lực tức thì cho chủ nhân khi kiệt sức.',
+      },
+      {
+        id: 'wep_witch_5',
+        name: 'Soul-Harvest Scythe (Lưỡi Hái Đoạt Hồn)',
+        shortName: 'Soul-Harvest Scythe',
+        viName: 'Lưỡi Hái Đoạt Hồn',
+        titleFancy: '𝓢𝓸𝓾𝓵-𝓗𝓪𝓻𝓿𝓮𝓼𝓽 𝓢𝓬𝔂𝓽𝓱𝓮',
+        faction: 'witch',
+        factionName: 'Hội Phù Thủy (Witches)',
+        rank: 5,
+        rankName: 'Great Witch (Bậc 5 - Tối thượng)',
+        minPumpkins: 10000,
+        activationMilestone: '10.000 Bí Ngô (Tối thượng)',
+        supporterLink: 'Rút trực tiếp từ ngọn lửa địa ngục xanh biếc bên trong đầu Hallow (Vua Đầu Lửa).',
+        energyEmoji: '<a:nguyentheg:1563399515732443177>',
+        energyAttribute: 'Ma Hỏa & Đoạt Hồn (Ngọn lửa linh hồn tàn sát diện rộng)',
+        powerDetail: 'Đại lưỡi hái xương đen rực cháy ma hỏa xanh lục. Mỗi nhát quét lưỡi hái có thể chém đứt mọi kết giới phong ấn vĩ đại nhất, thiêu hủy hoàn toàn sinh lực kẻ thù thành tro bụi và hút cạn linh hồn của đối phương để nuôi dưỡng ngọn lửa ma thuật vĩnh cửu.',
+      },
+    ],
+  },
 };
 
 /**
@@ -368,6 +547,25 @@ export function getSupporterById(supporterId) {
 export function getSupporterByRank(faction, rank) {
   if (!faction || !rank) return null;
   return WITCH_HUNTER_CONFIG.supporters.list.find((s) => s.faction === faction && s.rank === Number(rank)) || null;
+}
+
+/**
+ * Tìm Thần Binh Vũ Khí theo ID
+ * @param {string} weaponId
+ */
+export function getWeaponById(weaponId) {
+  if (!weaponId) return null;
+  return WITCH_HUNTER_CONFIG.weapons.list.find((w) => w.id === weaponId) || null;
+}
+
+/**
+ * Tìm Thần Binh Vũ Khí theo Phe và Bậc Rank (1-5)
+ * @param {'hunter' | 'witch'} faction
+ * @param {number} rank
+ */
+export function getWeaponByRank(faction, rank) {
+  if (!faction || !rank) return null;
+  return WITCH_HUNTER_CONFIG.weapons.list.find((w) => w.faction === faction && w.rank === Number(rank)) || null;
 }
 
 export default WITCH_HUNTER_CONFIG;
