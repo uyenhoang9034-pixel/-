@@ -189,7 +189,7 @@ export default {
         })
         .setTimestamp();
 
-      // 4. Gửi vào Kênh ID 1563069218214121513
+      // 4. Gửi vào Kênh ID 1563457814138064916
       const announcementChannel = guild.channels.cache.get(channels.announcementChannelId) || interaction.channel;
       if (announcementChannel) {
         await announcementChannel.send({ embeds: [embed] });

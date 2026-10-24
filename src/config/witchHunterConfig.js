@@ -12,8 +12,8 @@ export const WITCH_HUNTER_CONFIG = {
   channels: {
     // Chỉ nhận role và bảng chọn phe xuất hiện ở kênh này
     selectionChannelId: process.env.WITCH_HUNTER_SELECTION_CHANNEL_ID || '1563069959658143894',
-    // Kênh gửi Embed vinh danh chốt BXH tháng
-    announcementChannelId: process.env.WITCH_HUNTER_ANNOUNCEMENT_CHANNEL_ID || '1563069218214121513',
+    // Kênh gửi Embed vinh danh thăng cấp và chốt BXH tháng
+    announcementChannelId: process.env.WITCH_HUNTER_ANNOUNCEMENT_CHANNEL_ID || '1563457814138064916',
     // Kênh báo cáo hoạt động hằng ngày bí mật cho Admin
     dailyReportChannelId: process.env.WITCH_HUNTER_DAILY_REPORT_CHANNEL_ID || '1563168363541176351',
     // Kênh thông báo nội bộ cho Admin khi có người pick role, cấp role thủ công, xóa role thủ công

@@ -764,7 +764,7 @@ export class WitchHunterService {
   }
 
   /**
-   * Tạo Embed thông báo vinh danh thăng cấp gửi vào Kênh Chỉ Định (ID: 1563069218214121513)
+   * Tạo Embed thông báo vinh danh thăng cấp gửi vào Kênh Chỉ Định (ID: 1563457814138064916)
    */
   static buildRankUpAnnouncementEmbed(userId, faction, oldRank, newRank, rankInfo, quote, totalPumpkins) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
@@ -1114,7 +1114,7 @@ export class WitchHunterService {
     if (isRankUp && userData.faction && guild?.client) {
       await this.notifySupporterUnlock(guild.client, userId, userData.faction, newRank, false);
 
-      // Gửi thông báo chúc mừng thăng cấp vào Kênh Chỉ Định (announcementChannelId: 1563069218214121513)
+      // Gửi thông báo chúc mừng thăng cấp vào Kênh Chỉ Định (announcementChannelId: 1563457814138064916)
       try {
         const announcementChannelId = WITCH_HUNTER_CONFIG.channels.announcementChannelId;
         const channel = guild.channels?.cache?.get(announcementChannelId) ||
@@ -2185,11 +2185,11 @@ export class WitchHunterService {
         `${factionBadge} **${weapon.factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${weapon.rankName}**\n` +
         `${emojis.pumpkin} **Mốc kích hoạt:** **${milestoneText}**\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `🗡️ **TÊN VŨ KHÍ:** **${weapon.name}**\n\n` +
-        `✨ **LIÊN KẾT SUPPORTER:**\n` +
-        `> ${weapon.supporterLink}\n\n` +
+        `<a:trangtrig18:1546068102817775626> **TÊN VŨ KHÍ:** **${weapon.name}**\n\n` +
+        `<a:trangtrig38:1547237720332439574> **LIÊN KẾT SUPPORTER:**\n` +
+        `${weapon.supporterLink}\n\n` +
         `${weapon.energyEmoji} **THUỘC TÍNH NĂNG LƯỢNG:**\n` +
-        `> ${weapon.energyAttribute}\n\n` +
+        `${weapon.energyAttribute}\n\n` +
         `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **CỤ THỂ SỨC MẠNH:**\n` +
         `${weapon.powerDetail}\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +

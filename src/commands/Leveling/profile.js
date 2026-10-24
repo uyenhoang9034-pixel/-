@@ -10,6 +10,31 @@ import {
 import { WitchHunterService, witchHunterStorage } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
+function isWitchHunterAdmin(interaction) {
+  const member = interaction.member;
+  if (!member) return false;
+
+  const ownerId = interaction.guild?.ownerId;
+  if (ownerId && (interaction.user?.id === ownerId || member.id === ownerId)) {
+    return true;
+  }
+
+  const configuredOwnerIds = (process.env.OWNER_IDS || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (configuredOwnerIds.includes(interaction.user?.id) || configuredOwnerIds.includes(member.id)) {
+    return true;
+  }
+
+  const adminRole = WITCH_HUNTER_CONFIG.adminRoleId;
+  if (member.roles?.cache?.has?.(adminRole)) return true;
+  if (Array.isArray(member._roles) && member._roles.includes(adminRole)) return true;
+  if (Array.isArray(member.roles) && member.roles.includes(adminRole)) return true;
+
+  return false;
+}
+
 export default {
   data: new SlashCommandBuilder()
     .setName('profile')
@@ -25,9 +50,77 @@ export default {
 
   async execute(interaction) {
     try {
-      const targetUser = interaction.options.getUser('thanh-vien') || interaction.user;
-      const userId = targetUser.id;
       const guild = interaction.guild;
+      const caller = interaction.member;
+      const callerUser = interaction.user;
+
+      if (!guild || !caller) {
+        return interaction.reply({
+          content: 'Lệnh này chỉ có thể sử dụng bên trong máy chủ Discord!',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      const isAdmin = isWitchHunterAdmin(interaction);
+
+      // Phân quyền kênh cố định:
+      // - ADMIN có role 1541303749916754001 hoặc Owner: CÓ THỂ DÙNG Ở BẤT CỨ KÊNH NÀO để test tiện lợi
+      // - Thành viên bình thường: bắt buộc đúng kênh theo phe
+      if (!isAdmin) {
+        let callerData = witchHunterStorage.getUser(callerUser.id);
+        let callerFaction = callerData?.faction;
+
+        // Nếu database chưa kịp lưu phe, đối chiếu từ role Discord hiện có
+        if (!callerFaction && caller.roles?.cache) {
+          for (const roleId of Object.values(WITCH_HUNTER_CONFIG.roles.hunter)) {
+            if (caller.roles.cache.has(roleId)) {
+              callerFaction = 'hunter';
+              break;
+            }
+          }
+          if (!callerFaction) {
+            for (const roleId of Object.values(WITCH_HUNTER_CONFIG.roles.witch)) {
+              if (caller.roles.cache.has(roleId)) {
+                callerFaction = 'witch';
+                break;
+              }
+            }
+          }
+        }
+
+        // Trường hợp chưa gia nhập phe nào
+        if (!callerFaction) {
+          return interaction.reply({
+            content: `❌ Lữ khách chưa ký khế ước chọn phe nào trong thế giới Witch Hunter!\nHãy ghé qua kênh <#${WITCH_HUNTER_CONFIG.channels.selectionChannelId}> để ký khế ước trước nha lữ khách ơi! 💕`,
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        // Ràng buộc Phe Thợ Săn: Chỉ được dùng ở kênh 1563385216800657479
+        if (callerFaction === 'hunter') {
+          const requiredHunterChannel = WITCH_HUNTER_CONFIG.channels.hunterChannelId;
+          if (interaction.channelId !== requiredHunterChannel) {
+            return interaction.reply({
+              content: `❌ Lệnh tra cứu Hồ Sơ của **Hiệp Hội Thợ Săn** chỉ có thể sử dụng tại kênh <#${requiredHunterChannel}> thôi nè lữ khách ơi! 💕`,
+              flags: MessageFlags.Ephemeral,
+            });
+          }
+        }
+
+        // Ràng buộc Phe Phù Thủy: Chỉ được dùng ở kênh 1563385150660808846
+        if (callerFaction === 'witch') {
+          const requiredWitchChannel = WITCH_HUNTER_CONFIG.channels.witchChannelId;
+          if (interaction.channelId !== requiredWitchChannel) {
+            return interaction.reply({
+              content: `❌ Lệnh tra cứu Hồ Sơ của **Hội Phù Thủy** chỉ có thể sử dụng tại kênh <#${requiredWitchChannel}> thôi nè lữ khách ơi! 💕`,
+              flags: MessageFlags.Ephemeral,
+            });
+          }
+        }
+      }
+
+      const targetUser = interaction.options.getUser('thanh-vien') || callerUser;
+      const userId = targetUser.id;
 
       let guildMember = null;
       if (guild) {
