@@ -101,9 +101,7 @@ class WitchHunterStorage {
   flushJson() {
     try {
       const records = Array.from(this.memoryCache.values());
-      const tempPath = `${JSON_FILE_PATH}.tmp`;
-      fs.writeFileSync(tempPath, JSON.stringify(records, null, 2), 'utf-8');
-      fs.renameSync(tempPath, JSON_FILE_PATH);
+      fs.writeFileSync(JSON_FILE_PATH, JSON.stringify(records, null, 2), 'utf-8');
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi ghi file JSON:', error);
     }
@@ -189,13 +187,24 @@ class WitchHunterStorage {
       }
     }
 
-    if (immediate) {
-      this.flushJson();
-    } else {
-      this.scheduleFlush();
-    }
+    // Luôn ghi đĩa JSON ngay lập tức để không bao giờ mất dữ liệu khi restart hoặc update code
+    this.flushJson();
 
     return userObj;
+  }
+
+  // Xóa sạch toàn bộ dữ liệu bí ngô, phe phái và thành viên (Reset 1 lần duy nhất)
+  clearAllData() {
+    this.memoryCache.clear();
+    this.flushJson();
+    if (this.isSqlite && this.sqliteDb) {
+      try {
+        this.sqliteDb.exec('DELETE FROM witch_hunter_members;');
+      } catch (err) {
+        logger.error('❌ [WitchHunter] Lỗi clearAllData SQLite:', err);
+      }
+    }
+    logger.info('🔮 [WitchHunter] Đã xóa sạch toàn bộ dữ liệu thành viên trong cơ sở dữ liệu.');
   }
 
   // Xóa phe của người dùng khi admin gỡ role thủ công
@@ -307,7 +316,7 @@ export class WitchHunterService {
         neededPumpkins: 0,
         progressBar: '`[██████████]` 100%',
         percentage: 100,
-        formattedStatus: `✨ **Đã đạt cảnh giới tối cao:** ${currentRankObj.name} (${pumpkins.toLocaleString('vi-VN')} ${pumpkinEmoji})`,
+        formattedStatus: `<a:trangtrig41:1547238037832863744> **Đã đạt cảnh giới tối cao:** ${currentRankObj.name} (${pumpkins.toLocaleString('vi-VN')} ${pumpkinEmoji})`,
       };
     }
 

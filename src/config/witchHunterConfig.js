@@ -49,6 +49,7 @@ export const WITCH_HUNTER_CONFIG = {
     decor30: '<a:trangtrig30:1546905942476464178>',
     decor1: '<a:trangtrig1:1546040442548654140>',
     decor34: '<a:trangtrig34:1547237010572582982>',
+    decor21: '<a:trangtrig21:1546093099770716213>',
     bang2: '<a:bang2:1546891483250954290>',
   },
 

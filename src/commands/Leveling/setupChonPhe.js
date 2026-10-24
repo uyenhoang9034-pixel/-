@@ -6,7 +6,8 @@ import {
   MessageFlags,
   SlashCommandBuilder,
 } from 'discord.js';
-import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
+import { WITCH_HUNTER_CONFIG, getAllWitchHunterRoleIds } from '../../config/witchHunterConfig.js';
+import { witchHunterStorage } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
 function isWitchHunterAdmin(interaction) {
@@ -37,7 +38,13 @@ function isWitchHunterAdmin(interaction) {
 export default {
   data: new SlashCommandBuilder()
     .setName('setup-chon-phe')
-    .setDescription('Tạo hộp thoại ký kết khế ước chọn phe Witch Hunter (Chỉ Admin)'),
+    .setDescription('Tạo hộp thoại ký kết khế ước chọn phe Witch Hunter (Chỉ Admin)')
+    .addBooleanOption((option) =>
+      option
+        .setName('xoa-du-lieu-cu')
+        .setDescription('Xóa 1 lần duy nhất toàn bộ bí ngô & gỡ sạch role phe cũ của tất cả member')
+        .setRequired(false)
+    ),
 
   category: 'Leveling',
 
@@ -49,6 +56,35 @@ export default {
           content: `❌ Bạn không có quyền sử dụng lệnh này đâu nè vợ của Kim Nong ơi! Chỉ chủ máy chủ hoặc thành viên sở hữu role <@&${WITCH_HUNTER_CONFIG.adminRoleId}> mới được phép tạo bảng chọn phe ạ 💕`,
           flags: MessageFlags.Ephemeral,
         });
+      }
+
+      const shouldReset = interaction.options.getBoolean('xoa-du-lieu-cu') || false;
+      let resetNotice = '';
+
+      if (shouldReset) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        // Gỡ toàn bộ 10 role của Thợ Săn & Phù Thủy khỏi tất cả thành viên trong server
+        const allRoles = getAllWitchHunterRoleIds();
+        let strippedCount = 0;
+        for (const roleId of allRoles) {
+          try {
+            const role = interaction.guild.roles.cache.get(roleId) ||
+              await interaction.guild.roles.fetch(roleId).catch(() => null);
+            if (role) {
+              for (const [memberId, member] of role.members) {
+                await member.roles.remove(roleId).catch(() => null);
+                strippedCount++;
+              }
+            }
+          } catch (err) {
+            logger.warn(`⚠️ [WitchHunter] Lỗi khi gỡ role ${roleId}:`, err.message);
+          }
+        }
+
+        // Xóa sạch cơ sở dữ liệu
+        witchHunterStorage.clearAllData();
+        resetNotice = `\n🧹 *Đã dọn dẹp sạch toàn bộ dữ liệu bí ngô và gỡ ${strippedCount} lượt role phe cũ từ các thành viên!*`;
       }
 
       const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
@@ -113,12 +149,23 @@ export default {
         components: [row],
       });
 
-      return interaction.reply({
-        content: `✅ Em bot Usagi múp rụp đã thiết lập bảng chọn phe Witch Hunter tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
-        flags: MessageFlags.Ephemeral,
-      });
+      const responseContent = `✅ Em bot Usagi múp rụp đã thiết lập bảng chọn phe Witch Hunter tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕${resetNotice}`;
+
+      if (shouldReset) {
+        return interaction.editReply({ content: responseContent });
+      } else {
+        return interaction.reply({
+          content: responseContent,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi lệnh setup-chon-phe:', error);
+      if (interaction.deferred) {
+        return interaction.editReply({
+          content: `Đã xảy ra lỗi khi tạo bảng chọn phe: ${error.message}`,
+        }).catch(() => null);
+      }
       return interaction.reply({
         content: `Đã xảy ra lỗi khi tạo bảng chọn phe: ${error.message}`,
         flags: MessageFlags.Ephemeral,

@@ -68,34 +68,16 @@ export default {
           faction = detectedFaction;
           currentRank = Math.max(currentRank, detectedRank);
 
-          const minPumpkinsForRank = WITCH_HUNTER_CONFIG.ranks[detectedFaction]?.find(
-            (r) => r.rank === detectedRank
-          )?.minPumpkins || 0;
-
-          if (pumpkins < minPumpkinsForRank) {
-            pumpkins = minPumpkinsForRank;
-          }
-
           if (!userData) {
             userData = {
               user_id: userId,
               faction,
               current_rank: currentRank,
-              pumpkins,
+              pumpkins: 0,
               unlocked_supporters: [`${faction}:${currentRank}`],
             };
-          } else {
-            userData.faction = faction;
-            userData.current_rank = currentRank;
-            userData.pumpkins = pumpkins;
-            userData.unlocked_supporters = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
-            const key = `${faction}:${currentRank}`;
-            if (!userData.unlocked_supporters.includes(key)) {
-              userData.unlocked_supporters.push(key);
-            }
+            witchHunterStorage.saveUser(userData, true);
           }
-
-          witchHunterStorage.saveUser(userData, true);
         }
       }
 
@@ -104,6 +86,7 @@ export default {
       const decor45Emoji = emojis.decor45 || '<a:trangtrig45:1547239010190237819>';
       const decor30Emoji = emojis.decor30 || '<a:trangtrig30:1546905942476464178>';
       const decor34Emoji = emojis.decor34 || '<a:trangtrig34:1547237010572582982>';
+      const decor21Emoji = emojis.decor21 || '<a:trangtrig21:1546093099770716213>';
       const defaultLinhTocEmoji = emojis.linhtoc || '<a:linhtocg:1563399670351536310>';
       const heartEmoji = emojis.heart || '<a:heartg1:1545307544808071258>';
 
@@ -151,6 +134,10 @@ export default {
         supporterLine = `${catEmoji} **Supporter Khế Ước:** **${supporter.name}** *(${cat?.shortName || ''})*`;
       }
 
+      const progressText = progress.isMax
+        ? `${progress.formattedStatus}`
+        : `> ${progress.formattedStatus}`;
+
       const profileEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
         .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${targetUser.username} ${emojis.titleRight}`)
@@ -160,11 +147,11 @@ export default {
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
           `${factionDisplay}\n` +
-          `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}**\n` +
+          `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}** *(${rankInfo.title})*\n` +
           `${supporterLine}\n\n` +
-          `📊 **Tiến trình đột phá bậc kế tiếp:**\n` +
+          `${decor21Emoji} **Tiến trình đột phá bậc kế tiếp:**\n` +
           `${progress.progressBar}\n` +
-          `> ${progress.formattedStatus}\n\n` +
+          `${progressText}\n\n` +
           `${decor30Emoji} **Lời nhắn từ Phù Thủy Usagi:**\n` +
           `> Hãy ghé qua kênh <#${channels.selectionChannelId}> nhận role danh hiệu ngay nha Lữ Khách ơi! ${heartEmoji}`
         )
