@@ -22,6 +22,10 @@ export const WITCH_HUNTER_CONFIG = {
     hunterChannelId: process.env.WITCH_HUNTER_HUNTER_CHANNEL_ID || '1563385216800657479',
     // Kênh cố định cho lệnh /supporter của Phe Phù Thủy
     witchChannelId: process.env.WITCH_HUNTER_WITCH_CHANNEL_ID || '1563385150660808846',
+    // Kênh cố định cho Nghi thức Thắp Nến Cầu Nguyện hằng ngày
+    candleChannelId: process.env.WITCH_HUNTER_CANDLE_CHANNEL_ID || '1562351868888354816',
+    // Kênh cố định cho Sự kiện Giải Mã Cổ Ngữ (nếu có)
+    puzzleChannelId: process.env.WITCH_HUNTER_PUZZLE_CHANNEL_ID || '',
   },
 
   // Danh mục Emojis động độc quyền của Server
@@ -37,6 +41,16 @@ export const WITCH_HUNTER_CONFIG = {
     hunterBadge: '<a:trangtrig36:1563065680922808340>',
     witchBadge: '<a:trangtrig32:1546906170994856026>',
     sparkles: '✨',
+    // Nhiệm Vụ & Giải Mã Cổ Ngữ Emojis
+    candle: '<a:trangtrig48:1563552038883958855>',
+    streak7: '<a:trangtrig38:1547237720332439574>',
+    questBullet: '<a:trangtrig30:1546905942476464178>',
+    puzzleButton: '<:trangtri1:1546093044535660644>',
+    puzzleHeader: '<a:trangtrig18:1546068102817775626>',
+    puzzle10: '<a:heartg1:1545307544808071258>',
+    puzzle0: '<a:meongg12:1546092641467506688>',
+    puzzlePartial: '<a:trangtrig37:1547237647850807420>',
+    giftJackpot: '<a:giftg1:1543150714732412948>',
     // Supporter 3 Đại Hệ Emojis
     camkhi: '<a:camkhig:1563399321125134346>',
     nguyenthe: '<a:nguyentheg:1563399515732443177>',

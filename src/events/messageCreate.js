@@ -162,6 +162,14 @@ export default {
 
       pumpkinGrowthTracker.recordChatMessage(message.author.id);
 
+      // Ghi nhận nhiệm vụ tuần Witch Hunter: Mật Thư Chiến Trường (Chat)
+      try {
+        const { WitchHunterQuestService } = await import('../services/witchHunterQuestService.js');
+        WitchHunterQuestService.onChatMessage(message);
+      } catch (questChatErr) {
+        logger.warn('⚠️ [WitchHunterQuest] Lỗi ghi nhận tin nhắn:', questChatErr.message);
+      }
+
       await handleAutoReact(message, client);
 
       await handleEastMention(message);

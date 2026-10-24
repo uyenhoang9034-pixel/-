@@ -348,6 +348,37 @@ class TitanBot extends Client {
     cron.schedule('*/15 * * * *', runSafeTask('counter_update', () => this.updateAllCounters()));
     // Tối ưu RAM định kỳ mỗi 30 phút: dọn dẹp cache hết hạn & thu hồi rác GC
     cron.schedule('*/30 * * * *', runSafeTask('memory_cleanup', () => this.cleanupMemory()));
+
+    // Sự kiện Thí Luyện Cuối Tuần (Witch Hunter): Mở lúc 20:00 Thứ Bảy
+    cron.schedule('0 20 * * 6', runSafeTask('witch_hunter_puzzle_open', async () => {
+      try {
+        const { WitchHunterQuestService } = await import('./services/witchHunterQuestService.js');
+        for (const [, guild] of this.guilds.cache) {
+          const channel = guild.channels.cache.find((c) => c.name === 'giai-ma-co-ngu');
+          if (channel && channel.isTextBased()) {
+            const embed = WitchHunterQuestService.buildPuzzleNoticeEmbed();
+            const row = WitchHunterQuestService.buildPuzzleNoticeButton();
+            await channel.send({ embeds: [embed], components: [row] }).catch(() => null);
+          }
+        }
+      } catch (err) {
+        logger.error('❌ [WitchHunterQuest] Lỗi khi tự động mở puzzle cuối tuần:', err);
+      }
+    }), { timezone: 'Asia/Ho_Chi_Minh' });
+
+    // Sự kiện Thí Luyện Cuối Tuần (Witch Hunter): Đóng lúc 23:59 Chủ Nhật
+    cron.schedule('59 23 * * 0', runSafeTask('witch_hunter_puzzle_close', async () => {
+      try {
+        for (const [, guild] of this.guilds.cache) {
+          const channel = guild.channels.cache.find((c) => c.name === 'giai-ma-co-ngu');
+          if (channel && channel.isTextBased()) {
+            await channel.send('⏳ **Cánh Cổng Cổ Ngữ Đã Khép Lại!** Thí Luyện Cuối Tuần tuần này đã kết thúc. Hẹn gặp lại các chiến binh vào 20:00 tối Thứ Bảy tuần sau nhé! ✨').catch(() => null);
+          }
+        }
+      } catch (err) {
+        logger.error('❌ [WitchHunterQuest] Lỗi khi thông báo đóng puzzle cuối tuần:', err);
+      }
+    }), { timezone: 'Asia/Ho_Chi_Minh' });
   }
 
   cleanupMemory() {

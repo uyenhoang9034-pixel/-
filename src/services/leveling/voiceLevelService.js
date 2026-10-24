@@ -740,6 +740,14 @@ async function addVoiceDuration(
 
             pumpkinGrowthTracker.recordVoiceLevelUp(member.id, levelsEarned);
 
+            // Ghi nhận nhiệm vụ tuần Witch Hunter: Tụ Họp Quán Rượu (Voice Level)
+            try {
+                const { WitchHunterQuestService } = await import('../witchHunterQuestService.js');
+                WitchHunterQuestService.onVoiceLevelGained(member.id, levelsEarned, guild);
+            } catch (questVoiceErr) {
+                logger.warn('⚠️ [WitchHunterQuest] Lỗi ghi nhận voice level:', questVoiceErr.message);
+            }
+
             await awardVoiceLevels(
                 client,
                 member,

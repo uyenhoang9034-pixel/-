@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "question": "Một Kẻ Mang Khế Ước vừa bị quái vật cào rách áo giáp nhưng tuyên bố rút lui khỏi chiến trường vì cảm thấy \"năng lượng không lành lặn\". Hành động này nơi trần thế gọi là gì?",
+    "option_a": "Về quê nuôi cá và trồng thêm rau",
+    "option_b": "Đi tìm nơi \"chữa lành\" tâm hồn",
+    "option_c": "Ký giao kèo với chúa quỷ",
+    "option_d": "Bật chế độ sinh tồn",
+    "correct_option": "B"
+  },
+  {
+    "id": 2,
+    "question": "Trong lúc giao tranh ác liệt với một đại phù thủy, thợ săn phát hiện súng hết sạch đạn bạc. Câu chú cầu viện khẩn cấp nào thường vang lên khắp cõi mạng?",
+    "option_a": "\"Trời ơi cứu tui, cứu tui dới chèn ơi!\"",
+    "option_b": "\"Xin vĩnh biệt cụ!\"",
+    "option_c": "\"Bất ngờ chưa bà già?\"",
+    "option_d": "\"Ủa ai biết gì đâu!\"",
+    "correct_option": "A"
+  },
+  {
+    "id": 3,
+    "question": "Thợ săn ẩn thân trong bụi rậm suốt 3 ngày đêm, đợi phù thủy đi ngang qua liền bất ngờ nhảy ra kích hoạt cấm thuật. Lời chào mang tính sát thương tinh thần cao nhất là gì?",
+    "option_a": "\"Hỡi đứa con của bóng tối!\"",
+    "option_b": "\"Bất ngờ chưa bà già!\"",
+    "option_c": "\"Ngươi đã cùng đường rồi!\"",
+    "option_d": "\"Có làm thì mới có ăn!\"",
+    "correct_option": "B"
+  },
+  {
+    "id": 4,
+    "question": "Sau khi vượt qua 81 cấm địa ma thuật, thử thách nghiệt ngã nhất mà một Kẻ Mang Khế Ước phải đối mặt vào mỗi cuối tháng là gì?",
+    "option_a": "Hết điểm Bí Ngô",
+    "option_b": "Rơi vào \"Kiếp nạn thứ 82\": Hết tiền lương",
+    "option_c": "Bị hội đồng bóc phốt",
+    "option_d": "Thần thú bỏ nhà đi bụi",
+    "correct_option": "B"
+  },
+  {
+    "id": 5,
+    "question": "Hành vi một thành viên vừa nhặt được vũ khí Bậc 5 liền chụp màn hình gửi vào mọi kênh chat kèm chú thích \"Nhặt bừa cũng trúng đồ tối thượng, chán ghê\" được gọi là gì?",
+    "option_a": "Trầm cảm nhẹ",
+    "option_b": "Thao túng tâm lý",
+    "option_c": "Nghệ thuật \"Flex\" đẳng cấp",
+    "option_d": "Khiêm tốn giả tạo",
+    "correct_option": "C"
+  },
+  {
+    "id": 6,
+    "question": "Vesper - Cú Đêm Chiêm Tinh bổ quả cau ra xem quẻ định mệnh cho thợ săn và phán một câu cửa miệng quen thuộc. Đó là câu gì?",
+    "option_a": "\"Đúng nhận sai cãi giúp cô!\"",
+    "option_b": "\"Quẻ này hỏng rồi!\"",
+    "option_c": "\"Tiền trao cháo múc!\"",
+    "option_d": "\"Số này không giàu thì nghèo!\"",
+    "correct_option": "A"
+  },
+  {
+    "id": 7,
+    "question": "Bị dí deadline liên tục từ công việc trần thế, không kịp vào voice cày cấp bí ngô, Kẻ Mang Khế Ước nên tự an ủi bằng triết lý sống nào?",
+    "option_a": "\"Khổ trước sướng sau thế mới giàu\"",
+    "option_b": "\"Áp lực tạo nên kim cương... hoặc tạo nên sự mệt mỏi\"",
+    "option_c": "\"Quay đầu là bờ\"",
+    "option_d": "\"Không làm mà đòi có ăn\"",
+    "correct_option": "B"
+  },
+  {
+    "id": 8,
+    "question": "Một phù thủy từ Bậc 1 rách rưới cầm kim rỉ sau một tháng chăm chỉ thắp nến bỗng lột xác thành Đại Phù Thủy lộng lẫy ở Bậc 5. Hiện tượng này gọi là:",
+    "option_a": "Tẩy trần",
+    "option_b": "Màn \"Glow up\" thần sầu",
+    "option_c": "Trùng sinh tu tiên",
+    "option_d": "Ảo tưởng sức mạnh",
+    "correct_option": "B"
+  },
+  {
+    "id": 9,
+    "question": "Khi một thợ săn tự xưng mình đã hạ gục 100 con quái vật trong tuần nhưng không có ảnh chụp chiến tích, cả server đồng loạt yêu cầu làm điều gì?",
+    "option_a": "Tế sống",
+    "option_b": "Bật camera đối chất",
+    "option_c": "\"Check VAR\" ngay lập tức",
+    "option_d": "Ký khế ước trừ nợ",
+    "correct_option": "C"
+  },
+  {
+    "id": 10,
+    "question": "Nửa đêm không ngủ được, cứ trằn trọc suy nghĩ liệu con thỏ bông Malice có đang nhìn mình hay không, trạng thái tâm lý này là gì?",
+    "option_a": "Tẩu hỏa nhập ma",
+    "option_b": "Căn bệnh \"Overthinking\" lúc 2 giờ sáng",
+    "option_c": "Giác ngộ chân lý",
+    "option_d": "Bị ma ám thật sự",
+    "correct_option": "B"
+  }
+]

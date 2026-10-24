@@ -86,6 +86,14 @@ export default {
                 return;
             }
 
+            // Ghi nhận nhiệm vụ tuần Witch Hunter: Tán Dương Đồng Đội (Reaction)
+            try {
+                const { WitchHunterQuestService } = await import('../services/witchHunterQuestService.js');
+                WitchHunterQuestService.onReactionAdd(reaction, user);
+            } catch (questErr) {
+                logger.warn('⚠️ [WitchHunterQuest] Lỗi ghi nhận reaction:', questErr.message);
+            }
+
 
             // =================================================
             // MAP EMOJI -> ROLE CONFIG
