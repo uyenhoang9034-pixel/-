@@ -46,7 +46,7 @@ export default {
 
       // Thống kê đại chiến giữa 2 phe
       embed.setDescription(
-        `⚔️ **ĐẠI CHIẾN MA THUẬT: THỢ SĂN vs PHÙ THỦY**\n` +
+        `${emojis.decor46 || '<a:trangtrig46:1547240249761996812>'} **ĐẠI CHIẾN MA THUẬT: THỢ SĂN vs PHÙ THỦY**\n` +
         `> ${emojis.hunterButton} **Hiệp Hội Thợ Săn:** **${factionStats.hunter.count}** thành viên • **${factionStats.hunter.pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
         `> ${emojis.witchButton} **Hội Phù Thủy:** **${factionStats.witch.count}** thành viên • **${factionStats.witch.pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
@@ -87,10 +87,10 @@ export default {
           ? WitchHunterService.getRankInfo(myProfile.faction, myProfile.current_rank || 1)
           : null;
         embed.addFields({
-          name: '👤 HỒ SƠ CỦA BẠN:',
+          name: `${emojis.heart || '<a:heartg1:1545307544808071258>'} HỒ SƠ CỦA BẠN:`,
           value:
             `> ${emojis.pumpkin} Điểm Bí Ngô: **${(myProfile.pumpkins || 0).toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
-            `> 🎖️ Cấp bậc: **${myRankInfo?.name || 'Chưa phân định'}** (${myProfile.faction === 'hunter' ? 'Thợ Săn' : myProfile.faction === 'witch' ? 'Phù Thủy' : 'Chưa chọn phe'})`,
+            `> ${emojis.decor21 || '<a:trangtrig21:1546093099770716213>'} Cấp bậc: **${myRankInfo?.name || 'Chưa phân định'}** (${myProfile.faction === 'hunter' ? 'Thợ Săn' : myProfile.faction === 'witch' ? 'Phù Thủy' : 'Chưa chọn phe'})`,
         });
       }
 
