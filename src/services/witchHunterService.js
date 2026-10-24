@@ -1585,11 +1585,11 @@ export class WitchHunterService {
 
     const options = [
       {
-        label: '📜 Trang Tổng Quan (3 Đại Hệ)',
+        label: '[Tổng Quan] 3 Đại Hệ',
         description: 'Bản chất 3 Đại Hệ: Nguyền Thể, Cấm Khí, Linh Tộc',
         value: 'overview',
         default: currentSelectedId === 'overview',
-        emoji: '🔮',
+        emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
       },
       ...supporters.list.map((s) => {
         const cat = supporters.categories[s.categoryKey];
