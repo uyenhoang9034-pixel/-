@@ -52,38 +52,21 @@ export default {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const botClient = client || interaction.client;
-      const guildId = interaction.guildId;
+      const guild = interaction.guild;
 
-      // 2. TỐI ƯU RAM: Đọc dữ liệu tổng hợp tháng từ pumpkinGrowthTracker (Stream JSONL)
-      let isMonthlyGrowth = true;
+      // 2. CHỈ SỬ DỤNG DUY NHẤT: Nguồn tăng trưởng Cấp Ma Thuật Trong Tháng (pumpkinGrowthTracker)
       let leaderboard = [];
 
       try {
         const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
         leaderboard = await pumpkinGrowthTracker.getMonthlyLeaderboard();
       } catch (e) {
-        logger.error('❌ [WitchHunter] Lỗi khi lấy monthly leaderboard:', e);
-      }
-
-      // Fallback: Nếu đầu tháng chưa có ai tích lũy trong log tháng, đọc từ BXH Leveling tổng
-      if (!leaderboard || leaderboard.length === 0) {
-        isMonthlyGrowth = false;
-        try {
-          const { getLeaderboard: getDbLeaderboard } = await import('../../utils/database.js');
-          leaderboard = await getDbLeaderboard(botClient, guildId, 20);
-        } catch (e) {
-          // Fallback tiếp
-        }
-
-        if (!leaderboard || leaderboard.length === 0) {
-          const { getLeaderboard: getServiceLeaderboard } = await import('../../services/leveling/leveling.js');
-          leaderboard = await getServiceLeaderboard(botClient, guildId, 20);
-        }
+        logger.error('❌ [WitchHunter] Lỗi khi lấy monthly leaderboard từ pumpkinGrowthTracker:', e);
       }
 
       if (!leaderboard || leaderboard.length === 0) {
         return interaction.editReply({
-          content: '⚠️ Hiện tại chưa có dữ liệu hoạt động (Chat / Voice) nào trong hệ thống Leveling của server để hiển thị.',
+          content: '⚠️ Hiện tại chưa có dữ liệu tăng trưởng Cấp Ma Thuật (Voice 30p = +1 cấp, Chat tăng level) nào trong tháng này để hiển thị.',
         });
       }
 
@@ -93,60 +76,90 @@ export default {
       const top4_10 = leaderboard.slice(3, 10);
       const top11_20 = leaderboard.slice(10, 20);
 
-      const formatGroup = (items, startRank) => {
+      const formatGroup = async (items, startRank) => {
         if (!items || items.length === 0) return '*Chưa có thành viên đạt mốc này*';
-        return items
-          .map((item, idx) => {
+        const formatted = await Promise.all(
+          items.map(async (item, idx) => {
             const rank = startRank + idx;
-            const profile = WitchHunterService.getUserProfile(item.userId);
-            const factionTag = profile?.faction
-              ? profile.faction === 'hunter'
+            let profile = WitchHunterService.getUserProfile(item.userId);
+            let faction = profile?.faction;
+
+            // Nếu database chưa kịp lưu phe, đối chiếu trực tiếp từ Role trên Server Discord
+            if (!faction && guild) {
+              const guildMember = guild.members.cache.get(item.userId) ||
+                await guild.members.fetch(item.userId).catch(() => null);
+
+              if (guildMember?.roles?.cache) {
+                for (const rId of Object.values(WITCH_HUNTER_CONFIG.roles.hunter)) {
+                  if (guildMember.roles.cache.has(rId)) {
+                    faction = 'hunter';
+                    break;
+                  }
+                }
+                if (!faction) {
+                  for (const rId of Object.values(WITCH_HUNTER_CONFIG.roles.witch)) {
+                    if (guildMember.roles.cache.has(rId)) {
+                      faction = 'witch';
+                      break;
+                    }
+                  }
+                }
+
+                // Tự động đồng bộ và lưu vào Database để tối ưu cho các lần gọi sau
+                if (faction) {
+                  if (!profile) {
+                    profile = { user_id: item.userId, faction, current_rank: 1, pumpkins: 0, unlocked_supporters: [] };
+                  } else {
+                    profile.faction = faction;
+                  }
+                  const { witchHunterStorage } = await import('../../services/witchHunterService.js');
+                  witchHunterStorage.saveUser(profile);
+                }
+              }
+            }
+
+            const factionTag = faction
+              ? faction === 'hunter'
                 ? `[${emojis.hunterButton} Thợ Săn]`
                 : `[${emojis.witchButton} Phù Thủy]`
               : `*(Chưa chọn phe)*`;
 
-            if (isMonthlyGrowth) {
-              return (
-                `**#${rank}.** <@${item.userId}> ${factionTag}\n` +
-                `> ⭐ **+${item.totalLevels} Cấp Ma Thuật Tháng**\n` +
-                `> 🎙️ Voice: \`${(item.voiceMinutes || 0).toLocaleString('vi-VN')}p\` (+${item.voiceLevels || 0}) • 💬 Chat: \`${(item.messageCount || 0).toLocaleString('vi-VN')} tin\` (+${item.chatLevels || 0})`
-              );
-            }
-
             return (
               `**#${rank}.** <@${item.userId}> ${factionTag}\n` +
-              `> 🎖️ Lv.**${item.level || 0}** • Tổng XP: **${(item.totalXp || 0).toLocaleString('vi-VN')}**`
+              `> ⭐ **+${item.totalLevels} Cấp Ma Thuật Tháng**\n` +
+              `> 🎙️ Voice: \`${(item.voiceMinutes || 0).toLocaleString('vi-VN')}p\` (+${item.voiceLevels || 0}) • 💬 Chat: \`${(item.messageCount || 0).toLocaleString('vi-VN')} tin\` (+${item.chatLevels || 0})`
             );
           })
-          .join('\n\n');
+        );
+        return formatted.join('\n\n');
       };
+
+      const top1_3Formatted = await formatGroup(top1_3, 1);
+      const top4_10Formatted = await formatGroup(top4_10, 4);
+      const top11_20Formatted = await formatGroup(top11_20, 11);
 
       const embed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
         .setTitle(`${emojis.titleLeft} 𝓟𝓻𝓮𝓿𝓲𝓮𝔀 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓛𝓮𝓿𝓮𝓵 𝓣𝓱𝓪́𝓷𝓰 ${emojis.titleRight}`)
         .setDescription(
-          isMonthlyGrowth
-            ? `Dưới đây là kết quả **Top 20 thành viên có mức tăng trưởng Cấp Ma Thuật cao nhất trong tháng** (tính theo cấp thực tế tăng từ Voice 30p = +1 cấp và Chat theo hệ thống Tu Tiên Leveling):\n` +
-              `*(Bảng này hiển thị ẩn ở chế độ xem trước, chỉ có Admin mới nhìn thấy)*\n` +
-              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-            : `Dưới đây là kết quả **Top 20 thành viên tích cực nhất** từ hệ thống Tu Tiên Leveling (chế độ dự phòng do log tháng chưa có dữ liệu tích lũy):\n` +
-              `*(Bảng này hiển thị ẩn ở chế độ xem trước, chỉ có Admin mới nhìn thấy)*\n` +
-              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+          `Dưới đây là kết quả **Top 20 thành viên có mức tăng trưởng Cấp Ma Thuật cao nhất trong tháng** (tính theo cấp thực tế tăng từ Voice 30p = +1 cấp và Chat theo hệ thống Tu Tiên Leveling):\n` +
+          `*(Bảng này hiển thị ẩn ở chế độ xem trước, chỉ có Admin mới nhìn thấy)*\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         )
         .addFields(
           {
             name: `🏆 TOP 1 - 3 (+100 Bí Ngô ${emojis.pumpkin}):`,
-            value: formatGroup(top1_3, 1),
+            value: top1_3Formatted,
             inline: false,
           },
           {
             name: `⚔️ TOP 4 - 10 (+50 Bí Ngô ${emojis.pumpkin}):`,
-            value: formatGroup(top4_10, 4),
+            value: top4_10Formatted,
             inline: false,
           },
           {
             name: `🔮 TOP 11 - 20 (+25 Bí Ngô ${emojis.pumpkin}):`,
-            value: formatGroup(top11_20, 11),
+            value: top11_20Formatted,
             inline: false,
           }
         );

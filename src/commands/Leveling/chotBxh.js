@@ -98,20 +98,9 @@ export default {
         }
       }
 
-      // Fallback về BXH Level tổng nếu log tháng chưa có dữ liệu
-      if (!top1_3Raw) {
-        const { getLeaderboard } = await import('../../services/leveling/leveling.js');
-        const autoLb = await getLeaderboard(botClient, guild.id, 20);
-        if (autoLb && autoLb.length > 0) {
-          top1_3Raw = autoLb.slice(0, 3).map((u) => u.userId).join(' ');
-          top4_10Raw = autoLb.slice(3, 10).map((u) => u.userId).join(' ');
-          top11_20Raw = autoLb.slice(10, 20).map((u) => u.userId).join(' ');
-        }
-      }
-
       if (!top1_3Raw) {
         return interaction.editReply({
-          content: '⚠️ Không tìm thấy danh sách thành viên hợp lệ (cả thủ công lẫn tự động từ BXH Level). Vui lòng nhập danh sách hoặc kiểm tra hệ thống Leveling!',
+          content: '⚠️ Không tìm thấy danh sách thành viên hợp lệ (cả nhập thủ công lẫn tự động từ tăng trưởng tháng của hệ thống Tu Tiên Leveling). Vui lòng điền danh sách thủ công vào các tùy chọn của lệnh!',
         });
       }
 
