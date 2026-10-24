@@ -83,11 +83,14 @@ export default {
       const guild = interaction.guild;
       const botClient = client || interaction.client;
 
-      // Nếu không nhập thủ công, tự động lấy từ hệ thống tăng trưởng tháng (Voice 30p = +1 cấp, Chat theo XP thực tế)
+      let targetCycleKey = null;
+      // Nếu không nhập thủ công, tự động lấy từ hệ thống tăng trưởng tháng (tổng hợp từ Báo Cáo Hằng Ngày)
       if (!top1_3Raw) {
         try {
           const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
-          const monthlyLb = await pumpkinGrowthTracker.getMonthlyLeaderboard();
+          const lbResult = await pumpkinGrowthTracker.getMonthlyLeaderboard({ cycleMode: 'previous', client: botClient });
+          targetCycleKey = lbResult?.targetCycleKey;
+          const monthlyLb = lbResult?.leaderboard || [];
           if (monthlyLb && monthlyLb.length > 0) {
             top1_3Raw = monthlyLb.slice(0, 3).map((u) => u.userId).join(' ');
             top4_10Raw = monthlyLb.slice(3, 10).map((u) => u.userId).join(' ');
@@ -185,7 +188,7 @@ export default {
 
       embed
         .setFooter({
-          text: `Witch Hunter System • Tổng kết bởi em bot Usagi múp rụp phục vụ vợ của Kim Nong 💕`,
+          text: 'Witch Hunter System',
         })
         .setTimestamp();
 
@@ -195,10 +198,10 @@ export default {
         await announcementChannel.send({ embeds: [embed] });
       }
 
-      // 5. Lưu trữ log tháng cũ & làm mới bộ nhớ để sẵn sàng cho tháng tiếp theo
+      // 5. Lưu trữ log tháng cũ, đánh dấu chu kỳ hoàn thành & xóa các bản ghi của tháng đã chốt
       try {
         const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
-        pumpkinGrowthTracker.archiveAndResetMonth(thang);
+        await pumpkinGrowthTracker.archiveAndCloseCycle(targetCycleKey, thang);
       } catch (archiveErr) {
         logger.error('⚠️ [WitchHunter] Lỗi khi lưu trữ log tháng:', archiveErr);
       }

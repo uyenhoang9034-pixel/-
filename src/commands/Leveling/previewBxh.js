@@ -35,7 +35,17 @@ function isWitchHunterAdmin(interaction) {
 export default {
   data: new SlashCommandBuilder()
     .setName('preview-bxh')
-    .setDescription('[Admin] Xem trước Bảng Xếp Hạng Level (Chat + Voice) Top 20 để chuẩn bị chốt tháng'),
+    .setDescription('[Admin] Xem trước Bảng Xếp Hạng Level (Chat + Voice) Top 20 để chuẩn bị chốt tháng')
+    .addStringOption((opt) =>
+      opt
+        .setName('chu-ky')
+        .setDescription('Chọn chu kỳ BXH muốn xem trước (Mặc định: Tự động phân chia tháng trước / tháng này)')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Tháng trước (Đang chờ chốt sổ)', value: 'thang_truoc' },
+          { name: 'Tháng này (Chu kỳ hiện tại)', value: 'thang_nay' }
+        )
+    ),
 
   category: 'Leveling',
 
@@ -53,20 +63,32 @@ export default {
 
       const botClient = client || interaction.client;
       const guild = interaction.guild;
+      const chosenMode = interaction.options.getString('chu-ky');
+      let cycleMode = 'auto';
+      if (chosenMode === 'thang_truoc') cycleMode = 'previous';
+      if (chosenMode === 'thang_nay') cycleMode = 'current';
 
-      // 2. CHỈ SỬ DỤNG DUY NHẤT: Nguồn tăng trưởng Cấp Ma Thuật Trong Tháng (pumpkinGrowthTracker)
-      let leaderboard = [];
+      // 2. CHỈ SỬ DỤNG DUY NHẤT: Dữ liệu tổng hợp từ Báo Cáo Hoạt Động Hằng Ngày (pumpkinGrowthTracker)
+      let result = null;
 
       try {
         const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
-        leaderboard = await pumpkinGrowthTracker.getMonthlyLeaderboard();
+        result = await pumpkinGrowthTracker.getMonthlyLeaderboard({ cycleMode, client: botClient });
       } catch (e) {
         logger.error('❌ [WitchHunter] Lỗi khi lấy monthly leaderboard từ pumpkinGrowthTracker:', e);
       }
 
+      const leaderboard = result?.leaderboard || [];
+      const displayName = result?.displayName || 'Tháng hiện tại';
+      const isPendingView = result?.isPendingView || false;
+      const isPreviousPending = result?.isPreviousPending || false;
+
       if (!leaderboard || leaderboard.length === 0) {
+        const notice = isPendingView
+          ? `⚠️ Hiện tại chưa có dữ liệu báo cáo hằng ngày nào của **${displayName}** (đang chờ chốt sổ).`
+          : `⚠️ Hiện tại chưa có dữ liệu báo cáo hằng ngày nào của **${displayName}** (tính từ 00:00 ngày 24 đến nay).`;
         return interaction.editReply({
-          content: '⚠️ Hiện tại chưa có dữ liệu tăng trưởng Cấp Ma Thuật (Voice 30p = +1 cấp, Chat tăng level) nào trong tháng này để hiển thị.',
+          content: notice,
         });
       }
 
@@ -86,8 +108,8 @@ export default {
 
             // Nếu database chưa kịp lưu phe, đối chiếu trực tiếp từ Role trên Server Discord
             if (!faction && guild) {
-              const guildMember = guild.members.cache.get(item.userId) ||
-                await guild.members.fetch(item.userId).catch(() => null);
+              const guildMember =
+                guild.members.cache.get(item.userId) || (await guild.members.fetch(item.userId).catch(() => null));
 
               if (guildMember?.roles?.cache) {
                 for (const rId of Object.values(WITCH_HUNTER_CONFIG.roles.hunter)) {
@@ -138,13 +160,28 @@ export default {
       const top4_10Formatted = await formatGroup(top4_10, 4);
       const top11_20Formatted = await formatGroup(top11_20, 11);
 
+      let cycleStatusLine = `Chu kỳ: **${displayName}**`;
+      if (isPendingView) {
+        cycleStatusLine += ` *(Đang chờ chốt sổ mốc 00:00 ngày 24)*`;
+      } else {
+        cycleStatusLine += ` *(Đang diễn ra từ 00:00 ngày 24)*`;
+      }
+
+      let hintLine = '';
+      if (isPreviousPending && cycleMode !== 'current') {
+        hintLine = `> 💡 *Tháng trước đang chờ chốt sổ. Bạn có thể chọn \`/preview-bxh chu-ky: Tháng này\` để xem số liệu chu kỳ mới.*\n`;
+      } else if (cycleMode === 'current') {
+        hintLine = `> 💡 *Đang xem chu kỳ mới. Chọn \`/preview-bxh chu-ky: Tháng trước\` nếu cần xem lại chu kỳ chờ chốt.*\n`;
+      }
+
       const embed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
         .setTitle(`${emojis.titleLeft} 𝓟𝓻𝓮𝓿𝓲𝓮𝔀 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓛𝓮𝓿𝓮𝓵 𝓣𝓱𝓪́𝓷𝓰 ${emojis.titleRight}`)
         .setDescription(
-          `Dưới đây là kết quả **Top 20 thành viên có mức tăng trưởng Cấp Ma Thuật cao nhất trong tháng** (tính theo cấp thực tế tăng từ Voice 30p = +1 cấp và Chat theo hệ thống Tu Tiên Leveling):\n` +
-          `*(Bảng này hiển thị ẩn ở chế độ xem trước, chỉ có Admin mới nhìn thấy)*\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+          `Dưới đây là kết quả **Top 20 thành viên có mức tăng trưởng Cấp Ma Thuật cao nhất** (${cycleStatusLine}):\n` +
+            `*(Dữ liệu tổng hợp từ toàn bộ các Báo Cáo Hoạt Động Hằng Ngày, ẩn ở chế độ xem trước dành riêng cho Admin)*\n` +
+            hintLine +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         )
         .addFields(
           {
@@ -178,9 +215,11 @@ export default {
         inline: false,
       });
 
-      embed.setFooter({
-        text: 'Witch Hunter Preview • Chỉ hiển thị cho riêng Admin • Em bot Usagi múp rụp 💕',
-      }).setTimestamp();
+      embed
+        .setFooter({
+          text: 'Witch Hunter Preview • Chỉ hiển thị cho riêng Admin',
+        })
+        .setTimestamp();
 
       return interaction.editReply({
         embeds: [embed],

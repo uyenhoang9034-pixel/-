@@ -96,7 +96,7 @@ export default {
 
       embed
         .setFooter({
-          text: `Witch Hunter Leaderboard • Em bot Usagi múp rụp phục vụ vợ của Kim Nong 💕`,
+          text: 'Witch Hunter Leaderboard',
         })
         .setTimestamp();
 

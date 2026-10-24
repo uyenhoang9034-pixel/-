@@ -337,7 +337,7 @@ export class WitchHunterService {
     const ranks = WITCH_HUNTER_CONFIG.ranks[faction] || [];
     const info = ranks.find((r) => r.rank === rankLevel) || ranks[0];
     const roleId = WITCH_HUNTER_CONFIG.roles[faction]?.[rankLevel] || null;
-    return { ...info, roleId };
+    return { ...info, faction, roleId };
   }
 
   /**
@@ -535,7 +535,7 @@ export class WitchHunterService {
           inline: true,
         }
       )
-      .setFooter({ text: 'Witch Hunter Admin System • Em bot Usagi múp rụp 💕' })
+      .setFooter({ text: 'Witch Hunter Admin System' })
       .setTimestamp();
   }
 
@@ -580,7 +580,7 @@ export class WitchHunterService {
           inline: true,
         }
       )
-      .setFooter({ text: 'Witch Hunter Admin System • Em bot Usagi múp rụp 💕' })
+      .setFooter({ text: 'Witch Hunter Admin System' })
       .setTimestamp();
   }
 
@@ -625,7 +625,7 @@ export class WitchHunterService {
           inline: true,
         }
       )
-      .setFooter({ text: 'Witch Hunter Admin System • Em bot Usagi múp rụp 💕' })
+      .setFooter({ text: 'Witch Hunter Admin System' })
       .setTimestamp();
   }
 
@@ -665,7 +665,7 @@ export class WitchHunterService {
           inline: true,
         }
       )
-      .setFooter({ text: 'Witch Hunter Admin System • Em bot Usagi múp rụp 💕' })
+      .setFooter({ text: 'Witch Hunter Admin System' })
       .setTimestamp();
   }
 
@@ -716,7 +716,7 @@ export class WitchHunterService {
           inline: true,
         }
       )
-      .setFooter({ text: 'Witch Hunter Admin System • Em bot Usagi múp rụp 💕' })
+      .setFooter({ text: 'Witch Hunter Admin System' })
       .setTimestamp();
 
     if (isRankUp && rankInfo) {
@@ -779,7 +779,7 @@ export class WitchHunterService {
         `Khế ước cổ đại vừa rung chuyển dữ dội! Chúc mừng **Kẻ Mang Khế Ước** <@${userId}> đã tích lũy đủ chiến công Bí Ngô và chính thức thăng cấp lên:\n\n` +
         `> ${factionBadge} **${factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${rankInfo.name}**\n\n` +
         (quote ? `> *${quote}*\n\n` : '') +
-        `📊 **Tổng Bí Ngô tích lũy:** **${totalPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+        `<a:capybarag1:1546058369566122015> **Tổng Bí Ngô tích lũy:** **${totalPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
         `Role mới <@&${rankInfo.roleId}> đã được kích hoạt trực tiếp trên máy chủ!`
       )
       .setFooter({ text: 'Witch Hunter System' })
@@ -1175,11 +1175,12 @@ export class WitchHunterService {
   /**
    * Tạo Embed tin nhắn riêng (DM) khi bị thu hồi Bí Ngô dẫn đến Giáng Cấp
    */
-  static buildDemoteDM(user, actualDeducted, newPumpkins, oldRank, newRank, oldRankInfo, newRankInfo, oldSupporter, newSupporter, reason, executor) {
+  static buildDemoteDM(user, actualDeducted, newPumpkins, oldRank, newRank, oldRankInfo, newRankInfo, oldSupporter, newSupporter, reason, executor, faction = null) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
     const decor30Emoji = emojis.decor30 || '<a:trangtrig30:1546905942476464178>';
     const decor1Emoji = emojis.decor1 || '<a:trangtrig1:1546040442548654140>';
-    const isWitch = oldRankInfo?.faction === 'witch';
+    const effectiveFaction = faction || oldRankInfo?.faction || newRankInfo?.faction;
+    const isWitch = effectiveFaction === 'witch';
     const factionName = isWitch ? 'Hội Phù Thủy (Witches)' : 'Hiệp Hội Thợ Săn (W.H. Association)';
     const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
 
@@ -1194,12 +1195,12 @@ export class WitchHunterService {
         `Hội Đồng Ma Thuật vừa thực hiện thu hồi **-${actualDeducted.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} từ ${executor ? `<@${executor.id}>` : 'Ban Quản Trị'}!\n` +
         (reason ? `> ${decor30Emoji} **Lý do / Vi phạm:** ${reason}\n\n` : '\n') +
         `${decor1Emoji} **Tổng Bí Ngô tích lũy hiện tại:** **${newPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n\n` +
-        `⚠️ **CẢNH BÁO GIÁNG CẤP DANH VỊ:**\n` +
+        `<a:bang2:1546891483250954290> **CẢNH BÁO GIÁNG CẤP DANH VỊ:**\n` +
         `Do số lượng Bí Ngô sụt giảm không còn đủ duy trì ma lực, danh vị của lữ khách đã bị giáng từ **${oldRankInfo?.name || `Bậc ${oldRank}`}** xuống:\n` +
         `> ${factionBadge} **${factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${newRankInfo?.name || `Bậc ${newRank}`}**\n\n` +
-        `Role <@&${oldRankInfo?.roleId}> đã bị thu hồi, thay thế bằng role <@&${newRankInfo?.roleId}> trên máy chủ.\n\n` +
+        `Role **${oldRankInfo?.name || `Bậc ${oldRank}`}** đã bị thu hồi, thay thế bằng role **${newRankInfo?.name || `Bậc ${newRank}`}** trên máy chủ.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `💔 **KHẾ ƯỚC SUPPORTER BỊ PHONG ẤN & THU HỒI:**\n` +
+        `<a:trangtrig4:1546041273813827645> **KHẾ ƯỚC SUPPORTER BỊ PHONG ẤN & THU HỒI:**\n` +
         `Do ma lực không còn đạt ngưỡng yêu cầu, khế ước của Supporter **${oldSupporter ? oldSupporter.name : `Bậc ${oldRank}`}** đã bị giải trừ và phong ấn trở lại!\n` +
         `Supporter đồng hành hiện tại của lữ khách được giáng về bậc tương ứng:\n` +
         `> ${newCatEmoji} **SUPPORTER: ${newSupporter ? newSupporter.fullName : `Bậc ${newRank}`}** *(Bậc ${newRank})*\n` +
@@ -1279,7 +1280,7 @@ export class WitchHunterService {
           inline: true,
         }
       )
-      .setFooter({ text: 'Witch Hunter Admin System • Em bot Usagi múp rụp 💕' })
+      .setFooter({ text: 'Witch Hunter Admin System' })
       .setTimestamp();
 
     if (isDemoted && rankInfo) {
@@ -1404,7 +1405,8 @@ export class WitchHunterService {
               oldSupporter,
               newSupporter,
               reason,
-              executor
+              executor,
+              userData.faction
             );
           } else {
             dmEmbed = this.buildRevokePumpkinsDM(userObj, actualDeducted, newPumpkins, reason, executor);
@@ -1549,7 +1551,7 @@ export class WitchHunterService {
         `Hãy mau chóng ghé qua kênh <#${channels.selectionChannelId}> và bấm nút ký khế ước để nhận ngay Role danh hiệu và khai mở toàn bộ đặc quyền cấp bậc của bạn nhé!`
       )
       .setFooter({
-        text: 'Witch Hunter System • Gửi từ em bot Usagi múp rụp 💕',
+        text: 'Witch Hunter System',
       })
       .setTimestamp();
   }

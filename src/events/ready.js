@@ -157,6 +157,14 @@ export default {
         `Level role sync: scanned ${levelRoleSummary.scannedGuilds} guilds, pruned ${levelRoleSummary.prunedRewardEntries} stale rewards, re-awarded ${levelRoleSummary.rolesReAwarded} roles, errors ${levelRoleSummary.errors}`,
       );
 
+      // Đồng bộ dữ liệu Báo Cáo Hằng Ngày Witch Hunter từ PostgreSQL & Kênh Báo Cáo
+      try {
+        const { pumpkinGrowthTracker } = await import('../services/pumpkinGrowthTracker.js');
+        await pumpkinGrowthTracker.syncWithPersistentDb(client);
+      } catch (trackerErr) {
+        logger.warn('⚠️ [PumpkinTracker] Không thể nạp daily logs từ database:', trackerErr.message);
+      }
+
 
     } catch (
       error
