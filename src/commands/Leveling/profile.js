@@ -3,46 +3,127 @@ import {
   MessageFlags,
   SlashCommandBuilder,
 } from 'discord.js';
-import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
-import { WitchHunterService } from '../../services/witchHunterService.js';
+import {
+  WITCH_HUNTER_CONFIG,
+  getSupporterByRank,
+} from '../../config/witchHunterConfig.js';
+import { WitchHunterService, witchHunterStorage } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('profile')
-    .setDescription('Tra cứu hồ sơ cá nhân, cấp bậc và tiến trình Bí Ngô Witch Hunter của bạn'),
+    .setDescription('Tra cứu hồ sơ cá nhân, cấp bậc và khế ước Supporter Witch Hunter')
+    .addUserOption((opt) =>
+      opt
+        .setName('thanh-vien')
+        .setDescription('Thành viên muốn tra cứu hồ sơ (để trống để xem hồ sơ của chính mình)')
+        .setRequired(false)
+    ),
 
   category: 'Leveling',
 
   async execute(interaction) {
     try {
-      const user = interaction.user;
-      const userId = user.id;
+      const targetUser = interaction.options.getUser('thanh-vien') || interaction.user;
+      const userId = targetUser.id;
+      const guild = interaction.guild;
+
+      let guildMember = null;
+      if (guild) {
+        guildMember = guild.members.cache.get(userId) ||
+          await guild.members.fetch(userId).catch(() => null);
+      }
 
       // 1. Lấy dữ liệu người dùng từ Database
-      const userData = WitchHunterService.getUserProfile(userId);
-      const pumpkins = userData?.pumpkins || 0;
-      const faction = userData?.faction || null;
-      const currentRank = userData?.current_rank || 1;
+      let userData = WitchHunterService.getUserProfile(userId);
+      let faction = userData?.faction || null;
+      let currentRank = userData?.current_rank || 1;
+      let pumpkins = userData?.pumpkins || 0;
+
+      // 2. CƠ CHẾ TỰ ĐỘNG KHÔI PHỤC HỒ SƠ TỪ ROLE TRÊN DISCORD NẾU DATABASE CHƯA ĐỒNG BỘ:
+      if (guildMember?.roles?.cache) {
+        let detectedFaction = null;
+        let detectedRank = 1;
+
+        // Quét role Thợ Săn
+        for (const [rStr, rId] of Object.entries(WITCH_HUNTER_CONFIG.roles.hunter)) {
+          if (guildMember.roles.cache.has(rId)) {
+            detectedFaction = 'hunter';
+            detectedRank = Math.max(detectedRank, Number(rStr));
+          }
+        }
+
+        // Quét role Phù Thủy
+        if (!detectedFaction) {
+          for (const [rStr, rId] of Object.entries(WITCH_HUNTER_CONFIG.roles.witch)) {
+            if (guildMember.roles.cache.has(rId)) {
+              detectedFaction = 'witch';
+              detectedRank = Math.max(detectedRank, Number(rStr));
+            }
+          }
+        }
+
+        if (detectedFaction) {
+          faction = detectedFaction;
+          currentRank = Math.max(currentRank, detectedRank);
+
+          const minPumpkinsForRank = WITCH_HUNTER_CONFIG.ranks[detectedFaction]?.find(
+            (r) => r.rank === detectedRank
+          )?.minPumpkins || 0;
+
+          if (pumpkins < minPumpkinsForRank) {
+            pumpkins = minPumpkinsForRank;
+          }
+
+          if (!userData) {
+            userData = {
+              user_id: userId,
+              faction,
+              current_rank: currentRank,
+              pumpkins,
+              unlocked_supporters: [`${faction}:${currentRank}`],
+            };
+          } else {
+            userData.faction = faction;
+            userData.current_rank = currentRank;
+            userData.pumpkins = pumpkins;
+            userData.unlocked_supporters = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
+            const key = `${faction}:${currentRank}`;
+            if (!userData.unlocked_supporters.includes(key)) {
+              userData.unlocked_supporters.push(key);
+            }
+          }
+
+          witchHunterStorage.saveUser(userData, true);
+        }
+      }
 
       const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
 
-      // 2. Trường hợp chưa ký khế ước chọn phe
+      const decor45Emoji = emojis.decor45 || '<a:trangtrig45:1547239010190237819>';
+      const decor30Emoji = emojis.decor30 || '<a:trangtrig30:1546905942476464178>';
+      const decor34Emoji = emojis.decor34 || '<a:trangtrig34:1547237010572582982>';
+      const defaultLinhTocEmoji = emojis.linhtoc || '<a:linhtocg:1563399670351536310>';
+      const heartEmoji = emojis.heart || '<a:heartg1:1545307544808071258>';
+
+      // 3. TRƯỜNG HỢP CHƯA KÝ KHẾ ƯỚC CHỌN PHE
       if (!faction) {
         const unassignedEmbed = new EmbedBuilder()
           .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-          .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓒𝓪́ 𝓝𝓱𝓪̂𝓷: ${user.username} ${emojis.titleRight}`)
-          .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+          .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓒𝓪́ 𝓝𝓱𝓪̂𝓷: ${targetUser.username} ${emojis.titleRight}`)
+          .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
           .setDescription(
-            `Chào **${user.username}**! Hiện tại bạn **chưa ký khế ước gia nhập phe phái** nào trong thế giới **Witch Hunter**.\n\n` +
+            `Chào **${targetUser.username}**! Hiện tại lữ khách **chưa ký khế ước gia nhập phe phái** nào trong thế giới **Witch Hunter**.\n\n` +
             `${emojis.pumpkin} **Bí Ngô tích lũy:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
-            `⚔️ **Phe phái:** *Vô môn vô phái (Chưa gia nhập)*\n` +
-            `🎖️ **Cấp bậc:** *Chưa phân định*\n\n` +
-            `💡 **Lời nhắn từ em bot Usagi múp rụp:**\n` +
-            `> Hãy ghé qua kênh <#${channels.selectionChannelId}> để bấm nút gia nhập **Hiệp Hội Thợ Săn** hoặc **Hội Phù Thủy** và nhận Role danh hiệu ngay nha vợ của Kim Nong ơi! 💕`
+            `${decor34Emoji} **Phe phái:** *Chưa phân định...*\n` +
+            `${decor45Emoji} **Cấp bậc:** *Chưa phân định*\n` +
+            `${defaultLinhTocEmoji} **Supporter Khế Ước:** *Chưa ký kết khế ước*\n\n` +
+            `${decor30Emoji} **Lời nhắn từ Phù Thủy Usagi:**\n` +
+            `> Hãy ghé qua kênh <#${channels.selectionChannelId}> nhận role danh hiệu ngay nha Lữ Khách ơi! ${heartEmoji}`
           )
           .setFooter({
-            text: 'Witch Hunter Profile • Chỉ hiển thị cho riêng bạn • Em bot Usagi múp rụp 💕',
+            text: 'Witch Hunter Profile',
           })
           .setTimestamp();
 
@@ -52,48 +133,43 @@ export default {
         });
       }
 
-      // 3. Trường hợp ĐÃ GIA NHẬP PHE
+      // 4. TRƯỜNG HỢP ĐÃ GIA NHẬP PHE
       const isHunter = faction === 'hunter';
-      const factionName = isHunter ? 'Hiệp Hội Thợ Săn (W.H. Association)' : 'Hội Phù Thủy (Witches)';
-      const factionBadge = isHunter ? emojis.hunterBadge : emojis.witchBadge;
+      const factionDisplay = isHunter
+        ? `${emojis.hunterButton} **Phe phái:** **Hiệp Hội Thợ Săn**`
+        : `${emojis.witchButton} **Phe phái:** **Phe Phù Thủy**`;
 
       const progress = WitchHunterService.getProgressDetails(faction, pumpkins, currentRank);
       const rankInfo = WitchHunterService.getRankInfo(faction, currentRank);
 
+      // Tra cứu Supporter tương ứng theo phe và rank hiện tại
+      const supporter = getSupporterByRank(faction, currentRank);
+      let supporterLine = `${defaultLinhTocEmoji} **Supporter Khế Ước:** *Chưa ký kết khế ước*`;
+      if (supporter) {
+        const cat = WITCH_HUNTER_CONFIG.supporters.categories[supporter.categoryKey];
+        const catEmoji = cat?.emoji || defaultLinhTocEmoji;
+        supporterLine = `${catEmoji} **Supporter Khế Ước:** **${supporter.name}** *(${cat?.shortName || ''})*`;
+      }
+
       const profileEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${user.username} ${emojis.titleRight}`)
-        .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${targetUser.username} ${emojis.titleRight}`)
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
         .setDescription(
           `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-        )
-        .addFields(
-          {
-            name: `${factionBadge} Phe Phái Tham Chiến:`,
-            value: `**${factionName}**`,
-            inline: true,
-          },
-          {
-            name: `🎖️ Cấp Bậc Hiện Tại:`,
-            value: `**${rankInfo.name}**\n*(${rankInfo.title})*`,
-            inline: true,
-          },
-          {
-            name: `${emojis.pumpkin} Bí Ngô Sở Hữu:`,
-            value: `**${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}`,
-            inline: true,
-          },
-          {
-            name: `📊 Tiến Trình Đột Phá Bậc Kế Tiếp:`,
-            value:
-              `${progress.progressBar}\n` +
-              `> ${progress.formattedStatus}`,
-            inline: false,
-          }
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+          `${factionDisplay}\n` +
+          `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}**\n` +
+          `${supporterLine}\n\n` +
+          `📊 **Tiến trình đột phá bậc kế tiếp:**\n` +
+          `${progress.progressBar}\n` +
+          `> ${progress.formattedStatus}\n\n` +
+          `${decor30Emoji} **Lời nhắn từ Phù Thủy Usagi:**\n` +
+          `> Hãy ghé qua kênh <#${channels.selectionChannelId}> nhận role danh hiệu ngay nha Lữ Khách ơi! ${heartEmoji}`
         )
         .setFooter({
-          text: `Witch Hunter Profile • Chỉ hiển thị cho riêng bạn • Em bot Usagi múp rụp 💕`,
+          text: 'Witch Hunter Profile',
         })
         .setTimestamp();
 

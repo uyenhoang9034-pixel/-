@@ -146,4 +146,6 @@ backups/
 *.dump
 data/*.sqlite*
 data/*.tmp
+data/witch_hunter.json
+data/*.jsonl
 
