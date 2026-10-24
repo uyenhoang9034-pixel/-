@@ -918,7 +918,7 @@ export class WitchHunterService {
           `> 🛡️ **Role mới:** <@&${rankInfo.roleId}>\n\n` +
           `*Toàn bộ role của phe cũ đã được thu hồi và role phe mới đã được trao gửi thành công!* 💕`
         )
-        .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+        .setFooter({ text: 'Witch Hunter System' })
         .setTimestamp();
 
       await member.send({ embeds: [dmEmbed] }).catch(() => null);
@@ -1730,7 +1730,7 @@ export class WitchHunterService {
                 `> ⚠️ **Trạng thái hiện tại:** Dữ liệu phe phái của bạn trong thế giới Witch Hunter đã được đưa về trạng thái **Chưa có phe (Vô môn vô phái)**.\n` +
                 `> 💡 Khi nào Ban Quản Trị cấp lại hoặc bạn tự ghé kênh <#${WITCH_HUNTER_CONFIG.channels.selectionChannelId}> để ký khế ước chọn phe lại thì hệ thống mới ghi nhận thông tin nha!`
               )
-              .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+              .setFooter({ text: 'Witch Hunter System' })
               .setTimestamp();
 
             await newMember.send({ embeds: [dmEmbed] }).catch(() => null);
@@ -1794,7 +1794,7 @@ export class WitchHunterService {
               `Ban Quản Trị vừa cấp role và phê chuẩn bạn chính thức gia nhập **${roleInfo.factionName}** với danh hiệu **${roleInfo.name}**!\n\n` +
               `${welcomeMessage}`
             )
-            .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+            .setFooter({ text: 'Witch Hunter System' })
             .setTimestamp();
 
           await newMember.send({ embeds: [dmEmbed] }).catch(() => null);

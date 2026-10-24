@@ -50,6 +50,7 @@ export const WITCH_HUNTER_CONFIG = {
     decor1: '<a:trangtrig1:1546040442548654140>',
     decor34: '<a:trangtrig34:1547237010572582982>',
     decor21: '<a:trangtrig21:1546093099770716213>',
+    decor47: '<a:trangtrig47:1547249293944029308>',
     bang2: '<a:bang2:1546891483250954290>',
   },
 
@@ -107,10 +108,10 @@ export const WITCH_HUNTER_CONFIG = {
   // Thông điệp vinh danh khi thăng cấp
   messages: {
     welcomeWitch: (userId) =>
-      `Kết giới rung chuyển: Phù thủy <@${userId}> đã giải phóng cấm thuật thành công và chính thức bước vào hàng ngũ! Chiếc mũ chóp và quyền năng bóng tối của ngươi đã sẵn sàng reo rắc nỗi khiếp sợ mới.`,
+      `Kết giới rung chuyển: Phù thủy <@${userId}> đã giải phóng cấm thuật thành công và chính thức bước vào hàng ngũ! Chiếc mũ chóp và quyền năng bóng tối của ngươi đã sẵn sàng gieo rắc nỗi khiếp sợ mới.`,
     welcomeHunter: (userId) =>
       `Hiệp Hội xác nhận: Thợ săn <@${userId}> đã lập đủ chiến công và chính thức bước vào hàng ngũ! Khẩu súng của ngươi đã sẵn sàng cho những mục tiêu nguy hiểm hơn.`,
-    alreadyChosen: 'Admin đã cấp role cho bạn rồi nè! Nếu muốn thay đổi phe phái, vui lòng liên hệ Admin để được hỗ trợ nha 💕',
+    alreadyChosen: '<a:trangtrig47:1547249293944029308> Một trong **Tứ Đại Phù Thủy** <@872792190651334707> đã dựa vào mong muốn của Lữ Khách và chọn phe sẵn cho Lữ Khách rồi ạ!\n<a:trangtrig47:1547249293944029308> Nếu Lữ Khách muốn thay đổi phe, xin hãy liên hệ <@872792190651334707> nhé!',
 
     hunterRankUpQuotes: [
       (userId, rankName) =>

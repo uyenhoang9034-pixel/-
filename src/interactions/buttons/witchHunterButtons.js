@@ -64,7 +64,7 @@ export default {
             `> 🛡️ **Role đã cập nhật:** <@&${rankInfo.roleId}>\n\n` +
             `*Hệ thống đã tự động thu hồi toàn bộ role của phe cũ và thông báo đến kênh nội bộ Admin.* 💕`
           )
-          .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+          .setFooter({ text: 'Witch Hunter System' })
           .setTimestamp();
 
         // Gửi DM thêm cho Admin nếu mở DM
@@ -87,7 +87,7 @@ export default {
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
         .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 𝓚𝓱𝓸̛̉𝓲 𝓢𝓪̆́𝓬 ${emojis.titleRight}`)
         .setDescription(welcomeMessage)
-        .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+        .setFooter({ text: 'Witch Hunter System' })
         .setTimestamp();
 
       // Gửi riêng thêm vào Direct Message (DM) cho người pick role

@@ -126,7 +126,7 @@ export default {
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `*Hệ thống đã thu hồi role phe cũ, cấp role phe mới, gửi thông báo DM chúc mừng kèm giao diện Supporter riêng cho lữ khách rồi nha!* 💕`
         )
-        .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+        .setFooter({ text: 'Witch Hunter System' })
         .setTimestamp();
 
       return interaction.editReply({

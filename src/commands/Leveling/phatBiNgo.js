@@ -117,7 +117,7 @@ export default {
           `\n📝 **Lý do:** ${reason}\n\n` +
           `*✨ Hệ thống đã gửi tin nhắn riêng (DM) tới người nhận và lưu nhật ký vào kênh Admin <#${channels.adminLogChannelId}>.*`
         )
-        .setFooter({ text: 'Witch Hunter System • Em bot Usagi múp rụp 💕' })
+        .setFooter({ text: 'Witch Hunter System' })
         .setTimestamp();
 
       return interaction.editReply({
