@@ -107,6 +107,44 @@ class WitchHunterStorage {
     }
   }
 
+  // Đồng bộ hai chiều với PostgreSQL Database (chống mất dữ liệu vĩnh viễn khi restart/deploy container)
+  async syncWithPersistentDb() {
+    try {
+      const { getFromDb, setInDb } = await import('../utils/database.js');
+      const pgData = await getFromDb('temp:witch_hunter:members_data');
+      if (Array.isArray(pgData) && pgData.length > 0) {
+        for (const item of pgData) {
+          if (!item || !item.user_id) continue;
+          const localItem = this.memoryCache.get(item.user_id);
+          if (!localItem || (item.updated_at && item.updated_at >= (localItem.updated_at || 0))) {
+            this.memoryCache.set(item.user_id, item);
+          }
+        }
+        this.flushJson();
+        logger.info(`🔮 [WitchHunter] Đã nạp thành công ${this.memoryCache.size} thành viên từ PostgreSQL Database.`);
+      } else if (this.memoryCache.size > 0) {
+        await setInDb('temp:witch_hunter:members_data', Array.from(this.memoryCache.values()));
+        logger.info(`🔮 [WitchHunter] Đã khởi tạo sao lưu ${this.memoryCache.size} thành viên lên PostgreSQL.`);
+      }
+    } catch (err) {
+      logger.warn('⚠️ [WitchHunter] Không thể đồng bộ PostgreSQL:', err.message);
+    }
+  }
+
+  schedulePgSave() {
+    if (this.pgSaveTimeout) return;
+    this.pgSaveTimeout = setTimeout(async () => {
+      this.pgSaveTimeout = null;
+      try {
+        const { setInDb } = await import('../utils/database.js');
+        const records = Array.from(this.memoryCache.values());
+        await setInDb('temp:witch_hunter:members_data', records);
+      } catch (err) {
+        logger.warn('⚠️ [WitchHunter] Lỗi khi lưu dữ liệu lên PostgreSQL:', err.message);
+      }
+    }, 500);
+  }
+
   getUser(userId) {
     if (this.memoryCache.has(userId)) {
       return this.memoryCache.get(userId);
@@ -190,6 +228,9 @@ class WitchHunterStorage {
     // Luôn ghi đĩa JSON ngay lập tức để không bao giờ mất dữ liệu khi restart hoặc update code
     this.flushJson();
 
+    // Lưu đồng bộ vĩnh viễn lên PostgreSQL
+    this.schedulePgSave();
+
     return userObj;
   }
 
@@ -204,6 +245,9 @@ class WitchHunterStorage {
         logger.error('❌ [WitchHunter] Lỗi clearAllData SQLite:', err);
       }
     }
+    import('../utils/database.js').then(({ deleteFromDb }) => {
+      deleteFromDb('temp:witch_hunter:members_data').catch(() => null);
+    }).catch(() => null);
     logger.info('🔮 [WitchHunter] Đã xóa sạch toàn bộ dữ liệu thành viên trong cơ sở dữ liệu.');
   }
 
@@ -239,6 +283,7 @@ class WitchHunterStorage {
     }
 
     this.flushJson();
+    this.schedulePgSave();
     logger.info(`🔮 [WitchHunter] Đã reset phe của ${resetCount} thành viên về Chưa có phe (null).`);
     return resetCount;
   }

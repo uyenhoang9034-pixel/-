@@ -133,6 +133,14 @@ class TitanBot extends Client {
       } else {
         startupLog(`✅ Database Status: ${dbStatus.connectionType} (fully operational)`);
       }
+
+      // Nạp và đồng bộ dữ liệu Witch Hunter từ PostgreSQL (bảo toàn dữ liệu vĩnh viễn)
+      try {
+        const { witchHunterStorage } = await import('./services/witchHunterService.js');
+        await witchHunterStorage.syncWithPersistentDb();
+      } catch (whErr) {
+        logger.warn('⚠️ [WitchHunter] Không thể nạp dữ liệu từ PostgreSQL:', whErr.message);
+      }
       
       startupLog('Starting web server...');
       this.startWebServer();
