@@ -26,6 +26,8 @@ export default {
 
   async execute(interaction) {
     try {
+      await interaction.deferReply();
+
       const chosenFaction = interaction.options.getString('phe') || 'all';
       const filterFaction = chosenFaction === 'all' ? null : chosenFaction;
 
@@ -74,10 +76,22 @@ export default {
           return `${medal} <@${item.user_id}> ${factionTag} ${rankText}\n> ${emojis.pumpkin} Tích lũy: **${(item.pumpkins || 0).toLocaleString('vi-VN')}** Bí Ngô`;
         });
 
-        embed.addFields({
-          name: `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP ${topMembers.length} THÀNH VIÊN XUẤT SẮC NHẤT:**`,
-          value: lines.join('\n\n'),
-        });
+        // Chia nhỏ thành các fields tối đa 5 thành viên để không bao giờ vượt quá giới hạn 1024 ký tự của Discord
+        const CHUNK_SIZE = 5;
+        for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
+          const chunk = lines.slice(i, i + CHUNK_SIZE);
+          const startRank = i + 1;
+          const endRank = i + chunk.length;
+          const fieldName = i === 0
+            ? `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP ${topMembers.length} THÀNH VIÊN XUẤT SẮC NHẤT:**`
+            : `🏆 **HẠNG ${startRank} - ${endRank}:**`;
+
+          embed.addFields({
+            name: fieldName,
+            value: chunk.join('\n\n'),
+            inline: false,
+          });
+        }
       }
 
       // Vị trí của người dùng hiện tại
@@ -100,9 +114,14 @@ export default {
         })
         .setTimestamp();
 
-      return interaction.reply({ embeds: [embed] });
+      return interaction.editReply({ embeds: [embed] });
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi lệnh bxh-bingo:', error);
+      if (interaction.deferred || interaction.replied) {
+        return interaction.editReply({
+          content: `Đã có lỗi xảy ra: ${error.message}`,
+        });
+      }
       return interaction.reply({
         content: `Đã có lỗi xảy ra: ${error.message}`,
         ephemeral: true,

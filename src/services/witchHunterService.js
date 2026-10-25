@@ -425,6 +425,7 @@ export class WitchHunterService {
     if (faction) {
       users = users.filter((u) => u.faction === faction);
     }
+    users = users.filter((u) => (u.pumpkins || 0) > 0);
     return users.slice(0, limit);
   }
 

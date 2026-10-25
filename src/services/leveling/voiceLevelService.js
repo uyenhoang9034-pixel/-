@@ -1126,7 +1126,7 @@ export async function handleVoiceLevelState(
  * VẪN được giữ.
  */
 
-export function restoreVoiceLevelSessions(
+export async function restoreVoiceLevelSessions(
     client,
 ) {
     let restored =
@@ -1137,26 +1137,63 @@ export function restoreVoiceLevelSessions(
         of client.guilds.cache
             .values()
     ) {
-        for (
-            const member
-            of guild.members.cache
-                .values()
-        ) {
-            if (
-                member.user.bot ||
-                !member.voice
-                    ?.channelId
+        try {
+            for (
+                const [
+                    userId,
+                    voiceState,
+                ] of guild.voiceStates.cache
+                    .entries()
             ) {
-                continue;
+                if (
+                    !voiceState.channelId
+                ) {
+                    continue;
+                }
+
+                let member =
+                    voiceState.member ||
+                    guild.members.cache
+                        .get(
+                            userId,
+                        );
+
+                if (
+                    !member &&
+                    guild.members
+                        .fetch
+                ) {
+                    member =
+                        await guild.members
+                            .fetch(
+                                userId,
+                            )
+                            .catch(
+                                () => null,
+                            );
+                }
+
+                if (
+                    !member ||
+                    member.user
+                        ?.bot
+                ) {
+                    continue;
+                }
+
+                startVoiceLevelSession(
+                    client,
+                    member,
+                );
+
+                restored +=
+                    1;
             }
-
-            startVoiceLevelSession(
-                client,
-                member,
+        } catch (guildErr) {
+            logger.warn(
+                `[VOICE LEVEL] Lỗi khi quét voice states cho guild ${guild.id}:`,
+                guildErr.message,
             );
-
-            restored +=
-                1;
         }
     }
 

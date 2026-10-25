@@ -12,6 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, '../../data');
 const MONTHLY_LOG_PATH = path.join(DATA_DIR, 'pumpkin_monthly_logs.jsonl');
+const TODAY_BUFFER_PATH = path.join(DATA_DIR, 'pumpkin_today_buffer.json');
 
 /**
  * Service theo dõi tăng trưởng cấp ma thuật hằng ngày & tổng hợp BXH tháng theo chu kỳ cố định:
@@ -31,6 +32,7 @@ class PumpkinGrowthTracker {
     // Danh sách các chu kỳ đã chốt sổ: Array<string> (Ví dụ: ['2026-09'])
     this.closedCycles = [];
     this.isSynced = false;
+    this.bufferSaveTimeout = null;
     this.ensureDataDir();
   }
 
@@ -128,6 +130,34 @@ class PumpkinGrowthTracker {
       // Nếu bộ nhớ DB còn trống (hoặc sau khi deploy lại container), quét kênh báo cáo để tự động phục hồi
       if (client && this.dailyLogs.length === 0) {
         await this.recoverFromDailyReportChannel(client);
+      }
+
+      // Khôi phục bộ nhớ hoạt động hôm nay (todayBuffer) từ DB/file nếu cùng ngày
+      const todayStr = new Date().toLocaleDateString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+
+      let pgBuffer = await getFromDb('temp:witch_hunter:today_buffer').catch(() => null);
+      if (!pgBuffer && fs.existsSync(TODAY_BUFFER_PATH)) {
+        try {
+          const raw = fs.readFileSync(TODAY_BUFFER_PATH, 'utf-8');
+          pgBuffer = JSON.parse(raw);
+        } catch {}
+      }
+
+      if (pgBuffer && pgBuffer.date === todayStr && pgBuffer.entries) {
+        for (const [uId, stats] of Object.entries(pgBuffer.entries)) {
+          this.todayBuffer.set(uId, {
+            voiceMs: Number(stats.voiceMs) || 0,
+            messageCount: Number(stats.messageCount) || 0,
+            chatLevels: Number(stats.chatLevels) || 0,
+            voiceLevels: Number(stats.voiceLevels) || 0,
+          });
+        }
+        logger.info(`🎃 [PumpkinTracker] Đã khôi phục dữ liệu hoạt động hôm nay (${this.todayBuffer.size} thành viên) từ database.`);
       }
 
       this.isSynced = true;
@@ -257,6 +287,36 @@ class PumpkinGrowthTracker {
     return entry;
   }
 
+  scheduleTodayBufferSave() {
+    if (this.bufferSaveTimeout) return;
+    this.bufferSaveTimeout = setTimeout(() => {
+      this.bufferSaveTimeout = null;
+      this.saveTodayBuffer();
+    }, 5000);
+  }
+
+  saveTodayBuffer() {
+    try {
+      this.ensureDataDir();
+      const todayStr = new Date().toLocaleDateString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+
+      const payload = {
+        date: todayStr,
+        entries: Object.fromEntries(this.todayBuffer.entries()),
+      };
+
+      fs.writeFileSync(TODAY_BUFFER_PATH, JSON.stringify(payload, null, 2), 'utf-8');
+      setInDb('temp:witch_hunter:today_buffer', payload).catch(() => null);
+    } catch (err) {
+      logger.error('❌ [PumpkinTracker] Lỗi lưu todayBuffer:', err);
+    }
+  }
+
   /**
    * Ghi nhận thời gian Voice của người dùng (tính bằng mili-giây)
    */
@@ -264,6 +324,7 @@ class PumpkinGrowthTracker {
     if (!userId || durationMs <= 0) return;
     const entry = this.getOrCreateUserEntry(userId);
     entry.voiceMs += Number(durationMs) || 0;
+    this.scheduleTodayBufferSave();
   }
 
   /**
@@ -273,6 +334,7 @@ class PumpkinGrowthTracker {
     if (!userId) return;
     const entry = this.getOrCreateUserEntry(userId);
     entry.messageCount += 1;
+    this.scheduleTodayBufferSave();
   }
 
   /**
@@ -282,6 +344,7 @@ class PumpkinGrowthTracker {
     if (!userId || levelsGained <= 0) return;
     const entry = this.getOrCreateUserEntry(userId);
     entry.chatLevels += Number(levelsGained) || 1;
+    this.scheduleTodayBufferSave();
   }
 
   /**
@@ -291,6 +354,7 @@ class PumpkinGrowthTracker {
     if (!userId || levelsGained <= 0) return;
     const entry = this.getOrCreateUserEntry(userId);
     entry.voiceLevels += Number(levelsGained) || 1;
+    this.scheduleTodayBufferSave();
   }
 
   /**
@@ -334,15 +398,17 @@ class PumpkinGrowthTracker {
         return;
       }
 
-      const todayStr = new Date().toLocaleDateString('vi-VN', {
+      // Tại thời điểm 00:00, báo cáo là tổng kết của ngày hôm qua (vừa hoàn thành lúc 23:59:59)
+      const reportDate = new Date(Date.now() - 60000);
+      const todayStr = reportDate.toLocaleDateString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh',
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       });
 
-      // Tại thời điểm 00:00 ngày 24, đây là báo cáo của ngày 23 thuộc chu kỳ kết thúc ngày 24
-      const cycleKey = this.getCycleKeyForDate(new Date());
+      // Chu kỳ tính theo ngày báo cáo (ngày 23 thuộc chu kỳ kết thúc ngày 24)
+      const cycleKey = this.getCycleKeyForDate(reportDate);
 
       const recordsToWrite = [];
       const userSummaryList = [];
@@ -437,6 +503,13 @@ class PumpkinGrowthTracker {
 
       // 3. Reset bộ nhớ tạm trong ngày & thu gom rác GC
       this.todayBuffer.clear();
+      try {
+        if (fs.existsSync(TODAY_BUFFER_PATH)) {
+          fs.unlinkSync(TODAY_BUFFER_PATH);
+        }
+      } catch {}
+      setInDb('temp:witch_hunter:today_buffer', null).catch(() => null);
+
       if (typeof global.gc === 'function') {
         global.gc();
       }

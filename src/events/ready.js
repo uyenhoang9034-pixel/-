@@ -72,7 +72,7 @@ export default {
        * trước đó vẫn được giữ.
        */
 
-      restoreVoiceLevelSessions(
+      await restoreVoiceLevelSessions(
         client,
       );
 
