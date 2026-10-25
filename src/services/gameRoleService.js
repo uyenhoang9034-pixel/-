@@ -56,35 +56,6 @@ const ROLE_ASSET_DIRECTORY =
     );
 
 
-/**
- * Tìm file ảnh role local từ thư mục assets/role
- */
-function getRoleImagePath(
-    config,
-) {
-    if (
-        !config?.image
-    ) {
-        return null;
-    }
-
-    const imagePath =
-        path.join(
-            ROLE_ASSET_DIRECTORY,
-            config.image,
-        );
-
-    if (
-        !fs.existsSync(
-            imagePath,
-        )
-    ) {
-        return null;
-    }
-
-    return imagePath;
-}
-
 
 /**
  * =========================================================
