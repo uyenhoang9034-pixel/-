@@ -1,7 +1,15 @@
 import {
+    AttachmentBuilder,
     EmbedBuilder,
     PermissionFlagsBits,
 } from 'discord.js';
+
+import fs from 'fs';
+import path from 'path';
+
+import {
+    fileURLToPath,
+} from 'url';
 
 import {
     GAME_ROLES,
@@ -15,6 +23,67 @@ import {
 import {
     logger,
 } from '../utils/logger.js';
+
+
+const __filename =
+    fileURLToPath(
+        import.meta.url,
+    );
+
+const __dirname =
+    path.dirname(
+        __filename,
+    );
+
+
+/**
+ * =========================================================
+ * PATHS
+ * =========================================================
+ */
+
+const PROJECT_ROOT =
+    path.resolve(
+        __dirname,
+        '../..',
+    );
+
+const ROLE_ASSET_DIRECTORY =
+    path.join(
+        PROJECT_ROOT,
+        'assets',
+        'role',
+    );
+
+
+/**
+ * Tìm file ảnh role local từ thư mục assets/role
+ */
+function getRoleImagePath(
+    config,
+) {
+    if (
+        !config?.image
+    ) {
+        return null;
+    }
+
+    const imagePath =
+        path.join(
+            ROLE_ASSET_DIRECTORY,
+            config.image,
+        );
+
+    if (
+        !fs.existsSync(
+            imagePath,
+        )
+    ) {
+        return null;
+    }
+
+    return imagePath;
+}
 
 
 /**
@@ -1185,7 +1254,32 @@ export async function sendGameRoleNotification(
          * =============================================
          */
 
+        const files = [];
+        const localImagePath =
+            getRoleImagePath(
+                config,
+            );
+
         if (
+            localImagePath
+        ) {
+            const attachmentName =
+                `game-role-${config.key}.png`;
+
+            files.push(
+                new AttachmentBuilder(
+                    localImagePath,
+                    {
+                        name:
+                            attachmentName,
+                    },
+                ),
+            );
+
+            embed.setImage(
+                `attachment://${attachmentName}`,
+            );
+        } else if (
             config?.imageUrl
         ) {
             embed.setImage(
@@ -1204,6 +1298,8 @@ export async function sendGameRoleNotification(
             embeds: [
                 embed,
             ],
+
+            files,
 
             allowedMentions: {
                 users: [

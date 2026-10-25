@@ -1,4 +1,5 @@
 import {
+    AttachmentBuilder,
     ChannelType,
     EmbedBuilder,
     MessageFlags,
@@ -186,6 +187,11 @@ function getMissingChannelPermissions(
         [
             PermissionFlagsBits.AddReactions,
             'Add Reactions',
+        ],
+
+        [
+            PermissionFlagsBits.AttachFiles,
+            'Attach Files',
         ],
 
         [
@@ -623,10 +629,47 @@ export default {
                     )
                     .setColor(
                         GAME_ROLE_EMBED_COLOR,
-                    )
-                    .setImage(
-                        GET_ROLE_IMAGE_URL,
                     );
+
+            const roleAssetDir =
+                path.resolve(
+                    __dirname,
+                    '../../../assets/role',
+                );
+
+            const getRoleImagePath =
+                path.join(
+                    roleAssetDir,
+                    'getrole.png',
+                );
+
+            const files = [];
+
+            if (
+                fs.existsSync(
+                    getRoleImagePath,
+                )
+            ) {
+                files.push(
+                    new AttachmentBuilder(
+                        getRoleImagePath,
+                        {
+                            name:
+                                'getrole.png',
+                        },
+                    ),
+                );
+
+                embed.setImage(
+                    'attachment://getrole.png',
+                );
+            } else if (
+                GET_ROLE_IMAGE_URL
+            ) {
+                embed.setImage(
+                    GET_ROLE_IMAGE_URL,
+                );
+            }
 
 
             /**
@@ -640,6 +683,8 @@ export default {
                     embeds: [
                         embed,
                     ],
+
+                    files,
 
                     allowedMentions: {
                         parse: [],

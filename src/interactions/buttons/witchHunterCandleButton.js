@@ -1,5 +1,10 @@
 import { MessageFlags } from 'discord.js';
-import { WitchHunterQuestService } from '../../services/witchHunterQuestService.js';
+import {
+  WitchHunterQuestService,
+  witchHunterQuestStorage,
+  getVietnamDate,
+} from '../../services/witchHunterQuestService.js';
+import { witchHunterStorage } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
 export default {
@@ -7,6 +12,36 @@ export default {
 
   async execute(interaction) {
     try {
+      const userId = interaction.user?.id || interaction.member?.id;
+
+      if (!userId) {
+        return interaction.reply({
+          content: 'Không thể xác định thông tin người dùng!',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // 1. Chống spam click liên tục (race condition lock)
+      if (WitchHunterQuestService.pendingCandles.has(userId)) {
+        return interaction.reply({
+          content: '⏳ Thao tác đang được xử lý, vui lòng không nhấn liên tục!',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // 2. Early Return (Guard Clause) tuyệt đối:
+      // Nếu đã thắp nến trong ngày hôm nay: Gửi tin nhắn từ chối và DỪNG NGAY TIẾN TRÌNH
+      const today = getVietnamDate();
+      const existing = witchHunterQuestStorage.getDailyRitual(userId);
+      const mainUser = witchHunterStorage.getUser(userId);
+
+      if ((existing && existing.last_candle_date === today) || (mainUser && mainUser.last_candle_date === today)) {
+        return interaction.reply({
+          content: 'Ngọn nến hôm nay đã cháy hết. Hãy quay lại vào lúc nửa đêm (00:00) để tiếp tục nghi thức!',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
       const result = await WitchHunterQuestService.handleDailyCandle(
         interaction.guild,
         interaction.member || interaction.user

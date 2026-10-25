@@ -1,6 +1,11 @@
 import { MessageFlags } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
-import { WitchHunterQuestService } from '../../services/witchHunterQuestService.js';
+import {
+  WitchHunterQuestService,
+  witchHunterQuestStorage,
+  getVietnamWeekIdentifier,
+} from '../../services/witchHunterQuestService.js';
+import { witchHunterStorage } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
 function isWitchHunterAdmin(interaction) {
@@ -22,8 +27,23 @@ export default {
 
   async execute(interaction) {
     try {
+      const userId = interaction.user.id;
+      const currentWeek = getVietnamWeekIdentifier();
+
+      // Early Return (Guard Clause) tuyệt đối:
+      // Kiểm tra ngay lập tức xem người chơi này đã hoàn thành bài thi của tuần hiện tại chưa
+      const record = witchHunterQuestStorage.getPuzzleRecord(userId, currentWeek);
+      const mainUser = witchHunterStorage.getUser(userId);
+
+      if (record || (mainUser && mainUser.last_puzzle_week === currentWeek)) {
+        return interaction.reply({
+          content: 'Bạn đã hoàn thành thí luyện giải mã cổ ngữ của tuần này rồi. Hãy quay lại vào cuối tuần sau nhé! 💕',
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
       const isAdmin = isWitchHunterAdmin(interaction);
-      const startResult = WitchHunterQuestService.startPuzzleSession(interaction.user.id, isAdmin);
+      const startResult = WitchHunterQuestService.startPuzzleSession(userId, isAdmin);
 
       if (!startResult.success) {
         return interaction.reply({

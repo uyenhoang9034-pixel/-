@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -7,13 +8,15 @@ import {
   EmbedBuilder,
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
-import { WitchHunterService } from './witchHunterService.js';
+import { WitchHunterService, witchHunterStorage } from './witchHunterService.js';
 import { logger } from '../utils/logger.js';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_DIR = path.join(__dirname, '../../data');
 const SQLITE_FILE_PATH = path.join(DATA_DIR, 'witch_hunter.sqlite');
 const QUESTS_JSON_PATH = path.join(DATA_DIR, 'witch_hunter_quests.json');
-const QUESTIONS_JSON_PATH = path.join(process.cwd(), 'src', 'data', 'puzzleQuestions.json');
+const QUESTIONS_JSON_PATH = path.join(__dirname, '../data/puzzleQuestions.json');
 
 /**
  * =========================================================
@@ -154,9 +157,54 @@ class WitchHunterQuestStorage {
 
       // Nạp ngân hàng câu hỏi từ JSON
       this.loadQuestionsFromJson();
+
+      // Đồng bộ dữ liệu với PostgreSQL
+      this.syncWithPersistentDb().catch(() => null);
     } catch (error) {
       logger.error('❌ [WitchHunterQuest] Lỗi khởi tạo Quest Storage:', error);
     }
+  }
+
+  flushJson() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      fs.writeFileSync(QUESTS_JSON_PATH, JSON.stringify(this.memoryData, null, 2), 'utf-8');
+    } catch (err) {
+      logger.error('❌ [WitchHunterQuest] Lỗi ghi file backup JSON:', err);
+    }
+  }
+
+  async syncWithPersistentDb() {
+    try {
+      const { getFromDb, setInDb } = await import('../utils/database.js');
+      const pgData = await getFromDb('temp:witch_hunter:quests_data');
+      if (pgData && typeof pgData === 'object') {
+        this.memoryData.daily_rituals = { ...(pgData.daily_rituals || {}), ...this.memoryData.daily_rituals };
+        this.memoryData.weekly_quests = { ...(pgData.weekly_quests || {}), ...this.memoryData.weekly_quests };
+        this.memoryData.puzzle_records = { ...(pgData.puzzle_records || {}), ...this.memoryData.puzzle_records };
+        this.flushJson();
+        logger.info('🔮 [WitchHunterQuest] Đã nạp dữ liệu nhiệm vụ từ PostgreSQL Database.');
+      } else if (Object.keys(this.memoryData.daily_rituals).length > 0) {
+        await setInDb('temp:witch_hunter:quests_data', this.memoryData);
+      }
+    } catch (err) {
+      logger.warn('⚠️ [WitchHunterQuest] Không thể đồng bộ PostgreSQL:', err.message);
+    }
+  }
+
+  schedulePgSave() {
+    if (this.pgSaveTimeout) return;
+    this.pgSaveTimeout = setTimeout(async () => {
+      this.pgSaveTimeout = null;
+      try {
+        const { setInDb } = await import('../utils/database.js');
+        await setInDb('temp:witch_hunter:quests_data', this.memoryData);
+      } catch (err) {
+        logger.warn('⚠️ [WitchHunterQuest] Lỗi khi lưu dữ liệu lên PostgreSQL:', err.message);
+      }
+    }, 500);
   }
 
   loadQuestionsFromJson() {
@@ -201,22 +249,29 @@ class WitchHunterQuestStorage {
   }
 
   scheduleFlush() {
-    if (this.flushTimeout) return;
-    this.flushTimeout = setTimeout(() => {
-      this.flushTimeout = null;
-      try {
-        fs.writeFileSync(QUESTS_JSON_PATH, JSON.stringify(this.memoryData, null, 2), 'utf-8');
-      } catch (err) {
-        logger.error('❌ [WitchHunterQuest] Lỗi ghi file backup JSON:', err);
-      }
-    }, 1000);
+    this.flushJson();
+    this.schedulePgSave();
   }
 
   // --- Daily Rituals ---
   getDailyRitual(userId) {
+    if (!userId) return null;
     if (this.memoryData.daily_rituals[userId]) {
       return this.memoryData.daily_rituals[userId];
     }
+
+    // Kiểm tra chéo với dữ liệu người dùng chính
+    const mainUser = witchHunterStorage.getUser(userId);
+    if (mainUser && mainUser.last_candle_date) {
+      const res = {
+        user_id: userId,
+        last_candle_date: mainUser.last_candle_date,
+        candle_streak: Number(mainUser.candle_streak) || 0,
+      };
+      this.memoryData.daily_rituals[userId] = res;
+      return res;
+    }
+
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare('SELECT * FROM daily_rituals WHERE user_id = ?');
@@ -238,13 +293,23 @@ class WitchHunterQuestStorage {
   }
 
   saveDailyRitual(userId, lastCandleDate, candleStreak) {
+    if (!userId) return;
     const record = {
       user_id: userId,
       last_candle_date: lastCandleDate,
       candle_streak: Number(candleStreak) || 0,
     };
     this.memoryData.daily_rituals[userId] = record;
-    this.scheduleFlush();
+    this.flushJson();
+    this.schedulePgSave();
+
+    // Lưu đồng thời vào user record chính của WitchHunter
+    const mainUser = witchHunterStorage.getUser(userId);
+    if (mainUser) {
+      mainUser.last_candle_date = lastCandleDate;
+      mainUser.candle_streak = Number(candleStreak) || 0;
+      witchHunterStorage.saveUser(mainUser, true);
+    }
 
     if (this.isSqlite && this.sqliteDb) {
       try {
@@ -374,9 +439,24 @@ class WitchHunterQuestStorage {
 
   // --- Puzzle Records ---
   getPuzzleRecord(userId, weekIdentifier) {
+    if (!userId || !weekIdentifier) return null;
     const key = `${userId}:${weekIdentifier}`;
     if (this.memoryData.puzzle_records[key]) {
       return this.memoryData.puzzle_records[key];
+    }
+
+    // Kiểm tra chéo với dữ liệu người dùng chính
+    const mainUser = witchHunterStorage.getUser(userId);
+    if (mainUser && mainUser.last_puzzle_week === weekIdentifier) {
+      const res = {
+        user_id: userId,
+        week_identifier: weekIdentifier,
+        score: Number(mainUser.last_puzzle_score) || 0,
+        reward_pumpkins: (Number(mainUser.last_puzzle_score) || 0) * 2,
+        completed_at: mainUser.last_puzzle_completed_at || new Date().toISOString(),
+      };
+      this.memoryData.puzzle_records[key] = res;
+      return res;
     }
 
     if (this.isSqlite && this.sqliteDb) {
@@ -402,6 +482,7 @@ class WitchHunterQuestStorage {
   }
 
   savePuzzleRecord(userId, weekIdentifier, score, rewardPumpkins) {
+    if (!userId || !weekIdentifier) return;
     const key = `${userId}:${weekIdentifier}`;
     const record = {
       user_id: userId,
@@ -411,7 +492,17 @@ class WitchHunterQuestStorage {
       completed_at: new Date().toISOString(),
     };
     this.memoryData.puzzle_records[key] = record;
-    this.scheduleFlush();
+    this.flushJson();
+    this.schedulePgSave();
+
+    // Lưu đồng thời vào user record chính của WitchHunter
+    const mainUser = witchHunterStorage.getUser(userId);
+    if (mainUser) {
+      mainUser.last_puzzle_week = weekIdentifier;
+      mainUser.last_puzzle_score = Number(score) || 0;
+      mainUser.last_puzzle_completed_at = record.completed_at;
+      witchHunterStorage.saveUser(mainUser, true);
+    }
 
     if (this.isSqlite && this.sqliteDb) {
       try {
@@ -488,7 +579,13 @@ export class WitchHunterQuestService {
   }
 
   static async handleDailyCandle(guild, member) {
-    const userId = member.id;
+    const userId = member?.user?.id || member?.id || (typeof member === 'string' ? member : null);
+    if (!userId) {
+      return {
+        success: false,
+        message: 'Không thể xác định danh tính thành viên!',
+      };
+    }
 
     if (this.pendingCandles.has(userId)) {
       return {
@@ -503,9 +600,11 @@ export class WitchHunterQuestService {
     try {
       const today = getVietnamDate();
       const existing = witchHunterQuestStorage.getDailyRitual(userId);
+      const mainUser = witchHunterStorage.getUser(userId);
 
-      // 1. Kiểm tra đã thắp trong ngày chưa
-      if (existing && existing.last_candle_date === today) {
+      // CẤU TRÚC EARLY RETURN (GUARD CLAUSE) TUYỆT ĐỐI:
+      // Nếu đã thắp nến trong ngày hôm nay: Dừng ngay lập tức, tuyệt đối không lọt xuống lệnh cộng điểm hay streak
+      if ((existing && existing.last_candle_date === today) || (mainUser && mainUser.last_candle_date === today)) {
         return {
           success: false,
           alreadyLit: true,
@@ -513,14 +612,18 @@ export class WitchHunterQuestService {
         };
       }
 
+      // Chỉ khi người dùng CHƯA thắp nến hôm nay mới chạy xuống đây
       // 2. Tính toán chuỗi liên tục (Streak)
       let streak = 1;
-      if (existing && existing.last_candle_date) {
-        const lastDate = new Date(existing.last_candle_date + 'T00:00:00Z');
+      const lastDateStr = existing?.last_candle_date || mainUser?.last_candle_date;
+      const prevStreak = existing?.candle_streak || mainUser?.candle_streak || 0;
+
+      if (lastDateStr) {
+        const lastDate = new Date(lastDateStr + 'T00:00:00Z');
         const currDate = new Date(today + 'T00:00:00Z');
         const diffDays = Math.round((currDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
         if (diffDays === 1) {
-          streak = (existing.candle_streak || 0) + 1;
+          streak = prevStreak + 1;
         } else {
           streak = 1;
         }
@@ -535,7 +638,7 @@ export class WitchHunterQuestService {
       const bonusPumpkins = isStreakBonus ? 5 : 0;
       const totalAward = basePumpkins + bonusPumpkins;
 
-      // 4. Lưu lại database
+      // 4. Lưu lại mốc ngày mới vào database NGAY LẬP TỨC trước khi cộng điểm
       witchHunterQuestStorage.saveDailyRitual(userId, today, streak);
 
       // 5. Cộng điểm Bí Ngô vào hệ thống
@@ -554,7 +657,10 @@ export class WitchHunterQuestService {
         totalAward,
       };
     } finally {
-      this.pendingCandles.delete(userId);
+      // Giữ lock 2 giây để ngăn chặn triệt để race condition click liên tục
+      setTimeout(() => {
+        this.pendingCandles.delete(userId);
+      }, 2000);
     }
   }
 
@@ -761,7 +867,7 @@ export class WitchHunterQuestService {
   static startPuzzleSession(userId, isAdmin = false) {
     const currentWeek = getVietnamWeekIdentifier();
 
-    // 1. Kiểm tra khung giờ (Admin được bypass để kiểm thử)
+    // 1. Kiểm tra khung giờ (Admin được bypass để kiểm thử ngoài giờ)
     if (!isAdmin && !isPuzzleWeekendOpen()) {
       return {
         success: false,
@@ -769,13 +875,29 @@ export class WitchHunterQuestService {
       };
     }
 
-    // 2. Kiểm tra đã tham gia tuần này chưa
+    // 2. KHÓA GIỚI HẠN 1 LẦN / TUẦN: Kiểm tra đã hoàn thành bài thi tuần này chưa (áp dụng cho tất cả người chơi)
     const record = witchHunterQuestStorage.getPuzzleRecord(userId, currentWeek);
-    if (!isAdmin && record) {
+    const mainUser = witchHunterStorage.getUser(userId);
+
+    if (record || (mainUser && mainUser.last_puzzle_week === currentWeek)) {
       return {
         success: false,
-        message: `❌ Ngươi đã hoàn thành bài thí luyện Giải Mã Cổ Ngữ tuần này rồi (Đạt ${record.score}/10 câu, nhận +${record.reward_pumpkins} Bí Ngô)! Hãy quay lại vào cuối tuần sau nhé! 💕`,
+        message: 'Bạn đã hoàn thành thí luyện giải mã cổ ngữ của tuần này rồi. Hãy quay lại vào cuối tuần sau nhé! 💕',
       };
+    }
+
+    // 3. Kiểm tra xem người dùng có đang trong phiên làm bài dở dang không
+    for (const [sId, existingSession] of this.puzzleSessions.entries()) {
+      if (existingSession.userId === userId && existingSession.weekIdentifier === currentWeek) {
+        if (Date.now() - existingSession.createdAt < 15 * 60 * 1000) {
+          return {
+            success: false,
+            message: '⚠️ Bạn đang có một bài thí luyện dở dang chưa hoàn thành! Vui lòng trả lời tiếp câu hỏi trên tin nhắn ẩn trước đó.',
+          };
+        } else {
+          this.puzzleSessions.delete(sId);
+        }
+      }
     }
 
     // 3. Lấy 10 câu hỏi và xáo trộn ngẫu nhiên
