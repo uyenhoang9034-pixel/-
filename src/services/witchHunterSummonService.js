@@ -602,12 +602,12 @@ export class WitchHunterSummonService {
           const alreadyOwned = witchHunterSummonStorage.hasItem(userId, summonType, chosenItem.id);
 
           if (alreadyOwned) {
-            // XỬ LÝ TRÙNG LẶP: Hoàn Bí Ngô theo quy tắc
+            // XỬ LÝ TRÙNG LẶP: Hoàn Bí Ngô theo quy tắc (60% - 80% chi phí lượt quay)
             const refundRate = isCeiling
               ? SUMMON_CONFIG.pity.ceilingRefundRate // 80%
               : SUMMON_CONFIG.pity.earlyRefundRate;  // 60%
 
-            const refundAmount = Math.max(1, Math.round(tracker[spentCycleKey] * refundRate));
+            const refundAmount = Math.max(1, Math.round(costPerPull * refundRate));
             totalRefundPumpkins += refundAmount;
 
             results.push({
