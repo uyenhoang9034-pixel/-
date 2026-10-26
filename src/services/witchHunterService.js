@@ -1894,7 +1894,7 @@ export class WitchHunterService {
         `• ${emojis.nguyenthe || '<a:nguyentheg:1563399515732443177>'} **Hệ Nguyền Thể (Cursed Entity):** Thực thể sinh ra từ oán niệm, xác thịt bị nguyền rủa hoặc linh hồn bị phong ấn vào vật thể.\n` +
         `• ${emojis.camkhi || '<a:camkhig:1563399321125134346>'} **Hệ Cấm Khí (Forbidden Relic):** Ma cụ, cơ quan cổ đại hoặc thiết bị không gian do con người rèn tạo để cưỡng chế ma lực.\n` +
         `• ${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **Hệ Linh Tộc (Primordial Beast):** Sinh vật thượng cổ có tri giác độc lập, chỉ liên kết qua khế ước danh dự hoặc máu tương thích.\n\n` +
-        `🩸 **BỂ TRIỆU HỒI HUYẾT NGUYỆT (SUMMON BANNER):**\n` +
+        `<a:whg2:1564145798537683034> **BỂ TRIỆU HỒI HUYẾT NGUYỆT (SUMMON BANNER):**\n` +
         `• Gồm các Supporter Cổ Đại & Đỉnh Phong phẩm cấp **A-Rank**, **S-Rank**, **SS-Rank**.\n` +
         `• Hãy sử dụng Tế Đàn Triệu Hồi Huyết Nguyệt để dâng hiến Bí Ngô và triệu gọi khế ước!\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
@@ -1914,7 +1914,7 @@ export class WitchHunterService {
     const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
 
     const summonNotice = supporter.isSummon
-      ? `\n\n✨ **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Supporter từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
+      ? `\n\n<a:trangtrig41:1547238037832863744> **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Supporter từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
       : '';
 
     return new EmbedBuilder()
@@ -2216,7 +2216,7 @@ export class WitchHunterService {
       : `${weapon.minPumpkins?.toLocaleString('vi-VN') || 0} ${emojis.pumpkin}`;
 
     const summonNotice = weapon.isSummon
-      ? `\n\n✨ **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Vũ Khí từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
+      ? `\n\n<a:trangtrig41:1547238037832863744> **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Vũ Khí từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
       : '';
 
     return new EmbedBuilder()

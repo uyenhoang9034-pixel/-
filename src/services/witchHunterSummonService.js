@@ -300,30 +300,30 @@ export class WitchHunterSummonService {
       .setColor(colors.pastelPurple)
       .setTitle(`${sEmojis.titleLeft} ─── ✦ ⟨ **TẾ ĐÀN TRIỆU GỌI HUYẾT NGUYỆT** ⟩ ✦ ─── ${sEmojis.titleRight}`)
       .setDescription(
-        `Dưới ánh trăng đỏ rực của Huyết Nguyệt vĩnh hằng, không gian và thời gian bị xé rách! Hãy dâng hiến **Bí Ngô** ${sEmojis.pumpkin} để đánh thức các **Khế Ước Đồng Hành (Supporter)** và **Thần Khí Liên Kết Độc Bản** thượng cổ!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `📜 **QUY TẮC CHI PHÍ & TẾ ĐÀN:**\n` +
-        `> ${sEmojis.pumpkin} **Quay Lẻ:** \`20 Bí Ngô\` / lượt\n` +
-        `> ${sEmojis.pumpkin} **Quay x10:** \`180 Bí Ngô\` / 10 lượt *(Tiết kiệm ngay 10%)*\n` +
-        `> 🔒 **Khóa Theo Phe (Faction Lock):** Người chơi thuộc phe nào (*Thợ Săn* hoặc *Phù Thủy*) thì 100% kết quả chỉ quay ra vật phẩm độc quyền của phe đó!\n` +
-        `> 🔄 **2 Bể Độc Lập:** Bộ đếm lượt quay và bảo hiểm Pity của **Bể Supporter** và **Bể Vũ Khí** hoàn toàn độc lập với nhau.\n\n` +
+        `<a:trangtrig18:1546068102817775626> QUY TẮC CHI PHÍ & TẾ ĐÀN:\n` +
+        `<a:bingo:1563061901800243253> Quay Lẻ: 20 Bí Ngô / lượt\n` +
+        `<a:bingo:1563061901800243253> Quay x10: 180 Bí Ngô / 10 lượt (Tiết kiệm ngay 10%)\n` +
+        `<a:trangtrig34:1547237010572582982> Khóa Theo Phe: Người chơi thuộc phe nào (Thợ Săn hoặc Phù Thủy) thì 100% kết quả chỉ quay ra vật phẩm độc quyền của phe đó!\n` +
+        `<a:trangtrig34:1547237010572582982> 2 Bể Độc Lập: Bộ đếm lượt quay và bảo hiểm Pity của Bể Supporter và Bể Vũ Khí hoàn toàn độc lập với nhau.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `🎲 **TỈ LỆ TRIỆU HỒI CƠ BẢN:**\n` +
-        `> ${sEmojis.rankSS} **Bậc SS-Rank:** \`2.5%\`\n` +
-        `> ${sEmojis.rankS} **Bậc S-Rank:** \`12.5%\`\n` +
-        `> ${sEmojis.rankA} **Bậc A-Rank:** \`25.0%\`\n` +
-        `> ${sEmojis.miss} **Trượt (Không ra vật phẩm):** \`60.0%\` ➔ Nhận ngay **1 Mảnh vỡ ký ức** ${sEmojis.memoryShard} + **Hoàn trả trực tiếp 5 Bí Ngô** ${sEmojis.pumpkin} mỗi lượt!\n\n` +
+        `<a:trangtrig18:1546068102817775626> TỈ LỆ TRIỆU HỒI CƠ BẢN:\n` +
+        `<a:trangtrig14:1546047912969113622> Bậc SS-Rank: 2.5%\n` +
+        `<a:trangtrig45:1547239010190237819> Bậc S-Rank: 12.5%\n` +
+        `<a:trangtrig37:1547237647850807420> Bậc A-Rank: 25.0%\n` +
+        `<a:trangtrig46:1547240249761996812> Trượt (Không ra vật phẩm): 60.0% \n` +
+        `<a:trangtrig13:1546047657963819048> Nhận ngay 1 Mảnh Vỡ Ký Ức <a:trangtrig46:1547240249761996812> + Hoàn trả trực tiếp 5 Bí Ngô <a:bingo:1563061901800243253> mỗi lượt!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `🛡️ **CƠ CHẾ BẢO HIỂM (PITY SYSTEM):**\n` +
-        `> 🔹 **Tối đa 20 lượt:** Chắc chắn nổ tối thiểu **1 A-Rank** trở lên.\n` +
-        `> 🔸 **Tối đa 30 lượt:** Chắc chắn nổ tối thiểu **1 S-Rank** trở lên.\n` +
-        `> 👑 **Tối đa 60 lượt:** Chắc chắn nổ **SS-Rank Tối Cao**! Khi nổ SS, reset bộ đếm phẩm cấp và chu kỳ chi phí về 0.\n\n` +
+        `<a:trangtrig18:1546068102817775626> CƠ CHẾ BẢO HIỂM (PITY SYSTEM):\n` +
+        `<a:trangtrig6:1546043036390260756> Tối đa 20 lượt: Chắc chắn nổ tối thiểu 1 A-Rank trở lên.\n` +
+        `<a:trangtrig6:1546043036390260756> Tối đa 30 lượt: Chắc chắn nổ tối thiểu 1 S-Rank trở lên.\n` +
+        `<a:trangtrig6:1546043036390260756> Tối đa 60 lượt: Chắc chắn nổ SS-Rank Tối Cao! Khi nổ SS, reset bộ đếm phẩm cấp và chu kỳ chi phí về 0.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `♻️ **CƠ CHẾ HOÀN TRẢ BÍ NGÔ KHI TRÙNG:**\n` +
-        `> 🎯 **Chạm Trần Pity (Mốc 20/30/60):** Hoàn lại **đúng 80%** tổng số Bí Ngô thực tế người chơi đã bỏ ra trong chu kỳ đó!\n` +
-        `> ✨ **Nổ Sớm (Early Drop):** Hoàn lại **đúng 60%** tổng số Bí Ngô thực tế đã bỏ ra từ đầu chu kỳ tính đến lượt vừa nổ!\n` +
+        `<a:trangtrig21:1546093099770716213> CƠ CHẾ HOÀN TRẢ BÍ NGÔ KHI TRÙNG:\n` +
+        `<a:trangtrig21:1546093099770716213> Chạm Trần Pity (Mốc 20/30/60): Hoàn lại đúng 80% tổng số Bí Ngô thực tế người chơi đã bỏ ra trong chu kỳ đó!\n` +
+        `<a:trangtrig21:1546093099770716213> Nổ Sớm (Early Drop): Hoàn lại đúng 60% tổng số Bí Ngô thực tế đã bỏ ra từ đầu chu kỳ tính đến lượt vừa nổ!\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*Chọn tế đàn ở Menu bên dưới và nhấn nút để bắt đầu triệu hồi!*`
+        `Chọn tế đàn ở bên dưới và nhấn nút để bắt đầu triệu hồi!`
       )
       .setFooter({ text: 'Witch Hunter System • Tế Đàn Triệu Gọi Huyết Nguyệt' })
       .setTimestamp();
