@@ -1890,10 +1890,13 @@ export class WitchHunterService {
       .setDescription(
         `Trong thế giới Witch Hunter, mỗi Thợ Săn hay Phù Thủy khi đạt đến từng cảnh giới ma lực nhất định sẽ có thể ký khế ước để kết giao hoặc điều khiển một Supporter (Trợ thủ phò tá) riêng biệt.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `${emojis.decor41 || '<a:trangtrig41:1547238037832863744>'} 3 ĐẠI HỆ BẢN CHẤT SUPPORTER:\n` +
-        `• ${emojis.nguyenthe || '<a:nguyentheg:1563399515732443177>'} Hệ Nguyền Thể (Cursed Entity): Thực thể sinh ra từ oán niệm, xác thịt bị nguyền rủa hoặc linh hồn bị phong ấn vào vật thể.\n` +
-        `• ${emojis.camkhi || '<a:camkhig:1563399321125134346>'} Hệ Cấm Khí (Forbidden Relic): Ma cụ, cơ quan cổ đại hoặc thiết bị không gian do con người rèn tạo để cưỡng chế ma lực.\n` +
-        `• ${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} Hệ Linh Tộc (Primordial Beast): Sinh vật thượng cổ có tri giác độc lập, chỉ liên kết qua khế ước danh dự hoặc máu tương thích.\n` +
+        `${emojis.decor41 || '<a:trangtrig41:1547238037832863744>'} **3 ĐẠI HỆ BẢN CHẤT SUPPORTER:**\n` +
+        `• ${emojis.nguyenthe || '<a:nguyentheg:1563399515732443177>'} **Hệ Nguyền Thể (Cursed Entity):** Thực thể sinh ra từ oán niệm, xác thịt bị nguyền rủa hoặc linh hồn bị phong ấn vào vật thể.\n` +
+        `• ${emojis.camkhi || '<a:camkhig:1563399321125134346>'} **Hệ Cấm Khí (Forbidden Relic):** Ma cụ, cơ quan cổ đại hoặc thiết bị không gian do con người rèn tạo để cưỡng chế ma lực.\n` +
+        `• ${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **Hệ Linh Tộc (Primordial Beast):** Sinh vật thượng cổ có tri giác độc lập, chỉ liên kết qua khế ước danh dự hoặc máu tương thích.\n\n` +
+        `🩸 **BỂ TRIỆU HỒI HUYẾT NGUYỆT (SUMMON BANNER):**\n` +
+        `• Gồm các Supporter Cổ Đại & Đỉnh Phong phẩm cấp **A-Rank**, **S-Rank**, **SS-Rank**.\n` +
+        `• Hãy sử dụng Tế Đàn Triệu Hồi Huyết Nguyệt để dâng hiến Bí Ngô và triệu gọi khế ước!\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn một Supporter trong danh sách bên dưới để tra cứu chi tiết hình dạng và khế ước chiến đấu nha lữ khách!`
       )
@@ -1910,6 +1913,10 @@ export class WitchHunterService {
     const isWitch = supporter.faction === 'witch';
     const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
 
+    const summonNotice = supporter.isSummon
+      ? `\n\n✨ **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Supporter từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
+      : '';
+
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻: ${supporter.titleFancy} ${emojis.titleRight}`)
@@ -1922,8 +1929,9 @@ export class WitchHunterService {
         `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **HÌNH DÁNG ĐẶC TRƯNG:**\n` +
         `${supporter.appearance}\n\n` +
         `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **NGUỒN GỐC & KHẾ ƯỚC CHIẾN ĐẤU:**\n` +
-        `${supporter.lore}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${supporter.lore}` +
+        summonNotice +
+        `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn Supporter khác từ menu bên dưới để tiếp tục tra cứu khế ước nha lữ khách!`
       )
       .setFooter({ text: 'Witch Hunter Supporter' });
@@ -2104,11 +2112,12 @@ export class WitchHunterService {
   }
 
   /**
-   * Tạo ActionRow chứa StringSelectMenu tra cứu danh sách 10 Supporter
+   * Tạo ActionRow chứa StringSelectMenu tra cứu danh sách Supporter (chia theo Phe để tránh chạm giới hạn 25 options)
    * @param {string} authorId ID của người dùng gõ lệnh
    * @param {string|null} currentSelectedId ID của supporter đang được chọn (để set default)
+   * @param {'hunter' | 'witch'} currentFaction Phe đang hiển thị
    */
-  static createSupporterSelectRow(authorId, currentSelectedId = null) {
+  static createSupporterSelectRow(authorId, currentSelectedId = null, currentFaction = 'hunter') {
     const { supporters } = WITCH_HUNTER_CONFIG;
 
     const parseEmoji = (emojiStr) => {
@@ -2124,31 +2133,43 @@ export class WitchHunterService {
       return emojiStr;
     };
 
+    const factionSupporters = supporters.list.filter((s) => s.faction === currentFaction);
+    const otherFaction = currentFaction === 'hunter' ? 'witch' : 'hunter';
+    const otherFactionName = currentFaction === 'hunter' ? 'Hội Phù Thủy' : 'Hiệp Hội Thợ Săn';
+    const otherFactionEmoji = currentFaction === 'hunter'
+      ? WITCH_HUNTER_CONFIG.emojis.witchButton
+      : WITCH_HUNTER_CONFIG.emojis.hunterButton;
+
     const options = [
       {
-        label: '[Tổng Quan] 3 Đại Hệ',
+        label: '[Tổng Quan] 3 Đại Hệ Supporter',
         description: 'Bản chất 3 Đại Hệ: Nguyền Thể, Cấm Khí, Linh Tộc',
         value: 'overview',
         default: currentSelectedId === 'overview',
         emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
       },
-      ...supporters.list.map((s) => {
+      ...factionSupporters.map((s) => {
         const cat = supporters.categories[s.categoryKey];
-        const isHunter = s.faction === 'hunter';
-        const prefix = isHunter ? '[Thợ Săn]' : '[Phù Thủy]';
+        const prefix = s.isSummon ? `[${s.rank}-Rank Banner]` : `[Bậc ${s.rank}]`;
         return {
-          label: `${prefix} ${s.name}`,
-          description: `${s.rankName} • ${cat?.shortName || ''}`,
+          label: `${prefix} ${s.name}`.slice(0, 100),
+          description: `${s.rankName} • ${cat?.shortName || ''}`.slice(0, 100),
           value: s.id,
           default: currentSelectedId === s.id,
           emoji: parseEmoji(cat?.emoji),
         };
       }),
+      {
+        label: `[Xem Phe] ${otherFactionName}`.slice(0, 100),
+        description: `Chuyển sang xem danh sách Supporter của ${otherFactionName}`.slice(0, 100),
+        value: `switch_faction_${otherFaction}`,
+        emoji: parseEmoji(otherFactionEmoji),
+      },
     ];
 
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`supporter_select:${authorId}`)
-      .setPlaceholder('🔮 Chọn Supporter để tra cứu khế ước...')
+      .setCustomId(`supporter_select:${authorId}:${currentFaction}`)
+      .setPlaceholder(`🔮 Chọn Supporter (${currentFaction === 'hunter' ? 'Thợ Săn' : 'Phù Thủy'}) để tra cứu...`)
       .addOptions(options);
 
     return new ActionRowBuilder().addComponents(selectMenu);
@@ -2166,18 +2187,12 @@ export class WitchHunterService {
       .setDescription(
         `Trong thế giới **Witch Hunter**, mỗi Thợ Săn hay Phù Thủy khi đột phá từng cảnh giới ma lực sẽ được trang bị một Thần Binh Vũ Khí độc quyền, liên kết cộng hưởng trực tiếp cùng Supporter khế ước để giải phóng sức mạnh tối thượng.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `${emojis.hunterBadge || '<a:trangtrig36:1563065680922808340>'} **VŨ KHÍ HIỆP HỘI THỢ SĂN (W.H. ASSOCIATION):**\n` +
-        `• <:wh3:1563432304179945563> **Bậc 1 (0 ${emojis.pumpkin}):** Silver Fang Dagger (Đoản Đao Răng Bạc)\n` +
-        `• <a:camkhig:1563399321125134346> **Bậc 2 (100 ${emojis.pumpkin}):** Clockwork Saw-Blade (Lưỡi Cưa Cơ Giới)\n` +
-        `• <a:trangtrig46:1547240249761996812> **Bậc 3 (500 ${emojis.pumpkin}):** Aegis Heavy Tower (Đại Khiên Thành Trì)\n` +
-        `• <a:whg3:1563432043768189059> **Bậc 4 (3.000 ${emojis.pumpkin}):** Dimension Breaker (Pháo Kích Không Gian)\n` +
-        `• <:wh2:1563431832546967624> **Bậc 5 (10.000 ${emojis.pumpkin}):** Chrono-Crossbow (Nỏ Máy Tiên Tri)\n\n` +
-        `${emojis.witchBadge || '<a:trangtrig32:1546906170994856026>'} **VŨ KHÍ HỘI PHÙ THỦY (WITCHES):**\n` +
-        `• <a:whg2:1563431096501280819> **Bậc 1 (0 ${emojis.pumpkin}):** Soul-Stitch Needle (Hắc Châm Khâu Hồn)\n` +
-        `• <a:whg1:1563430946835931187> **Bậc 2 (100 ${emojis.pumpkin}):** Raven Glass Blade (Dao Găm Lông Quạ)\n` +
-        `• <:wh1:1563430728564351006> **Bậc 3 (500 ${emojis.pumpkin}):** Kitsune Fox-Lantern (Đèn Lồng Ảo Ảnh)\n` +
-        `• <a:trangtrig29:1546385117478527016> **Bậc 4 (3.000 ${emojis.pumpkin}):** Cinder Cane (Trượng Tàn Hỏa)\n` +
-        `• <a:nguyentheg:1563399515732443177> **Bậc 5 (10.000 ${emojis.pumpkin}):** Soul-Harvest Scythe (Lưỡi Hái Đoạt Hồn)\n` +
+        `${emojis.hunterBadge || '<a:trangtrig36:1563065680922808340>'} **VŨ KHÍ THỢ SĂN (TIẾN TRÌNH & BANNER):**\n` +
+        `• **Vũ khí tiến trình Bậc 1-5:** Silver Fang Dagger ➔ Clockwork Saw-Blade ➔ Aegis Heavy Tower ➔ Dimension Breaker ➔ Chrono-Crossbow\n` +
+        `• **Vũ khí Triệu Hồi (A/S/SS):** Frostbite Fangs, Chain of Penance, Spike Cage Shield, Thunder Pearl Rapier, Executioner’s Guise, Singularity Staff, Judgement Cannon, Absolute Singularity Lance\n\n` +
+        `${emojis.witchBadge || '<a:trangtrig32:1546906170994856026>'} **VŨ KHÍ PHÙ THỦY (TIẾN TRÌNH & BANNER):**\n` +
+        `• **Vũ khí tiến trình Bậc 1-5:** Soul-Stitch Needle ➔ Raven Glass Blade ➔ Kitsune Fox-Lantern ➔ Cinder Cane ➔ Soul-Harvest Scythe\n` +
+        `• **Vũ khí Triệu Hồi (A/S/SS):** Gale Plume Whip, Slumber Mist Censer, Blight Pestle, Petrification Gaze Flute, Screaming Veil, Infinity Mirror, Genesis Blood Chalice, Calamity Dragon Horn\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn một Vũ Khí trong danh sách bên dưới để tra cứu chi tiết thuộc tính năng lượng và cụ thể sức mạnh nha lữ khách!`
       )
@@ -2192,12 +2207,17 @@ export class WitchHunterService {
     const isWitch = weapon.faction === 'witch';
     const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
 
-    const milestoneText =
-      weapon.rank === 1
-        ? `0 ${emojis.pumpkin} (Khởi đầu)`
-        : weapon.rank === 5
-        ? `10.000 ${emojis.pumpkin} (Tối thượng)`
-        : `${weapon.minPumpkins.toLocaleString('vi-VN')} ${emojis.pumpkin}`;
+    const milestoneText = weapon.isSummon
+      ? (weapon.activationMilestone || 'Bể Triệu Hồi Huyết Nguyệt')
+      : weapon.rank === 1
+      ? `0 ${emojis.pumpkin} (Khởi đầu)`
+      : weapon.rank === 5
+      ? `10.000 ${emojis.pumpkin} (Tối thượng)`
+      : `${weapon.minPumpkins?.toLocaleString('vi-VN') || 0} ${emojis.pumpkin}`;
+
+    const summonNotice = weapon.isSummon
+      ? `\n\n✨ **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Vũ Khí từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
+      : '';
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Màu Tím Pastel #D8B4F8
@@ -2212,17 +2232,21 @@ export class WitchHunterService {
         `${weapon.energyEmoji} **THUỘC TÍNH NĂNG LƯỢNG:**\n` +
         `${weapon.energyAttribute}\n\n` +
         `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **CỤ THỂ SỨC MẠNH:**\n` +
-        `${weapon.powerDetail}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${weapon.powerDetail}` +
+        summonNotice +
+        `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn Vũ Khí khác từ menu bên dưới để tiếp tục tra cứu sức mạnh nha lữ khách!`
       )
       .setFooter({ text: 'Witch Hunter System' });
   }
 
   /**
-   * Tạo ActionRow Select Menu cho giao diện Vũ Khí
+   * Tạo ActionRow Select Menu cho giao diện Vũ Khí (chia theo Phe để tránh chạm giới hạn 25 options)
+   * @param {string} authorId ID của người dùng gõ lệnh
+   * @param {string|null} currentSelectedId ID của vũ khí đang được chọn (để set default)
+   * @param {'hunter' | 'witch'} currentFaction Phe đang hiển thị
    */
-  static createWeaponSelectRow(authorId, currentSelectedId = null) {
+  static createWeaponSelectRow(authorId, currentSelectedId = null, currentFaction = 'hunter') {
     const { weapons } = WITCH_HUNTER_CONFIG;
 
     const parseEmoji = (emojiStr) => {
@@ -2238,30 +2262,42 @@ export class WitchHunterService {
       return emojiStr;
     };
 
+    const factionWeapons = weapons.list.filter((w) => w.faction === currentFaction);
+    const otherFaction = currentFaction === 'hunter' ? 'witch' : 'hunter';
+    const otherFactionName = currentFaction === 'hunter' ? 'Hội Phù Thủy' : 'Hiệp Hội Thợ Săn';
+    const otherFactionEmoji = currentFaction === 'hunter'
+      ? WITCH_HUNTER_CONFIG.emojis.witchButton
+      : WITCH_HUNTER_CONFIG.emojis.hunterButton;
+
     const options = [
       {
-        label: '[Tổng Quan] 10 Đại Thần Binh',
+        label: '[Tổng Quan] Kho Thần Binh Vũ Khí',
         description: 'Kho vũ khí tối thượng của Hiệp Hội Thợ Săn & Hội Phù Thủy',
         value: 'overview',
         default: currentSelectedId === 'overview',
         emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
       },
-      ...weapons.list.map((w) => {
-        const isHunter = w.faction === 'hunter';
-        const prefix = isHunter ? '[Thợ Săn]' : '[Phù Thủy]';
+      ...factionWeapons.map((w) => {
+        const prefix = w.isSummon ? `[${w.rank}-Rank Banner]` : `[Bậc ${w.rank}]`;
         return {
-          label: `${prefix} ${w.shortName}`,
-          description: `${w.rankName} • ${w.activationMilestone}`,
+          label: `${prefix} ${w.shortName}`.slice(0, 100),
+          description: `${w.rankName} • ${w.activationMilestone || ''}`.slice(0, 100),
           value: w.id,
           default: currentSelectedId === w.id,
           emoji: parseEmoji(w.energyEmoji),
         };
       }),
+      {
+        label: `[Xem Phe] ${otherFactionName}`.slice(0, 100),
+        description: `Chuyển sang xem kho Vũ Khí của ${otherFactionName}`.slice(0, 100),
+        value: `switch_faction_${otherFaction}`,
+        emoji: parseEmoji(otherFactionEmoji),
+      },
     ];
 
     const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId(`weapon_select:${authorId}`)
-      .setPlaceholder('⚔️ Chọn Vũ Khí để tra cứu thuộc tính sức mạnh...')
+      .setCustomId(`weapon_select:${authorId}:${currentFaction}`)
+      .setPlaceholder(`⚔️ Chọn Vũ Khí (${currentFaction === 'hunter' ? 'Thợ Săn' : 'Phù Thủy'}) để tra cứu...`)
       .addOptions(options);
 
     return new ActionRowBuilder().addComponents(selectMenu);

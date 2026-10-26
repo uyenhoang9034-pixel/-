@@ -8,7 +8,7 @@ export default {
 
   async execute(interaction, client, args = []) {
     try {
-      const [authorId] = args;
+      const [authorId, factionArg = 'hunter'] = args;
 
       // KIỂM TRA QUYỀN THAO TÁC: Chỉ người gõ lệnh /supporter mới được chọn menu
       if (authorId && interaction.user.id !== authorId) {
@@ -23,8 +23,16 @@ export default {
       if (!selectedValue) return;
 
       let embed;
+      let displayFaction = factionArg;
+      let selectedSupporterId = selectedValue;
+
       if (selectedValue === 'overview') {
         embed = WitchHunterService.buildSupporterOverviewEmbed();
+        selectedSupporterId = 'overview';
+      } else if (selectedValue.startsWith('switch_faction_')) {
+        displayFaction = selectedValue.replace('switch_faction_', '');
+        embed = WitchHunterService.buildSupporterOverviewEmbed();
+        selectedSupporterId = 'overview';
       } else {
         const supporter = getSupporterById(selectedValue);
         if (!supporter) {
@@ -33,11 +41,16 @@ export default {
             flags: MessageFlags.Ephemeral,
           });
         }
+        displayFaction = supporter.faction || factionArg;
         embed = WitchHunterService.buildSupporterDetailEmbed(supporter);
       }
 
       // Tái tạo ActionRow với option đang chọn để hiển thị trạng thái chuẩn
-      const row = WitchHunterService.createSupporterSelectRow(authorId || interaction.user.id, selectedValue);
+      const row = WitchHunterService.createSupporterSelectRow(
+        authorId || interaction.user.id,
+        selectedSupporterId,
+        displayFaction
+      );
 
       // Cập nhật công khai tin nhắn mà không xóa hoặc gửi tin nhắn mới
       await interaction.update({

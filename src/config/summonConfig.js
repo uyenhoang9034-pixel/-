@@ -57,16 +57,16 @@ export const SUMMON_CONFIG = {
       ],
       weapon: [
         // A-Rank
-        { id: 'wep_frostbite_fangs', name: 'Frostbite Fangs', supporterId: 'fenris', supporterName: 'Fenris', rank: 'A', category: 'Thần Binh A-Rank' },
-        { id: 'wep_chain_of_penance', name: 'Chain of Penance', supporterId: 'brand', supporterName: 'Brand', rank: 'A', category: 'Thần Binh A-Rank' },
-        { id: 'wep_spike_cage_shield', name: 'Spike Cage Shield', supporterId: 'iron_maiden', supporterName: 'Iron Maiden', rank: 'A', category: 'Thần Binh A-Rank' },
+        { id: 'wep_frostbite_fangs', name: 'Frostbite Fangs (Song Nanh Hàn Băng)', supporterId: 'fenris', supporterName: 'Fenris', rank: 'A', category: 'Thần Binh A-Rank' },
+        { id: 'wep_chain_of_penance', name: 'Chain of Penance (Xích Sắt Chuộc Tội)', supporterId: 'brand', supporterName: 'Brand', rank: 'A', category: 'Thần Binh A-Rank' },
+        { id: 'wep_spike_cage_shield', name: 'Spike Cage Shield (Khiên Lồng Chông Sắt)', supporterId: 'iron_maiden', supporterName: 'Iron Maiden', rank: 'A', category: 'Thần Binh A-Rank' },
         // S-Rank
-        { id: 'wep_thunder_pearl_rapier', name: 'Thunder Pearl Rapier', supporterId: 'bailong', supporterName: 'Bailong', rank: 'S', category: 'Thần Binh S-Rank' },
-        { id: 'wep_executioners_guise', name: 'Executioner’s Guise', supporterId: 'thanatos', supporterName: 'Thanatos', rank: 'S', category: 'Thần Binh S-Rank' },
-        { id: 'wep_singularity_staff', name: 'Singularity Staff', supporterId: 'astrarium', supporterName: 'Astrarium', rank: 'S', category: 'Thần Binh S-Rank' },
+        { id: 'wep_thunder_pearl_rapier', name: 'Thunder Pearl Rapier (Liễu Kiếm Lôi Châu)', supporterId: 'bailong', supporterName: 'Bailong', rank: 'S', category: 'Thần Binh S-Rank' },
+        { id: 'wep_executioners_guise', name: 'Executioner’s Guise (Đại Kiếm Tử Vong)', supporterId: 'thanatos', supporterName: 'Thanatos', rank: 'S', category: 'Thần Binh S-Rank' },
+        { id: 'wep_singularity_staff', name: 'Singularity Staff (Trượng Điểm Kỳ Dị)', supporterId: 'astrarium', supporterName: 'Astrarium', rank: 'S', category: 'Thần Binh S-Rank' },
         // SS-Rank
-        { id: 'wep_judgement_cannon', name: 'Judgement Cannon', supporterId: 'deus_ex', supporterName: 'Deus Ex', rank: 'SS', category: 'Thần Binh SS-Rank' },
-        { id: 'wep_absolute_singularity_lance', name: 'Absolute Singularity Lance', supporterId: 'ouroboros_core', supporterName: 'Ouroboros Core', rank: 'SS', category: 'Thần Binh SS-Rank' },
+        { id: 'wep_judgement_cannon', name: 'Judgement Cannon (Đại Pháo Thần Phán)', supporterId: 'deus_ex', supporterName: 'Deus Ex', rank: 'SS', category: 'Thần Binh SS-Rank' },
+        { id: 'wep_absolute_singularity_lance', name: 'Absolute Singularity Lance (Thần Thương Kỳ Dị)', supporterId: 'ouroboros_core', supporterName: 'Ouroboros Core', rank: 'SS', category: 'Thần Binh SS-Rank' },
       ],
     },
     witch: {
@@ -85,16 +85,16 @@ export const SUMMON_CONFIG = {
       ],
       weapon: [
         // A-Rank
-        { id: 'wep_gale_plume_whip', name: 'Gale Plume Whip', supporterId: 'sylph', supporterName: 'Sylph', rank: 'A', category: 'Thần Khí A-Rank' },
-        { id: 'wep_slumber_mist_censer', name: 'Slumber Mist Censer', supporterId: 'morpheus', supporterName: 'Morpheus', rank: 'A', category: 'Thần Khí A-Rank' },
-        { id: 'wep_blight_pestle', name: 'Blight Pestle', supporterId: 'hemlock', supporterName: 'Hemlock', rank: 'A', category: 'Thần Khí A-Rank' },
+        { id: 'wep_gale_plume_whip', name: 'Gale Plume Whip (Roi Lông Phong Nhận)', supporterId: 'sylph', supporterName: 'Sylph', rank: 'A', category: 'Thần Khí A-Rank' },
+        { id: 'wep_slumber_mist_censer', name: 'Slumber Mist Censer (Lư Hương Mê Giác)', supporterId: 'morpheus', supporterName: 'Morpheus', rank: 'A', category: 'Thần Khí A-Rank' },
+        { id: 'wep_blight_pestle', name: 'Blight Pestle (Chày Nghiền Độc Ma)', supporterId: 'hemlock', supporterName: 'Hemlock', rank: 'A', category: 'Thần Khí A-Rank' },
         // S-Rank
-        { id: 'wep_petrification_gaze_flute', name: 'Petrification Gaze Flute', supporterId: 'cerastes', supporterName: 'Cerastes', rank: 'S', category: 'Thần Khí S-Rank' },
-        { id: 'wep_screaming_veil', name: 'Screaming Veil', supporterId: 'banshee', supporterName: 'Banshee', rank: 'S', category: 'Thần Khí S-Rank' },
-        { id: 'wep_infinity_mirror', name: 'Infinity Mirror', supporterId: 'ouroboros_witch', supporterName: 'Ouroboros', rank: 'S', category: 'Thần Khí S-Rank' },
+        { id: 'wep_petrification_gaze_flute', name: 'Petrification Gaze Flute (Sáo Hóa Đá)', supporterId: 'cerastes', supporterName: 'Cerastes', rank: 'S', category: 'Thần Khí S-Rank' },
+        { id: 'wep_screaming_veil', name: 'Screaming Veil (Khăn Tang Ai Oán)', supporterId: 'banshee', supporterName: 'Banshee', rank: 'S', category: 'Thần Khí S-Rank' },
+        { id: 'wep_infinity_mirror', name: 'Infinity Mirror (Gương Kính Phản Chiếu)', supporterId: 'ouroboros_witch', supporterName: 'Ouroboros', rank: 'S', category: 'Thần Khí S-Rank' },
         // SS-Rank
-        { id: 'wep_genesis_blood_chalice', name: 'Genesis Blood Chalice', supporterId: 'lilith', supporterName: 'Lilith', rank: 'SS', category: 'Thần Khí SS-Rank' },
-        { id: 'wep_calamity_dragon_horn', name: 'Calamity Dragon Horn', supporterId: 'tiamat', supporterName: 'Tiamat', rank: 'SS', category: 'Thần Khí SS-Rank' },
+        { id: 'wep_genesis_blood_chalice', name: 'Genesis Blood Chalice (Chén Thánh Huyết Nguyện)', supporterId: 'lilith', supporterName: 'Lilith', rank: 'SS', category: 'Thần Khí SS-Rank' },
+        { id: 'wep_calamity_dragon_horn', name: 'Calamity Dragon Horn (Tù Và Tai Ương)', supporterId: 'tiamat', supporterName: 'Tiamat', rank: 'SS', category: 'Thần Khí SS-Rank' },
       ],
     },
   },

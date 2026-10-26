@@ -107,8 +107,23 @@ export default {
       }
 
       // Khởi tạo giao diện Tra cứu Supporter công khai trong kênh (người khác thấy được)
+      let initialFaction = 'hunter';
+      const userRecord = witchHunterStorage.getUser(user.id);
+      if (userRecord?.faction === 'witch') {
+        initialFaction = 'witch';
+      } else if (userRecord?.faction === 'hunter') {
+        initialFaction = 'hunter';
+      } else if (member.roles?.cache) {
+        for (const roleId of Object.values(WITCH_HUNTER_CONFIG.roles.witch)) {
+          if (member.roles.cache.has(roleId)) {
+            initialFaction = 'witch';
+            break;
+          }
+        }
+      }
+
       const overviewEmbed = WitchHunterService.buildSupporterOverviewEmbed();
-      const selectMenuRow = WitchHunterService.createSupporterSelectRow(user.id);
+      const selectMenuRow = WitchHunterService.createSupporterSelectRow(user.id, null, initialFaction);
 
       await interaction.reply({
         embeds: [overviewEmbed],
