@@ -43,6 +43,28 @@ export default {
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(false)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('setup-monolith')
+        .setDescription('Khởi tạo bảng Embed Trụ Tổng Pháo Đài cố định tại kênh #✦・🏰・thành-trì-huyết-thệ')
+        .addChannelOption((opt) =>
+          opt
+            .setName('kenh')
+            .setDescription('Kênh gửi bảng Trụ Tổng (mặc định kênh #✦・🏰・thành-trì-huyết-thệ)')
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('reset-monolith')
+        .setDescription('Phục hồi 100% HP cho cả 2 Trụ Tổng Thợ Săn & Phù Thủy (Đầu mùa giải mới)')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('cancel-duel')
+        .setDescription('Hủy trận đấu đang diễn ra và hoàn trả 100% Bí Ngô cho sòng cược')
     ),
 
   category: 'Leveling',
@@ -57,6 +79,7 @@ export default {
       }
 
       const subcommand = interaction.options.getSubcommand();
+      const { WitchHunterDuelService } = await import('../../services/witchHunterDuelService.js');
 
       if (subcommand === 'setup-summon') {
         const chosenChannel = interaction.options.getChannel('kenh');
@@ -79,6 +102,87 @@ export default {
 
         return interaction.reply({
           content: `✅ Đã thiết lập bảng **Tế Đàn Triệu Gọi Huyết Nguyệt** tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // SETUP MONOLITH
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'setup-monolith') {
+        const chosenChannel = interaction.options.getChannel('kenh');
+        let targetChannel = chosenChannel;
+
+        if (!targetChannel) {
+          const defaultChannelId = WITCH_HUNTER_CONFIG.channels.monolithChannelId;
+          targetChannel =
+            interaction.guild.channels.cache.get(defaultChannelId) ||
+            interaction.guild.channels.cache.find((c) => c.name.includes('thành-trì') || c.name.includes('tru-tong')) ||
+            interaction.channel;
+        }
+
+        await WitchHunterDuelService.setupMonolithDashboard(targetChannel);
+
+        return interaction.reply({
+          content: `✅ Đã khởi tạo bảng cố định **Trụ Tổng Pháo Đài** tại kênh <#${targetChannel.id}> thành công! Máu trụ và nhật ký sẽ tự động cập nhật sau mỗi trận chiến.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // RESET MONOLITH
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'reset-monolith') {
+        await WitchHunterDuelService.resetMonolith(interaction.guild);
+
+        return interaction.reply({
+          content: `🔄 **ĐÃ PHỤC HỒI 100% HP CHO CẢ 2 TRỤ TỔNG!**\n> Toàn bộ cư dân 2 phe đã được giải trừ phong ấn ma lực và sẵn sàng cho mùa giải mới.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // CANCEL DUEL
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'cancel-duel') {
+        const duel = WitchHunterDuelService.activeDuels.get(interaction.guildId);
+        if (!duel) {
+          return interaction.reply({
+            content: 'Hiện không có trận đấu nào đang diễn ra để hủy!',
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        clearTimeout(duel.roundTimer);
+        clearTimeout(duel.betTimer);
+        clearTimeout(duel.timeoutTimer);
+
+        // Hoàn 100% cược cho người chơi
+        const { WitchHunterService } = await import('../../services/witchHunterService.js');
+        for (const bet of duel.bets) {
+          if (bet.userId === 'fan1' || bet.userId === 'fan2') continue;
+          await WitchHunterService.awardPumpkins(interaction.guild, bet.userId, bet.amount, {
+            reason: 'Hoàn trả 100% Bí Ngô do Admin hủy trận đấu Huyết Thệ',
+            executor: interaction.user,
+            notifyDM: true,
+            notifyAdminLog: false,
+          }).catch(() => null);
+        }
+
+        WitchHunterDuelService.activeDuels.delete(interaction.guildId);
+
+        if (duel.mainMessage) {
+          const cancelEmbed = new EmbedBuilder()
+            .setColor(0xef4444)
+            .setTitle('🚫 ─── ✦ ⟨ TRẬN ĐẤU ĐÃ BỊ HỦY BỎ BỞI ADMIN ⟩ ✦ ───')
+            .setDescription(`Admin <@${interaction.user.id}> đã hủy bỏ trận chiến Huyết Thệ này. Toàn bộ Bí Ngô cược đã được hoàn trả 100% cho các đấu thủ và cư dân!`)
+            .setTimestamp();
+
+          await duel.mainMessage.edit({ embeds: [cancelEmbed], components: [] }).catch(() => null);
+        }
+
+        return interaction.reply({
+          content: `✅ Đã hủy trận đấu thành công và hoàn trả 100% Bí Ngô cho tất cả người cược!`,
           flags: MessageFlags.Ephemeral,
         });
       }

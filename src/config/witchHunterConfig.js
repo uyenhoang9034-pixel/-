@@ -26,6 +26,10 @@ export const WITCH_HUNTER_CONFIG = {
     candleChannelId: process.env.WITCH_HUNTER_CANDLE_CHANNEL_ID || '1562351868888354816',
     // Kênh cố định cho Sự kiện Giải Mã Cổ Ngữ (nếu có)
     puzzleChannelId: process.env.WITCH_HUNTER_PUZZLE_CHANNEL_ID || '',
+    // Kênh Trụ Tổng Pháo Đài độc lập (#✦・🏰・thành-trì-huyết-thệ)
+    monolithChannelId: process.env.WITCH_HUNTER_MONOLITH_CHANNEL_ID || '1564210315812667412',
+    // Kênh cố định Bảng Khiêu Khích Chiến Tranh
+    duelChannelId: process.env.WITCH_HUNTER_DUEL_CHANNEL_ID || '1564210825630195732',
   },
 
   // Danh mục Emojis động độc quyền của Server
