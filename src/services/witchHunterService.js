@@ -6,6 +6,8 @@ import {
   EmbedBuilder,
   PermissionFlagsBits,
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   StringSelectMenuBuilder,
 } from 'discord.js';
 import {
@@ -56,9 +58,17 @@ class WitchHunterStorage {
                   faction TEXT,
                   current_rank INTEGER DEFAULT 1,
                   pumpkins INTEGER DEFAULT 0,
-                  updated_at INTEGER
+                  updated_at INTEGER,
+                  last_puzzle_session TEXT,
+                  last_puzzle_week TEXT
                 );
               `);
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN last_puzzle_session TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN last_puzzle_week TEXT;');
+              } catch {}
               this.isSqlite = true;
               logger.info('🔮 [WitchHunter] Storage Engine: SQLite (Native Node:sqlite) đã sẵn sàng.');
             }
@@ -165,6 +175,8 @@ class WitchHunterStorage {
             current_rank: Number(row.current_rank) || 1,
             pumpkins: Number(row.pumpkins) || 0,
             unlocked_supporters: Array.isArray(unlockedSupporters) ? unlockedSupporters : [],
+            last_puzzle_session: row.last_puzzle_session || null,
+            last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
             updated_at: Number(row.updated_at) || Date.now(),
           };
           this.memoryCache.set(userId, userObj);
@@ -187,6 +199,8 @@ class WitchHunterStorage {
           faction: row.faction,
           current_rank: Number(row.current_rank) || 1,
           pumpkins: Number(row.pumpkins) || 0,
+          last_puzzle_session: row.last_puzzle_session || null,
+          last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
           updated_at: Number(row.updated_at) || Date.now(),
         }));
       } catch (err) {
@@ -205,20 +219,24 @@ class WitchHunterStorage {
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare(`
-          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id) DO UPDATE SET
             faction = excluded.faction,
             current_rank = excluded.current_rank,
             pumpkins = excluded.pumpkins,
-            updated_at = excluded.updated_at
+            updated_at = excluded.updated_at,
+            last_puzzle_session = excluded.last_puzzle_session,
+            last_puzzle_week = excluded.last_puzzle_week
         `);
         stmt.run(
           userObj.user_id,
           userObj.faction || null,
           userObj.current_rank || 1,
           userObj.pumpkins || 0,
-          userObj.updated_at
+          userObj.updated_at,
+          userObj.last_puzzle_session || null,
+          userObj.last_puzzle_week || userObj.last_puzzle_session || null
         );
       } catch (err) {
         logger.error('❌ [WitchHunter] SQLite saveUser error:', err);
@@ -2248,5 +2266,119 @@ export class WitchHunterService {
 
     return new ActionRowBuilder().addComponents(selectMenu);
   }
+
+  /**
+   * Tính toán định danh phiên đợt mở cuối tuần (Thứ 7 & Chủ Nhật)
+   * Cả 2 ngày Thứ 7 và Chủ Nhật cùng quy về 1 key duy nhất dựa vào ngày Thứ Bảy
+   * @param {Date} date
+   * @returns {string|null} Trả về weekend_YYYY_MM_DD hoặc null nếu không phải cuối tuần
+   */
+  static getWeekendSessionKey(date = new Date()) {
+    const vnDateStr = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }); // 'YYYY-MM-DD'
+    const [year, month, day] = vnDateStr.split('-').map(Number);
+    const vnDate = new Date(year, month - 1, day);
+    const dayOfWeek = vnDate.getDay(); // 0: Chủ Nhật, 6: Thứ Bảy
+
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      return null;
+    }
+
+    const saturday = new Date(vnDate);
+    if (dayOfWeek === 0) {
+      saturday.setDate(saturday.getDate() - 1);
+    }
+
+    const y = saturday.getFullYear();
+    const m = String(saturday.getMonth() + 1).padStart(2, '0');
+    const d = String(saturday.getDate()).padStart(2, '0');
+    return `weekend_${y}_${m}_${d}`;
+  }
+
+  /**
+   * Kiểm tra xem hôm nay có đang trong thời gian mở Giải Mã Cổ Ngữ không (Thứ 7 & CN)
+   */
+  static isWeekendPuzzleOpen(date = new Date()) {
+    return this.getWeekendSessionKey(date) !== null;
+  }
+
+  /**
+   * Kiểm tra người dùng đã hoàn thành lượt giải mã trong tuần/đợt hiện tại chưa
+   * @param {string} userId
+   * @param {string} weekendKey
+   */
+  static async hasUserCompletedPuzzle(userId, weekendKey) {
+    if (!weekendKey) return false;
+    const user = witchHunterStorage.getUser(userId);
+    if (user?.last_puzzle_session === weekendKey) {
+      return true;
+    }
+    try {
+      const { getFromDb } = await import('../utils/database.js');
+      const pgRecord = await getFromDb(`temp:witch_hunter:puzzle_completed:${weekendKey}:${userId}`);
+      if (pgRecord) return true;
+    } catch {}
+    return false;
+  }
+
+  /**
+   * Ghi nhận người dùng đã tham gia/hoàn thành Giải Mã Cổ Ngữ trong đợt tuần
+   */
+  static async markUserPuzzleCompleted(userId, weekendKey) {
+    if (!userId || !weekendKey) return;
+    let user = witchHunterStorage.getUser(userId);
+    if (!user) {
+      user = { user_id: userId, faction: null, current_rank: 1, pumpkins: 0, unlocked_supporters: [] };
+    }
+    user.last_puzzle_session = weekendKey;
+    user.updated_at = Date.now();
+    witchHunterStorage.saveUser(user, true);
+
+    try {
+      const { setInDb } = await import('../utils/database.js');
+      await setInDb(`temp:witch_hunter:puzzle_completed:${weekendKey}:${userId}`, {
+        userId,
+        weekendKey,
+        completedAt: Date.now(),
+      });
+    } catch {}
+  }
+
+  /**
+   * Tạo Embed giới thiệu bảng Giải Mã Cổ Ngữ
+   */
+  static buildQuickPuzzleIntroEmbed() {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} 𝓖𝓲𝓪̉𝓲 𝓜𝓪̃ 𝓒𝓸̂̉ 𝓝𝓰𝓾̛̃ — 𝓠𝓾𝓲𝓬𝓴 𝓟𝓾𝔃𝔃𝓵𝓮 ${emojis.titleRight}`)
+      .setDescription(
+        `Nghi thức khảo nghiệm trí tuệ ma thuật cổ xưa dành cho toàn thể **Thợ Săn** và **Phù Thủy**!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📜 **QUY TẮC THAM GIA:**\n` +
+        `• ⏰ **Thời gian mở:** Chỉ diễn ra vào **Thứ 7 & Chủ Nhật** hàng tuần.\n` +
+        `• 🔒 **Giới hạn tham gia:** Mỗi thành viên **CHỈ ĐƯỢC THAM GIA DUY NHẤT 1 LẦN** trong suốt cả 2 ngày cuối tuần.\n` +
+        `• 🧩 **Nội dung:** Khảo nghiệm các câu hỏi cổ ngữ xoay quanh cốt truyện, vũ khí thần binh, supporter và sự kiện server.\n` +
+        `• ${emojis.pumpkin || '🎃'} **Phần thưởng:** Nhận điểm Bí Ngô tích lũy để thăng cấp danh vị ma thuật tối cao!\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.heart || '💕'} Nhấn nút **Bắt Đầu Giải Mã** bên dưới để bước vào nghi thức!`
+      )
+      .setFooter({ text: 'Witch Hunter System • Giải Mã Cổ Ngữ' })
+      .setTimestamp();
+  }
+
+  /**
+   * Tạo ActionRow nút bấm bắt đầu Giải Mã Cổ Ngữ
+   */
+  static createQuickPuzzleStartRow() {
+    const startButton = new ButtonBuilder()
+      .setCustomId('witch_hunter_puzzle_start')
+      .setLabel('Bắt Đầu Giải Mã')
+      .setStyle(ButtonStyle.Primary)
+      .setEmoji(WITCH_HUNTER_CONFIG.emojis.pumpkin || '🎃');
+
+    return new ActionRowBuilder().addComponents(startButton);
+  }
 }
+
 

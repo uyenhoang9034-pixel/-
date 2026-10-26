@@ -502,6 +502,234 @@ export const WITCH_HUNTER_CONFIG = {
       },
     ],
   },
+
+  // DANH SÁCH 20 CÂU HỎI GIẢI MÃ CỔ NGỮ (QUICK PUZZLE)
+  quickPuzzle: {
+    title: 'Giải Mã Cổ Ngữ (Quick Puzzle)',
+    description: 'Nghi thức giải mã cổ ngữ diễn ra vào mỗi cuối tuần (Thứ 7 & Chủ Nhật)',
+    questions: [
+      {
+        id: 1,
+        question: 'Tấm trọng khiên Aegis Heavy Tower (Đại Khiên Thành Trì) của thợ săn Bậc 3 có nguồn gốc xuất xứ từ đâu?',
+        options: [
+          { key: 'A', text: 'Đúc từ bạc thánh đường của Vatican' },
+          { key: 'B', text: 'Tách ra từ một mảng vách thành cơ quan của Bastion' },
+          { key: 'C', text: 'Đập vỡ từ tảng đá thiên thạch rơi ngoài không gian' },
+          { key: 'D', text: 'Nhặt được dưới hầm mộ của các hiệp sĩ cổ xưa' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 2,
+        question: 'Để kích hoạt liên kết khế ước với thỏ nguyền Malice (Hắc Thỏ Gỗ) ở Bậc 1, phù thủy phải thực hiện hành động nào?',
+        options: [
+          { key: 'A', text: 'Nhỏ một giọt máu vào mắt cúc áo của nó' },
+          { key: 'B', text: 'Khâu thêm một chiếc tai giả bằng vải đen' },
+          { key: 'C', text: 'Đốt cháy củ cà rốt sắt rỉ' },
+          { key: 'D', text: 'Đọc 100 lần bài đồng dao lúc nửa đêm' },
+        ],
+        correctAnswer: 'A',
+      },
+      {
+        id: 3,
+        question: 'Điểm khác biệt mấu chốt giữa hệ Cấm Khí (Forbidden Relic) so với Linh Tộc và Nguyền Thể là gì?',
+        options: [
+          { key: 'A', text: 'Cấm Khí có linh hồn tự do và không bao giờ phục tùng con người' },
+          { key: 'B', text: 'Cấm Khí là khí tài cơ giới do con người chế tác để cưỡng chế ma lực tự nhiên' },
+          { key: 'C', text: 'Cấm Khí chỉ xuất hiện khi một phù thủy trút hơi thở cuối cùng' },
+          { key: 'D', text: 'Cấm Khí bắt buộc phải nuôi sống bằng máu tươi mỗi ngày' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 4,
+        question: 'Ngọn lửa rực cháy bên trong đầu bí ngô của Hallow (Vua Đầu Lửa) có màu sắc gì và mang đặc tính nào?',
+        options: [
+          { key: 'A', text: 'Lửa đỏ rực – thiêu đốt kim loại thông thường' },
+          { key: 'B', text: 'Lửa trắng – làm đông cứng mọi vật thể xung quanh' },
+          { key: 'C', text: 'Lửa xanh biếc – thiêu hủy sinh lực và phá vỡ kết giới cấm' },
+          { key: 'D', text: 'Lửa đen vô hình – chỉ người chết mới nhìn thấy' },
+        ],
+        correctAnswer: 'C',
+      },
+      {
+        id: 5,
+        question: 'Dấu hiệu nhận biết đặc trưng trên cơ thể Ngân Khuyển Garmr khi đánh hơi thấy tà thuật xuất hiện ở cự ly gần là gì?',
+        options: [
+          { key: 'A', text: 'Bộ lông chuyển hoàn toàn sang màu đen mực' },
+          { key: 'B', text: 'Vết sẹo chữ thập trên trán tự động phát sáng rực rỡ' },
+          { key: 'C', text: 'Đôi mắt chảy ra huyết lệ' },
+          { key: 'D', text: 'Đuôi biến thành lưỡi kiếm bạc' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 6,
+        question: 'Vì sao phát bắn từ khẩu pháo Dimension Breaker của Thợ Săn Bậc 4 không thể bị cản lại bởi giáp trụ hay tường chắn thông thường?',
+        options: [
+          { key: 'A', text: 'Đạn bay với tốc độ ánh sáng' },
+          { key: 'B', text: 'Đạn nén bẻ gãy thực tại, xé toạc không gian thẳng tới tọa độ mục tiêu' },
+          { key: 'C', text: 'Đạn làm từ thủy ngân lỏng tự chảy luồn qua khe hở' },
+          { key: 'D', text: 'Đạn tự phân rã mục tiêu trước khi chạm tới' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 7,
+        question: 'Khế ước giữa Thợ Săn Bậc 5 và Cú Đêm Oculus (Thiên Nhãn Tri Kỷ) được gọi là gì?',
+        options: [
+          { key: 'A', text: 'Lời Thề Răng Máu' },
+          { key: 'B', text: 'Món Nợ Tương Lai' },
+          { key: 'C', text: 'Giao Kèo Quỷ Dữ' },
+          { key: 'D', text: 'Khế Ước Tro Tàn' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 8,
+        question: 'Ngoài việc thiêu đốt chướng ngại vật, Cinder Cane (Trượng Tàn Hỏa) của Phù Thủy Bậc 4 còn có công năng sinh mệnh nào?',
+        options: [
+          { key: 'A', text: 'Hồi sinh chủ nhân và tái tạo ma lực khi cận kề cái chết' },
+          { key: 'B', text: 'Ban cho chủ nhân khả năng tàng hình vĩnh viễn' },
+          { key: 'C', text: 'Biến đối thủ thành một bức tượng than đá' },
+          { key: 'D', text: 'Hút cạn tuổi thọ của kẻ địch để tăng kích thước trượng' },
+        ],
+        correctAnswer: 'A',
+      },
+      {
+        id: 9,
+        question: 'Khi giải phóng lưỡi cưa cơ giới xé rách kết giới, Thợ Săn sở hữu Zodiac phải gánh chịu phản phệ nào?',
+        options: [
+          { key: 'A', text: 'Bị giảm 50% tầm nhìn trong đêm' },
+          { key: 'B', text: 'Những cơn đau đầu nhói buốt do liên kết cót sắt với linh hồn đao phủ' },
+          { key: 'C', text: 'Mất khả năng sử dụng đạn bạc trong 1 giờ' },
+          { key: 'D', text: 'Bị cỗ máy hút mất một nửa số Bí Ngô đang có' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 10,
+        question: 'Để gửi đi một tin nhắn bí mật hoặc trốn tránh radar dò tìm của Hiệp Hội, Corvus sẽ làm gì?',
+        options: [
+          { key: 'A', text: 'Độn thổ chui sâu xuống lòng đất' },
+          { key: 'B', text: 'Hóa thành một làn khói độc màu xanh lục' },
+          { key: 'C', text: 'Phân rã cơ thể thành hàng trăm ảo ảnh lông vũ thủy tinh bay tản ra các hướng' },
+          { key: 'D', text: 'Hát lên một khúc ca ru ngủ toàn bộ vùng lân cận' },
+        ],
+        correctAnswer: 'C',
+      },
+      {
+        id: 11,
+        question: 'Một Kẻ Mang Khế Ước xung phong đi săn phù thủy nhưng vào tới rừng cấm lại ngồi một góc bấm điện thoại vì "hết pin giao tiếp xã hội". Đây là biểu hiện của:',
+        options: [
+          { key: 'A', text: 'Bị dính bùa lú cổ đại' },
+          { key: 'B', text: 'Triệu chứng của người hướng nội part-time' },
+          { key: 'C', text: 'Bị trúng độc tơ rỉ sét' },
+          { key: 'D', text: 'Đang thiền định kết nối vũ trụ' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 12,
+        question: 'Khi một tân binh khẳng định dùng dao găm Bậc 1 có thể một đòn chém bay màu đại phù thủy Bậc 5, các tiền bối trong Hiệp Hội sẽ bảo:',
+        options: [
+          { key: 'A', text: '\"Ngươi thật có chí khí phi thường!\"' },
+          { key: 'B', text: '\"Ăn nói xà lơ, sao mà ăn nói xà lơ dữ vậy!\"' },
+          { key: 'C', text: '\"Hãy lập tức nhận chức Hội Trưởng!\"' },
+          { key: 'D', text: '\"Đúng là thiên tài trăm năm có một!\"' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 13,
+        question: 'Nghi thức "pha vạc độc" của một phù thủy thế hệ mới thường bao gồm: 70% đường, 100% đá, trân châu đen và thạch phô mai. Món độc dược này tên là:',
+        options: [
+          { key: 'A', text: 'Độc dược ngủ ngàn năm' },
+          { key: 'B', text: 'Trà sữa full topping' },
+          { key: 'C', text: 'Thuốc hồi sinh linh hồn' },
+          { key: 'D', text: 'Hắc ám ma tuyền' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 14,
+        question: 'Bạn thức trắng đêm treo voice 60 phút nhưng hôm sau bạn thân lại bảo "Do mày nhớ nhầm chứ server làm gì có event voice", hành động này gọi là:',
+        options: [
+          { key: 'A', text: 'Bùa chú xóa ký ức' },
+          { key: 'B', text: 'Thuật thao túng tâm lý (Gaslighting)' },
+          { key: 'C', text: 'Đồng đội tốt bụng nhắc nhở' },
+          { key: 'D', text: 'Hiện tượng ảo giác không gian' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 15,
+        question: 'Trong lúc cả đội đang bí mật bao vây căn cứ phù thủy, một thành viên lỡ tay bấm nhầm nút loa ngoài làm vang tiếng nhạc xổ số. Danh hiệu trao cho người này là:',
+        options: [
+          { key: 'A', text: 'Dũng sĩ xung kích' },
+          { key: 'B', text: 'Chiến thần tình báo' },
+          { key: 'C', text: '\"Báo thủ\" của năm' },
+          { key: 'D', text: 'Bậc thầy nghi binh' },
+        ],
+        correctAnswer: 'C',
+      },
+      {
+        id: 16,
+        question: 'Đứng trước toàn thể server tuyên bố hôm nay sẽ giải đúng 10/10 câu đố cổ ngữ, kết quả bấm nút sai ngay câu đầu tiên. Cảm xúc lúc này là:',
+        options: [
+          { key: 'A', text: 'Tự hào ngút ngàn' },
+          { key: 'B', text: '\"Mắc cỡ quá 2 ơi!\"' },
+          { key: 'C', text: 'Phẫn nộ với vũ trụ' },
+          { key: 'D', text: 'Bình thản lạ thường' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 17,
+        question: 'Khi một thợ săn thắp nến trượt chuỗi ngày thứ 6, sau đó lại làm rơi vũ khí xuống vực sâu không đáy, cả hội chỉ biết thốt lên:',
+        options: [
+          { key: 'A', text: '\"Đỉnh nóc kịch trần!\"' },
+          { key: 'B', text: '\"Ca này hết cứu!\"' },
+          { key: 'C', text: '\"Cố lên sắp thành công rồi!\"' },
+          { key: 'D', text: '\"Tuyệt vời ông mặt trời!\"' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 18,
+        question: 'Khoảnh khắc nút Thắp Nến Cầu Nguyện nổ trúng tỷ lệ 1% nhận ngay +10 🎃, trạng thái hưng phấn đó được mô tả chuẩn xác nhất là:',
+        options: [
+          { key: 'A', text: '\"Bình thường như cân đường hộp sữa\"' },
+          { key: 'B', text: '\"Đỉnh nóc, kịch trần, bay phấp phới!\"' },
+          { key: 'C', text: '\"Không cảm xúc\"' },
+          { key: 'D', text: '\"Sợ hãi tột cùng\"' },
+        ],
+        correctAnswer: 'B',
+      },
+      {
+        id: 19,
+        question: 'Một phù thủy khoác lên mình trang phục Bậc 5, vung Lưỡi Hái Đoạt Hồn với thần thái sang chảnh không góc chết. Dân mạng sẽ bình luận từ gì?',
+        options: [
+          { key: 'A', text: '\"Quá Slay!\"' },
+          { key: 'B', text: '\"Xấu đau đớn\"' },
+          { key: 'C', text: '\"Tạm được thôi\"' },
+          { key: 'D', text: '\"Không hợp phong thủy\"' },
+        ],
+        correctAnswer: 'A',
+      },
+      {
+        id: 20,
+        question: 'Một thành viên mới vào server 3 ngày nhưng đã đứng đầu bảng xếp hạng Bí Ngô nhờ chăm chỉ làm sạch nhiệm vụ. Cả hội trầm trồ:',
+        options: [
+          { key: 'A', text: '\"Gà mờ may mắn thôi\"' },
+          { key: 'B', text: '\"Thế lực mới này đúng là không đùa được đâu!\"' },
+          { key: 'C', text: '\"Chắc chắn là hack điểm\"' },
+          { key: 'D', text: '\"Bình thường thôi có gì đâu\"' },
+        ],
+        correctAnswer: 'B',
+      },
+    ],
+  },
 };
 
 /**
@@ -612,5 +840,25 @@ export function formatRankEmoji(rank) {
     .join('');
 }
 
+/**
+ * Lấy toàn bộ danh sách 20 câu hỏi Giải Mã Cổ Ngữ
+ * @returns {Array}
+ */
+export function getQuickPuzzleQuestions() {
+  return WITCH_HUNTER_CONFIG.quickPuzzle.questions;
+}
+
+/**
+ * Tìm câu hỏi Giải Mã Cổ Ngữ theo ID
+ * @param {number} id
+ * @returns {Object|null}
+ */
+export function getQuickPuzzleById(id) {
+  const numId = Number(id);
+  return WITCH_HUNTER_CONFIG.quickPuzzle.questions.find((q) => q.id === numId) || null;
+}
+
 export default WITCH_HUNTER_CONFIG;
+
+
 

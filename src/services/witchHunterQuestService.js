@@ -49,12 +49,9 @@ export function getVietnamWeekIdentifier(date = new Date()) {
 export function isPuzzleWeekendOpen(date = new Date()) {
   const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
   const dayOfWeek = vnTime.getUTCDay(); // 0 = Sunday, 6 = Saturday
-  const hour = vnTime.getUTCHours();
 
-  // Mở từ 20:00 Thứ Bảy (day 6) đến hết 23:59 Chủ Nhật (day 0)
-  if (dayOfWeek === 6 && hour >= 20) return true;
-  if (dayOfWeek === 0) return true;
-  return false;
+  // Mở suốt cả 2 ngày Thứ Bảy (day 6) và Chủ Nhật (day 0)
+  return dayOfWeek === 6 || dayOfWeek === 0;
 }
 
 /**
@@ -499,6 +496,7 @@ class WitchHunterQuestStorage {
     const mainUser = witchHunterStorage.getUser(userId);
     if (mainUser) {
       mainUser.last_puzzle_week = weekIdentifier;
+      mainUser.last_puzzle_session = weekIdentifier;
       mainUser.last_puzzle_score = Number(score) || 0;
       mainUser.last_puzzle_completed_at = record.completed_at;
       witchHunterStorage.saveUser(mainUser, true);
@@ -871,15 +869,24 @@ export class WitchHunterQuestService {
     if (!isAdmin && !isPuzzleWeekendOpen()) {
       return {
         success: false,
-        message: '⏳ Thí luyện Giải Mã Cổ Ngữ chỉ mở từ **20:00 Thứ Bảy** đến **23:59 Chủ Nhật** hằng tuần thôi nè lữ khách ơi! Hãy quay lại vào kỳ trăng tới nhé 💕',
+        message: '⏳ Thí luyện Giải Mã Cổ Ngữ chỉ mở vào **Thứ 7 & Chủ Nhật** hằng tuần thôi nè lữ khách ơi! Hãy quay lại vào kỳ trăng tới nhé 💕',
       };
     }
 
     // 2. KHÓA GIỚI HẠN 1 LẦN / TUẦN: Kiểm tra đã hoàn thành bài thi tuần này chưa (áp dụng cho tất cả người chơi)
+    const weekendKey = WitchHunterService.getWeekendSessionKey?.() || currentWeek;
     const record = witchHunterQuestStorage.getPuzzleRecord(userId, currentWeek);
     const mainUser = witchHunterStorage.getUser(userId);
 
-    if (record || (mainUser && mainUser.last_puzzle_week === currentWeek)) {
+    if (
+      record ||
+      (mainUser && (
+        mainUser.last_puzzle_week === currentWeek ||
+        mainUser.last_puzzle_week === weekendKey ||
+        mainUser.last_puzzle_session === weekendKey ||
+        mainUser.last_puzzle_session === currentWeek
+      ))
+    ) {
       return {
         success: false,
         message: 'Bạn đã hoàn thành thí luyện giải mã cổ ngữ của tuần này rồi. Hãy quay lại vào cuối tuần sau nhé! 💕',
@@ -1012,6 +1019,10 @@ export class WitchHunterQuestService {
       finalScore,
       rewardPumpkins
     );
+
+    const weekendKey = WitchHunterService.getWeekendSessionKey?.() || session.weekIdentifier;
+    await WitchHunterService.markUserPuzzleCompleted(session.userId, weekendKey).catch(() => null);
+    await WitchHunterService.markUserPuzzleCompleted(session.userId, session.weekIdentifier).catch(() => null);
 
     // Ban thưởng Bí Ngô nếu điểm > 0
     if (rewardPumpkins > 0) {
