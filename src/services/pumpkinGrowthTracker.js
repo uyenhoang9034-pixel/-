@@ -381,6 +381,13 @@ class PumpkinGrowthTracker {
   }
 
   /**
+   * Alias cho getTodayStats để tương thích ngược
+   */
+  getTodayUserStats(userId) {
+    return this.getTodayStats(userId);
+  }
+
+  /**
    * Kích hoạt vào 00:00 mỗi ngày:
    * 1. Tính toán cấp tăng trong ngày của từng thành viên
    * 2. Ghi vào database (PostgreSQL) và file pumpkin_monthly_logs.jsonl

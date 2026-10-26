@@ -21,7 +21,7 @@ export default {
         });
       }
 
-      const embed = WitchHunterQuestService.buildWeeklyQuestsEmbed(user, guild);
+      const embed = await WitchHunterQuestService.buildWeeklyQuestsEmbed(user, guild);
 
       return interaction.reply({
         embeds: [embed],

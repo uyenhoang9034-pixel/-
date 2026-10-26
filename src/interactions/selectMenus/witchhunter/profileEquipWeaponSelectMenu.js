@@ -42,7 +42,7 @@ export default {
         : result.weapon?.name;
 
       await interaction.followUp({
-        content: `✅ Đã trang bị thành công Thần Binh Vũ Khí **${wepName}** xuất trận!`,
+        content: `<a:trangtrig31:1546905996893626440> Đã trang bị thành công Thần Binh Vũ Khí **${wepName}** xuất trận!`,
         flags: MessageFlags.Ephemeral,
       }).catch(() => null);
     } catch (error) {

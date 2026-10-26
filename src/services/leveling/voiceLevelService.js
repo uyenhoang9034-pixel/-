@@ -615,6 +615,12 @@ async function addVoiceDuration(
 
     pumpkinGrowthTracker.recordVoiceDuration(member.id, safeDuration);
 
+    // Kích hoạt kiểm tra hoàn thành nhiệm vụ tuần voice ngay theo thời gian thực (đủ 30p - 60p voice)
+    try {
+        const { WitchHunterQuestService } = await import('../witchHunterQuestService.js');
+        WitchHunterQuestService.onVoiceActivity(member.id, member.guild).catch(() => null);
+    } catch {}
+
     const guild =
         member.guild;
 

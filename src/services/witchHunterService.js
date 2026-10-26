@@ -2753,7 +2753,7 @@ export class WitchHunterService {
         const isEquipped = equippedSupporter && s.id === equippedSupporter.id;
         const cat = WITCH_HUNTER_CONFIG.supporters.categories[s.categoryKey];
         const catEmoji = cat?.emoji || '🔮';
-        const tag = isEquipped ? ' ⚔️ *(Đang dùng)*' : '';
+        const tag = isEquipped ? ' <a:trangtrig36:1563065680922808340> *(Đang dùng)*' : '';
         return `> • ${catEmoji} **[${s.rank}-Rank]** ${s.name}${tag}`;
       }).join('\n');
     } else {
@@ -2766,7 +2766,7 @@ export class WitchHunterService {
       ownedWeaponsLines = ownedWeapons.map((w) => {
         const isEquipped = equippedWeapon && w.id === equippedWeapon.id;
         const energyEmoji = w.energyEmoji || '⚔️';
-        const tag = isEquipped ? ' ⚔️ *(Đang dùng)*' : '';
+        const tag = isEquipped ? ' <a:trangtrig36:1563065680922808340> *(Đang dùng)*' : '';
         return `> • ${energyEmoji} **[${w.rank}-Rank]** ${w.shortName || w.name}${tag}`;
       }).join('\n');
     } else {

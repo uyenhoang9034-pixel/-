@@ -673,9 +673,21 @@ export class WitchHunterQuestService {
     return `[${'■'.repeat(filled)}${'□'.repeat(empty)}]`;
   }
 
-  static buildWeeklyQuestsEmbed(user, guild) {
+  static async buildWeeklyQuestsEmbed(user, guild) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
+
+    // Tự động kiểm tra hoàn thành nhiệm vụ voice nếu hôm nay đã đủ thời gian treo voice
+    await this.onVoiceActivity(user.id, guild);
+
     const questData = witchHunterQuestStorage.getWeeklyQuest(user.id);
+    const today = getVietnamDate();
+
+    let todayVoiceMinutes = 0;
+    try {
+      const { pumpkinGrowthTracker } = await import('./pumpkinGrowthTracker.js');
+      const todayStats = pumpkinGrowthTracker.getTodayStats(user.id);
+      todayVoiceMinutes = todayStats?.voiceMinutes || 0;
+    } catch {}
 
     const voiceBar = this.buildProgressBar(questData.voice_days_done, 3);
     const chatBar = this.buildProgressBar(questData.chat_days_done, 2);
@@ -684,6 +696,11 @@ export class WitchHunterQuestService {
     const chatDoneText = questData.chat_days_done >= 2 ? ' *(Hoàn thành)*' : '';
     const reactDoneText = questData.react_done >= 1 ? ' *(Hoàn thành)*' : '';
 
+    const voiceTodayDone = questData.last_voice_date === today;
+    const voiceTodayStatus = voiceTodayDone
+      ? `\`${todayVoiceMinutes} phút voice\` *(Hôm nay đã xong)*`
+      : `\`${todayVoiceMinutes}/30 phút voice\``;
+
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} 𝓑𝓪̉𝓷𝓰 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓣𝓾𝓪̂̀𝓷: ${user.username} ${emojis.titleRight}`)
@@ -691,7 +708,7 @@ export class WitchHunterQuestService {
         `Tiến trình thực hiện khế ước rèn luyện trong tuần này của ngươi:\n\n` +
         `<a:trangtrig30:1546905942476464178> **1. Tụ Họp Quán Rượu (Voice Level)**\n` +
         `> Yêu cầu: Đạt 2 cấp voice trong ngày (60p voice).\n` +
-        `> Tiến độ tuần: \`${voiceBar} ${questData.voice_days_done}/3 lần\`${voiceDoneText} • Thưởng: +1 <a:bingo:1563061901800243253> / lần (Tối đa +3 <a:bingo:1563061901800243253>/tuần)\n\n` +
+        `> Hôm nay: ${voiceTodayStatus} | Tiến độ tuần: \`${voiceBar} ${questData.voice_days_done}/3 lần\`${voiceDoneText} • Thưởng: +1 <a:bingo:1563061901800243253> / lần (Tối đa +3 <a:bingo:1563061901800243253>/tuần)\n\n` +
         `<a:trangtrig30:1546905942476464178> **2. Mật Thư Chiến Trường (Hoạt động Chat)**\n` +
         `> Yêu cầu: Gửi ≥ 30 tin nhắn hợp lệ trong ngày.\n` +
         `> Hôm nay: \`${questData.chat_count_today}/30 tin\` | Tiến độ tuần: \`${chatBar} ${questData.chat_days_done}/2 lần\`${chatDoneText} (+${questData.chat_days_done} <a:bingo:1563061901800243253>)\n\n` +
@@ -705,9 +722,10 @@ export class WitchHunterQuestService {
       .setTimestamp();
   }
 
-  // Hook 1: Voice Level Up (đạt 2 cấp voice trong ngày)
-  static async onVoiceLevelGained(userId, levelsGained, guild) {
+  // Hook 1: Voice Activity (Treo voice đạt mốc 30 - 60 phút trong ngày)
+  static async onVoiceActivity(userId, guild) {
     try {
+      if (!userId) return;
       const today = getVietnamDate();
       const record = witchHunterQuestStorage.getWeeklyQuest(userId);
 
@@ -716,29 +734,37 @@ export class WitchHunterQuestService {
         return;
       }
 
-      // Kiểm tra tổng cấp voice hôm nay từ pumpkinGrowthTracker
+      // Kiểm tra thời gian voice hôm nay từ pumpkinGrowthTracker
       const { pumpkinGrowthTracker } = await import('./pumpkinGrowthTracker.js');
-      const todayStats = pumpkinGrowthTracker.getTodayUserStats(userId);
+      const todayStats = pumpkinGrowthTracker.getTodayStats(userId);
+      const todayVoiceMinutes = todayStats?.voiceMinutes || 0;
       const todayVoiceLevels = todayStats?.voiceLevels || 0;
 
-      if (todayVoiceLevels >= 2) {
+      // Đủ từ 30 phút voice trở lên trong ngày (hoặc đạt >= 1 cấp voice) là hoàn thành ngay cho ngày hôm nay
+      if (todayVoiceMinutes >= 30 || todayVoiceLevels >= 1) {
         record.voice_days_done += 1;
         record.last_voice_date = today;
         witchHunterQuestStorage.saveWeeklyQuest(record);
 
         // Ban thưởng +1 Bí Ngô
-        await WitchHunterService.awardPumpkins(guild, userId, 1, {
-          reason: `Nhiệm vụ tuần: Tụ Họp Quán Rượu (+1 Bí Ngô, lần ${record.voice_days_done}/3)`,
-          source: 'Khế Ước Tuần (Voice)',
-          notifyDM: false,
-          notifyAdminLog: true,
-        });
+        if (guild) {
+          await WitchHunterService.awardPumpkins(guild, userId, 1, {
+            reason: `Nhiệm vụ tuần: Tụ Họp Quán Rượu (+1 Bí Ngô, lần ${record.voice_days_done}/3)`,
+            source: 'Khế Ước Tuần (Voice)',
+            notifyDM: false,
+            notifyAdminLog: true,
+          });
+        }
 
-        logger.info(`🔮 [WitchHunterQuest] User ${userId} hoàn thành nhiệm vụ Tụ Họp Quán Rượu (+1 Bí Ngô, lần ${record.voice_days_done}/3).`);
+        logger.info(`🔮 [WitchHunterQuest] User ${userId} hoàn thành nhiệm vụ Tụ Họp Quán Rượu (+1 Bí Ngô, lần ${record.voice_days_done}/3) với ${todayVoiceMinutes} phút voice.`);
       }
     } catch (e) {
-      logger.error('❌ [WitchHunterQuest] Lỗi onVoiceLevelGained:', e);
+      logger.error('❌ [WitchHunterQuest] Lỗi onVoiceActivity:', e);
     }
+  }
+
+  static async onVoiceLevelGained(userId, levelsGained, guild) {
+    return this.onVoiceActivity(userId, guild);
   }
 
   // Hook 2: Chat Activity (≥ 30 tin nhắn trong ngày)
