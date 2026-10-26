@@ -419,26 +419,32 @@ export class WitchHunterSummonService {
       ? 'Hiệp Hội Thợ Săn (W.H. Association)'
       : 'Chưa Gia Nhập Phe';
 
+    const factionBadge = userData?.faction === 'witch'
+      ? WITCH_HUNTER_CONFIG.emojis.witchBadge
+      : userData?.faction === 'hunter'
+      ? WITCH_HUNTER_CONFIG.emojis.hunterBadge
+      : '⚔️';
+
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${sEmojis.titleLeft} 𝓣𝓲𝓮̂́𝓷 𝓣𝓻𝓲̀𝓷𝓱 𝓑𝓪̉𝓸 𝓗𝓲𝓮̂̉𝓶 𝓟𝓲𝓽𝔂 𝓗𝓾𝔂𝓮̂́𝓽 𝓝𝓰𝓾𝔂𝓮̣̂𝓽 ${sEmojis.titleRight}`)
       .setDescription(
-        `👤 **Lữ Khách:** <@${userId}>\n` +
-        `⚔️ **Phe Phái:** **${factionName}**\n` +
-        `🎃 **Số Dư Bí Ngô:** **${(userData?.pumpkins || 0).toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
-        `💎 **Mảnh Vỡ Ký Ức:** **${(tracker.memory_shards || 0).toLocaleString('vi-VN')}** ${sEmojis.memoryShard}\n\n` +
+        `<a:heartg1:1545307544808071258> Lữ Khách: <@${userId}>\n` +
+        `${factionBadge} Phe Phái: ${factionName}\n` +
+        `<a:bingo:1563061901800243253> Số Dư Bí Ngô: ${(userData?.pumpkins || 0).toLocaleString('vi-VN')} <a:bingo:1563061901800243253>\n` +
+        `<a:trangtrig46:1547240249761996812> Mảnh Vỡ Ký Ức: ${(tracker.memory_shards || 0).toLocaleString('vi-VN')} <a:trangtrig46:1547240249761996812>\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `🔮 **BỂ TRIỆU HỒI SUPPORTER:**\n` +
-        `> 🔷 **Bảo hiểm A-Rank (Trần 20):** \`${tracker.supporter_pity_a || 0} / 20\` lượt\n` +
-        `> 🔸 **Bảo hiểm S-Rank (Trần 30):** \`${tracker.supporter_pity_s || 0} / 30\` lượt\n` +
-        `> 👑 **Bảo hiểm SS-Rank (Trần 60):** \`${tracker.supporter_pity_ss || 0} / 60\` lượt\n` +
-        `> 💰 **Chi phí tích lũy chu kỳ hiện tại:** \`${(tracker.supporter_spent_cycle || 0).toLocaleString('vi-VN')}\` Bí Ngô\n\n` +
+        `<a:linhtocg:1563399670351536310> BỂ TRIỆU HỒI SUPPORTER:\n` +
+        `> <a:trangtrig14:1546047912969113622> Bảo hiểm A-Rank (Trần 20): ${tracker.supporter_pity_a || 0} / 20 lượt\n` +
+        `> <a:trangtrig45:1547239010190237819> Bảo hiểm S-Rank (Trần 30): ${tracker.supporter_pity_s || 0} / 30 lượt\n` +
+        `> <a:trangtrig37:1547237647850807420> Bảo hiểm SS-Rank (Trần 60): ${tracker.supporter_pity_ss || 0} / 60 lượt\n` +
+        `> <a:bingo:1563061901800243253> Chi phí tích lũy chu kỳ hiện tại: ${(tracker.supporter_spent_cycle || 0).toLocaleString('vi-VN')} Bí Ngô\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `⚔️ **BỂ TRIỆU HỒI THẦN KHÍ:**\n` +
-        `> 🔷 **Bảo hiểm A-Rank (Trần 20):** \`${tracker.weapon_pity_a || 0} / 20\` lượt\n` +
-        `> 🔸 **Bảo hiểm S-Rank (Trần 30):** \`${tracker.weapon_pity_s || 0} / 30\` lượt\n` +
-        `> 👑 **Bảo hiểm SS-Rank (Trần 60):** \`${tracker.weapon_pity_ss || 0} / 60\` lượt\n` +
-        `> 💰 **Chi phí tích lũy chu kỳ hiện tại:** \`${(tracker.weapon_spent_cycle || 0).toLocaleString('vi-VN')}\` Bí Ngô\n` +
+        `<a:trangtrig36:1563065680922808340> BỂ TRIỆU HỒI THẦN KHÍ:\n` +
+        `> <a:trangtrig14:1546047912969113622> Bảo hiểm A-Rank (Trần 20): ${tracker.weapon_pity_a || 0} / 20 lượt\n` +
+        `> <a:trangtrig45:1547239010190237819> Bảo hiểm S-Rank (Trần 30): ${tracker.weapon_pity_s || 0} / 30 lượt\n` +
+        `> <a:trangtrig37:1547237647850807420> Bảo hiểm SS-Rank (Trần 60): ${tracker.weapon_pity_ss || 0} / 60 lượt\n` +
+        `> <a:bingo:1563061901800243253> Chi phí tích lũy chu kỳ hiện tại: ${(tracker.weapon_spent_cycle || 0).toLocaleString('vi-VN')} Bí Ngô\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
       )
       .setFooter({ text: 'Witch Hunter Pity Tracker' })
@@ -698,21 +704,20 @@ export class WitchHunterSummonService {
     results.forEach((res, index) => {
       const lineNum = results.length > 1 ? `**#${index + 1}** ` : '';
       if (res.isMiss) {
-        resultLines.push(`> ${lineNum}${sEmojis.miss} *Trượt tế đàn* ➔ Nhận 1 Mảnh vỡ ký ức & hoàn lại **+${res.refund}** ${sEmojis.pumpkin}`);
+        resultLines.push(`> ${lineNum}${sEmojis.miss} Trượt tế đàn <a:trangtrig20:1546092997299667055> Nhận 1 Mảnh vỡ ký ức & hoàn lại **+${res.refund}** ${sEmojis.pumpkin}`);
       } else {
         const rankEmoji = res.rank === 'SS' ? sEmojis.rankSS : res.rank === 'S' ? sEmojis.rankS : sEmojis.rankA;
         const rankBadge = `**[${res.rank}-Rank]**`;
         if (res.isDuplicate) {
           const reasonTag = res.isCeiling ? '*(Chạm Trần Pity - Hoàn 80%)*' : '*(Nổ Sớm - Hoàn 60%)*';
-          resultLines.push(`> ${lineNum}${rankEmoji} ${rankBadge} **${res.item.name}**\n> ↳ ♻️ *Trùng lặp* ${reasonTag}: Hoàn trả ngay **+${res.refund}** ${sEmojis.pumpkin}`);
+          resultLines.push(`> ${lineNum}${rankEmoji} ${rankBadge} **${res.item.name}**\n> ↳ <a:shockg1:1541433028193165312> Trùng lặp ${reasonTag}: Hoàn trả ngay **+${res.refund}** ${sEmojis.pumpkin}`);
         } else {
-          resultLines.push(`> ${lineNum}${rankEmoji} ${rankBadge} **${res.item.name}** ✨ **[MỚI]** ➔ *Đã nhập kho lưu trữ!*`);
+          resultLines.push(`> ${lineNum}${rankEmoji} ${rankBadge} **${res.item.name}** <a:trangtrig41:1547238037832863744> **[MỚI]** <a:trangtrig20:1546092997299667055> Đã nhập kho lưu trữ!`);
         }
       }
     });
 
     const pityPrefix = summonType === 'supporter' ? 'supporter' : 'weapon';
-    const pityStr = `🔷 A: \`${tracker[`${pityPrefix}_pity_a`] || 0}/20\` • 🔸 S: \`${tracker[`${pityPrefix}_pity_s`] || 0}/30\` • 👑 SS: \`${tracker[`${pityPrefix}_pity_ss`] || 0}/60\``;
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
@@ -720,15 +725,18 @@ export class WitchHunterSummonService {
       .setDescription(
         `Lữ khách <@${user.id}> vừa hiến tế Bí Ngô tại tế đàn **${summonTypeName}** (${pullCount} lượt)!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `🎁 **DANH SÁCH VẬT PHẨM THU ĐƯỢC:**\n` +
+        `<a:giftg1:1543150714732412948> **DANH SÁCH VẬT PHẨM THU ĐƯỢC:**\n` +
         resultLines.join('\n') + '\n' +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `📊 **TỔNG KẾT TÀI NGUYÊN:**\n` +
-        `> 📉 **Chi phí:** **-${cost.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
-        `> 📈 **Hoàn trả:** **+${totalRefundPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
-        `> 🎃 **Số dư hiện tại:** **${finalPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
-        `> 💎 **Mảnh vỡ ký ức:** **${(tracker.memory_shards || 0).toLocaleString('vi-VN')}** ${sEmojis.memoryShard}\n` +
-        `> 🛡️ **Bảo hiểm Pity hiện tại:** ${pityStr}\n` +
+        `<a:heartg1:1545307544808071258> **TỔNG KẾT TÀI NGUYÊN:**\n` +
+        `> <a:trangtrig21:1546093099770716213> Chi phí: **-${cost.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
+        `> <a:trangtrig21:1546093099770716213> Hoàn trả: **+${totalRefundPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
+        `> <a:bingo:1563061901800243253> Số dư hiện tại: **${finalPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
+        `> <a:trangtrig46:1547240249761996812> Mảnh vỡ ký ức: **${(tracker.memory_shards || 0).toLocaleString('vi-VN')}** <a:trangtrig46:1547240249761996812>\n` +
+        `> <a:trangtrig21:1546093099770716213> Bảo hiểm Pity hiện tại:\n` +
+        `> <a:trangtrig14:1546047912969113622> A: \`${tracker[`${pityPrefix}_pity_a`] || 0}/20\`\n` +
+        `> <a:trangtrig45:1547239010190237819> S: \`${tracker[`${pityPrefix}_pity_s`] || 0}/30\`\n` +
+        `> <a:trangtrig37:1547237647850807420> SS: \`${tracker[`${pityPrefix}_pity_ss`] || 0}/60\`\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
       )
       .setFooter({ text: 'Witch Hunter System • Huyết Nguyệt Summon' })
