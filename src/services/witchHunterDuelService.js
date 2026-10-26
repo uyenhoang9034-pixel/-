@@ -13,7 +13,7 @@ import {
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
 import { SUMMON_CONFIG } from '../config/summonConfig.js';
-import { WitchHunterService } from './witchHunterService.js';
+import { WitchHunterService, witchHunterStorage } from './witchHunterService.js';
 import { getFromDb, setInDb } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 
@@ -676,7 +676,7 @@ export class WitchHunterDuelService {
   // 3. THÔNG TIN ĐẤU SĨ & PROFILE CHIẾN ĐẤU
   // ────────────────────────────────────────────────────────────
   static getFighterCombatProfile(userId) {
-    const userData = WitchHunterService.getUser(userId);
+    const userData = witchHunterStorage.getUser(userId);
     if (!userData || !userData.faction) return null;
 
     const faction = userData.faction;
@@ -718,9 +718,23 @@ export class WitchHunterDuelService {
   // ────────────────────────────────────────────────────────────
   static async startChallenge({ interaction, challengerUser, targetUser = null, isBotTest = false }) {
     const guild = interaction.guild;
-    const challengerProfile = this.getFighterCombatProfile(challengerUser.id);
+    let challengerProfile = this.getFighterCombatProfile(challengerUser.id);
 
-    if (!challengerProfile && !isBotTest) {
+    if (!challengerProfile && isBotTest) {
+      challengerProfile = {
+        userId: challengerUser.id,
+        faction: 'hunter',
+        currentRank: 3,
+        tier: 3,
+        rankName: 'A-Rank Hunter',
+        rankLetter: 'A',
+        equippedSupporter: { id: 'bastion', name: 'Bastion — Trấn Ngục Pháo Đài', categoryKey: 'camKhi' },
+        equippedWeapon: { id: 'aegis_heavy_tower', name: 'Aegis Heavy Tower - Đại Khiên Thành Trì' },
+        profile: this.COMBAT_PROFILES['bastion'],
+        isResonance: true,
+        categoryKey: 'camKhi',
+      };
+    } else if (!challengerProfile) {
       return {
         success: false,
         message: 'Lữ khách chưa ký khế ước gia nhập phe phái nên không thể phát động khiêu chiến!',
@@ -1059,7 +1073,7 @@ export class WitchHunterDuelService {
       return { success: false, message: 'Số lượng Bí Ngô cược phải lớn hơn 0!' };
     }
 
-    const userData = WitchHunterService.getUser(userId);
+    const userData = witchHunterStorage.getUser(userId);
     const userPumpkins = userData?.pumpkins || 0;
 
     if (userPumpkins < amount) {

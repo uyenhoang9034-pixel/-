@@ -450,6 +450,10 @@ export class WitchHunterService {
     return witchHunterStorage.getUser(userId);
   }
 
+  static getUser(userId) {
+    return witchHunterStorage.getUser(userId);
+  }
+
   /**
    * Lấy Bảng Xếp Hạng Bí Ngô theo điểm tích lũy
    */
