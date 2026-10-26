@@ -15,7 +15,7 @@ export default {
 
       const embed1 = new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`${emojis.titleLeft} ─── ✦ ⟨ **ĐẠI BẢN DOANH: CỐT TRUYỆN & CƠ CHẾ GIAO TRANH** ⟩ ✦ ─── ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **ĐẠI BẢN DOANH: CỐT TRUYỆN & CƠ CHẾ GIAO TRANH** ${emojis.titleRight}`)
         .setDescription(
           `**Chào Lữ Khách! Dưới đây là toàn văn quy tắc chiến trường giữa Hiệp Hội Thợ Săn và Hội Phù Thủy:**\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -41,7 +41,7 @@ export default {
 
       const embed2 = new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`${emojis.titleLeft} ─── ✦ ⟨ **TAM GIÁC CHIẾN THUẬT, SÒNG CƯỢC & TRỤ TỔNG** ⟩ ✦ ─── ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **TAM GIÁC CHIẾN THUẬT, SÒNG CƯỢC & TRỤ TỔNG** ${emojis.titleRight}`)
         .setDescription(
           `<a:linhtocg:1563399670351536310> **IV. VÒNG TRÒN KHẮC HỆ 3 ĐẠI HỆ (ƯU THẾ TỐC ĐỘ)**\n` +
           `> <a:linhtocg:1563399670351536310> **Linh Tộc** ➔ khắc ➔ <a:nguyentheg:1563399515732443177> **Nguyền Thể** ➔ khắc ➔ <a:camkhig:1563399321125134346> **Cấm Khí** ➔ khắc ➔ <a:linhtocg:1563399670351536310> **Linh Tộc**\n` +
