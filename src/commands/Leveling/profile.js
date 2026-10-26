@@ -210,51 +210,14 @@ export default {
       }
 
       // 4. TRƯỜNG HỢP ĐÃ GIA NHẬP PHE
-      const isHunter = faction === 'hunter';
-      const factionDisplay = isHunter
-        ? `${emojis.hunterButton} **Phe phái:** **Hiệp Hội Thợ Săn**`
-        : `${emojis.witchButton} **Phe phái:** **Phe Phù Thủy**`;
-
-      const progress = WitchHunterService.getProgressDetails(faction, pumpkins, currentRank);
-      const rankInfo = WitchHunterService.getRankInfo(faction, currentRank);
-
-      // Tra cứu Supporter tương ứng theo phe và rank hiện tại
-      const supporter = getSupporterByRank(faction, currentRank);
-      let supporterLine = `${defaultLinhTocEmoji} **Supporter Khế Ước:** *Chưa ký kết khế ước*`;
-      if (supporter) {
-        const cat = WITCH_HUNTER_CONFIG.supporters.categories[supporter.categoryKey];
-        const catEmoji = cat?.emoji || defaultLinhTocEmoji;
-        supporterLine = `${catEmoji} **Supporter Khế Ước:** **${supporter.name}** *(${cat?.shortName || ''})*`;
-      }
-
-      const progressText = progress.isMax
-        ? `${progress.formattedStatus}`
-        : `> ${progress.formattedStatus}`;
-
-      const profileEmbed = new EmbedBuilder()
-        .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${targetUser.username} ${emojis.titleRight}`)
-        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
-        .setDescription(
-          `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
-          `${factionDisplay}\n` +
-          `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}** *(${rankInfo.title})*\n` +
-          `${supporterLine}\n\n` +
-          `${decor21Emoji} **Tiến trình đột phá bậc kế tiếp:**\n` +
-          `${progress.progressBar}\n` +
-          `${progressText}\n\n` +
-          `${decor30Emoji} **Lời nhắn từ Phù Thủy Usagi:**\n` +
-          `> Hãy ghé qua kênh <#${channels.selectionChannelId}> nhận role danh hiệu ngay nha Lữ Khách ơi! ${heartEmoji}`
-        )
-        .setFooter({
-          text: 'Witch Hunter Profile',
-        })
-        .setTimestamp();
+      const profileEmbed = WitchHunterService.buildProfileEmbed(targetUser, callerUser);
+      // Chỉ hiển thị bảng chọn đổi trang bị khi người dùng tra cứu hồ sơ của chính mình
+      const isOwner = callerUser.id === targetUser.id;
+      const components = isOwner ? WitchHunterService.createProfileEquipComponents(userId) : [];
 
       return interaction.reply({
         embeds: [profileEmbed],
+        components,
         flags: MessageFlags.Ephemeral,
       });
     } catch (error) {

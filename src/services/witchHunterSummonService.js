@@ -8,9 +8,15 @@ import {
   EmbedBuilder,
   StringSelectMenuBuilder,
 } from 'discord.js';
-import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
+import {
+  WITCH_HUNTER_CONFIG,
+  getSupporterByRank,
+  getWeaponByRank,
+  getSupporterById,
+  getWeaponById,
+} from '../config/witchHunterConfig.js';
 import { SUMMON_CONFIG } from '../config/summonConfig.js';
-import { witchHunterStorage } from './witchHunterService.js';
+import { WitchHunterService, witchHunterStorage } from './witchHunterService.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -483,6 +489,7 @@ export class WitchHunterSummonService {
       // 3. Kiểm tra số dư Bí Ngô
       const cost = pullCount === 10 ? SUMMON_CONFIG.costs.multi : SUMMON_CONFIG.costs.single;
       const currentPumpkins = Number(userData.pumpkins) || 0;
+      const oldRank = userData.current_rank || 1;
 
       if (currentPumpkins < cost) {
         this.activeSummonUsers.delete(userId);
@@ -492,7 +499,7 @@ export class WitchHunterSummonService {
         };
       }
 
-      // 4. TRỪ TRỰC TIẾP SỐ DƯ BÍ NGÔ CỦA LỮ KHÁCH (Không làm giáng cấp bậc rank đã đạt)
+      // 4. TRỪ TRỰC TIẾP SỐ DƯ BÍ NGÔ CỦA LỮ KHÁCH
       userData.pumpkins = currentPumpkins - cost;
       userData.updated_at = Date.now();
       witchHunterStorage.saveUser(userData, true);
@@ -663,6 +670,103 @@ export class WitchHunterSummonService {
         witchHunterStorage.saveUser(userData, true);
       }
 
+      // Kiểm tra giáng cấp nếu số dư Bí Ngô sau khi trừ giảm xuống dưới mốc bậc hiện tại
+      let demoteInfo = null;
+      if (userData.faction) {
+        const calculatedRank = WitchHunterService.calculateRank(userData.pumpkins);
+        if (calculatedRank < oldRank) {
+          const newRank = calculatedRank;
+          const oldRankInfo = WitchHunterService.getRankInfo(userData.faction, oldRank);
+          const newRankInfo = WitchHunterService.getRankInfo(userData.faction, newRank);
+          const oldSupporter = getSupporterByRank(userData.faction, oldRank);
+          const newSupporter = getSupporterByRank(userData.faction, newRank);
+
+          userData.current_rank = newRank;
+
+          // Giáng supporter tiến trình nếu vượt rank
+          const currentUnlocked = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
+          userData.unlocked_supporters = currentUnlocked.filter((key) => {
+            const parts = key.split(':');
+            const r = Number(parts[1]);
+            return isNaN(r) || r <= newRank;
+          });
+
+          // Tự động kiểm tra trang bị đang kích hoạt: nếu vượt maxAllowedTier (newRank + 1) thì reset về mặc định
+          const maxAllowedTier = Math.min(5, newRank + 1);
+          if (userData.equipped_supporter) {
+            const equippedSupp = getSupporterById(userData.equipped_supporter);
+            if (equippedSupp && WitchHunterService.rankToTier(equippedSupp.rank) > maxAllowedTier) {
+              userData.equipped_supporter = null;
+            }
+          }
+          if (userData.equipped_weapon) {
+            const equippedWep = getWeaponById(userData.equipped_weapon);
+            if (equippedWep && WitchHunterService.rankToTier(equippedWep.rank) > maxAllowedTier) {
+              userData.equipped_weapon = null;
+            }
+          }
+
+          userData.updated_at = Date.now();
+          witchHunterStorage.saveUser(userData, true);
+
+          // Đồng bộ role Discord
+          if (guild) {
+            await WitchHunterService.syncRankRole(guild, userId, newRank, userData.faction).catch((err) => {
+              logger.error('❌ [WitchHunterSummon] syncRankRole on demote error:', err);
+            });
+          }
+
+          // Gửi DM thông báo giáng cấp riêng cho thành viên
+          try {
+            const netDeducted = cost - totalRefundPumpkins;
+            const dmEmbed = WitchHunterService.buildDemoteDM(
+              user,
+              netDeducted,
+              userData.pumpkins,
+              oldRank,
+              newRank,
+              oldRankInfo,
+              newRankInfo,
+              oldSupporter,
+              newSupporter,
+              'Hiến tế Bí Ngô tại Tế Đàn Triệu Hồi Huyết Nguyệt',
+              null,
+              userData.faction
+            );
+            await user.send({ embeds: [dmEmbed] }).catch(() => null);
+          } catch (dmErr) {
+            logger.warn('⚠️ [WitchHunterSummon] Gửi DM giáng cấp thất bại:', dmErr.message);
+          }
+
+          // Gửi log nội bộ Admin nếu có
+          if (guild) {
+            try {
+              const logEmbed = WitchHunterService.buildRevokePumpkinsAdminLogEmbed(
+                { id: userId, user },
+                cost - totalRefundPumpkins,
+                currentPumpkins,
+                userData.pumpkins,
+                true,
+                oldRank,
+                newRank,
+                newRankInfo,
+                'Hiến tế Bí Ngô tại Tế Đàn Triệu Hồi Huyết Nguyệt (Tự động giáng cấp)',
+                null,
+                userData.faction
+              );
+              await WitchHunterService.sendAdminLog(guild, logEmbed);
+            } catch {}
+          }
+
+          demoteInfo = {
+            oldRank,
+            newRank,
+            oldRankInfo,
+            newRankInfo,
+          };
+        }
+      }
+
       // Lưu pity tracker
       witchHunterSummonStorage.savePityTracker(tracker);
 
@@ -679,6 +783,7 @@ export class WitchHunterSummonService {
         finalPumpkins: userData.pumpkins,
         results,
         tracker,
+        demoteInfo,
       };
     } catch (error) {
       this.activeSummonUsers.delete(userId);
@@ -737,6 +842,7 @@ export class WitchHunterSummonService {
         `> <a:trangtrig14:1546047912969113622> A: \`${tracker[`${pityPrefix}_pity_a`] || 0}/20\`\n` +
         `> <a:trangtrig45:1547239010190237819> S: \`${tracker[`${pityPrefix}_pity_s`] || 0}/30\`\n` +
         `> <a:trangtrig37:1547237647850807420> SS: \`${tracker[`${pityPrefix}_pity_ss`] || 0}/60\`\n` +
+        (summonResult.demoteInfo ? `> <a:bang2:1546891483250954290> **CẢNH BÁO GIÁNG CẤP:** Số dư giảm dưới mốc duy trì, lữ khách đã bị giáng danh vị xuống **${summonResult.demoteInfo.newRankInfo?.name || `Bậc ${summonResult.demoteInfo.newRank}`}**!\n` : '') +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
       )
       .setFooter({ text: 'Witch Hunter System • Huyết Nguyệt Summon' })

@@ -16,7 +16,10 @@ import {
   getAllWitchHunterRoleIds,
   getSupporterById,
   getSupporterByRank,
+  getWeaponById,
+  getWeaponByRank,
 } from '../config/witchHunterConfig.js';
+import { witchHunterSummonStorage } from './witchHunterSummonService.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -68,6 +71,12 @@ class WitchHunterStorage {
               } catch {}
               try {
                 this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN last_puzzle_week TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN equipped_supporter TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN equipped_weapon TEXT;');
               } catch {}
               this.isSqlite = true;
               logger.info('🔮 [WitchHunter] Storage Engine: SQLite (Native Node:sqlite) đã sẵn sàng.');
@@ -175,6 +184,8 @@ class WitchHunterStorage {
             current_rank: Number(row.current_rank) || 1,
             pumpkins: Number(row.pumpkins) || 0,
             unlocked_supporters: Array.isArray(unlockedSupporters) ? unlockedSupporters : [],
+            equipped_supporter: row.equipped_supporter || null,
+            equipped_weapon: row.equipped_weapon || null,
             last_puzzle_session: row.last_puzzle_session || null,
             last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
             updated_at: Number(row.updated_at) || Date.now(),
@@ -219,15 +230,17 @@ class WitchHunterStorage {
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare(`
-          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id) DO UPDATE SET
             faction = excluded.faction,
             current_rank = excluded.current_rank,
             pumpkins = excluded.pumpkins,
             updated_at = excluded.updated_at,
             last_puzzle_session = excluded.last_puzzle_session,
-            last_puzzle_week = excluded.last_puzzle_week
+            last_puzzle_week = excluded.last_puzzle_week,
+            equipped_supporter = excluded.equipped_supporter,
+            equipped_weapon = excluded.equipped_weapon
         `);
         stmt.run(
           userObj.user_id,
@@ -236,7 +249,9 @@ class WitchHunterStorage {
           userObj.pumpkins || 0,
           userObj.updated_at,
           userObj.last_puzzle_session || null,
-          userObj.last_puzzle_week || userObj.last_puzzle_session || null
+          userObj.last_puzzle_week || userObj.last_puzzle_session || null,
+          userObj.equipped_supporter || null,
+          userObj.equipped_weapon || null
         );
       } catch (err) {
         logger.error('❌ [WitchHunter] SQLite saveUser error:', err);
@@ -1206,13 +1221,19 @@ export class WitchHunterService {
     const newSupporterCat = newSupporter ? WITCH_HUNTER_CONFIG.supporters.categories[newSupporter.categoryKey] : null;
     const newCatEmoji = newSupporterCat?.emoji || emojis.sparkles;
 
+    const sourceText = executor
+      ? `từ <@${executor.id}>`
+      : reason?.includes('Hiến tế') || reason?.includes('Tế Đàn')
+      ? `thông qua nghi lễ hiến tế tại Tế Đàn Triệu Hồi`
+      : 'từ Ban Quản Trị';
+
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓾 𝓗𝓸̂̀𝓲 𝓑𝓲́ 𝓝𝓰𝓸̂ & 𝓖𝓲𝓪́𝓷𝓰 𝓒𝓪̂́𝓹 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
       .setDescription(
         `Chào **Kẻ Mang Khế Ước** thân mến! Em phù thủy nóng bỏng Usagi múp rụp gửi thông báo tới lữ khách nè!\n\n` +
-        `Hội Đồng Ma Thuật vừa thực hiện thu hồi **-${actualDeducted.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} từ ${executor ? `<@${executor.id}>` : 'Ban Quản Trị'}!\n` +
-        (reason ? `> ${decor30Emoji} **Lý do / Vi phạm:** ${reason}\n\n` : '\n') +
+        `Số Bí Ngô của lữ khách vừa sụt giảm **-${actualDeducted.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} ${sourceText}!\n` +
+        (reason ? `> ${decor30Emoji} **Lý do:** ${reason}\n\n` : '\n') +
         `${decor1Emoji} **Tổng Bí Ngô tích lũy hiện tại:** **${newPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n\n` +
         `<a:bang2:1546891483250954290> **CẢNH BÁO GIÁNG CẤP DANH VỊ:**\n` +
         `Do số lượng Bí Ngô sụt giảm không còn đủ duy trì ma lực, danh vị của lữ khách đã bị giáng từ **${oldRankInfo?.name || `Bậc ${oldRank}`}** xuống:\n` +
@@ -2411,9 +2432,479 @@ export class WitchHunterService {
       .setCustomId('witch_hunter_puzzle_start')
       .setLabel('Bắt Đầu Giải Mã')
       .setStyle(ButtonStyle.Primary)
-      .setEmoji(WITCH_HUNTER_CONFIG.emojis.pumpkin || '🎃');
-
     return new ActionRowBuilder().addComponents(startButton);
+  }
+
+  /**
+   * Chuyển đổi Rank (1-5 hoặc C, B, A, S, SS) sang Tier số (1-5)
+   */
+  static rankToTier(rank) {
+    if (typeof rank === 'number') return rank;
+    const r = String(rank || '').trim().toUpperCase();
+    if (r === 'C' || r === '1') return 1;
+    if (r === 'B' || r === '2') return 2;
+    if (r === 'A' || r === '3') return 3;
+    if (r === 'S' || r === '4') return 4;
+    if (r === 'SS' || r === '5') return 5;
+    return 1;
+  }
+
+  /**
+   * Chuyển đổi Tier số (1-5) sang ký tự Rank (C, B, A, S, SS)
+   */
+  static tierToLetter(tier) {
+    switch (Number(tier)) {
+      case 1: return 'C';
+      case 2: return 'B';
+      case 3: return 'A';
+      case 4: return 'S';
+      case 5: return 'SS';
+      default: return 'C';
+    }
+  }
+
+  /**
+   * Lấy danh sách Supporter đã sở hữu của một thành viên
+   */
+  static getOwnedSupporters(userId) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) return [];
+
+    const faction = userData.faction;
+    const currentRank = userData.current_rank || 1;
+    const unlockedKeys = Array.isArray(userData.unlocked_supporters) ? userData.unlocked_supporters : [];
+
+    // 1. Tiến trình: Bậc 1 đến currentRank hoặc có trong unlocked_supporters
+    const progressionSupporters = WITCH_HUNTER_CONFIG.supporters.list.filter((s) => {
+      if (s.isSummon || s.faction !== faction) return false;
+      const r = Number(s.rank);
+      return r <= currentRank || unlockedKeys.includes(`${faction}:${r}`) || unlockedKeys.includes(s.id);
+    });
+
+    // 2. Summoned supporters từ kho đồ hoặc unlocked_supporters
+    let invIds = new Set();
+    try {
+      const invItems = witchHunterSummonStorage.getUserInventory(userId).filter((i) => i.item_type === 'supporter');
+      invIds = new Set(invItems.map((i) => i.item_id));
+    } catch {}
+
+    const summonSupporters = WITCH_HUNTER_CONFIG.supporters.list.filter((s) => {
+      if (!s.isSummon || s.faction !== faction) return false;
+      return invIds.has(s.id) || unlockedKeys.includes(s.id);
+    });
+
+    const map = new Map();
+    [...progressionSupporters, ...summonSupporters].forEach((s) => {
+      if (!map.has(s.id)) map.set(s.id, s);
+    });
+
+    return Array.from(map.values());
+  }
+
+  /**
+   * Lấy danh sách Thần Binh Vũ Khí đã sở hữu của một thành viên
+   */
+  static getOwnedWeapons(userId) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) return [];
+
+    const faction = userData.faction;
+    const currentRank = userData.current_rank || 1;
+
+    // 1. Tiến trình: Bậc 1 đến currentRank
+    const progressionWeapons = WITCH_HUNTER_CONFIG.weapons.list.filter((w) => {
+      if (w.isSummon || w.faction !== faction) return false;
+      return Number(w.rank) <= currentRank;
+    });
+
+    // 2. Summoned weapons từ kho đồ
+    let invIds = new Set();
+    try {
+      const invItems = witchHunterSummonStorage.getUserInventory(userId).filter((i) => i.item_type === 'weapon');
+      invIds = new Set(invItems.map((i) => i.item_id));
+    } catch {}
+
+    const summonWeapons = WITCH_HUNTER_CONFIG.weapons.list.filter((w) => {
+      if (!w.isSummon || w.faction !== faction) return false;
+      return invIds.has(w.id);
+    });
+
+    const map = new Map();
+    [...progressionWeapons, ...summonWeapons].forEach((w) => {
+      if (!map.has(w.id)) map.set(w.id, w);
+    });
+
+    return Array.from(map.values());
+  }
+
+  /**
+   * Lấy Supporter đang kích hoạt của thành viên (có kiểm tra giới hạn cấp bậc)
+   */
+  static getEquippedSupporter(userId) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) return null;
+
+    const currentRank = userData.current_rank || 1;
+    const maxAllowedTier = Math.min(5, currentRank + 1);
+
+    if (userData.equipped_supporter) {
+      const s = getSupporterById(userData.equipped_supporter);
+      if (s && s.faction === userData.faction) {
+        const tier = this.rankToTier(s.rank);
+        if (tier <= maxAllowedTier) {
+          return s;
+        }
+      }
+    }
+
+    return getSupporterByRank(userData.faction, currentRank) || null;
+  }
+
+  /**
+   * Lấy Thần Binh Vũ Khí đang kích hoạt của thành viên (có kiểm tra giới hạn cấp bậc)
+   */
+  static getEquippedWeapon(userId) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) return null;
+
+    const currentRank = userData.current_rank || 1;
+    const maxAllowedTier = Math.min(5, currentRank + 1);
+
+    if (userData.equipped_weapon) {
+      const w = getWeaponById(userData.equipped_weapon);
+      if (w && w.faction === userData.faction) {
+        const tier = this.rankToTier(w.rank);
+        if (tier <= maxAllowedTier) {
+          return w;
+        }
+      }
+    }
+
+    return getWeaponByRank(userData.faction, currentRank) || null;
+  }
+
+  /**
+   * Đổi Supporter trang bị cho thành viên
+   */
+  static equipSupporter(userId, supporterId) {
+    let userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) {
+      return { success: false, message: 'Lữ khách chưa ký khế ước gia nhập phe!' };
+    }
+
+    const currentRank = userData.current_rank || 1;
+    const userTier = this.rankToTier(currentRank);
+    const maxAllowedTier = Math.min(5, userTier + 1);
+    const rankInfo = this.getRankInfo(userData.faction, currentRank);
+
+    if (supporterId === 'default') {
+      userData.equipped_supporter = null;
+      witchHunterStorage.saveUser(userData, true);
+      const defaultSupp = getSupporterByRank(userData.faction, currentRank);
+      return { success: true, supporter: defaultSupp, isDefault: true };
+    }
+
+    const owned = this.getOwnedSupporters(userId);
+    const targetSupporter = owned.find((s) => s.id === supporterId);
+    if (!targetSupporter) {
+      return { success: false, message: '❌ Lữ khách chưa sở hữu Supporter này trong kho lưu trữ!' };
+    }
+
+    const itemTier = this.rankToTier(targetSupporter.rank);
+    if (itemTier > maxAllowedTier) {
+      const maxLetter = this.tierToLetter(maxAllowedTier);
+      const userLetter = this.tierToLetter(userTier);
+      const requiredRankTier = itemTier - 1;
+      const requiredRankObj = WITCH_HUNTER_CONFIG.ranks[userData.faction].find((r) => r.rank === requiredRankTier);
+      return {
+        success: false,
+        locked: true,
+        message: `🔒 **CẤP BẬC KHÔNG ĐỦ ĐIỀU KIỆN!**\n> Cấp bậc hiện tại của lữ khách là **${rankInfo?.name || `Bậc ${currentRank}`}** (${userLetter}-Rank).\n> Quy tắc ma thuật giới hạn lữ khách chỉ có thể trang bị Supporter tối đa từ bậc **${maxLetter}-Rank trở xuống** *(Bậc hiện tại + 1)*!\n> Để sử dụng Supporter **${targetSupporter.name}** [${targetSupporter.rank}-Rank], lữ khách cần đạt tối thiểu cấp bậc **${requiredRankObj?.name || `Bậc ${requiredRankTier}`}** (${this.tierToLetter(requiredRankTier)}-Rank) nha! 💕`,
+      };
+    }
+
+    userData.equipped_supporter = targetSupporter.id;
+    witchHunterStorage.saveUser(userData, true);
+    return { success: true, supporter: targetSupporter };
+  }
+
+  /**
+   * Đổi Thần Binh Vũ Khí trang bị cho thành viên
+   */
+  static equipWeapon(userId, weaponId) {
+    let userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) {
+      return { success: false, message: 'Lữ khách chưa ký khế ước gia nhập phe!' };
+    }
+
+    const currentRank = userData.current_rank || 1;
+    const userTier = this.rankToTier(currentRank);
+    const maxAllowedTier = Math.min(5, userTier + 1);
+    const rankInfo = this.getRankInfo(userData.faction, currentRank);
+
+    if (weaponId === 'default') {
+      userData.equipped_weapon = null;
+      witchHunterStorage.saveUser(userData, true);
+      const defaultWep = getWeaponByRank(userData.faction, currentRank);
+      return { success: true, weapon: defaultWep, isDefault: true };
+    }
+
+    const owned = this.getOwnedWeapons(userId);
+    const targetWeapon = owned.find((w) => w.id === weaponId);
+    if (!targetWeapon) {
+      return { success: false, message: '❌ Lữ khách chưa sở hữu Vũ Khí này trong kho lưu trữ!' };
+    }
+
+    const itemTier = this.rankToTier(targetWeapon.rank);
+    if (itemTier > maxAllowedTier) {
+      const maxLetter = this.tierToLetter(maxAllowedTier);
+      const userLetter = this.tierToLetter(userTier);
+      const requiredRankTier = itemTier - 1;
+      const requiredRankObj = WITCH_HUNTER_CONFIG.ranks[userData.faction].find((r) => r.rank === requiredRankTier);
+      return {
+        success: false,
+        locked: true,
+        message: `🔒 **CẤP BẬC KHÔNG ĐỦ ĐIỀU KIỆN!**\n> Cấp bậc hiện tại của lữ khách là **${rankInfo?.name || `Bậc ${currentRank}`}** (${userLetter}-Rank).\n> Quy tắc ma thuật giới hạn lữ khách chỉ có thể trang bị Thần Binh Vũ Khí tối đa từ bậc **${maxLetter}-Rank trở xuống** *(Bậc hiện tại + 1)*!\n> Để sử dụng Vũ Khí **${targetWeapon.name}** [${targetWeapon.rank}-Rank], lữ khách cần đạt tối thiểu cấp bậc **${requiredRankObj?.name || `Bậc ${requiredRankTier}`}** (${this.tierToLetter(requiredRankTier)}-Rank) nha! 💕`,
+      };
+    }
+
+    userData.equipped_weapon = targetWeapon.id;
+    witchHunterStorage.saveUser(userData, true);
+    return { success: true, weapon: targetWeapon };
+  }
+
+  /**
+   * Dựng Embed hiển thị hồ sơ cá nhân /profile
+   */
+  static buildProfileEmbed(targetUser, callerUser = null) {
+    const userId = targetUser.id;
+    const userData = witchHunterStorage.getUser(userId);
+    const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
+
+    const decor45Emoji = emojis.decor45 || '<a:trangtrig45:1547239010190237819>';
+    const decor30Emoji = emojis.decor30 || '<a:trangtrig30:1546905942476464178>';
+    const decor34Emoji = emojis.decor34 || '<a:trangtrig34:1547237010572582982>';
+    const decor21Emoji = emojis.decor21 || '<a:trangtrig21:1546093099770716213>';
+    const defaultLinhTocEmoji = emojis.linhtoc || '<a:linhtocg:1563399670351536310>';
+    const heartEmoji = emojis.heart || '<a:heartg1:1545307544808071258>';
+
+    const faction = userData?.faction || null;
+    const pumpkins = userData?.pumpkins || 0;
+    const currentRank = userData?.current_rank || 1;
+
+    // Chưa chọn phe
+    if (!faction) {
+      return new EmbedBuilder()
+        .setColor(colors.pastelPurple)
+        .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓒𝓪́ 𝓝𝓱𝓪̂𝓷: ${targetUser.username} ${emojis.titleRight}`)
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setDescription(
+          `Chào **${targetUser.username}**! Hiện tại lữ khách **chưa ký khế ước gia nhập phe phái** nào trong thế giới **Witch Hunter**.\n\n` +
+          `${emojis.pumpkin} **Bí Ngô tích lũy:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+          `${decor34Emoji} **Phe phái:** *Chưa phân định...*\n` +
+          `${decor45Emoji} **Cấp bậc:** *Chưa phân định*\n` +
+          `${defaultLinhTocEmoji} **Supporter Khế Ước:** *Chưa ký kết khế ước*\n\n` +
+          `${decor30Emoji} **Lời nhắn từ Phù Thủy Usagi:**\n` +
+          `> Hãy ghé qua kênh <#${channels.selectionChannelId}> nhận role danh hiệu ngay nha Lữ Khách ơi! ${heartEmoji}`
+        )
+        .setFooter({ text: 'Witch Hunter Profile' })
+        .setTimestamp();
+    }
+
+    const isHunter = faction === 'hunter';
+    const factionDisplay = isHunter
+      ? `${emojis.hunterButton} **Phe phái:** **Hiệp Hội Thợ Săn**`
+      : `${emojis.witchButton} **Phe phái:** **Phe Phù Thủy**`;
+
+    const progress = this.getProgressDetails(faction, pumpkins, currentRank);
+    const rankInfo = this.getRankInfo(faction, currentRank);
+
+    const userTier = this.rankToTier(currentRank);
+    const userLetter = this.tierToLetter(userTier);
+    const maxAllowedTier = Math.min(5, userTier + 1);
+    const maxAllowedLetter = this.tierToLetter(maxAllowedTier);
+
+    const equippedSupporter = this.getEquippedSupporter(userId);
+    const equippedWeapon = this.getEquippedWeapon(userId);
+    const ownedSupporters = this.getOwnedSupporters(userId);
+    const ownedWeapons = this.getOwnedWeapons(userId);
+
+    // Supporter đang kích hoạt
+    let equippedSupporterLine = `*Chưa trang bị*`;
+    if (equippedSupporter) {
+      const cat = WITCH_HUNTER_CONFIG.supporters.categories[equippedSupporter.categoryKey];
+      const catEmoji = cat?.emoji || defaultLinhTocEmoji;
+      const rankBadge = `**[${equippedSupporter.rank}-Rank]**`;
+      equippedSupporterLine = `${catEmoji} ${rankBadge} **${equippedSupporter.name}** *(${cat?.shortName || ''})*`;
+    }
+
+    // Vũ khí đang kích hoạt
+    let equippedWeaponLine = `*Chưa trang bị*`;
+    if (equippedWeapon) {
+      const rankBadge = `**[${equippedWeapon.rank}-Rank]**`;
+      const energyEmoji = equippedWeapon.energyEmoji || '⚔️';
+      equippedWeaponLine = `${energyEmoji} ${rankBadge} **${equippedWeapon.name}** *(${equippedWeapon.energyAttribute || ''})*`;
+    }
+
+    // Danh sách Supporter sở hữu
+    let ownedSupportersLines = '';
+    if (ownedSupporters.length > 0) {
+      ownedSupportersLines = ownedSupporters.map((s) => {
+        const isEquipped = equippedSupporter && s.id === equippedSupporter.id;
+        const cat = WITCH_HUNTER_CONFIG.supporters.categories[s.categoryKey];
+        const catEmoji = cat?.emoji || '🔮';
+        const tag = isEquipped ? ' ⚔️ *(Đang dùng)*' : '';
+        return `> • ${catEmoji} **[${s.rank}-Rank]** ${s.name}${tag}`;
+      }).join('\n');
+    } else {
+      ownedSupportersLines = `> *(Chưa có Supporter nào)*`;
+    }
+
+    // Danh sách Vũ Khí sở hữu
+    let ownedWeaponsLines = '';
+    if (ownedWeapons.length > 0) {
+      ownedWeaponsLines = ownedWeapons.map((w) => {
+        const isEquipped = equippedWeapon && w.id === equippedWeapon.id;
+        const energyEmoji = w.energyEmoji || '⚔️';
+        const tag = isEquipped ? ' ⚔️ *(Đang dùng)*' : '';
+        return `> • ${energyEmoji} **[${w.rank}-Rank]** ${w.shortName || w.name}${tag}`;
+      }).join('\n');
+    } else {
+      ownedWeaponsLines = `> *(Chưa có Vũ Khí nào)*`;
+    }
+
+    const progressText = progress.isMax
+      ? `${progress.formattedStatus}`
+      : `> ${progress.formattedStatus}`;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${targetUser.username} ${emojis.titleRight}`)
+      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
+      .setDescription(
+        `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+        `${factionDisplay}\n` +
+        `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}** *(${rankInfo.title})*\n` +
+        `<a:trangtrig18:1546068102817775626> **Quy tắc trang bị:** Tối đa bậc **${maxAllowedLetter}-Rank** trở xuống *(Bậc hiện tại + 1)*\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `<a:whg2:1564145798537683034> **TRANG BỊ ĐANG KÍCH HOẠT:**\n` +
+        `• **Supporter:** ${equippedSupporterLine}\n` +
+        `• **Thần Binh Vũ Khí:** ${equippedWeaponLine}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `<a:giftg1:1543150714732412948> **KHO BÁU VẬT ĐÃ SỞ HỮU:**\n` +
+        `<a:linhtocg:1563399670351536310> **Supporter Đã Ký Khế Ước (${ownedSupporters.length}):**\n` +
+        `${ownedSupportersLines}\n\n` +
+        `<a:trangtrig36:1563065680922808340> **Thần Binh Vũ Khí Sở Hữu (${ownedWeapons.length}):**\n` +
+        `${ownedWeaponsLines}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${decor21Emoji} **Tiến trình đột phá bậc kế tiếp:**\n` +
+        `${progress.progressBar}\n` +
+        `${progressText}\n\n` +
+        `${decor30Emoji} **Lời nhắn từ Phù Thủy Usagi:**\n` +
+        `> Hãy dùng bảng chọn bên dưới để đổi Supporter & Vũ Khí đang xuất trận nha! ${heartEmoji}`
+      )
+      .setFooter({ text: 'Witch Hunter Profile' })
+      .setTimestamp();
+  }
+
+  /**
+   * Tạo ActionRow Select Menus đổi Supporter và Vũ Khí cho lệnh /profile
+   */
+  static createProfileEquipComponents(userId) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) return [];
+
+    const parseEmoji = (emojiStr) => {
+      if (!emojiStr) return undefined;
+      const match = emojiStr.match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
+      if (match && match.groups) {
+        return {
+          id: match.groups.id,
+          name: match.groups.name,
+          animated: Boolean(match.groups.animated),
+        };
+      }
+      return emojiStr;
+    };
+
+    const currentRank = userData.current_rank || 1;
+    const userTier = this.rankToTier(currentRank);
+    const maxAllowedTier = Math.min(5, userTier + 1);
+
+    const equippedSupporter = this.getEquippedSupporter(userId);
+    const equippedWeapon = this.getEquippedWeapon(userId);
+    const ownedSupporters = this.getOwnedSupporters(userId);
+    const ownedWeapons = this.getOwnedWeapons(userId);
+
+    // 1. Menu đổi Supporter
+    const supporterOptions = [
+      {
+        label: '↺ Mặc Định Theo Cấp Bậc',
+        description: `Tự động trang bị Supporter theo bậc danh vị hiện tại`,
+        value: 'default',
+        default: !userData.equipped_supporter,
+        emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
+      },
+      ...ownedSupporters.slice(0, 24).map((s) => {
+        const itemTier = this.rankToTier(s.rank);
+        const isLocked = itemTier > maxAllowedTier;
+        const isEquipped = equippedSupporter && s.id === equippedSupporter.id;
+        const cat = WITCH_HUNTER_CONFIG.supporters.categories[s.categoryKey];
+        const prefix = isLocked ? `🔒 [Khóa Bậc ${s.rank}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${s.rank}-Rank] `;
+        return {
+          label: `${prefix}${s.name}`.slice(0, 100),
+          description: isLocked
+            ? `Cần Bậc ${this.tierToLetter(itemTier - 1)}-Rank để mở khóa`.slice(0, 100)
+            : `${s.rankName} • ${cat?.shortName || ''}`.slice(0, 100),
+          value: s.id,
+          default: !isLocked && Boolean(isEquipped && userData.equipped_supporter === s.id),
+          emoji: isLocked ? undefined : parseEmoji(cat?.emoji),
+        };
+      }),
+    ];
+
+    // 2. Menu đổi Vũ Khí
+    const weaponOptions = [
+      {
+        label: '↺ Mặc Định Theo Cấp Bậc',
+        description: `Tự động trang bị Vũ Khí theo bậc danh vị hiện tại`,
+        value: 'default',
+        default: !userData.equipped_weapon,
+        emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
+      },
+      ...ownedWeapons.slice(0, 24).map((w) => {
+        const itemTier = this.rankToTier(w.rank);
+        const isLocked = itemTier > maxAllowedTier;
+        const isEquipped = equippedWeapon && w.id === equippedWeapon.id;
+        const prefix = isLocked ? `🔒 [Khóa Bậc ${w.rank}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${w.rank}-Rank] `;
+        return {
+          label: `${prefix}${w.shortName || w.name}`.slice(0, 100),
+          description: isLocked
+            ? `Cần Bậc ${this.tierToLetter(itemTier - 1)}-Rank để mở khóa`.slice(0, 100)
+            : `${w.rankName}`.slice(0, 100),
+          value: w.id,
+          default: !isLocked && Boolean(isEquipped && userData.equipped_weapon === w.id),
+          emoji: isLocked ? undefined : parseEmoji(w.energyEmoji),
+        };
+      }),
+    ];
+
+    const supporterSelect = new StringSelectMenuBuilder()
+      .setCustomId(`profile_equip_supporter:${userId}`)
+      .setPlaceholder(`🔮 Chọn Supporter xuất trận (Tối đa Bậc ${this.tierToLetter(maxAllowedTier)})...`)
+      .addOptions(supporterOptions);
+
+    const weaponSelect = new StringSelectMenuBuilder()
+      .setCustomId(`profile_equip_weapon:${userId}`)
+      .setPlaceholder(`⚔️ Chọn Vũ Khí xuất trận (Tối đa Bậc ${this.tierToLetter(maxAllowedTier)})...`)
+      .addOptions(weaponOptions);
+
+    return [
+      new ActionRowBuilder().addComponents(supporterSelect),
+      new ActionRowBuilder().addComponents(weaponSelect),
+    ];
   }
 }
 
