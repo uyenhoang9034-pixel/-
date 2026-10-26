@@ -862,11 +862,11 @@ export class WitchHunterQuestService {
     );
   }
 
-  static startPuzzleSession(userId, isAdmin = false) {
+  static startPuzzleSession(userId) {
     const currentWeek = getVietnamWeekIdentifier();
 
-    // 1. Kiểm tra khung giờ (Admin được bypass để kiểm thử ngoài giờ)
-    if (!isAdmin && !isPuzzleWeekendOpen()) {
+    // 1. Kiểm tra khung giờ: Chỉ mở Thứ 7 & Chủ Nhật hàng tuần
+    if (!isPuzzleWeekendOpen()) {
       return {
         success: false,
         message: '⏳ Thí luyện Giải Mã Cổ Ngữ chỉ mở vào **Thứ 7 & Chủ Nhật** hằng tuần thôi nè lữ khách ơi! Hãy quay lại vào kỳ trăng tới nhé 💕',

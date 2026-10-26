@@ -12,20 +12,6 @@ import { logger } from '../../utils/logger.js';
 // Bộ nhớ đệm chống click spam / race condition nhiều lần cùng lúc
 const activePuzzleUsers = new Set();
 
-function isWitchHunterAdmin(interaction) {
-  const member = interaction.member;
-  if (!member) return false;
-  const ownerId = interaction.guild?.ownerId;
-  if (ownerId && (interaction.user?.id === ownerId || member.id === ownerId)) return true;
-  const configuredOwnerIds = (process.env.OWNER_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
-  if (configuredOwnerIds.includes(interaction.user?.id) || configuredOwnerIds.includes(member.id)) return true;
-  const adminRole = WITCH_HUNTER_CONFIG.adminRoleId;
-  if (member.roles?.cache?.has?.(adminRole)) return true;
-  if (Array.isArray(member._roles) && member._roles.includes(adminRole)) return true;
-  if (Array.isArray(member.roles) && member.roles.includes(adminRole)) return true;
-  return false;
-}
-
 /**
  * Xử lý sự kiện nhấn nút Bắt Đầu Giải Mã Cổ Ngữ
  */
@@ -75,19 +61,18 @@ async function handlePuzzleStart(interaction) {
       });
     }
 
-    // 3. KIỂM TRA THỜI GIAN MỞ: CHỈ THỨ 7 VÀ CHỦ NHẬT (Admin được phép bypass để test)
-    const isAdmin = isWitchHunterAdmin(interaction);
-    if (!isAdmin && !isPuzzleWeekendOpen()) {
+    // 3. KIỂM TRA THỜI GIAN MỞ: CHỈ THỨ 7 VÀ CHỦ NHẬT (Khóa cứng cho toàn bộ thành viên)
+    if (!isPuzzleWeekendOpen()) {
       clearTimeout(releaseLockTimer);
       activePuzzleUsers.delete(userId);
       return interaction.reply({
-        content: '⏳ Nghi thức **Giải Mã Cổ Ngữ** chỉ mở vào **Thứ 7 & Chủ Nhật** hàng tuần! Hãy quay lại vào cuối tuần nhé lữ khách 💕',
+        content: '⏳ Nghi thức **Giải Mã Cổ Ngữ** chỉ mở vào **Thứ 7 & Chủ Nhật** hàng tuần! Hiện tại cổng cổ ngữ đang khép lại, hãy quay lại vào cuối tuần nhé lữ khách 💕',
         flags: MessageFlags.Ephemeral,
       });
     }
 
     // 4. BẮT ĐẦU PHIÊN LÀM BÀI
-    const startResult = WitchHunterQuestService.startPuzzleSession(userId, isAdmin);
+    const startResult = WitchHunterQuestService.startPuzzleSession(userId);
 
     clearTimeout(releaseLockTimer);
     activePuzzleUsers.delete(userId);
@@ -98,6 +83,10 @@ async function handlePuzzleStart(interaction) {
         flags: MessageFlags.Ephemeral,
       });
     }
+
+    // 5. KHÓA CỨNG NGAY VÀO DATABASE ĐỂ CHỐNG SPAM CLICK LẶP LẠI & GIỚI HẠN DUY NHẤT 1 LẦN/TUẦN
+    await WitchHunterService.markUserPuzzleCompleted(userId, weekendKey).catch(() => null);
+    await WitchHunterService.markUserPuzzleCompleted(userId, currentWeek).catch(() => null);
 
     const session = startResult.session;
     const questionEmbed = WitchHunterQuestService.buildQuestionEmbed(session);
