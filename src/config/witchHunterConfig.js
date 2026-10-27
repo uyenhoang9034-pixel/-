@@ -30,6 +30,8 @@ export const WITCH_HUNTER_CONFIG = {
     monolithChannelId: process.env.WITCH_HUNTER_MONOLITH_CHANNEL_ID || '1564210315812667412',
     // Kênh cố định Bảng Khiêu Khích Chiến Tranh
     duelChannelId: process.env.WITCH_HUNTER_DUEL_CHANNEL_ID || '1564210825630195732',
+    // Kênh diễn ra sự kiện World Boss Bách Quỷ Dạ Hành (ma nữ tha hóa)
+    worldBossChannelId: process.env.WITCH_HUNTER_WORLD_BOSS_CHANNEL_ID || '1564565572098990131',
   },
 
   // Danh mục Emojis động độc quyền của Server

@@ -562,6 +562,42 @@ export class WitchHunterDuelService {
   }
 
   /**
+   * Hồi phục máu Trụ Tổng của một phe và cập nhật tin nhắn cố định (World Boss Ban Phước)
+   */
+  static async healTowerHp(guild, faction, percent, reasonText) {
+    try {
+      const data = await this.getMonolithData();
+      const isHunter = faction === 'hunter';
+
+      if (isHunter) {
+        data.hunterHp = Math.min(100, (Number(data.hunterHp) || 100) + percent);
+      } else {
+        data.witchHp = Math.min(100, (Number(data.witchHp) || 100) + percent);
+      }
+
+      data.logs = Array.isArray(data.logs) ? data.logs : [];
+      data.logs.unshift({
+        time: Date.now(),
+        text: reasonText,
+      });
+      if (data.logs.length > 10) {
+        data.logs = data.logs.slice(0, 10);
+      }
+
+      await this.saveMonolithData(data);
+
+      if (guild) {
+        await this.updateMonolithMessage(guild).catch(() => null);
+      }
+
+      logger.info(`🏰 [Monolith] Trụ ${faction} được hồi phục +${percent}% HP (${reasonText}).`);
+      return data;
+    } catch (err) {
+      logger.error('❌ [WitchHunterDuel] Lỗi healTowerHp:', err);
+    }
+  }
+
+  /**
    * Reset 100% HP Trụ Tổng cả 2 phe (Đầu mùa giải mới) - Không ghi log, xóa sạch về mo
    */
   static async resetMonolith(guild) {

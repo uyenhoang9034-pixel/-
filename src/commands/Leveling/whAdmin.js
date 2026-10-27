@@ -126,6 +126,51 @@ export default {
             .setMaxValue(100)
             .setRequired(true)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('boss-start')
+        .setDescription('Khai mở sự kiện World Boss: BÁCH QUỶ DẠ HÀNH - HUYẾT NGUYỆT GIÁNG LÂM')
+        .addStringOption((opt) =>
+          opt
+            .setName('boss_type')
+            .setDescription('Loại thực thể giáng trần')
+            .addChoices(
+              { name: 'Ma Nữ Tha Hóa Cổ Đại - Avalonia (Thợ Săn khắc hệ 2%)', value: 'avalonia' },
+              { name: 'Cấm Khí Hư Không - Void Monarch (Phù Thủy khắc hệ 2%)', value: 'void' }
+            )
+            .setRequired(false)
+        )
+        .addIntegerOption((opt) =>
+          opt
+            .setName('thoi_gian_phut')
+            .setDescription('Thời gian mở chiến dịch tính theo phút (Mặc định: 60 phút)')
+            .setMinValue(5)
+            .setMaxValue(300)
+            .setRequired(false)
+        )
+        .addChannelOption((opt) =>
+          opt
+            .setName('kenh')
+            .setDescription('Kênh gửi bảng World Boss (mặc định kênh #ma-nữ-tha-hóa 1564565572098990131)')
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('boss-end')
+        .setDescription('Kết thúc sớm sự kiện World Boss và phát thưởng')
+        .addStringOption((opt) =>
+          opt
+            .setName('ly_do')
+            .setDescription('Kết quả kết thúc sự kiện')
+            .addChoices(
+              { name: 'Chiến thắng: Boss bị tiêu diệt (Kháng Cự về 0%)', value: 'defeated' },
+              { name: 'Hết giờ: Boss rút lui vào hư không', value: 'timeout' }
+            )
+            .setRequired(false)
+        )
     ),
 
   category: 'Leveling',
@@ -353,6 +398,54 @@ export default {
         return interaction.reply({
           content: `🎉 Đã tặng **+${count} Vé Triệu Gọi Tế Đàn Free** cho <@${targetUser.id}> thành công! Hiện có tổng cộng **${uData.free_summons} vé** 💕`,
           flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // WORLD BOSS START
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'boss-start') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const { witchHunterWorldBossService } = await import('../../services/witchHunterWorldBossService.js');
+
+        const bossType = interaction.options.getString('boss_type') || 'avalonia';
+        const durationMinutes = interaction.options.getInteger('thoi_gian_phut') || 60;
+        const targetChannel = interaction.options.getChannel('kenh');
+
+        const result = await witchHunterWorldBossService.startWorldBoss({
+          interaction,
+          bossType,
+          durationMinutes,
+          channel: targetChannel,
+        });
+
+        if (!result.success) {
+          return interaction.editReply({ content: result.message });
+        }
+
+        return interaction.editReply({
+          content: `✅ Đã khai mở sự kiện **BÁCH QUỶ DẠ HÀNH - HUYẾT NGUYỆT GIÁNG LÂM** (${result.bossName}, ${durationMinutes} phút) tại kênh <#${result.channelId}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // WORLD BOSS END
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'boss-end') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const { witchHunterWorldBossService } = await import('../../services/witchHunterWorldBossService.js');
+
+        if (!witchHunterWorldBossService.isBossActive()) {
+          return interaction.editReply({
+            content: '❌ Hiện không có chiến dịch Bách Quỷ Dạ Hành nào đang diễn ra để kết thúc!',
+          });
+        }
+
+        const reason = interaction.options.getString('ly_do') || 'timeout';
+        await witchHunterWorldBossService.endWorldBoss(interaction.client, { reason });
+
+        return interaction.editReply({
+          content: `✅ Đã kết thúc chiến dịch World Boss (${reason === 'defeated' ? 'Boss bị tiêu diệt' : 'Hết giờ'}) và chốt trao thưởng thành công rồi nè vợ của Kim Nong ơi! 💕`,
         });
       }
     } catch (error) {
