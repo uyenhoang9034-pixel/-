@@ -365,19 +365,19 @@ export class WitchHunterSummonService {
 
     const buttonSingle = new ButtonBuilder()
       .setCustomId('btn_summon_single')
-      .setLabel('Quay 1 Lần (20 🎃)')
+      .setLabel('Quay 1 Lần (20 Bí Ngô)')
       .setStyle(ButtonStyle.Primary)
-      .setEmoji('<a:linhtocg:1563399670351536310>');
+      .setEmoji('<a:bingo:1563061901800243253>');
 
     const buttonMulti = new ButtonBuilder()
       .setCustomId('btn_summon_multi')
-      .setLabel('Quay 10 Lần (180 🎃)')
+      .setLabel('Quay 10 Lần (180 Bí Ngô)')
       .setStyle(ButtonStyle.Success)
-      .setEmoji('<a:linhtocg:1563399670351536310>');
+      .setEmoji('<a:bingo:1563061901800243253>');
 
     const buttonPity = new ButtonBuilder()
       .setCustomId('btn_view_pity')
-      .setLabel('Kiểm Tra Pity')
+      .setLabel('Kiểm Tra Pity & Vé Free')
       .setStyle(ButtonStyle.Secondary)
       .setEmoji('<a:trangtrig18:1546068102817775626>');
 
@@ -390,23 +390,40 @@ export class WitchHunterSummonService {
    * Tạo nút quay tiếp gắn kèm tin nhắn kết quả
    */
   static createSummonResultComponents(userId, currentType) {
-    const row = new ActionRowBuilder().addComponents(
+    const userData = witchHunterStorage.getUser(userId);
+    const freeTickets = Number(userData?.free_summons) || 0;
+
+    const buttons = [];
+
+    if (freeTickets > 0) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`btn_summon_free_single:${userId}:${currentType}`)
+          .setLabel(`Quay Free (Còn ${freeTickets} Vé)`)
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('<a:linhtocg:1563399670351536310>')
+      );
+    }
+
+    buttons.push(
       new ButtonBuilder()
         .setCustomId(`btn_summon_again_single:${userId}:${currentType}`)
-        .setLabel('Quay Tiếp 1 Lần (20 🎃)')
+        .setLabel('Quay Tiếp 1 Lần (20 Bí Ngô)')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji('<a:linhtocg:1563399670351536310>'),
+        .setEmoji('<a:bingo:1563061901800243253>'),
       new ButtonBuilder()
         .setCustomId(`btn_summon_again_multi:${userId}:${currentType}`)
-        .setLabel('Quay Tiếp 10 Lần (180 🎃)')
+        .setLabel('Quay Tiếp 10 Lần (180 Bí Ngô)')
         .setStyle(ButtonStyle.Success)
-        .setEmoji('<a:linhtocg:1563399670351536310>'),
+        .setEmoji('<a:bingo:1563061901800243253>'),
       new ButtonBuilder()
         .setCustomId(`btn_summon_switch_type:${userId}:${currentType}`)
         .setLabel(currentType === 'supporter' ? 'Đổi Sang Thần Khí' : 'Đổi Sang Supporter')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('<a:trangtrig36:1563065680922808340>')
     );
+
+    const row = new ActionRowBuilder().addComponents(buttons.slice(0, 5));
     return [row];
   }
 
@@ -438,6 +455,7 @@ export class WitchHunterSummonService {
         `<a:heartg1:1545307544808071258> Lữ Khách: <@${userId}>\n` +
         `${factionBadge} Phe Phái: ${factionName}\n` +
         `<a:bingo:1563061901800243253> Số Dư Bí Ngô: ${(userData?.pumpkins || 0).toLocaleString('vi-VN')} <a:bingo:1563061901800243253>\n` +
+        `<a:linhtocg:1563399670351536310> Vé Triệu Gọi Miễn Phí: ${(userData?.free_summons || 0).toLocaleString('vi-VN')} Lượt (Được tặng từ Chiến Tranh Cổ Tháp)\n` +
         `<a:trangtrig46:1547240249761996812> Mảnh Vỡ Ký Ức: ${(tracker.memory_shards || 0).toLocaleString('vi-VN')} <a:trangtrig46:1547240249761996812>\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `<a:linhtocg:1563399670351536310> BỂ TRIỆU HỒI SUPPORTER:\n` +
@@ -486,23 +504,34 @@ export class WitchHunterSummonService {
         };
       }
 
-      // 3. Kiểm tra số dư Bí Ngô
-      const cost = pullCount === 10 ? SUMMON_CONFIG.costs.multi : SUMMON_CONFIG.costs.single;
+      // 3. Kiểm tra số dư Vé Free hoặc Bí Ngô
+      const currentFreeTickets = Number(userData.free_summons) || 0;
+      let usedFreeTickets = 0;
+      let cost = pullCount === 10 ? SUMMON_CONFIG.costs.multi : SUMMON_CONFIG.costs.single;
       const currentPumpkins = Number(userData.pumpkins) || 0;
       const oldRank = userData.current_rank || 1;
 
-      if (currentPumpkins < cost) {
-        this.activeSummonUsers.delete(userId);
-        return {
-          success: false,
-          message: `❌ Lữ khách không đủ Bí Ngô! Cần **${cost}** ${SUMMON_CONFIG.emojis.pumpkin}, nhưng hiện tại lữ khách chỉ có **${currentPumpkins.toLocaleString('vi-VN')}** ${SUMMON_CONFIG.emojis.pumpkin}. Hãy tích cực tham gia hoạt động để kiếm thêm nhé 💕`,
-        };
-      }
+      // Ưu tiên trừ Vé Free trước nếu đủ
+      if (currentFreeTickets >= pullCount) {
+        usedFreeTickets = pullCount;
+        cost = 0;
+        userData.free_summons = currentFreeTickets - pullCount;
+        userData.updated_at = Date.now();
+        witchHunterStorage.saveUser(userData, true);
+      } else {
+        if (currentPumpkins < cost) {
+          this.activeSummonUsers.delete(userId);
+          return {
+            success: false,
+            message: `❌ Lữ khách không đủ Bí Ngô! Cần **${cost}** ${SUMMON_CONFIG.emojis.pumpkin}, nhưng hiện tại lữ khách chỉ có **${currentPumpkins.toLocaleString('vi-VN')}** ${SUMMON_CONFIG.emojis.pumpkin}. Hãy tích cực tham gia hoạt động để kiếm thêm nhé 💕`,
+          };
+        }
 
-      // 4. TRỪ TRỰC TIẾP SỐ DƯ BÍ NGÔ CỦA LỮ KHÁCH
-      userData.pumpkins = currentPumpkins - cost;
-      userData.updated_at = Date.now();
-      witchHunterStorage.saveUser(userData, true);
+        // TRỪ TRỰC TIẾP SỐ DƯ BÍ NGÔ CỦA LỮ KHÁCH
+        userData.pumpkins = currentPumpkins - cost;
+        userData.updated_at = Date.now();
+        witchHunterStorage.saveUser(userData, true);
+      }
 
       // Nạp pity tracker
       const tracker = witchHunterSummonStorage.getPityTracker(userId);
@@ -781,6 +810,7 @@ export class WitchHunterSummonService {
         totalRefundPumpkins,
         totalNewMemoryShards,
         finalPumpkins: userData.pumpkins,
+        usedFreeTickets,
         results,
         tracker,
         demoteInfo,
@@ -801,7 +831,7 @@ export class WitchHunterSummonService {
   static buildSummonResultEmbed(user, summonResult) {
     const { colors } = WITCH_HUNTER_CONFIG;
     const sEmojis = SUMMON_CONFIG.emojis;
-    const { pullCount, summonType, cost, totalRefundPumpkins, finalPumpkins, results, tracker } = summonResult;
+    const { pullCount, summonType, cost, totalRefundPumpkins, finalPumpkins, usedFreeTickets, results, tracker } = summonResult;
 
     const summonTypeName = summonType === 'supporter' ? 'Khế Ước Đồng Hành (Supporter)' : 'Thần Khí Liên Kết';
 
@@ -823,18 +853,21 @@ export class WitchHunterSummonService {
     });
 
     const pityPrefix = summonType === 'supporter' ? 'supporter' : 'weapon';
+    const costLine = usedFreeTickets > 0
+      ? `> <a:linhtocg:1563399670351536310> Chi phí: **Miễn phí (-${usedFreeTickets} Vé Triệu Gọi Free)**\n`
+      : `> <a:trangtrig21:1546093099770716213> Chi phí: **-${cost.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n`;
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${sEmojis.titleLeft} **KẾT QUẢ TRIỆU HỒI HUYẾT NGUYỆT** ${sEmojis.titleRight}`)
       .setDescription(
-        `Lữ khách <@${user.id}> vừa hiến tế Bí Ngô tại tế đàn **${summonTypeName}** (${pullCount} lượt)!\n\n` +
+        `Lữ khách <@${user.id}> vừa hiến tế tại tế đàn **${summonTypeName}** (${pullCount} lượt)!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `<a:giftg1:1543150714732412948> **DANH SÁCH VẬT PHẨM THU ĐƯỢC:**\n` +
         resultLines.join('\n') + '\n' +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `<a:heartg1:1545307544808071258> **TỔNG KẾT TÀI NGUYÊN:**\n` +
-        `> <a:trangtrig21:1546093099770716213> Chi phí: **-${cost.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
+        costLine +
         `> <a:trangtrig21:1546093099770716213> Hoàn trả: **+${totalRefundPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
         `> <a:bingo:1563061901800243253> Số dư hiện tại: **${finalPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
         `> <a:trangtrig46:1547240249761996812> Mảnh vỡ ký ức: **${(tracker.memory_shards || 0).toLocaleString('vi-VN')}** <a:trangtrig46:1547240249761996812>\n` +

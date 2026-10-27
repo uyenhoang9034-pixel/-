@@ -2954,6 +2954,7 @@ export class WitchHunterService {
         `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+        (userData?.free_summons > 0 ? `<a:linhtocg:1563399670351536310> **Vé Tế Đàn Free:** **${userData.free_summons}** lượt khả dụng\n` : '') +
         `${factionDisplay}\n` +
         `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}** *(${rankInfo.title})*\n` +
         `<a:trangtrig18:1546068102817775626> **Quy tắc trang bị:** Tối đa bậc **${maxAllowedLetter}-Rank** trở xuống *(Bậc hiện tại + 1)*\n\n` +

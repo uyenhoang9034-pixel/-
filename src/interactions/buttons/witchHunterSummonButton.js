@@ -130,4 +130,19 @@ export default [
       });
     },
   },
+
+  // Nút quay Free bằng vé nhận từ Chiến Tranh Cổ Tháp
+  {
+    name: 'btn_summon_free_single',
+    async execute(interaction, client, args = []) {
+      const [authorId, type] = args;
+      if (authorId && interaction.user.id !== authorId) {
+        return interaction.reply({
+          content: `❌ Nút này thuộc phiên triệu hồi của <@${authorId}>! Lữ khách hãy bấm nút ở Tế Đàn chính hoặc tự triệu hồi nhé 💕`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+      await handleSummon(interaction, 1, type);
+    },
+  },
 ];

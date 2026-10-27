@@ -76,6 +76,56 @@ export default {
             .setDescription('Ngày cần báo cáo (định dạng DD/MM/YYYY, ví dụ: 26/10/2026, để trống = hôm qua)')
             .setRequired(false)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('siege-start')
+        .setDescription('Khởi tạo và mở cổng Chiến Trường Cổ Tháp Phong Ấn (PVP Phe)')
+        .addIntegerOption((opt) =>
+          opt
+            .setName('thoi_gian_phut')
+            .setDescription('Thời gian mở chiến trường tính theo phút (Mặc định 30 phút)')
+            .setMinValue(5)
+            .setMaxValue(180)
+            .setRequired(false)
+        )
+        .addChannelOption((opt) =>
+          opt
+            .setName('kenh')
+            .setDescription('Kênh gửi bảng chiến trường (mặc định kênh hiện tại)')
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('siege-end')
+        .setDescription('Kết thúc sớm Chiến Trường Cổ Tháp và chốt trao thưởng Bùa Lợi Lãnh Địa')
+        .addBooleanOption((opt) =>
+          opt
+            .setName('huy_bo')
+            .setDescription('Hủy bỏ chiến trường mà không trao thưởng? (Mặc định: False)')
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('tang-ve-summon')
+        .setDescription('Tặng Vé Triệu Gọi Tế Đàn Free cho lữ khách')
+        .addUserOption((opt) =>
+          opt
+            .setName('thanh_vien')
+            .setDescription('Thành viên nhận vé triệu gọi')
+            .setRequired(true)
+        )
+        .addIntegerOption((opt) =>
+          opt
+            .setName('so_luong')
+            .setDescription('Số lượng vé muốn tặng')
+            .setMinValue(1)
+            .setMaxValue(100)
+            .setRequired(true)
+        )
     ),
 
   category: 'Leveling',
@@ -229,6 +279,80 @@ export default {
 
         return interaction.editReply({
           content: `✅ Đã gửi báo cáo hoạt động ngày **${targetDate}** vào kênh <#${reportChannelId}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // SIEGE START
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'siege-start') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const { witchHunterSiegeService } = await import('../../services/witchHunterSiegeService.js');
+
+        const durationMinutes = interaction.options.getInteger('thoi_gian_phut') || 30;
+        const targetChannel = interaction.options.getChannel('kenh') || interaction.channel;
+
+        const result = await witchHunterSiegeService.startSiege({
+          interaction,
+          durationMinutes,
+          channel: targetChannel,
+        });
+
+        if (!result.success) {
+          return interaction.editReply({ content: result.message });
+        }
+
+        return interaction.editReply({
+          content: `✅ Đã mở cổng **Chiến Trường Cổ Tháp Phong Ấn** (${durationMinutes} phút) tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // SIEGE END
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'siege-end') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const { witchHunterSiegeService } = await import('../../services/witchHunterSiegeService.js');
+
+        if (!witchHunterSiegeService.isSiegeActive()) {
+          return interaction.editReply({
+            content: '❌ Hiện không có chiến trường Cổ Tháp nào đang diễn ra để kết thúc!',
+          });
+        }
+
+        const isCancel = interaction.options.getBoolean('huy_bo') || false;
+        await witchHunterSiegeService.endSiege(interaction.client, isCancel);
+
+        return interaction.editReply({
+          content: isCancel
+            ? '🛑 Đã hủy bỏ chiến trường Cổ Tháp Phong Ấn thành công!'
+            : '✅ Đã kết thúc chiến trường Cổ Tháp và tự động trao Bùa Lợi Lãnh Địa cho phe thắng cuộc rồi nè vợ của Kim Nong ơi! 💕',
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // TANG VE SUMMON
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'tang-ve-summon') {
+        const targetUser = interaction.options.getUser('thanh_vien');
+        const count = interaction.options.getInteger('so_luong');
+        const { witchHunterStorage } = await import('../../services/witchHunterService.js');
+
+        const uData = witchHunterStorage.getUser(targetUser.id);
+        if (!uData || !uData.faction) {
+          return interaction.reply({
+            content: `❌ Thành viên <@${targetUser.id}> chưa chọn phe phái trong Witch Hunter!`,
+            flags: MessageFlags.Ephemeral,
+          });
+        }
+
+        uData.free_summons = (Number(uData.free_summons) || 0) + count;
+        uData.updated_at = Date.now();
+        witchHunterStorage.saveUser(uData, true);
+
+        return interaction.reply({
+          content: `🎉 Đã tặng **+${count} Vé Triệu Gọi Tế Đàn Free** cho <@${targetUser.id}> thành công! Hiện có tổng cộng **${uData.free_summons} vé** 💕`,
+          flags: MessageFlags.Ephemeral,
         });
       }
     } catch (error) {
