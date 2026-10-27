@@ -489,12 +489,7 @@ export class WitchHunterDuelService {
           witchHp: 100,
           hunterDefends: 0,
           witchDefends: 0,
-          logs: [
-            {
-              time: Date.now(),
-              text: 'Chiến tuyến Huyết Thệ vừa được Hội Đồng thiết lập! Cả 2 Trụ Tổng đạt 100% sinh lực.',
-            },
-          ],
+          logs: [],
           messageId: null,
           channelId: WITCH_HUNTER_CONFIG.channels.monolithChannelId,
         };
@@ -567,16 +562,15 @@ export class WitchHunterDuelService {
   }
 
   /**
-   * Reset 100% HP Trụ Tổng cả 2 phe (Đầu mùa giải mới)
+   * Reset 100% HP Trụ Tổng cả 2 phe (Đầu mùa giải mới) - Không ghi log, xóa sạch về mo
    */
   static async resetMonolith(guild) {
     const data = await this.getMonolithData();
     data.hunterHp = 100;
     data.witchHp = 100;
-    data.logs.unshift({
-      time: Date.now(),
-      text: 'Hội Đồng Tối Cao đã phục hồi 100% HP cho cả 2 Trụ Tổng khởi động mùa giải mới!',
-    });
+    data.hunterDefends = 0;
+    data.witchDefends = 0;
+    data.logs = []; // Xóa toàn bộ nhật ký về mo
     await this.saveMonolithData(data);
     if (guild) {
       await this.updateMonolithMessage(guild).catch(() => null);
@@ -659,7 +653,7 @@ export class WitchHunterDuelService {
         `<a:trangtrig36:1563065680922808340> **TRỤ TỔNG THỢ SĂN (W.H. Core Fortress)**\n` +
         `• Trạng thái: \`${hunterBar} ${data.hunterHp}%\` ${hunterStatusText}\n` +
         `• Tổng số lần tử thủ thành công: **${data.hunterDefends || 0}** trận\n\n` +
-        `                          ⚔️ **VS** ⚔️\n\n` +
+        `                          <a:trangtrig36:1563065680922808340> VS <a:trangtrig32:1546906170994856026>\n\n` +
         `<a:trangtrig32:1546906170994856026> **TRỤ TỔNG PHÙ THỦY (Coven Ancient Obelisk)**\n` +
         `• Trạng thái: \`${witchBar} ${data.witchHp}%\` ${witchStatusText}\n` +
         `• Tổng số lần tử thủ thành công: **${data.witchDefends || 0}** trận\n\n` +
@@ -886,6 +880,11 @@ export class WitchHunterDuelService {
 
     this.activeDuels.delete(guildId);
 
+    // Không trừ máu Trụ nếu là trận bot test
+    if (duel.isBotTest) {
+      return;
+    }
+
     const targetFaction = duel.challenger.faction === 'hunter' ? 'witch' : 'hunter';
     const factionName = targetFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
 
@@ -1008,8 +1007,11 @@ export class WitchHunterDuelService {
     const targetFaction = userProfile.faction;
     const factionName = targetFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
 
-    const reason = `${interaction.user.username} (${factionName}) chủ động từ chối khiêu chiến ➔ Trừ -5% HP Trụ Tổng!`;
-    await this.deductTowerHp(interaction.guild, targetFaction, 5, reason);
+    // Chỉ trừ máu Trụ khi không phải trận test
+    if (!duel.isBotTest) {
+      const reason = `${interaction.user.username} (${factionName}) chủ động từ chối khiêu chiến ➔ Trừ -5% HP Trụ Tổng!`;
+      await this.deductTowerHp(interaction.guild, targetFaction, 5, reason);
+    }
 
     const declineEmbed = new EmbedBuilder()
       .setColor(0xef4444)
@@ -1083,13 +1085,15 @@ export class WitchHunterDuelService {
       };
     }
 
-    // Trừ Bí Ngô cược
-    await WitchHunterService.revokePumpkins(interaction.guild, userId, amount, {
-      reason: `Đặt cược Sòng Cược Huyết Thệ (${faction === 'hunter' ? 'Phe Thợ Săn' : 'Phe Phù Thủy'})`,
-      executor: null,
-      notifyDM: false,
-      notifyAdminLog: false,
-    });
+    // Trừ Bí Ngô cược (Chỉ trừ thật nếu không phải bot test)
+    if (!duel.isBotTest) {
+      await WitchHunterService.revokePumpkins(interaction.guild, userId, amount, {
+        reason: `Đặt cược Sòng Cược Huyết Thệ (${faction === 'hunter' ? 'Phe Thợ Săn' : 'Phe Phù Thủy'})`,
+        executor: null,
+        notifyDM: false,
+        notifyAdminLog: false,
+      });
+    }
 
     duel.bets.push({
       userId,
@@ -1399,8 +1403,8 @@ export class WitchHunterDuelService {
 
     const guild = duel.mainMessage?.guild;
 
-    // 1. Thưởng Bí Ngô cho Đấu Sĩ Thắng (+10 Bí Ngô)
-    if (winner.id !== 'bot_mock_id' && guild) {
+    // 1. Thưởng Bí Ngô cho Đấu Sĩ Thắng (+10 Bí Ngô) - Chỉ áp dụng cho trận thật
+    if (!duel.isBotTest && winner.id !== 'bot_mock_id' && guild) {
       await WitchHunterService.awardPumpkins(guild, winner.id, 10, {
         reason: 'Chiến thắng Đấu Trường Huyết Thệ (+10 Bí Ngô)',
         executor: null,
@@ -1409,29 +1413,22 @@ export class WitchHunterDuelService {
       });
     }
 
-    // 2. Khấu trừ máu Trụ Tổng (-2% HP cho phe thua)
-    const loserFaction = loser.faction;
-    const loserFactionName = loserFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
-    const reasonText = `Đấu sĩ ${loser.user.username} (${loserFactionName}) bị đánh bại ➔ Trừ -2% HP Trụ Tổng!`;
-    await this.deductTowerHp(guild, loserFaction, 2, reasonText);
-
-    // 3. Cơ chế Cảm Tử Phá Trận (Nếu Bậc Thấp thua Bậc Cao: Trừ thêm -1% Trụ phe thắng)
-    let kamikazeText = '';
-    if (loser.profile.tier < winner.profile.tier) {
-      const winnerFaction = winner.faction;
-      const kamikazeReason = `[Cảm Tử Phá Trận]: ${loser.user.username} (Bậc ${loser.profile.tier}) trước khi ngã xuống đã đục thủng -1% Trụ phe đối phương!`;
-      await this.deductTowerHp(guild, winnerFaction, 1, kamikazeReason);
-      kamikazeText = `\n• <a:bang2:1546891483250954290> **[CẢM TỬ PHÁ TRẬN]:** Đấu sĩ bậc thấp ${loser.user.username} trước khi ngã xuống đã kích nổ bào mòn thêm **-1% HP Trụ Tổng** đối phương!`;
+    // 2. Khấu trừ máu Trụ Tổng (-2% HP cho phe thua) - Chỉ áp dụng cho trận thật
+    if (!duel.isBotTest && guild) {
+      const loserFaction = loser.faction;
+      const loserFactionName = loserFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
+      const reasonText = `Đấu sĩ ${loser.user.username} (${loserFactionName}) bị đánh bại ➔ Trừ -2% HP Trụ Tổng!`;
+      await this.deductTowerHp(guild, loserFaction, 2, reasonText);
     }
 
-    // 4. Thanh toán sòng cược (Pari-mutuel Pool)
+    // 3. Thanh toán sòng cược (Pari-mutuel Pool) - Chỉ áp dụng cho trận thật
     const { totalPool, netPool, hunterTotal, witchTotal } = this.calculateBetOdds(duel);
     const winningFaction = winner.faction;
     const winningBets = duel.bets.filter((b) => b.faction === winningFaction);
     const winningPoolTotal = winningFaction === 'hunter' ? hunterTotal : witchTotal;
 
     const payoutList = [];
-    if (winningBets.length > 0 && winningPoolTotal > 0 && guild) {
+    if (!duel.isBotTest && winningBets.length > 0 && winningPoolTotal > 0 && guild) {
       for (const bet of winningBets) {
         if (bet.userId === 'fan1' || bet.userId === 'fan2') continue; // Bỏ qua bot cược ảo
         const share = bet.amount / winningPoolTotal;
@@ -1444,15 +1441,17 @@ export class WitchHunterDuelService {
           notifyAdminLog: false,
         });
 
-        payoutList.push(`<@${bet.userId}> (+${rewardPumpkins} 🎃)`);
+        payoutList.push(`<@${bet.userId}> (+${rewardPumpkins} <a:bingo:1563061901800243253>)`);
       }
     }
 
-    // 5. Cập nhật Embed Trụ Tổng tại kênh cố định
-    await this.updateMonolithMessage(guild).catch(() => null);
+    // 4. Cập nhật Embed Trụ Tổng tại kênh cố định (Chỉ khi không phải bot test)
+    if (!duel.isBotTest && guild) {
+      await this.updateMonolithMessage(guild).catch(() => null);
+    }
 
-    // 6. Gửi Embed Kết Quả Hoàn Tất
-    const resultEmbed = this.buildDuelResultEmbed(duel, winner, loser, netPool, kamikazeText);
+    // 5. Gửi Embed Kết Quả Hoàn Tất
+    const resultEmbed = this.buildDuelResultEmbed(duel, winner, loser, netPool);
 
     if (duel.mainMessage) {
       await duel.mainMessage.edit({
@@ -1483,7 +1482,7 @@ export class WitchHunterDuelService {
 
     const targetText = duel.targetUserId
       ? `\n> 🎯 **Mục tiêu chỉ định:** <@${duel.targetUserId}>`
-      : `\n> 🌐 **Phạm vi khiêu chiến:** Toàn thể chiến binh đối địch`;
+      : `\n> <a:whg2:1564145798537683034> **Phạm vi khiêu chiến:** Toàn thể chiến binh đối địch`;
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
@@ -1540,6 +1539,7 @@ export class WitchHunterDuelService {
         `<a:trangtrig36:1563065680922808340> **Đấu Sĩ Thợ Săn:** <@${hunterFighter.id}> (${hunterFighter.profile?.rankName || 'Tập Sự'})\n` +
         `• Tổng cược: **${hunterTotal.toLocaleString('vi-VN')}** <a:bingo:1563061901800243253> (${hunterCount} lượt)\n` +
         `• Tỷ lệ ăn dự kiến: **x${hunterOdds}**\n\n` +
+        `                          <a:trangtrig36:1563065680922808340> VS <a:trangtrig32:1546906170994856026>\n\n` +
         `<a:trangtrig32:1546906170994856026> **Đấu Sĩ Phù Thủy:** <@${witchFighter.id}> (${witchFighter.profile?.rankName || 'Tập Sự'})\n` +
         `• Tổng cược: **${witchTotal.toLocaleString('vi-VN')}** <a:bingo:1563061901800243253> (${witchCount} lượt)\n` +
         `• Tỷ lệ ăn dự kiến: **x${witchOdds}**\n\n` +
@@ -1555,12 +1555,12 @@ export class WitchHunterDuelService {
       new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId('btn_bet_hunter_10')
-          .setLabel('Cược Thợ Săn (10 🎃)')
+          .setLabel('Cược Thợ Săn (10 <a:bingo:1563061901800243253>)')
           .setStyle(ButtonStyle.Success)
           .setEmoji('<a:bingo:1563061901800243253>'),
         new ButtonBuilder()
           .setCustomId('btn_bet_witch_10')
-          .setLabel('Cược Phù Thủy (10 🎃)')
+          .setLabel('Cược Phù Thủy (10 <a:bingo:1563061901800243253>)')
           .setStyle(ButtonStyle.Primary)
           .setEmoji('<a:bingo:1563061901800243253>'),
         new ButtonBuilder()
@@ -1599,7 +1599,7 @@ export class WitchHunterDuelService {
         `   • Supporter: **${hunter.profile?.profile?.name || 'Garmr'}** [${hunter.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${hunter.profile?.profile?.weaponName || 'Đoản Đao'}**\n` +
         `   • Kết Giới Kháng Cự: \`${hunterBar} ${hunter.hp}%\`\n` +
         (hunter.profile?.isResonance ? `   • <a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước** *(x1.5 Bạo Kích)*\n\n` : '\n') +
-        `                          ⚔️ **VS** ⚔️\n\n` +
+        `                          <a:trangtrig36:1563065680922808340> VS <a:trangtrig32:1546906170994856026>\n\n` +
         `<a:trangtrig32:1546906170994856026> **[Phù Thủy]** <@${witch.id}> (${witch.profile?.rankName})\n` +
         `   • Supporter: **${witch.profile?.profile?.name || 'Malice'}** [${witch.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${witch.profile?.profile?.weaponName || 'Hắc Châm'}**\n` +
         `   • Kết Giới Kháng Cự: \`${witchBar} ${witch.hp}%\`\n` +
@@ -1639,11 +1639,26 @@ export class WitchHunterDuelService {
   /**
    * Embed 4: Kết Quả Định Đoạt
    */
-  static buildDuelResultEmbed(duel, winner, loser, netPool, kamikazeText) {
+  static buildDuelResultEmbed(duel, winner, loser, netPool) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
     const isWitchWon = winner.faction === 'witch';
     const factionTitle = isWitchWon ? 'PHÙ THỦY' : 'THỢ SĂN';
-    const monolith = this.monolithCache || { hunterHp: 100, witchHp: 100 };
+
+    if (duel.isBotTest) {
+      return new EmbedBuilder()
+        .setColor(colors.pastelPurple)
+        .setTitle(`${emojis.titleLeft} **THỬ NGHIỆM CHIẾN ĐẤU: ${factionTitle} CHIẾN THẮNG!** ${emojis.titleRight}`)
+        .setDescription(
+          `Sau **${duel.currentRound} hiệp** giao tranh thử nghiệm cùng Bot giả lập, Đấu sĩ <@${winner.id}> (${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}) đã đánh sập Kết Giới của <@${loser.id}>!\n\n` +
+          `🤖 **GHI NHẬN CHẾ ĐỘ THỬ NGHIỆM (BOT TEST):**\n` +
+          `• 👑 **Đấu Sĩ Thắng (<@${winner.id}>):** Trận đấu thử nghiệm — Không cộng Bí Ngô thật.\n` +
+          `• 🏰 **Chiến Tuyến Trụ Tổng:** Trận đấu thử nghiệm — Không trừ máu Trụ Tổng & không ghi nhật ký.\n` +
+          `• 🎲 **Sòng Cược Huyết Thệ:** Trận đấu thử nghiệm — Không thanh toán hoặc biến động Bí Ngô thật.\n\n` +
+          `*(Dữ liệu trận chiến thử nghiệm hoàn tất kiểm tra và không ảnh hưởng đến BXH).*`
+        )
+        .setFooter({ text: 'Witch Hunter Duel Test Victory' })
+        .setTimestamp();
+    }
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
@@ -1655,8 +1670,7 @@ export class WitchHunterDuelService {
         `• 🛡️ **Kẻ Bại (<@${loser.id}>):** Thất trận nhưng bảo toàn nguyên vẹn số dư Bí Ngô!\n\n` +
         `<a:trangtrig45:1547239010190237819> **BIẾN ĐỘNG TRỤ TỔNG TẠI CHIẾN TUYẾN:**\n` +
         `• Trụ Tổng Phe ${loser.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}: Bị đánh thủng **-2% HP**!\n` +
-        `• Trụ Tổng Phe ${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}: Bảo toàn nguyên vẹn!` +
-        kamikazeText + `\n\n` +
+        `• Trụ Tổng Phe ${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}: Bảo toàn nguyên vẹn!\n\n` +
         `<a:heartg2:1546031808364413019> **THANH TOÁN SÒNG CƯỢC:**\n` +
         `• Tổng quỹ thưởng (đã trừ 5% thuế): **${Math.round(netPool).toLocaleString('vi-VN')}** <a:bingo:1563061901800243253>\n` +
         `• Toàn bộ cư dân đặt cược vào <@${winner.id}> đã được cộng thưởng tự động theo tỷ lệ vào tài khoản!\n\n` +

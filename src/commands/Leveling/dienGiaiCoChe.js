@@ -31,8 +31,7 @@ export default {
           `Trong truyện, chênh lệch cảnh giới là hố sâu ngăn cách về mật độ ma năng. Bậc cao luôn có ưu thế áp chế tuyệt đối khi đối đầu trực diện:\n` +
           `> \`ΔRank = Bậc Tấn Công - Bậc Phòng Thủ\` *(Bậc 1 = C, Bậc 2 = B, Bậc 3 = A, Bậc 4 = S, Bậc 5 = SS)*\n` +
           `• **Khi Bậc Cao đánh Bậc Thấp (ΔRank > 0):** Sát thương cơ bản tăng thêm **+30%** cho mỗi bậc chênh lệch. Hiệu ứng khống chế từ thần khí bậc cao xuyên thấu 100% kết giới bậc thấp.\n` +
-          `• **Khi Bậc Thấp đánh Bậc Cao (ΔRank < 0):** Bị Kết Giới Tự Nhiên triệt tiêu: Giảm **-25%** sát thương mỗi bậc chênh lệch. Khống chế cứng tự động bị giải trừ một nửa.\n` +
-          `• **Cơ Chế Cảm Tử Phá Trận:** Bậc thấp dù ngã xuống trước bậc cao vẫn kích nổ bào mòn thêm **-1% HP Trụ Tổng** đối phương trước khi tan biến!\n\n` +
+          `• **Khi Bậc Thấp đánh Bậc Cao (ΔRank < 0):** Bị Kết Giới Tự Nhiên triệt tiêu: Giảm **-25%** sát thương mỗi bậc chênh lệch. Khống chế cứng tự động bị giải trừ một nửa.\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:trangtrig14:1546047912969113622> **III. CỘNG HƯỞNG ĐỒNG BỘ KHẾ ƯỚC (COMBO RESONANCE)**\n` +
           `• **Soul Link (Khế Ước Tương Hỗ):** Chủ nhân và Supporter liên kết sinh mệnh mật thiết.\n` +
@@ -62,7 +61,6 @@ export default {
           `<a:heartg3:1546047728314884226> **VII. CƠ CHẾ KHẤU TRỪ TRỤ TỔNG CHIẾN TUYẾN (<#1564210315812667412>)**\n` +
           `• **Né Chiến / Quá hạn:** Khiêu chiến sau 3 phút không có ai nhận hoặc bấm Từ Chối ➔ Trụ Tổng phe né bị phạt trừ **-5% HP**.\n` +
           `• **Thất Trận:** Đấu sĩ phe nào bị đánh bại ➔ Trụ Tổng phe đó bị trừ **-2% HP**.\n` +
-          `• **Bậc Thấp Cảm Tử:** Nếu Bậc Thấp bại trận trước Bậc Cao ➔ Trụ phe thắng bị trừ thêm **-1% HP**.\n` +
           `• **Phong Ấn:** Khi Trụ của một phe rơi về **0%**, toàn bộ cư dân phe đó sẽ bị phong ấn ma lực cho đến khi reset đầu mùa!`
         )
         .setFooter({ text: 'Witch Hunter Game Mechanics • Tra cứu cơ chế chiến đấu' })
