@@ -840,8 +840,8 @@ class WitchHunterWorldBossService {
             `<a:trangtrig20:1546092997299667055> **CHIẾN THẮNG ÁP ĐẢO!**\n` +
             `${loseFactionEmoji} **${loseFactionName}:** ${loseFactionPct}% Tổng Kháng Cự\n\n` +
             `<a:trangtrig41:1547238037832863744> **BAN PHƯỚC TỐI CAO:**\n` +
-            `> • Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n` +
-            `> • Trụ Tổng Phe **${loseFactionName}** bảo toàn nguyên vẹn, không bị khấu trừ.\n\n` +
+            `> Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n` +
+            `> Trụ Tổng Phe **${loseFactionName}** bảo toàn nguyên vẹn, không bị khấu trừ.\n\n` +
             `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG TOÀN SERVER:**\n` +
             `- **Tất cả Thần Khí Sĩ và Cổ Thuật Sĩ** tham gia đánh ít nhất 1 đòn: Nhận ngay **+1 <a:bingo:1563061901800243253>**.\n` +
             `- **Top 1 – 5 DPS:** Nhận thêm **1 Vé Quay Tế Đàn Miễn Phí** (Triệu Hồi Supporter/Thần Khí A-SS) + Điểm Bí Ngô tương ứng theo thứ hạng.`
@@ -858,7 +858,7 @@ class WitchHunterWorldBossService {
             `<a:trangtrig20:1546092997299667055> **CHIẾN THẮNG ÁP ĐẢO!**\n` +
             `${loseFactionEmoji} **${loseFactionName}:** ${loseFactionPct}% Tổng Kháng Cự\n\n` +
             `<a:trangtrig41:1547238037832863744> **BAN PHƯỚC TỐI CAO:**\n` +
-            `> • Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n\n` +
+            `> Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n\n` +
             `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG XẾP HẠNG CÁ NHÂN:**\n` +
             `- **Top 1 – Top 5 DPS:** Nhận **1 Vé Quay Tế Đàn Miễn Phí** + Điểm Bí Ngô <a:bingo:1563061901800243253> tương ứng.\n` +
             `- **Top 6 – Top 12 DPS:** Nhận Điểm Bí Ngô <a:bingo:1563061901800243253> tương ứng theo bảng xếp hạng.`

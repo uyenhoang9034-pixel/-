@@ -27,10 +27,11 @@ async function handleSummon(interaction, pullCount, customType = null) {
     const embed = WitchHunterSummonService.buildSummonResultEmbed(user, result);
     const components = WitchHunterSummonService.createSummonResultComponents(user.id, summonType);
 
-    // Gửi phản hồi CÔNG KHAI vào kênh để toàn bộ server cùng chiêm ngưỡng
+    // Gửi phản hồi ẨN (Ephemeral) riêng cho mỗi member để tránh loãng kênh
     return interaction.reply({
       embeds: [embed],
       components,
+      flags: MessageFlags.Ephemeral,
     });
   } catch (error) {
     logger.error('❌ [WitchHunterSummon] Lỗi khi xử lý nút triệu hồi:', error);

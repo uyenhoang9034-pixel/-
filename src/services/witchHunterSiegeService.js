@@ -179,7 +179,7 @@ class WitchHunterSiegeService {
 
     const embed = new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle('<a:trangtrig2:1563065680922808340> CHIẾN TRƯỜNG PHE: CỔ THÁP PHONG ẤN <a:trangtrig3:1563065684349423696>')
+      .setTitle('<a:trangtrig2:1563065680922808340> CHIẾN TRƯỜNG PHE: CỔ THÁP PHONG ẤN')
       .setDescription(
         `Phong ấn tại 3 Cổ Tháp trung lập đã chính thức khai mở! Cả hai phe phái đang tổng lực điều động binh lực để giành quyền kiểm soát lãnh địa chiến lược.\n\n` +
         `<a:trangtrig43:1547238351869059082> Thời Gian Chiếm Đóng: Còn lại \`[ ${timeRemainingStr} ]\`\n` +
@@ -398,7 +398,7 @@ class WitchHunterSiegeService {
 
       const victoryEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`<a:trangtrig2:1563065680922808340> CHIẾN THẮNG TẠI ${towerTitleName} <a:trangtrig3:1563065684349423696>`)
+        .setTitle(`<a:trangtrig2:1563065680922808340> CHIẾN THẮNG TẠI ${towerTitleName}`)
         .setDescription(
           `<a:heartg4:1546068063500369940> **Chiến Binh:** <@${userId}> [${myRoleTitle}]\n` +
           `<a:trangtrig36:1563065680922808340> **Chạm Trán:** ${isEnemyMVP ? 'Chiến Tướng' : 'Trấn Thủ'} **${enemyName}** [${enemyRoleTitle}]\n\n` +
@@ -428,7 +428,7 @@ class WitchHunterSiegeService {
 
       const defeatEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`<a:trangtrig2:1563065680922808340> THẤT BẠI TẠI ${towerTitleName} <a:trangtrig3:1563065684349423696>`)
+        .setTitle(`<a:trangtrig2:1563065680922808340> THẤT BẠI TẠI ${towerTitleName}`)
         .setDescription(
           `<a:heartg4:1546068063500369940> **Chiến Binh:** <@${userId}> [${myRoleTitle}]\n` +
           `<a:trangtrig36:1563065680922808340> **Chạm Trán:** ${isEnemyMVP ? 'Chiến Tướng' : 'Trấn Thủ'} **${enemyName}** [${enemyRoleTitle}]\n\n` +
@@ -475,7 +475,7 @@ class WitchHunterSiegeService {
 
     const p = this.getOrCreateParticipant(interaction.user, faction);
     const isHunter = faction === 'hunter';
-    const factionEmoji = isHunter ? '<a:thansang:1563062312674267238>' : '<a:phuthuyg:1563062358828388433>';
+    const factionEmoji = isHunter ? '<a:trangtrig36:1563065680922808340>' : '<a:trangtrig32:1546906170994856026>';
     const factionTitle = isHunter ? 'Hiệp Hội Thợ Săn - Thần Khí Sĩ' : 'Hội Phù Thủy - Cổ Thuật Sĩ';
 
     const winRate = p.battles > 0 ? Math.round((p.wins / p.battles) * 100) : 0;
@@ -505,7 +505,7 @@ class WitchHunterSiegeService {
 
     const statsEmbed = new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle('<a:trangtrig2:1563065680922808340> CHIẾN TÍCH PHONG ẤN CÁ NHÂN <a:trangtrig3:1563065684349423696>')
+      .setTitle('<a:trangtrig2:1563065680922808340> CHIẾN TÍCH PHONG ẤN CÁ NHÂN')
       .setDescription(
         `<a:heartg4:1546068063500369940> **Lữ Khách:** <@${userId}>\n` +
         `${factionEmoji} **Phe Phái:** ${factionTitle}\n\n` +
@@ -535,7 +535,7 @@ class WitchHunterSiegeService {
 
     const embed = new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle('<a:trangtrig2:1563065680922808340> CƠ CHẾ CHIẾN TRANH CỔ THÁP PHONG ẤN <a:trangtrig3:1563065684349423696>')
+      .setTitle('<a:trangtrig2:1563065680922808340> CƠ CHẾ CHIẾN TRANH CỔ THÁP PHONG ẤN')
       .setDescription(
         `**1. Bối Cảnh Chiến Trường:**\n` +
         `> 3 Cổ Tháp trung lập khai mở kết giới giữa ranh giới Doanh Trại và Rừng Coven. Hai phe Thợ Săn & Phù Thủy cùng tiến công để tích lũy điểm kiểm soát.\n\n` +
@@ -591,8 +591,8 @@ class WitchHunterSiegeService {
 
       if (forceCancel) {
         const cancelEmbed = new EmbedBuilder()
-          .setColor(0xef4444)
-          .setTitle('<a:trangtrig2:1563065680922808340> CHIẾN TRƯỜNG ĐÃ ĐƯỢC ĐÓNG BỞI ADMIN <a:trangtrig3:1563065684349423696>')
+          .setColor(colors.pastelPurple)
+          .setTitle('<a:trangtrig2:1563065680922808340> CHIẾN TRƯỜNG ĐÃ ĐƯỢC ĐÓNG BỞI ADMIN')
           .setDescription('Ban Quản Trị đã đóng kết giới Cổ Tháp Phong Ấn khẩn cấp. Phiên tranh đoạt đã kết thúc.');
         return channel.send({ embeds: [cancelEmbed] });
       }
@@ -609,12 +609,12 @@ class WitchHunterSiegeService {
         let statusText = '';
         if (hunterPct > 50) {
           hunterTowersWon++;
-          statusText = `<a:thansang:1563062312674267238> THỢ SĂN CHIẾM GIỮ (${hunterPct}% vs ${witchPct}%)`;
+          statusText = `<a:trangtrig36:1563065680922808340> THỢ SĂN CHIẾM GIỮ (${hunterPct}% vs ${witchPct}%)`;
         } else if (witchPct > 50) {
           witchTowersWon++;
-          statusText = `<a:phuthuyg:1563062358828388433> PHÙ THỦY CHIẾM GIỮ (${witchPct}% vs ${hunterPct}%)`;
+          statusText = `<a:trangtrig32:1546906170994856026> PHÙ THỦY CHIẾM GIỮ (${witchPct}% vs ${hunterPct}%)`;
         } else {
-          statusText = `⚖️ TRANH CHẤP BẤT PHÂN THẮNG BẠI (${hunterPct}% vs ${witchPct}%)`;
+          statusText = `<a:whg2:1564145798537683034> TRANH CHẤP BẤT PHÂN THẮNG BẠI (${hunterPct}% vs ${witchPct}%)`;
         }
 
         const namePrefix = idx === 0 ? 'Tháp I (Phế Tích Đạn Bạc)' : idx === 1 ? 'Tháp II (Đài Tế Huyết Thệ)' : 'Tháp III (Thư Viện Cấm Thuật)';
@@ -679,13 +679,13 @@ class WitchHunterSiegeService {
 
       const endEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle('<a:trangtrig2:1563065680922808340> KẾT THÚC CHIẾN TRANH PHE: CỔ THÁP PHONG ẤN <a:trangtrig3:1563065684349423696>')
+        .setTitle('<a:trangtrig2:1563065680922808340> KẾT THÚC CHIẾN TRANH PHE: CỔ THÁP PHONG ẤN')
         .setDescription(
           `Thời gian mở phong ấn đã kết thúc! Bụi ma thuật dần lắng xuống trên chiến trường ranh giới giữa Doanh Trại và Rừng Coven.\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:heartg3:1546047728314884226> **KẾT QUẢ CHIẾM ĐÓNG 3 CỔ THÁP:**\n` +
           `${towerResults.join('\n')}\n\n` +
-          `<a:trangtrig15:1546047955696488489> TỶ SỐ CHUNG CUỘC: <a:thansang:1563062312674267238> THỢ SĂN \`${hunterTowersWon} - ${witchTowersWon}\` PHÙ THỦY <a:phuthuyg:1563062358828388433>\n` +
+          `<a:trangtrig15:1546047955696488489> TỶ SỐ CHUNG CUỘC: <a:trangtrig36:1563065680922808340> THỢ SĂN \`${hunterTowersWon} - ${witchTowersWon}\` PHÙ THỦY <a:trangtrig32:1546906170994856026>\n` +
           `<a:trangtrig15:1546047955696488489> **PHE CHIẾN THẮNG ÁP ĐẢO: ${winningFactionName}**\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:giftg1:1543150714732412948> **TRAO BÙA LỢI LÃNH ĐỊA CHO PHE THẮNG:**\n` +
