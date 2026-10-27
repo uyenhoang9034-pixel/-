@@ -667,8 +667,24 @@ export class WitchHunterDuelService {
   }
 
   // ────────────────────────────────────────────────────────────
-  // 3. THÔNG TIN ĐẤU SĨ & PROFILE CHIẾN ĐẤU
+  // 3. THÔNG TIN PROFILE CHIẾN ĐẤU & DANH XƯNG
   // ────────────────────────────────────────────────────────────
+  static getFighterRoleName(faction) {
+    return faction === 'hunter' ? 'Thần Khí Sĩ (Artificer)' : 'Cổ Thuật Sĩ (Hexer)';
+  }
+
+  static getFighterFactionTitle(faction) {
+    return faction === 'hunter' ? 'Hiệp Hội Thợ Săn' : 'Hội Đồng Phù Thủy';
+  }
+
+  static getFighterTag(fighter) {
+    if (!fighter) return '@Ẩn danh';
+    if (fighter.id === 'bot_mock_id' || fighter.isBot) {
+      return `@${fighter.user?.username || 'Bot Giả Lập'}`;
+    }
+    return `<@${fighter.id}>`;
+  }
+
   static getFighterCombatProfile(userId) {
     const userData = witchHunterStorage.getUser(userId);
     if (!userData || !userData.faction) return null;
@@ -893,11 +909,12 @@ export class WitchHunterDuelService {
     await this.deductTowerHp(guild, targetFaction, 5, reason);
 
     if (duel.mainMessage) {
+      const roleMissing = targetFaction === 'hunter' ? 'Thần Khí Sĩ (Artificer)' : 'Cổ Thuật Sĩ (Hexer)';
       const timeoutEmbed = new EmbedBuilder()
         .setColor(0xef4444)
         .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **KHIÊU CHIẾN HẾT HẠN: NÉ TRÁNH CHIẾN ĐẤU** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
         .setDescription(
-          `Đã hết **180 giây** tiếp chiến nhưng không có bất kỳ đấu sĩ nào thuộc **${factionName}** dám bước lên đài phong ấn!\n\n` +
+          `Đã hết **180 giây** tiếp chiến nhưng không có bất kỳ ${roleMissing} nào thuộc **${factionName}** dám bước lên đài phong ấn!\n\n` +
           `> <a:bang2:1546891483250954290> **HÌNH PHẠT HÈN NHÁT:** Trụ Tổng của **${factionName}** bị đánh phạt trừ thẳng **-5% HP**!\n\n` +
           `*Cổng khiêu chiến đã đóng lại. Hãy rèn luyện thêm dũng khí cho lần sau!*`
         )
@@ -1178,7 +1195,7 @@ export class WitchHunterDuelService {
 
     if (!isChallenger && !isDefender) {
       return interaction.reply({
-        content: 'Bạn không phải là đấu sĩ trong trận chiến này!',
+        content: 'Bạn không phải là Thần Khí Sĩ hoặc Cổ Thuật Sĩ trong trận chiến này!',
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -1268,11 +1285,11 @@ export class WitchHunterDuelService {
     if (counterMap[catC] === catD) {
       firstStriker = c;
       secondStriker = d;
-      battleLog.push(`• [Ưu Thế Tốc Độ]: ${c.profile.categoryKey.toUpperCase()} của **${c.user.username}** khắc chế ${d.profile.categoryKey.toUpperCase()} ➔ **${c.user.username}** ra tay trước!`);
+      battleLog.push(`<a:trangtrig45:1547239010190237819> [Ưu Thế Tốc Độ]: ${c.profile.categoryKey.toUpperCase()} của ${this.getFighterTag(c)} khắc chế đối thủ ➔ Ra tay trước!`);
     } else if (counterMap[catD] === catC) {
       firstStriker = d;
       secondStriker = c;
-      battleLog.push(`• [Ưu Thế Tốc Độ]: ${d.profile.categoryKey.toUpperCase()} của **${d.user.username}** khắc chế ${c.profile.categoryKey.toUpperCase()} ➔ **${d.user.username}** ra tay trước!`);
+      battleLog.push(`<a:trangtrig45:1547239010190237819> [Ưu Thế Tốc Độ]: ${d.profile.categoryKey.toUpperCase()} của ${this.getFighterTag(d)} khắc chế đối thủ ➔ Ra tay trước!`);
     } else {
       // Bằng hệ: xét bậc rank
       if (c.profile.tier >= d.profile.tier) {
@@ -1289,16 +1306,41 @@ export class WitchHunterDuelService {
     const deltaRankD = d.profile.tier - c.profile.tier;
 
     if (deltaRankC > 0) {
-      battleLog.push(`• [Áp Chế Cảnh Giới]: **${c.user.username}** (Bậc ${c.profile.tier}) vượt bậc đối thủ, nhận hiệu ứng tăng +${deltaRankC * 30}% uy lực!`);
+      battleLog.push(`<a:trangtrig45:1547239010190237819> [Áp Chế Cảnh Giới]: ${this.getFighterTag(c)} (Bậc ${c.profile.tier}) vượt bậc đối thủ (+${deltaRankC * 30}% uy lực)!`);
     } else if (deltaRankD > 0) {
-      battleLog.push(`• [Áp Chế Cảnh Giới]: **${d.user.username}** (Bậc ${d.profile.tier}) vượt bậc đối thủ, nhận hiệu ứng tăng +${deltaRankD * 30}% uy lực!`);
+      battleLog.push(`<a:trangtrig45:1547239010190237819> [Áp Chế Cảnh Giới]: ${this.getFighterTag(d)} (Bậc ${d.profile.tier}) vượt bậc đối thủ (+${deltaRankD * 30}% uy lực)!`);
     }
 
     // 3. Xử lý Tam giác quyết định ẩn (RPS):
-    // ATTACK > RELEASE
-    // DEFEND > ATTACK (chặn 100%, phản 50%)
-    // RELEASE > DEFEND (xuyên phá)
-    battleLog.push(`• [Nước Đi Đối Kháng]:\n  - **${c.user.username}**: [${this.getChoiceName(c.choice)}]\n  - **${d.user.username}**: [${this.getChoiceName(d.choice)}]`);
+    // ATTACK > RELEASE | DEFEND > ATTACK | RELEASE > DEFEND
+    battleLog.push(
+      `<a:trangtrig45:1547239010190237819> **Nước Đi Đối Kháng**\n` +
+      `<a:trangtrig17:1546048098415939655> ${this.getFighterTag(c)}: [${this.getChoiceName(c.choice)}]\n` +
+      `<a:trangtrig17:1546048098415939655> ${this.getFighterTag(d)}: [${this.getChoiceName(d.choice)}]`
+    );
+
+    // Bắt bài thành công hoặc thế trận cân bằng
+    if ((c.choice === 'ATTACK' && d.choice === 'RELEASE') || (d.choice === 'ATTACK' && c.choice === 'RELEASE')) {
+      battleLog.push(
+        `<a:trangtrig20:1546092997299667055> **BẮT BÀI THÀNH CÔNG!**\n` +
+        `> Tấn công tốc độ cao đè bẹp tụ lực niệm chú của đối phương!`
+      );
+    } else if ((c.choice === 'RELEASE' && d.choice === 'DEFEND') || (d.choice === 'RELEASE' && c.choice === 'DEFEND')) {
+      battleLog.push(
+        `<a:trangtrig20:1546092997299667055> **BẮT BÀI THÀNH CÔNG!**\n` +
+        `> Tuyệt kỹ khế ước xuyên thủng thế phòng thủ, đập vỡ khiên đối phương!`
+      );
+    } else if ((c.choice === 'DEFEND' && d.choice === 'ATTACK') || (d.choice === 'DEFEND' && c.choice === 'ATTACK')) {
+      battleLog.push(
+        `<a:trangtrig20:1546092997299667055> **BẮT BÀI PHÒNG THỦ!**\n` +
+        `> Dựng khiên kết giới, chặn đứng đòn đánh và phản chấn lại đối phương!`
+      );
+    } else if (c.choice === d.choice) {
+      battleLog.push(
+        `<a:trangtrig20:1546092997299667055> **THẾ TRẬN CÂN BẰNG!**\n` +
+        `> Cả hai cùng thi triển thế đối kháng tương đồng, tạo thế giằng co!`
+      );
+    }
 
     // Thực hiện đòn đánh theo thứ tự
     const executeStrike = (att, def) => {
@@ -1306,7 +1348,7 @@ export class WitchHunterDuelService {
 
       if (att.isFrozen) {
         att.isFrozen = false;
-        battleLog.push(`• **${att.user.username}** bị đóng băng hoàn toàn nên MẤT LƯỢT ở hiệp này!`);
+        battleLog.push(`<a:knifeg1:1546058092016312381> ${this.getFighterTag(att)} bị đóng băng hoàn toàn nên mất lượt ở hiệp này!`);
         return;
       }
 
@@ -1326,16 +1368,14 @@ export class WitchHunterDuelService {
       // Nước đi thắng/thua
       if (att.choice === 'ATTACK' && def.choice === 'RELEASE') {
         baseDmg *= 1.25;
-        battleLog.push(`<a:trangtrig20:1546092997299667055> BẮT BÀI THÀNH CÔNG! Tấn công tốc độ cao đè bẹp tụ lực niệm chú của đối phương!`);
       } else if (att.choice === 'DEFEND' && def.choice === 'ATTACK') {
         // Phòng thủ phản đòn: Chặn 100% và phản 50%
         const reflectDmg = Math.round(baseDmg * 0.5);
         def.hp = Math.max(0, def.hp - reflectDmg);
-        battleLog.push(`<a:trangtrig20:1546092997299667055> BẮT BÀI PHÒNG THỦ! **${att.user.username}** chặn đứng đòn đánh và phản chấn -${reflectDmg}% Kháng Cự!`);
+        battleLog.push(`<a:knifeg1:1546058092016312381> ${this.getFighterTag(att)} phản chấn **-${reflectDmg}%** Kháng Cự lên ${this.getFighterTag(def)} (Còn: ${def.hp}%)!`);
         return;
       } else if (att.choice === 'RELEASE' && def.choice === 'DEFEND') {
         baseDmg *= 1.35;
-        battleLog.push(`<a:trangtrig20:1546092997299667055> BẮT BÀI THÀNH CÔNG! Tuyệt kỹ khế ước xuyên thủng thế phòng thủ, đập vỡ khiên đối phương!`);
       }
 
       // Kích hoạt passive của Supporter/Vũ khí
@@ -1345,7 +1385,7 @@ export class WitchHunterDuelService {
 
       const finalDmg = Math.round(baseDmg);
       def.hp = Math.max(0, def.hp - finalDmg);
-      battleLog.push(`💥 **${att.user.username}** gây **-${finalDmg}%** Kháng Cự lên **${def.user.username}** (Còn: ${def.hp}%)!`);
+      battleLog.push(`<a:knifeg1:1546058092016312381> ${this.getFighterTag(att)} gây **-${finalDmg}%** Kháng Cự lên ${this.getFighterTag(def)} (Còn: ${def.hp}%)!`);
 
       // Kiểm tra hồi sinh / bất tử nếu chạm 0
       if (def.hp <= 0 && def.profile.profile?.onLethal) {
@@ -1360,17 +1400,21 @@ export class WitchHunterDuelService {
     if (c.burnDuration && c.burnDuration > 0) {
       c.hp = Math.max(0, c.hp - 5);
       c.burnDuration -= 1;
-      battleLog.push(`🔥 **${c.user.username}** bị [Hỏa Ngục] thiêu đốt thêm -5% Kháng Cự!`);
+      battleLog.push(`<a:knifeg1:1546058092016312381> ${this.getFighterTag(c)} bị [Hỏa Ngục] thiêu đốt thêm -5% Kháng Cự!`);
     }
     if (d.burnDuration && d.burnDuration > 0) {
       d.hp = Math.max(0, d.hp - 5);
       d.burnDuration -= 1;
-      battleLog.push(`🔥 **${d.user.username}** bị [Hỏa Ngục] thiêu đốt thêm -5% Kháng Cự!`);
+      battleLog.push(`<a:knifeg1:1546058092016312381> ${this.getFighterTag(d)} bị [Hỏa Ngục] thiêu đốt thêm -5% Kháng Cự!`);
     }
+
+    const cleanedLog = battleLog
+      .map((line) => line.replace(/^•\s*\[/g, '<a:trangtrig45:1547239010190237819> ['))
+      .join('\n');
 
     duel.roundHistory.push({
       round: duel.currentRound,
-      log: battleLog.join('\n'),
+      log: cleanedLog,
     });
 
     // 4. Kiểm tra điều kiện kết thúc
@@ -1379,7 +1423,7 @@ export class WitchHunterDuelService {
       const loser = c.hp <= 0 ? c : d;
       await this.endDuel(duel, winner, loser);
     } else {
-      // Tiếp tục sang hiệp tiếp theo sau 3 giây đọc kết quả
+      // Tiếp tục sang hiệp tiếp theo sau 3.5 giây đọc kết quả
       duel.currentRound += 1;
       duel.challenger.choice = null;
       duel.defender.choice = null;
@@ -1403,7 +1447,7 @@ export class WitchHunterDuelService {
 
     const guild = duel.mainMessage?.guild;
 
-    // 1. Thưởng Bí Ngô cho Đấu Sĩ Thắng (+10 Bí Ngô) - Chỉ áp dụng cho trận thật
+    // 1. Thưởng Bí Ngô cho Phe Thắng (+10 Bí Ngô) - Chỉ áp dụng cho trận thật
     if (!duel.isBotTest && winner.id !== 'bot_mock_id' && guild) {
       await WitchHunterService.awardPumpkins(guild, winner.id, 10, {
         reason: 'Chiến thắng Đấu Trường Huyết Thệ (+10 Bí Ngô)',
@@ -1417,7 +1461,8 @@ export class WitchHunterDuelService {
     if (!duel.isBotTest && guild) {
       const loserFaction = loser.faction;
       const loserFactionName = loserFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
-      const reasonText = `Đấu sĩ ${loser.user.username} (${loserFactionName}) bị đánh bại ➔ Trừ -2% HP Trụ Tổng!`;
+      const loserRole = this.getFighterRoleName(loserFaction);
+      const reasonText = `${loserRole} ${loser.user.username} (${loserFactionName}) bị đánh bại ➔ Trừ -2% HP Trụ Tổng!`;
       await this.deductTowerHp(guild, loserFaction, 2, reasonText);
     }
 
@@ -1471,10 +1516,11 @@ export class WitchHunterDuelService {
   static buildChallengeEmbed(duel) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
     const isHunter = duel.challenger.faction === 'hunter';
+    const challengerRole = this.getFighterRoleName(duel.challenger.faction);
 
     const factionTag = isHunter
       ? `${emojis.hunterBadge} **Hiệp Hội Thợ Săn**`
-      : `${emojis.witchBadge} **Hội Phù Thủy**`;
+      : `${emojis.witchBadge} **Hội Đồng Phù Thủy**`;
 
     const quote = isHunter
       ? `"Hỡi lũ Phù Thủy trốn chui trốn nhủi trong rừng cấm, kẻ nào dám bước ra đài phong ấn?"`
@@ -1488,12 +1534,12 @@ export class WitchHunterDuelService {
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **LỜI KHIÊU CHIẾN HUYẾT THỆ** ${emojis.titleRight}`)
       .setDescription(
-        `Đấu sĩ <@${duel.challenger.id}> thuộc [${factionTag}] đã cắm chiến kỳ khiêu chiến!\n\n` +
+        `${challengerRole} ${this.getFighterTag(duel.challenger)} thuộc [${factionTag}] đã cắm chiến kỳ khiêu chiến!\n\n` +
         `*${quote}*\n` +
         `${targetText}\n\n` +
         `<:wh2:1563431832546967624> **THỜI GIAN TIẾP CHIẾN:** Còn lại **180 giây**!\n\n` +
         `<a:bang2:1546891483250954290> **NGUYÊN TẮC CHIẾN TUYẾN:**\n` +
-        `• Bất kỳ thành viên nào của ${isHunter ? '**Hội Phù Thủy**' : '**Hiệp Hội Thợ Săn**'} đều có thể bấm nút tiếp nhận (không phân biệt bậc).\n` +
+        `• Bất kỳ thành viên nào của ${isHunter ? '**Hội Đồng Phù Thủy**' : '**Hiệp Hội Thợ Săn**'} đều có thể bấm nút tiếp nhận (không phân biệt bậc).\n` +
         `• Nếu hết thời gian mà **KHÔNG** có ai tiếp chiến: Trụ Tổng phe né sẽ bị phạt **-5% HP**!\n` +
         `• Người đầu tiên bấm nút sẽ đại diện phe xuất chiến, người bấm sau sẽ bị khóa!`
       )
@@ -1536,11 +1582,11 @@ export class WitchHunterDuelService {
       .setTitle(`${emojis.titleLeft} **SÒNG CƯỢC HUYẾT THỆ: ĐANG MỞ CỬA** ${emojis.titleRight}`)
       .setDescription(
         `*(Khóa cược sau: **00:45s** | Trận đấu sắp bắt đầu!)*\n\n` +
-        `<a:trangtrig36:1563065680922808340> **Đấu Sĩ Thợ Săn:** <@${hunterFighter.id}> (${hunterFighter.profile?.rankName || 'Tập Sự'})\n` +
+        `<a:trangtrig36:1563065680922808340> **Thần Khí Sĩ (Artificer):** ${this.getFighterTag(hunterFighter)} (${hunterFighter.profile?.rankName || 'Tập Sự'})\n` +
         `• Tổng cược: **${hunterTotal.toLocaleString('vi-VN')}** <a:bingo:1563061901800243253> (${hunterCount} lượt)\n` +
         `• Tỷ lệ ăn dự kiến: **x${hunterOdds}**\n\n` +
         `                          <a:trangtrig36:1563065680922808340> VS <a:trangtrig32:1546906170994856026>\n\n` +
-        `<a:trangtrig32:1546906170994856026> **Đấu Sĩ Phù Thủy:** <@${witchFighter.id}> (${witchFighter.profile?.rankName || 'Tập Sự'})\n` +
+        `<a:trangtrig32:1546906170994856026> **Cổ Thuật Sĩ (Hexer):** ${this.getFighterTag(witchFighter)} (${witchFighter.profile?.rankName || 'Tập Sự'})\n` +
         `• Tổng cược: **${witchTotal.toLocaleString('vi-VN')}** <a:bingo:1563061901800243253> (${witchCount} lượt)\n` +
         `• Tỷ lệ ăn dự kiến: **x${witchOdds}**\n\n` +
         `────────────────────────────────────────────────────────────\n` +
@@ -1588,27 +1634,27 @@ export class WitchHunterDuelService {
     const hunterBar = this.buildBar(hunter.hp, 10);
     const witchBar = this.buildBar(witch.hp, 10);
 
-    const lastRoundHistory = duel.roundHistory[duel.roundHistory.length - 1]?.log || 'Trận chiến bắt đầu! Hai đấu sĩ đang chuẩn bị thi triển thế võ...';
+    const lastRoundHistory = duel.roundHistory[duel.roundHistory.length - 1]?.log || 'Trận chiến bắt đầu! Thần Khí Sĩ và Cổ Thuật Sĩ đang chuẩn bị thi triển thế võ...';
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **ĐẠI CHIẾN HUYẾT THỆ: CHIẾN SỰ HIỆP ${duel.currentRound}** ${emojis.titleRight}`)
       .setDescription(
         `<a:heartg3:1546047728314884226> **TRỤ PHÙ THỦY:** ${monolith.witchHp}%                     <a:heartg3:1546047728314884226> **TRỤ THỢ SĂN:** ${monolith.hunterHp}%\n\n` +
-        `<a:trangtrig36:1563065680922808340> **[Thợ Săn]** <@${hunter.id}> (${hunter.profile?.rankName})\n` +
-        `   • Supporter: **${hunter.profile?.profile?.name || 'Garmr'}** [${hunter.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${hunter.profile?.profile?.weaponName || 'Đoản Đao'}**\n` +
-        `   • Kết Giới Kháng Cự: \`${hunterBar} ${hunter.hp}%\`\n` +
-        (hunter.profile?.isResonance ? `   • <a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước** *(x1.5 Bạo Kích)*\n\n` : '\n') +
+        `<a:trangtrig36:1563065680922808340> **[Thần Khí Sĩ]** ${this.getFighterTag(hunter)} (${hunter.profile?.rankName})\n` +
+        `• Supporter: **${hunter.profile?.profile?.name || 'Garmr'}** [${hunter.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${hunter.profile?.profile?.weaponName || 'Đoản Đao'}**\n` +
+        `• Kết Giới Kháng Cự: \`${hunterBar} ${hunter.hp}%\`\n` +
+        (hunter.profile?.isResonance ? `<a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước** *(x1.5 Bạo Kích)*\n\n` : '\n') +
         `                          <a:trangtrig36:1563065680922808340> VS <a:trangtrig32:1546906170994856026>\n\n` +
-        `<a:trangtrig32:1546906170994856026> **[Phù Thủy]** <@${witch.id}> (${witch.profile?.rankName})\n` +
-        `   • Supporter: **${witch.profile?.profile?.name || 'Malice'}** [${witch.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${witch.profile?.profile?.weaponName || 'Hắc Châm'}**\n` +
-        `   • Kết Giới Kháng Cự: \`${witchBar} ${witch.hp}%\`\n` +
-        (witch.profile?.isResonance ? `   • <a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước** *(x1.5 Bạo Kích)*\n\n` : '\n') +
+        `<a:trangtrig32:1546906170994856026> **[Cổ Thuật Sĩ]** ${this.getFighterTag(witch)} (${witch.profile?.rankName})\n` +
+        `• Supporter: **${witch.profile?.profile?.name || 'Malice'}** [${witch.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${witch.profile?.profile?.weaponName || 'Hắc Châm'}**\n` +
+        `• Kết Giới Kháng Cự: \`${witchBar} ${witch.hp}%\`\n` +
+        (witch.profile?.isResonance ? `<a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước** *(x1.5 Bạo Kích)*\n\n` : '\n') +
         `────────────────────────────────────────────────────────────\n` +
         `<a:trangtrig30:1546905942476464178> **BẢN TIN CHIẾN SỰ VỪA QUA:**\n` +
         `${lastRoundHistory}\n\n` +
         `<:wh2:1563431832546967624> **ĐANG MỞ BẢNG CHỌN NƯỚC ĐI CHO HIỆP ${duel.currentRound}...** *(Còn 30s để ra quyết định)*\n` +
-        `*Hai đấu sĩ hãy bấm các nút chiến thuật bên dưới để tung chiêu!*`
+        `*Hãy bấm các nút chiến thuật bên dưới để tung chiêu!*`
       )
       .setFooter({ text: 'Witch Hunter Tactical Combat' })
       .setTimestamp();
@@ -1644,16 +1690,25 @@ export class WitchHunterDuelService {
     const isWitchWon = winner.faction === 'witch';
     const factionTitle = isWitchWon ? 'PHÙ THỦY' : 'THỢ SĂN';
 
+    const winnerRole = this.getFighterRoleName(winner.faction);
+    const loserRole = this.getFighterRoleName(loser.faction);
+
+    const winnerFactionTitle = this.getFighterFactionTitle(winner.faction);
+    const loserFactionTitle = this.getFighterFactionTitle(loser.faction);
+
     if (duel.isBotTest) {
       return new EmbedBuilder()
         .setColor(colors.pastelPurple)
         .setTitle(`${emojis.titleLeft} **THỬ NGHIỆM CHIẾN ĐẤU: ${factionTitle} CHIẾN THẮNG!** ${emojis.titleRight}`)
         .setDescription(
-          `Sau **${duel.currentRound} hiệp** giao tranh thử nghiệm cùng Bot giả lập, Đấu sĩ <@${winner.id}> (${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}) đã đánh sập Kết Giới của <@${loser.id}>!\n\n` +
-          `🤖 **GHI NHẬN CHẾ ĐỘ THỬ NGHIỆM (BOT TEST):**\n` +
-          `• 👑 **Đấu Sĩ Thắng (<@${winner.id}>):** Trận đấu thử nghiệm — Không cộng Bí Ngô thật.\n` +
-          `• 🏰 **Chiến Tuyến Trụ Tổng:** Trận đấu thử nghiệm — Không trừ máu Trụ Tổng & không ghi nhật ký.\n` +
-          `• 🎲 **Sòng Cược Huyết Thệ:** Trận đấu thử nghiệm — Không thanh toán hoặc biến động Bí Ngô thật.\n\n` +
+          `Sau **${duel.currentRound} hiệp** giao tranh thử nghiệm cùng Bot giả lập, ${winnerRole} ${this.getFighterTag(winner)} đã đánh sập Kết Giới của ${loserRole} ${this.getFighterTag(loser)}!\n\n` +
+          `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG:**\n` +
+          `<a:trangtrig14:1546047912969113622> **${winnerRole}** thuộc **${winnerFactionTitle}** ${this.getFighterTag(winner)}: Trận đấu thử nghiệm — Không cộng Bí Ngô thật.\n` +
+          `<a:trangtrig41:1547238037832863744> **${loserRole}** thuộc **${loserFactionTitle}** ${this.getFighterTag(loser)}: Trận đấu thử nghiệm — Không thay đổi dữ liệu.\n\n` +
+          `🏰 **CHIẾN TUYẾN TRỤ TỔNG:**\n` +
+          `• Trận đấu thử nghiệm — Không trừ máu Trụ Tổng & không ghi nhật ký.\n\n` +
+          `🎲 **SÒNG CƯỢC HUYẾT THỆ:**\n` +
+          `• Trận đấu thử nghiệm — Không thanh toán hoặc biến động Bí Ngô thật.\n\n` +
           `*(Dữ liệu trận chiến thử nghiệm hoàn tất kiểm tra và không ảnh hưởng đến BXH).*`
         )
         .setFooter({ text: 'Witch Hunter Duel Test Victory' })
@@ -1664,16 +1719,16 @@ export class WitchHunterDuelService {
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **KẾT QUẢ ĐỊNH ĐOẠT: ${factionTitle} GIÀNH CHIẾN THẮNG!** ${emojis.titleRight}`)
       .setDescription(
-        `Sau **${duel.currentRound} hiệp** kịch chiến đầy mưu lược, Đấu sĩ <@${winner.id}> (${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}) đã đánh sập hoàn toàn Kết Giới Kháng Cự của <@${loser.id}> (${loser.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'})!\n\n` +
-        `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG ĐẤU SĨ:**\n` +
-        `• 👑 **Kẻ Thắng (<@${winner.id}>):** Nhận thưởng vinh quang **+10 Bí Ngô** <a:bingo:1563061901800243253>!\n` +
-        `• 🛡️ **Kẻ Bại (<@${loser.id}>):** Thất trận nhưng bảo toàn nguyên vẹn số dư Bí Ngô!\n\n` +
+        `Sau **${duel.currentRound} hiệp** kịch chiến đầy mưu lược, ${winnerRole} ${this.getFighterTag(winner)} đã đánh sập hoàn toàn Kết Giới Kháng Cự của ${loserRole} ${this.getFighterTag(loser)}!\n\n` +
+        `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG:**\n` +
+        `<a:trangtrig14:1546047912969113622> **${winnerRole}** thuộc **${winnerFactionTitle}** ${this.getFighterTag(winner)}: Nhận thưởng vinh quang **+10 Bí Ngô** <a:bingo:1563061901800243253>!\n` +
+        `<a:trangtrig41:1547238037832863744> **${loserRole}** thuộc **${loserFactionTitle}** ${this.getFighterTag(loser)}: Thất trận nhưng bảo toàn nguyên vẹn số dư Bí Ngô!\n\n` +
         `<a:trangtrig45:1547239010190237819> **BIẾN ĐỘNG TRỤ TỔNG TẠI CHIẾN TUYẾN:**\n` +
         `• Trụ Tổng Phe ${loser.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}: Bị đánh thủng **-2% HP**!\n` +
         `• Trụ Tổng Phe ${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}: Bảo toàn nguyên vẹn!\n\n` +
         `<a:heartg2:1546031808364413019> **THANH TOÁN SÒNG CƯỢC:**\n` +
         `• Tổng quỹ thưởng (đã trừ 5% thuế): **${Math.round(netPool).toLocaleString('vi-VN')}** <a:bingo:1563061901800243253>\n` +
-        `• Toàn bộ cư dân đặt cược vào <@${winner.id}> đã được cộng thưởng tự động theo tỷ lệ vào tài khoản!\n\n` +
+        `• Toàn bộ cư dân đặt cược vào ${this.getFighterTag(winner)} đã được cộng thưởng tự động theo tỷ lệ vào tài khoản!\n\n` +
         `*(Cổng khiêu chiến đã làm mới, hai phe có thể tiếp tục phát động hiệp đấu tiếp theo!)*`
       )
       .setFooter({ text: 'Witch Hunter Duel Victory' })

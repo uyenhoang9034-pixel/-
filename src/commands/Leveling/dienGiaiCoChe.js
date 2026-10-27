@@ -47,7 +47,7 @@ export default {
           `• Bên nào sở hữu Supporter mang hệ khắc chế đối phương sẽ giành quyền **Đánh Trước (Priority Strike)** trong hiệp đấu đó!\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:trangtrig30:1546905942476464178> **V. TAM GIÁC QUYẾT ĐỊNH ẨN (MIND GAME TRONG HIỆP ĐẤU)**\n` +
-          `Mỗi hiệp, hai đấu sĩ nhận tin nhắn bảng chọn ẩn gồm 3 thế võ đối kháng:\n` +
+          `Mỗi hiệp, hai người chơi (Thần Khí Sĩ & Cổ Thuật Sĩ) nhận tin nhắn bảng chọn ẩn gồm 3 thế võ đối kháng:\n` +
           `• <a:trangtrig29:1546385117478527016> **Tấn Công Trực Diện:** Đòn tốc độ cao phá giáp. Đè bẹp thế tụ lực niệm chú của **Giải Phóng Khế Ước**.\n` +
           `• <a:trangtrig46:1547240249761996812> **Phòng Thủ Phản Đòn:** Dựng khiên cơ giới/kết giới. Chặn đứng hoàn toàn **Tấn Công** và phản lại **50% sát thương** về kẻ tấn công.\n` +
           `• <a:linhtocg:1563399670351536310> **Giải Phóng Khế Ước:** Kích hoạt năng lực Thần Khí + Supporter. Xuyên thủng thế **Phòng Thủ** và gieo rắc hiệu ứng thuộc tính sâu.\n\n` +
@@ -60,7 +60,7 @@ export default {
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:heartg3:1546047728314884226> **VII. CƠ CHẾ KHẤU TRỪ TRỤ TỔNG CHIẾN TUYẾN (<#1564210315812667412>)**\n` +
           `• **Né Chiến / Quá hạn:** Khiêu chiến sau 3 phút không có ai nhận hoặc bấm Từ Chối ➔ Trụ Tổng phe né bị phạt trừ **-5% HP**.\n` +
-          `• **Thất Trận:** Đấu sĩ phe nào bị đánh bại ➔ Trụ Tổng phe đó bị trừ **-2% HP**.\n` +
+          `• **Thất Trận:** Chiến binh phe nào bị đánh bại ➔ Trụ Tổng phe đó bị trừ **-2% HP**.\n` +
           `• **Phong Ấn:** Khi Trụ của một phe rơi về **0%**, toàn bộ cư dân phe đó sẽ bị phong ấn ma lực cho đến khi reset đầu mùa!`
         )
         .setFooter({ text: 'Witch Hunter Game Mechanics • Tra cứu cơ chế chiến đấu' })

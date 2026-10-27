@@ -121,7 +121,7 @@ export default {
 
         if (!isChallenger && !isDefender) {
           return interaction.reply({
-            content: 'Bạn không phải là đấu sĩ trong trận chiến hiện tại!',
+            content: 'Bạn không phải là Thần Khí Sĩ hoặc Cổ Thuật Sĩ trong trận chiến hiện tại!',
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -137,8 +137,9 @@ export default {
           });
         }
 
+        const loserRole = loser.faction === 'hunter' ? 'Thần Khí Sĩ (Artificer)' : 'Cổ Thuật Sĩ (Hexer)';
         await interaction.reply({
-          content: `🏳️ Đấu sĩ <@${userId}> đã tuyên bố đầu hàng khẩn cấp! Trận đấu kết thúc ngay lập tức.`,
+          content: `<a:whg1:1564145184965525504> ${loserRole} <@${userId}> đã tuyên bố đầu hàng khẩn cấp! Trận đấu kết thúc ngay lập tức.`,
         });
 
         await WitchHunterDuelService.endDuel(duel, winner, loser);
@@ -159,13 +160,15 @@ export default {
 
         const challenger = duel.challenger;
         const defender = duel.defender;
+        const challengerRole = challenger.faction === 'hunter' ? 'Thần Khí Sĩ (Artificer)' : 'Cổ Thuật Sĩ (Hexer)';
+        const defenderRole = defender ? (defender.faction === 'hunter' ? 'Thần Khí Sĩ (Artificer)' : 'Cổ Thuật Sĩ (Hexer)') : 'Đối thủ';
 
         return interaction.reply({
           content:
-            `⚔️ **TÌNH TRẠNG TRẬN ĐẤU HIỆN TẠI:**\n` +
+            `<a:whg1:1564145184965525504> **TÌNH TRẠNG TRẬN ĐẤU HIỆN TẠI:**\n` +
             `• **Trạng thái:** \`${duel.status}\` (Hiệp ${duel.currentRound})\n` +
-            `• **Đấu sĩ phát động:** <@${challenger.id}> (${challenger.faction === 'hunter' ? 'Thợ Săn' : 'Phù Thủy'}) - Kháng cự: **${challenger.hp}%**\n` +
-            `• **Đấu sĩ tiếp chiến:** ${defender ? `<@${defender.id}> (${defender.faction === 'hunter' ? 'Thợ Săn' : 'Phù Thủy'}) - Kháng cự: **${defender.hp}%**` : '*Đang chờ tiếp nhận...*'}\n` +
+            `• **${challengerRole} phát động:** <@${challenger.id}> (${challenger.faction === 'hunter' ? 'Thợ Săn' : 'Phù Thủy'}) - Kháng cự: **${challenger.hp}%**\n` +
+            `• **${defenderRole} tiếp chiến:** ${defender ? `<@${defender.id}> (${defender.faction === 'hunter' ? 'Thợ Săn' : 'Phù Thủy'}) - Kháng cự: **${defender.hp}%**` : '*Đang chờ tiếp nhận...*'}\n` +
             `• **Số lượt cược:** ${duel.bets.length} lượt`,
           flags: MessageFlags.Ephemeral,
         });
