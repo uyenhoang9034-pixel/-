@@ -161,6 +161,7 @@ export default {
       try {
         const { pumpkinGrowthTracker } = await import('../services/pumpkinGrowthTracker.js');
         await pumpkinGrowthTracker.syncWithPersistentDb(client);
+        await pumpkinGrowthTracker.autoCheckAndCatchup(client);
       } catch (trackerErr) {
         logger.warn('⚠️ [PumpkinTracker] Không thể nạp daily logs từ database:', trackerErr.message);
       }

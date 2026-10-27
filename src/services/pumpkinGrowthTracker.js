@@ -33,6 +33,7 @@ class PumpkinGrowthTracker {
     this.closedCycles = [];
     this.isSynced = false;
     this.bufferSaveTimeout = null;
+    this.pendingCatchupBuffer = null;
     this.ensureDataDir();
   }
 
@@ -148,16 +149,24 @@ class PumpkinGrowthTracker {
         } catch {}
       }
 
-      if (pgBuffer && pgBuffer.date === todayStr && pgBuffer.entries) {
-        for (const [uId, stats] of Object.entries(pgBuffer.entries)) {
-          this.todayBuffer.set(uId, {
-            voiceMs: Number(stats.voiceMs) || 0,
-            messageCount: Number(stats.messageCount) || 0,
-            chatLevels: Number(stats.chatLevels) || 0,
-            voiceLevels: Number(stats.voiceLevels) || 0,
-          });
+      if (pgBuffer && pgBuffer.entries && Object.keys(pgBuffer.entries).length > 0) {
+        if (pgBuffer.date === todayStr) {
+          for (const [uId, stats] of Object.entries(pgBuffer.entries)) {
+            this.todayBuffer.set(uId, {
+              voiceMs: Number(stats.voiceMs) || 0,
+              messageCount: Number(stats.messageCount) || 0,
+              chatLevels: Number(stats.chatLevels) || 0,
+              voiceLevels: Number(stats.voiceLevels) || 0,
+            });
+          }
+          logger.info(`🎃 [PumpkinTracker] Đã khôi phục dữ liệu hoạt động hôm nay (${this.todayBuffer.size} thành viên) từ database.`);
+        } else {
+          logger.warn(`⚠️ [PumpkinTracker] Phát hiện buffer chưa chốt của ngày cũ (${pgBuffer.date}). Đã lưu để chuẩn bị gửi báo cáo bù.`);
+          this.pendingCatchupBuffer = {
+            date: pgBuffer.date,
+            entries: pgBuffer.entries,
+          };
         }
-        logger.info(`🎃 [PumpkinTracker] Đã khôi phục dữ liệu hoạt động hôm nay (${this.todayBuffer.size} thành viên) từ database.`);
       }
 
       this.isSynced = true;
@@ -388,77 +397,150 @@ class PumpkinGrowthTracker {
   }
 
   /**
-   * Kích hoạt vào 00:00 mỗi ngày:
+   * Kích hoạt vào 00:00 mỗi ngày hoặc gửi bù:
    * 1. Tính toán cấp tăng trong ngày của từng thành viên
    * 2. Ghi vào database (PostgreSQL) và file pumpkin_monthly_logs.jsonl
    * 3. Gửi báo cáo bí mật hằng ngày vào Kênh Admin (dailyReportChannelId)
    * 4. Dọn sạch bộ nhớ tạm hôm nay & giải phóng RAM
+   * @param {Object} client - Discord Client
+   * @param {string|null} [targetDate=null] - Ngày cần báo cáo (định dạng DD/MM/YYYY)
+   * @param {Map|Object|null} [customBuffer=null] - Buffer dữ liệu cần chốt nếu gửi bù
+   * @param {boolean} [isCatchup=false] - Cờ đánh dấu báo cáo gửi bù
    */
-  async flushDailyReport(client) {
+  async flushDailyReport(client, targetDate = null, customBuffer = null, isCatchup = false) {
     try {
       if (!this.isSynced) {
         await this.syncWithPersistentDb(client);
       }
 
-      if (this.todayBuffer.size === 0) {
-        logger.info('🎃 [PumpkinTracker] Hôm nay không có hoạt động Voice/Chat nào cần lưu.');
-        return;
+      let todayStr;
+      let cycleKey;
+
+      if (targetDate && typeof targetDate === 'string') {
+        todayStr = targetDate.trim();
+        const [dStr, mStr, yStr] = todayStr.split('/');
+        const reportDate = new Date(Number(yStr), Number(mStr) - 1, Number(dStr), 23, 59, 59);
+        cycleKey = this.getCycleKeyForDate(reportDate);
+      } else {
+        // Tại thời điểm 00:00, báo cáo là tổng kết của ngày hôm qua (vừa hoàn thành lúc 23:59:59)
+        const reportDate = new Date(Date.now() - 60000);
+        todayStr = reportDate.toLocaleDateString('vi-VN', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+        cycleKey = this.getCycleKeyForDate(reportDate);
       }
-
-      // Tại thời điểm 00:00, báo cáo là tổng kết của ngày hôm qua (vừa hoàn thành lúc 23:59:59)
-      const reportDate = new Date(Date.now() - 60000);
-      const todayStr = reportDate.toLocaleDateString('vi-VN', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
-
-      // Chu kỳ tính theo ngày báo cáo (ngày 23 thuộc chu kỳ kết thúc ngày 24)
-      const cycleKey = this.getCycleKeyForDate(reportDate);
 
       const recordsToWrite = [];
       const userSummaryList = [];
 
-      for (const [userId, stats] of this.todayBuffer.entries()) {
-        const voiceMinutes = Math.floor(stats.voiceMs / 60000);
-        const voiceLevels = stats.voiceLevels > 0 ? stats.voiceLevels : Math.floor(voiceMinutes / 30);
-        const chatLevels = stats.chatLevels || 0;
-        const totalLevels = voiceLevels + chatLevels;
+      // 1. Nạp dữ liệu từ customBuffer (nếu có truyền vào, ví dụ buffer ngày cũ còn sót lại)
+      if (customBuffer) {
+        const entriesIterable = customBuffer instanceof Map ? customBuffer.entries() : Object.entries(customBuffer);
+        for (const [userId, stats] of entriesIterable) {
+          const voiceMinutes = Math.floor((Number(stats.voiceMs) || 0) / 60000);
+          const voiceLevels =
+            (Number(stats.voiceLevels) || 0) > 0 ? Number(stats.voiceLevels) : Math.floor(voiceMinutes / 30);
+          const chatLevels = Number(stats.chatLevels) || 0;
+          const totalLevels = voiceLevels + chatLevels;
+          const messageCount = Number(stats.messageCount) || 0;
 
-        if (voiceMinutes > 0 || stats.messageCount > 0 || totalLevels > 0) {
-          const rec = {
-            date: todayStr,
-            userId,
-            voiceMinutes,
-            voiceLevels,
-            messageCount: stats.messageCount,
-            chatLevels,
-            totalLevels,
-            timestamp: Date.now(),
-            cycleKey,
-          };
-          recordsToWrite.push(rec);
-          this.dailyLogs.push(rec);
+          if (voiceMinutes > 0 || messageCount > 0 || totalLevels > 0) {
+            const rec = {
+              date: todayStr,
+              userId,
+              voiceMinutes,
+              voiceLevels,
+              messageCount,
+              chatLevels,
+              totalLevels,
+              timestamp: Date.now(),
+              cycleKey,
+            };
+            recordsToWrite.push(rec);
 
+            const existIdx = this.dailyLogs.findIndex((l) => l.userId === userId && l.date === todayStr);
+            if (existIdx >= 0) {
+              this.dailyLogs[existIdx] = rec;
+            } else {
+              this.dailyLogs.push(rec);
+            }
+
+            userSummaryList.push({
+              userId,
+              voiceMinutes,
+              voiceLevels,
+              messageCount,
+              chatLevels,
+              totalLevels,
+            });
+          }
+        }
+      }
+      // 2. Nếu là gửi bù hoặc xem lại ngày cũ và trong dailyLogs đã có dữ liệu
+      else if (isCatchup && this.dailyLogs.some((l) => l.date === todayStr)) {
+        const existingLogs = this.dailyLogs.filter((l) => l.date === todayStr);
+        for (const item of existingLogs) {
           userSummaryList.push({
-            userId,
-            voiceMinutes,
-            voiceLevels,
-            messageCount: stats.messageCount,
-            chatLevels,
-            totalLevels,
+            userId: item.userId,
+            voiceMinutes: Number(item.voiceMinutes) || 0,
+            voiceLevels: Number(item.voiceLevels) || 0,
+            messageCount: Number(item.messageCount) || 0,
+            chatLevels: Number(item.chatLevels) || 0,
+            totalLevels: Number(item.totalLevels) || 0,
           });
         }
       }
+      // 3. Mặc định lấy từ this.todayBuffer
+      else {
+        for (const [userId, stats] of this.todayBuffer.entries()) {
+          const voiceMinutes = Math.floor(stats.voiceMs / 60000);
+          const voiceLevels = stats.voiceLevels > 0 ? stats.voiceLevels : Math.floor(voiceMinutes / 30);
+          const chatLevels = stats.chatLevels || 0;
+          const totalLevels = voiceLevels + chatLevels;
 
-      // 1. Lưu vĩnh viễn vào PostgreSQL Database
+          if (voiceMinutes > 0 || stats.messageCount > 0 || totalLevels > 0) {
+            const rec = {
+              date: todayStr,
+              userId,
+              voiceMinutes,
+              voiceLevels,
+              messageCount,
+              chatLevels,
+              totalLevels,
+              timestamp: Date.now(),
+              cycleKey,
+            };
+            recordsToWrite.push(rec);
+
+            const existIdx = this.dailyLogs.findIndex((l) => l.userId === userId && l.date === todayStr);
+            if (existIdx >= 0) {
+              this.dailyLogs[existIdx] = rec;
+            } else {
+              this.dailyLogs.push(rec);
+            }
+
+            userSummaryList.push({
+              userId,
+              voiceMinutes,
+              voiceLevels,
+              messageCount,
+              chatLevels,
+              totalLevels,
+            });
+          }
+        }
+      }
+
+      // Lưu vĩnh viễn vào PostgreSQL Database nếu có bản ghi mới
       if (recordsToWrite.length > 0) {
         await this.saveDailyLogsToDb();
         logger.info(`🎃 [PumpkinTracker] Đã lưu ${recordsToWrite.length} bản ghi ngày ${todayStr} (Chu kỳ ${cycleKey}).`);
       }
 
-      // 2. Gửi Embed báo cáo bí mật vào kênh Admin
+      // Gửi Embed báo cáo vào kênh Admin
       const { channels, colors, emojis } = WITCH_HUNTER_CONFIG;
       const reportChannelId = channels.dailyReportChannelId;
 
@@ -494,7 +576,7 @@ class PumpkinGrowthTracker {
                 `Dưới đây là tổng kết hoạt động rèn luyện ma thuật (Voice + Chat) trong ngày **${todayStr}**:\n` +
                   `*(Báo cáo gửi tự động lúc 00:00 dành riêng cho Ban Quản Trị)*\n` +
                   `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-                  (descriptionLines.length > 0 ? descriptionLines.join('\n\n') : '*Không có thành viên nào hoạt động hôm nay.*')
+                  (descriptionLines.length > 0 ? descriptionLines.join('\n\n') : '*Không có thành viên nào hoạt động trong ngày này.*')
               )
               .setFooter({
                 text: 'Witch Hunter Daily Tracker',
@@ -502,27 +584,101 @@ class PumpkinGrowthTracker {
               .setTimestamp();
 
             await reportChannel.send({ embeds: [embed] });
+            logger.info(`🎃 [PumpkinTracker] Đã gửi báo cáo ngày ${todayStr} vào kênh Admin <#${reportChannelId}>.`);
           }
         } catch (reportErr) {
           logger.error('❌ [PumpkinTracker] Lỗi gửi báo cáo ngày cho Admin:', reportErr);
         }
       }
 
-      // 3. Reset bộ nhớ tạm trong ngày & thu gom rác GC
-      this.todayBuffer.clear();
-      try {
-        if (fs.existsSync(TODAY_BUFFER_PATH)) {
-          fs.unlinkSync(TODAY_BUFFER_PATH);
-        }
-      } catch {}
-      setInDb('temp:witch_hunter:today_buffer', null).catch(() => null);
+      // Dọn dẹp bộ nhớ tạm
+      if (!isCatchup) {
+        this.todayBuffer.clear();
+        try {
+          if (fs.existsSync(TODAY_BUFFER_PATH)) {
+            fs.unlinkSync(TODAY_BUFFER_PATH);
+          }
+        } catch {}
+        setInDb('temp:witch_hunter:today_buffer', null).catch(() => null);
+      } else if (customBuffer) {
+        try {
+          if (fs.existsSync(TODAY_BUFFER_PATH)) {
+            fs.unlinkSync(TODAY_BUFFER_PATH);
+          }
+        } catch {}
+        setInDb('temp:witch_hunter:today_buffer', null).catch(() => null);
+      }
 
       if (typeof global.gc === 'function') {
         global.gc();
       }
-      logger.info('🎃 [PumpkinTracker] Đã dọn sạch bộ nhớ tạm trong ngày.');
+      logger.info(`🎃 [PumpkinTracker] Hoàn tất chốt báo cáo ngày ${todayStr}.`);
     } catch (error) {
       logger.error('❌ [PumpkinTracker] Lỗi trong flushDailyReport:', error);
+    }
+  }
+
+  /**
+   * Tự động kiểm tra và gửi báo cáo bù nếu 00:00 bị lỡ (do restart/crash/mất kết nối):
+   * 1. Nếu có pendingCatchupBuffer từ ngày cũ -> Flush và gửi bù ngay.
+   * 2. Nếu ngày hôm qua chưa có báo cáo trong kênh Admin -> Tự động gửi bù ngày hôm qua.
+   */
+  async autoCheckAndCatchup(client) {
+    if (!client) return;
+    try {
+      if (!this.isSynced) {
+        await this.syncWithPersistentDb(client);
+      }
+
+      // 1. Nếu có pendingCatchupBuffer từ ngày cũ chưa flush
+      if (this.pendingCatchupBuffer && this.pendingCatchupBuffer.date) {
+        const catchupDate = this.pendingCatchupBuffer.date;
+        const entries = this.pendingCatchupBuffer.entries;
+        logger.info(`🎃 [PumpkinTracker] Đang tự động gửi báo cáo bù từ bộ nhớ tạm cho ngày ${catchupDate}...`);
+        await this.flushDailyReport(client, catchupDate, entries, true);
+        this.pendingCatchupBuffer = null;
+        return;
+      }
+
+      // 2. Tính ngày hôm qua
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayStr = yesterday.toLocaleDateString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+
+      const reportChannelId = WITCH_HUNTER_CONFIG.channels.dailyReportChannelId;
+      const channel =
+        client.channels.cache.get(reportChannelId) ||
+        (await client.channels.fetch(reportChannelId).catch(() => null));
+
+      let hasReportInChannel = false;
+      if (channel && channel.isTextBased()) {
+        const messages = await channel.messages.fetch({ limit: 30 }).catch(() => null);
+        if (messages) {
+          for (const msg of messages.values()) {
+            if (msg.embeds && msg.embeds.length > 0) {
+              const title = msg.embeds[0].title || '';
+              if (title.includes('Báo Cáo Hoạt Động Hằng Ngày') && title.includes(yesterdayStr)) {
+                hasReportInChannel = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (!hasReportInChannel) {
+        logger.info(`🎃 [PumpkinTracker] Phát hiện ngày hôm qua (${yesterdayStr}) chưa có báo cáo trong kênh Admin. Đang tiến hành gửi báo cáo bù...`);
+        await this.flushDailyReport(client, yesterdayStr, null, true);
+      } else {
+        logger.info(`🎃 [PumpkinTracker] Báo cáo ngày hôm qua (${yesterdayStr}) đã có trong kênh Admin.`);
+      }
+    } catch (err) {
+      logger.error('❌ [PumpkinTracker] Lỗi trong autoCheckAndCatchup:', err);
     }
   }
 

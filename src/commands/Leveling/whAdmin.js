@@ -1,4 +1,4 @@
-import { ChannelType, MessageFlags, SlashCommandBuilder } from 'discord.js';
+import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
 import { WitchHunterSummonService } from '../../services/witchHunterSummonService.js';
 import { logger } from '../../utils/logger.js';
@@ -65,6 +65,17 @@ export default {
       sub
         .setName('cancel-duel')
         .setDescription('Hủy trận đấu đang diễn ra và hoàn trả 100% Bí Ngô cho sòng cược')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('bao-cao-daily')
+        .setDescription('Gửi báo cáo hoạt động hằng ngày vào kênh Admin (gửi ngay hoặc gửi bù)')
+        .addStringOption((opt) =>
+          opt
+            .setName('ngay')
+            .setDescription('Ngày cần báo cáo (định dạng DD/MM/YYYY, ví dụ: 26/10/2026, để trống = hôm qua)')
+            .setRequired(false)
+        )
     ),
 
   category: 'Leveling',
@@ -184,6 +195,40 @@ export default {
         return interaction.reply({
           content: `✅ Đã hủy trận đấu thành công và hoàn trả 100% Bí Ngô cho tất cả người cược!`,
           flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // BAO CAO DAILY (GỬI BÙ HOẶC GỬI NGAY)
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'bao-cao-daily') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
+
+        const inputDate = interaction.options.getString('ngay');
+        let targetDate = inputDate ? inputDate.trim() : null;
+
+        if (!targetDate) {
+          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          targetDate = yesterday.toLocaleDateString('vi-VN', {
+            timeZone: 'Asia/Ho_Chi_Minh',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          });
+        }
+
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(targetDate)) {
+          return interaction.editReply({
+            content: `❌ Định dạng ngày không hợp lệ! Vui lòng nhập đúng định dạng DD/MM/YYYY (ví dụ: \`26/10/2026\`).`,
+          });
+        }
+
+        const reportChannelId = WITCH_HUNTER_CONFIG.channels.dailyReportChannelId;
+        await pumpkinGrowthTracker.flushDailyReport(interaction.client, targetDate, null, true);
+
+        return interaction.editReply({
+          content: `✅ Đã gửi báo cáo hoạt động ngày **${targetDate}** vào kênh <#${reportChannelId}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
         });
       }
     } catch (error) {
