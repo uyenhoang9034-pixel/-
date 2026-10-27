@@ -643,7 +643,12 @@ export class WitchHunterDuelService {
     const hunterStatusText = data.hunterHp <= 0 ? '❌ *(ĐÃ BỊ PHONG ẤN MA LỰC)*' : '';
     const witchStatusText = data.witchHp <= 0 ? '❌ *(ĐÃ BỊ PHONG ẤN MA LỰC)*' : '';
 
-    const recentLogs = (data.logs || []).slice(0, 5).map((l) => `> • ${l.text}`).join('\n') || '> *(Chưa có biến động chấn động nào gần đây)*';
+    const recentLogs = (data.logs || []).slice(0, 5).map((l) => {
+      let text = l.text || '';
+      // Thay thế raw Discord ID thành tag <@id>
+      text = text.replace(/(?<!<@)(\b\d{17,20}\b)/g, '<@$1>');
+      return `> • ${text}`;
+    }).join('\n') || '> *(Chưa có biến động chấn động nào gần đây)*';
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
@@ -897,17 +902,15 @@ export class WitchHunterDuelService {
       return;
     }
 
-    const targetFaction = duel.challenger.faction === 'hunter' ? 'witch' : 'hunter';
-    const factionName = targetFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
-
-    const reason = `${factionName} né tránh khiêu chiến từ ${duel.challenger.user.username} ➔ Trừ -5% HP Trụ Tổng!`;
+    const challengerId = duel.challenger.id || duel.challenger.user?.id;
+    const reason = `${factionName} né tránh khiêu chiến từ <@${challengerId}> ➔ Trừ -5% HP Trụ Tổng!`;
     const guild = duel.mainMessage?.guild;
     await this.deductTowerHp(guild, targetFaction, 5, reason);
 
     if (duel.mainMessage) {
       const roleMissing = targetFaction === 'hunter' ? 'Thần Khí Sĩ (Artificer)' : 'Cổ Thuật Sĩ (Hexer)';
       const timeoutEmbed = new EmbedBuilder()
-        .setColor(0xef4444)
+        .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
         .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **KHIÊU CHIẾN HẾT HẠN: NÉ TRÁNH CHIẾN ĐẤU** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
         .setDescription(
           `Đã hết **180 giây** tiếp chiến nhưng không có bất kỳ ${roleMissing} nào thuộc **${factionName}** dám bước lên đài phong ấn!\n\n` +
@@ -1022,12 +1025,12 @@ export class WitchHunterDuelService {
 
     // Chỉ trừ máu Trụ khi không phải trận test
     if (!duel.isBotTest) {
-      const reason = `${interaction.user.username} (${factionName}) chủ động từ chối khiêu chiến ➔ Trừ -5% HP Trụ Tổng!`;
+      const reason = `<@${interaction.user.id}> (${factionName}) chủ động từ chối khiêu chiến ➔ Trừ -5% HP Trụ Tổng!`;
       await this.deductTowerHp(interaction.guild, targetFaction, 5, reason);
     }
 
     const declineEmbed = new EmbedBuilder()
-      .setColor(0xef4444)
+      .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
       .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **TỪ CHỐI TIẾP CHIẾN: TRỤ TỔNG BỊ THỦNG** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
       .setDescription(
         `Đại diện <@${interaction.user.id}> thuộc **${factionName}** đã chủ động bấm nút **Từ Chối**!\n\n` +
@@ -1458,7 +1461,8 @@ export class WitchHunterDuelService {
       const loserFaction = loser.faction;
       const loserFactionName = loserFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
       const loserRole = this.getFighterRoleName(loserFaction);
-      const reasonText = `${loserRole} ${loser.user.username} (${loserFactionName}) bị đánh bại ➔ Trừ -2% HP Trụ Tổng!`;
+      const loserUserId = loser.id || loser.user?.id;
+      const reasonText = `${loserRole} <@${loserUserId}> (${loserFactionName}) bị đánh bại ➔ Trừ -2% HP Trụ Tổng!`;
       await this.deductTowerHp(guild, loserFaction, 2, reasonText);
     }
 
@@ -1523,7 +1527,7 @@ export class WitchHunterDuelService {
       : `"Hỡi lũ Thợ Săn cơ giới tầm thường, ai dám bước vào kết giới ma thuật của ta?"`;
 
     const targetText = duel.targetUserId
-      ? `\n> 🎯 **Mục tiêu chỉ định:** <@${duel.targetUserId}>`
+      ? `\n> <a:nguyentheg:1563399515732443177> **Mục tiêu chỉ định:** <@${duel.targetUserId}>`
       : `\n> <a:whg2:1564145798537683034> **Phạm vi khiêu chiến:** Toàn thể chiến binh đối địch`;
 
     return new EmbedBuilder()
@@ -1597,12 +1601,12 @@ export class WitchHunterDuelService {
       new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId('btn_bet_hunter_10')
-          .setLabel('Cược Thợ Săn (10 <a:bingo:1563061901800243253>)')
+          .setLabel('Cược Thợ Săn 10 Bí Ngô')
           .setStyle(ButtonStyle.Success)
           .setEmoji('<a:bingo:1563061901800243253>'),
         new ButtonBuilder()
           .setCustomId('btn_bet_witch_10')
-          .setLabel('Cược Phù Thủy (10 <a:bingo:1563061901800243253>)')
+          .setLabel('Cược Phù Thủy 10 Bí Ngô')
           .setStyle(ButtonStyle.Primary)
           .setEmoji('<a:bingo:1563061901800243253>'),
         new ButtonBuilder()
@@ -1630,6 +1634,13 @@ export class WitchHunterDuelService {
     const hunterBar = this.buildBar(hunter.hp, 10);
     const witchBar = this.buildBar(witch.hp, 10);
 
+    const getCategoryEmoji = (catKey) => {
+      if (catKey === 'linhToc') return '<a:linhtocg:1563399670351536310>';
+      if (catKey === 'nguyenThe') return '<a:nguyentheg:1563399515732443177>';
+      if (catKey === 'camKhi') return '<a:camkhig:1563399321125134346>';
+      return '<a:linhtocg:1563399670351536310>';
+    };
+
     const lastRoundHistory = duel.roundHistory[duel.roundHistory.length - 1]?.log || 'Trận chiến bắt đầu! Thần Khí Sĩ và Cổ Thuật Sĩ đang chuẩn bị thi triển thế võ...';
 
     return new EmbedBuilder()
@@ -1638,12 +1649,12 @@ export class WitchHunterDuelService {
       .setDescription(
         `<a:heartg3:1546047728314884226> **TRỤ PHÙ THỦY:** ${monolith.witchHp}%                     <a:heartg3:1546047728314884226> **TRỤ THỢ SĂN:** ${monolith.hunterHp}%\n\n` +
         `<a:trangtrig36:1563065680922808340> **[Thần Khí Sĩ]** ${this.getFighterTag(hunter)} (${hunter.profile?.rankName})\n` +
-        `• Supporter: **${hunter.profile?.profile?.name || 'Garmr'}** [${hunter.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${hunter.profile?.profile?.weaponName || 'Đoản Đao'}**\n` +
+        `• Supporter: **${hunter.profile?.profile?.name || 'Garmr'}** ${getCategoryEmoji(hunter.profile?.categoryKey)} | Vũ khí: **${hunter.profile?.profile?.weaponName || 'Đoản Đao'}**\n` +
         `• Kết Giới Kháng Cự: \`${hunterBar} ${hunter.hp}%\`\n` +
         (hunter.profile?.isResonance ? `<a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước** *(x1.5 Bạo Kích)*\n\n` : '\n') +
         `                          <a:trangtrig36:1563065680922808340> VS <a:trangtrig32:1546906170994856026>\n\n` +
         `<a:trangtrig32:1546906170994856026> **[Cổ Thuật Sĩ]** ${this.getFighterTag(witch)} (${witch.profile?.rankName})\n` +
-        `• Supporter: **${witch.profile?.profile?.name || 'Malice'}** [${witch.profile?.categoryKey?.toUpperCase()}] | Vũ khí: **${witch.profile?.profile?.weaponName || 'Hắc Châm'}**\n` +
+        `• Supporter: **${witch.profile?.profile?.name || 'Malice'}** ${getCategoryEmoji(witch.profile?.categoryKey)} | Vũ khí: **${witch.profile?.profile?.weaponName || 'Hắc Châm'}**\n` +
         `• Kết Giới Kháng Cự: \`${witchBar} ${witch.hp}%\`\n` +
         (witch.profile?.isResonance ? `<a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước** *(x1.5 Bạo Kích)*\n\n` : '\n') +
         `────────────────────────────────────────────────────────────\n` +

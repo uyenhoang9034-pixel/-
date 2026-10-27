@@ -2591,15 +2591,15 @@ export class WitchHunterService {
     const wepRankLetter = this.formatRankLetter(equippedWep.rank);
 
     if (hasMatchedWep && matchedWep) {
-      suggestion = `Lữ khách đã sở hữu Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] trong kho! Hãy đổi sang vũ khí này để đồng bộ với Supporter **${equippedSupp.name}** [${suppRankLetter}-Rank], kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+      suggestion = `Lữ khách đã sở hữu Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] trong kho! Hãy đổi sang vũ khí này để đồng bộ với Supporter **${equippedSupp.name}** [${suppRankLetter}-Rank], kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! <a:heartg4:1546068063500369940>`;
     } else if (hasMatchedSupp && matchedSupp) {
-      suggestion = `Lữ khách đã sở hữu Supporter **${matchedSupp.name}** [${this.formatRankLetter(matchedSupp.rank)}-Rank] trong kho! Hãy đổi sang Supporter này để đồng bộ với Thần Binh **${equippedWep.shortName || equippedWep.name}** [${wepRankLetter}-Rank], kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+      suggestion = `Lữ khách đã sở hữu Supporter **${matchedSupp.name}** [${this.formatRankLetter(matchedSupp.rank)}-Rank] trong kho! Hãy đổi sang Supporter này để đồng bộ với Thần Binh **${equippedWep.shortName || equippedWep.name}** [${wepRankLetter}-Rank], kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! <a:heartg4:1546068063500369940>`;
     } else if (matchedWep && matchedSupp) {
-      suggestion = `Nên đổi sang Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] (phù hợp với Supporter **${equippedSupp.name}**) hoặc đổi sang Supporter **${matchedSupp.name}** [${this.formatRankLetter(matchedSupp.rank)}-Rank] (phù hợp với Thần Binh **${equippedWep.shortName || equippedWep.name}**) để kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+      suggestion = `Nên đổi sang Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] (phù hợp với Supporter **${equippedSupp.name}**) hoặc đổi sang Supporter **${matchedSupp.name}** [${this.formatRankLetter(matchedSupp.rank)}-Rank] (phù hợp với Thần Binh **${equippedWep.shortName || equippedWep.name}**) để kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! <a:heartg4:1546068063500369940>`;
     } else if (matchedWep) {
-      suggestion = `Nên trang bị Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] để đồng bộ khế ước cùng Supporter **${equippedSupp.name}**, tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+      suggestion = `Nên trang bị Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] để đồng bộ khế ước cùng Supporter **${equippedSupp.name}**, tăng **x1.5 Bạo Kích Sát Thương** nha! <a:heartg4:1546068063500369940>`;
     } else {
-      suggestion = `Hãy chọn cặp Supporter và Thần Binh Vũ Khí cùng hệ đồng bộ bậc [${suppRankLetter}-Rank] để kích hoạt **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+      suggestion = `Hãy chọn cặp Supporter và Thần Binh Vũ Khí cùng hệ đồng bộ bậc [${suppRankLetter}-Rank] để kích hoạt **x1.5 Bạo Kích Sát Thương** nha! <a:heartg4:1546068063500369940>`;
     }
 
     return {
