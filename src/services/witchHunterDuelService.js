@@ -653,7 +653,7 @@ export class WitchHunterDuelService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`<a:heartg3:1546047728314884226> ─── ✦ ⟨ **TRỤ TỔNG PHÁO ĐÀI: CHIẾN TUYẾN TRANH PHÂN** ⟩ ✦ ─── <a:heartg3:1546047728314884226>`)
+      .setTitle(`${emojis.titleLeft} **TRỤ TỔNG PHÁO ĐÀI: CHIẾN TUYẾN TRANH PHÂN** ${emojis.titleRight}`)
       .setDescription(
         `Trạng thái toàn cảnh của hai phe trên lãnh địa. Khi Trụ của phe nào rớt về **0%**, toàn bộ cư dân phe đó sẽ rơi vào trạng thái *"Phong Ấn Ma Lực"* cho đến đợt làm mới tiếp theo!\n\n` +
         `<a:trangtrig36:1563065680922808340> **TRỤ TỔNG THỢ SĂN (W.H. Core Fortress)**\n` +
@@ -896,7 +896,7 @@ export class WitchHunterDuelService {
     if (duel.mainMessage) {
       const timeoutEmbed = new EmbedBuilder()
         .setColor(0xef4444)
-        .setTitle(`<a:bang2:1546891483250954290> ─── ✦ ⟨ **KHIÊU CHIẾN HẾT HẠN: NÉ TRÁNH CHIẾN ĐẤU** ⟩ ✦ ───`)
+        .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **KHIÊU CHIẾN HẾT HẠN: NÉ TRÁNH CHIẾN ĐẤU** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
         .setDescription(
           `Đã hết **180 giây** tiếp chiến nhưng không có bất kỳ đấu sĩ nào thuộc **${factionName}** dám bước lên đài phong ấn!\n\n` +
           `> <a:bang2:1546891483250954290> **HÌNH PHẠT HÈN NHÁT:** Trụ Tổng của **${factionName}** bị đánh phạt trừ thẳng **-5% HP**!\n\n` +
@@ -1013,7 +1013,7 @@ export class WitchHunterDuelService {
 
     const declineEmbed = new EmbedBuilder()
       .setColor(0xef4444)
-      .setTitle(`<a:whg1:1564145184965525504> ─── ✦ ⟨ **TỪ CHỐI TIẾP CHIẾN: TRỤ TỔNG BỊ THỦNG** ⟩ ✦ ───`)
+      .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **TỪ CHỐI TIẾP CHIẾN: TRỤ TỔNG BỊ THỦNG** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
       .setDescription(
         `Đại diện <@${interaction.user.id}> thuộc **${factionName}** đã chủ động bấm nút **Từ Chối**!\n\n` +
         `> <a:bang2:1546891483250954290> **HÌNH PHẠT TỪ CHỐI:** Trụ Tổng của **${factionName}** bị đánh phạt trừ thẳng **-5% HP**!\n\n` +
@@ -1487,7 +1487,7 @@ export class WitchHunterDuelService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`<a:trangtrig29:1546385117478527016> ─── ✦ ⟨ **LỜI KHIÊU CHIẾN HUYẾT THỆ** ⟩ ✦ ─── <a:trangtrig29:1546385117478527016>`)
+      .setTitle(`${emojis.titleLeft} **LỜI KHIÊU CHIẾN HUYẾT THỆ** ${emojis.titleRight}`)
       .setDescription(
         `Đấu sĩ <@${duel.challenger.id}> thuộc [${factionTag}] đã cắm chiến kỳ khiêu chiến!\n\n` +
         `*${quote}*\n` +
@@ -1534,7 +1534,7 @@ export class WitchHunterDuelService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} ─── ✦ ⟨ **SÒNG CƯỢC HUYẾT THỆ: ĐANG MỞ CỬA** ⟩ ✦ ─── ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **SÒNG CƯỢC HUYẾT THỆ: ĐANG MỞ CỬA** ${emojis.titleRight}`)
       .setDescription(
         `*(Khóa cược sau: **00:45s** | Trận đấu sắp bắt đầu!)*\n\n` +
         `<a:trangtrig36:1563065680922808340> **Đấu Sĩ Thợ Săn:** <@${hunterFighter.id}> (${hunterFighter.profile?.rankName || 'Tập Sự'})\n` +
@@ -1592,7 +1592,7 @@ export class WitchHunterDuelService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`⚔️ ─── ✦ ⟨ **ĐẠI CHIẾN HUYẾT THỆ: CHIẾN SỰ HIỆP ${duel.currentRound}** ⟩ ✦ ─── ⚔️`)
+      .setTitle(`${emojis.titleLeft} **ĐẠI CHIẾN HUYẾT THỆ: CHIẾN SỰ HIỆP ${duel.currentRound}** ${emojis.titleRight}`)
       .setDescription(
         `<a:heartg3:1546047728314884226> **TRỤ PHÙ THỦY:** ${monolith.witchHp}%                     <a:heartg3:1546047728314884226> **TRỤ THỢ SĂN:** ${monolith.hunterHp}%\n\n` +
         `<a:trangtrig36:1563065680922808340> **[Thợ Săn]** <@${hunter.id}> (${hunter.profile?.rankName})\n` +
@@ -1647,7 +1647,7 @@ export class WitchHunterDuelService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`<a:trangtrig14:1546047912969113622> ─── ✦ ⟨ **KẾT QUẢ ĐỊNH ĐOẠT: ${factionTitle} GIÀNH CHIẾN THẮNG!** ⟩ ✦ ─── <a:trangtrig14:1546047912969113622>`)
+      .setTitle(`${emojis.titleLeft} **KẾT QUẢ ĐỊNH ĐOẠT: ${factionTitle} GIÀNH CHIẾN THẮNG!** ${emojis.titleRight}`)
       .setDescription(
         `Sau **${duel.currentRound} hiệp** kịch chiến đầy mưu lược, Đấu sĩ <@${winner.id}> (${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}) đã đánh sập hoàn toàn Kết Giới Kháng Cự của <@${loser.id}> (${loser.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'})!\n\n` +
         `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG ĐẤU SĨ:**\n` +

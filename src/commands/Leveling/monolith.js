@@ -45,7 +45,7 @@ export default {
 
         const embed = new EmbedBuilder()
           .setColor(colors.pastelPurple)
-          .setTitle(`${emojis.titleLeft} ─── ✦ ⟨ **NHẬT KÝ CHIẾN SỰ TRỤ TỔNG: WAR LOG** ⟩ ✦ ─── ${emojis.titleRight}`)
+          .setTitle(`${emojis.titleLeft} **NHẬT KÝ CHIẾN SỰ TRỤ TỔNG: WAR LOG** ${emojis.titleRight}`)
           .setDescription(
             `📊 **TÌNH TRẠNG SINH LỰC TRỤ TỔNG HIỆN TẠI:**\n` +
             `• <a:trangtrig36:1563065680922808340> **Trụ Tổng Thợ Săn:** \`${hunterBar} ${data.hunterHp}%\` (Tử thủ thành công: **${data.hunterDefends || 0}** trận)\n` +

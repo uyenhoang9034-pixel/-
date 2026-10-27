@@ -104,7 +104,7 @@ export default {
       // 3. Tạo Embed phản hồi hoàn tất cho Admin
       const replyEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Màu tím pastel nhạt nhạt cố định
-        .setTitle(`${emojis.titleLeft} 𝓟𝓱𝓪́𝓽 𝓑𝓲́ 𝓝𝓰𝓸̂ 𝓣𝓱𝓪̀𝓷𝓱 𝓒𝓸̂𝓷𝓰 ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **PHÁT BÍ NGÔ THÀNH CÔNG** ${emojis.titleRight}`)
         .setDescription(
           `Vợ của Kim Nong ơi, em bot Usagi múp rụp đã phát Bí Ngô thành công rồi nè! 💕\n\n` +
           `👤 **Người nhận:** <@${targetUser.id}> (\`${targetUser.tag}\` | ID: \`${targetUser.id}\`)\n` +

@@ -539,7 +539,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Màu tím pastel nhạt nhạt cố định
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 𝓝𝓸̣̂𝓲 𝓑𝓸̣̂: 𝓚𝔂́ 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓖𝓲𝓪 𝓝𝓱𝓪̣̂𝓹 𝓟𝓱𝓮 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THÔNG BÁO NỘI BỘ: KÝ KHẾ ƯỚC GIA NHẬP PHE** ${emojis.titleRight}`)
       .setDescription(`Hệ thống ghi nhận thành viên vừa ký khế ước tham chiến thế giới **Witch Hunter**!`)
       .addFields(
         {
@@ -589,7 +589,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Màu tím pastel nhạt nhạt cố định
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 𝓝𝓸̣̂𝓲 𝓑𝓸̣̂: 𝓐𝓭𝓶𝓲𝓷 𝓒𝓱𝓾𝔂𝓮̂̉𝓷 Đ𝓸̂̉𝓲 𝓟𝓱𝓮 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THÔNG BÁO NỘI BỘ: ADMIN CHUYỂN ĐỔI PHE** ${emojis.titleRight}`)
       .setDescription(`Admin sở hữu quyền hạn tối cao vừa thực hiện hoán đổi phe phái tham chiến!`)
       .addFields(
         {
@@ -629,7 +629,7 @@ export class WitchHunterService {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 𝓝𝓸̣̂𝓲 𝓑𝓸̣̂: 𝓐𝓭𝓶𝓲𝓷 𝓒𝓪̂́𝓹 𝓡𝓸𝓵𝓮 𝓟𝓱𝓮 𝓣𝓱𝓾̉ 𝓒𝓸̂𝓷𝓰 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THÔNG BÁO NỘI BỘ: ADMIN CẤP ROLE PHE THỦ CÔNG** ${emojis.titleRight}`)
       .setDescription(`Phát hiện thành viên vừa được cấp Role phe Witch Hunter qua giao diện quản trị Discord!`)
       .addFields(
         {
@@ -674,7 +674,7 @@ export class WitchHunterService {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 𝓝𝓸̣̂𝓲 𝓑𝓸̣̂: 𝓐𝓭𝓶𝓲𝓷 𝓧𝓸́𝓪 𝓡𝓸𝓵𝓮 𝓟𝓱𝓮 𝓣𝓱𝓾̉ 𝓒𝓸̂𝓷𝓰 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THÔNG BÁO NỘI BỘ: ADMIN XÓA ROLE PHE THỦ CÔNG** ${emojis.titleRight}`)
       .setDescription(`Phát hiện Role phe Witch Hunter vừa được gỡ bỏ khỏi thành viên!`)
       .addFields(
         {
@@ -720,7 +720,7 @@ export class WitchHunterService {
 
     const embed = new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 𝓝𝓸̣̂𝓲 𝓑𝓸̣̂: 𝓟𝓱𝓪́𝓽 𝓑𝓲́ 𝓝𝓰𝓸̂ ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THÔNG BÁO NỘI BỘ: PHÁT BÍ NGÔ** ${emojis.titleRight}`)
       .setDescription(`Hệ thống ghi nhận lượt ban thưởng Bí Ngô cho thành viên!`)
       .addFields(
         {
@@ -788,7 +788,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Màu tím pastel nhạt nhạt cố định
-      .setTitle(`${emojis.titleLeft} 𝓑𝓪𝓷 𝓣𝓱𝓾̛𝓸̛̉𝓷𝓰 𝓑𝓲́ 𝓝𝓰𝓸̂ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **BAN THƯỞNG BÍ NGÔ MA THUẬT** ${emojis.titleRight}`)
       .setDescription(
         `Chào **Kẻ Mang Khế Ước** thân mến! Em phù thủy nóng bỏng Usagi múp rụp mang tin vui tới cho lữ khách nè! ${emojis.heart || '💕'}\n\n` +
         `Lữ khách vừa nhận được **+${amount.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} được ban thưởng từ ${executor ? `<@${executor.id}>` : 'Ban Quản Trị'}!\n` +
@@ -812,7 +812,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓒𝓱𝓾́𝓬 𝓜𝓾̛̀𝓷𝓰 Đ𝓸̣̂𝓽 𝓟𝓱𝓪́ 𝓒𝓪̂́𝓹 𝓑𝓪̣̂𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **CHÚC MỪNG ĐỘT PHÁ CẤP BẬC MA THUẬT** ${emojis.titleRight}`)
       .setDescription(
         `Khế ước cổ đại vừa rung chuyển dữ dội! Chúc mừng **Kẻ Mang Khế Ước** <@${userId}> đã tích lũy đủ chiến công Bí Ngô và chính thức thăng cấp lên:\n\n` +
         `> ${factionBadge} **${factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${rankInfo.name}**\n\n` +
@@ -991,7 +991,7 @@ export class WitchHunterService {
     try {
       const dmEmbed = new EmbedBuilder()
         .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
-        .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: 𝓒𝓱𝓾𝔂𝓮̂̉𝓷 Đ𝓸̂̉𝓲 𝓟𝓱𝓮 𝓟𝓱𝓪́𝓲 ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
+        .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **KHẾ ƯỚC MA THUẬT: CHUYỂN ĐỔI PHE PHÁI** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
         .setDescription(
           `Chào **${member.user?.username || member.displayName}** thân mến! Em phù thủy nóng bỏng Usagi múp rụp gửi thông báo tới lữ khách nè!\n\n` +
           `Ban Quản Trị vừa tiến hành phê chuẩn chuyển đổi phe phái của bạn trong thế giới **Witch Hunter**:\n\n` +
@@ -1013,7 +1013,7 @@ export class WitchHunterService {
     // Gửi thông báo kênh Admin Log
     const adminLogEmbed = new EmbedBuilder()
       .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
-      .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸: 𝓐𝓭𝓶𝓲𝓷 Đ𝓸̂̉𝓲 𝓟𝓱𝓮 𝓒𝓱𝓸 𝓣𝓱𝓪̀𝓷𝓱 𝓥𝓲𝓮̂𝓷 ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
+      .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **THÔNG BÁO: ADMIN ĐỔI PHE CHO THÀNH VIÊN** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
       .setDescription(`Admin vừa thực hiện lệnh \`/doi-phe\` chuyển đổi phe phái cho thành viên!`)
       .addFields(
         {
@@ -1233,7 +1233,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓾 𝓗𝓸̂̀𝓲 𝓑𝓲́ 𝓝𝓰𝓸̂ & 𝓖𝓲𝓪́𝓷𝓰 𝓒𝓪̂́𝓹 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THU HỒI BÍ NGÔ & GIÁNG CẤP MA THUẬT** ${emojis.titleRight}`)
       .setDescription(
         `Chào **Kẻ Mang Khế Ước** thân mến! Em phù thủy nóng bỏng Usagi múp rụp gửi thông báo tới lữ khách nè!\n\n` +
         `Số Bí Ngô của lữ khách vừa sụt giảm **-${actualDeducted.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} ${sourceText}!\n` +
@@ -1265,7 +1265,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓾 𝓗𝓸̂̀𝓲 𝓑𝓲́ 𝓝𝓰𝓸̂ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THU HỒI BÍ NGÔ MA THUẬT** ${emojis.titleRight}`)
       .setDescription(
         `Chào **Kẻ Mang Khế Ước** thân mến! Em phù thủy nóng bỏng Usagi múp rụp gửi thông báo tới lữ khách nè!\n\n` +
         `Hội Đồng Ma Thuật vừa thực hiện thu hồi **-${actualDeducted.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} từ ${executor ? `<@${executor.id}>` : 'Ban Quản Trị'}!\n` +
@@ -1290,7 +1290,7 @@ export class WitchHunterService {
 
     const embed = new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 𝓝𝓸̣̂𝓲 𝓑𝓸̣̂: 𝓣𝓱𝓾 𝓗𝓸̂̀𝓲 𝓑𝓲́ 𝓝𝓰𝓸̂ ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THÔNG BÁO NỘI BỘ: THU HỒI BÍ NGÔ** ${emojis.titleRight}`)
       .setDescription(`Hệ thống ghi nhận lượt thu hồi Bí Ngô từ thành viên!`)
       .addFields(
         {
@@ -1583,7 +1583,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-      .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC MA THUẬT** ${emojis.titleRight}`)
       .setDescription(
         `Chào bạn **${user.username}** thân mến! Em phù thủy nóng bỏng Usagi múp rụp mang tin vui tới cho bạn nè! ${emojis.heart || '<a:heartg1:1545307544808071258>'}\n\n` +
         `${emojis.pumpkin} Trong kỳ tổng kết Bảng Xếp Hạng **${thang}**, bạn đã đạt thành tích hoạt động xuất sắc và được ban thưởng:\n` +
@@ -1814,7 +1814,7 @@ export class WitchHunterService {
           try {
             const dmEmbed = new EmbedBuilder()
               .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
-              .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: 𝓖𝓲𝓪̉𝓲 𝓣𝓻𝓾̛̀ 𝓟𝓱𝓮 ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
+              .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **KHẾ ƯỚC MA THUẬT: GIẢI TRỪ PHE** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
               .setDescription(
                 `Chào **${newMember.user.username}** thân mến! Em bot Usagi múp rụp gửi thông báo tới bạn nè:\n\n` +
                 `Ban Quản Trị vừa thu hồi role phe **${roleInfo.name}** của bạn.\n` +
@@ -1879,7 +1879,7 @@ export class WitchHunterService {
 
           const dmEmbed = new EmbedBuilder()
             .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
-            .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: 𝓖𝓲𝓪 𝓝𝓱𝓪̣̂𝓹 𝓟𝓱𝓮 ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
+            .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **KHẾ ƯỚC MA THUẬT: GIA NHẬP PHE** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
             .setDescription(
               `Chào **${newMember.user.username}** thân mến! Em bot Usagi múp rụp chúc mừng bạn:\n\n` +
               `Ban Quản Trị vừa cấp role và phê chuẩn bạn chính thức gia nhập **${roleInfo.factionName}** với danh hiệu **${roleInfo.name}**!\n\n` +
@@ -1911,7 +1911,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Màu Tím Pastel #D8B4F8
-      .setTitle(`${emojis.titleLeft} 𝓦𝓲𝓽𝓬𝓱 𝓗𝓾𝓷𝓽𝓮𝓻: 𝓓𝓪𝓷𝓱 𝓢𝓪́𝓬𝓱 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **WITCH HUNTER: DANH SÁCH SUPPORTER KHẾ ƯỚC** ${emojis.titleRight}`)
       .setDescription(
         `Trong thế giới Witch Hunter, mỗi Thợ Săn hay Phù Thủy khi đạt đến từng cảnh giới ma lực nhất định sẽ có thể ký khế ước để kết giao hoặc điều khiển một Supporter (Trợ thủ phò tá) riêng biệt.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -1944,7 +1944,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻: ${supporter.titleFancy} ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC SUPPORTER: ${supporter.name.toUpperCase()}** ${emojis.titleRight}`)
       .setDescription(
         `${factionBadge} **${supporter.factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${supporter.rankName}**\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -1978,7 +1978,7 @@ export class WitchHunterService {
       // Bậc 1: Tân Binh
       return new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻: ${supporter.titleFancy} ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC SUPPORTER: ${supporter.name.toUpperCase()}** ${emojis.titleRight}`)
         .setDescription(
           `Chào **Tân Binh ${supporter.factionName}** thân mến! Em phù thủy nóng bỏng Usagi múp rụp gửi trao khế ước tới lữ khách nè!\n\n` +
           `Hội Đồng Ma Thuật vừa hoàn tất nghi thức phong ấn Supporter thế giới **Witch Hunter**. Nhận thấy lữ khách đã mang trong mình danh hiệu **${supporter.rankName}**, Hội Đồng xin trân trọng trao gửi Supporter khởi đầu đồng hành cùng lữ khách:\n\n` +
@@ -1999,7 +1999,7 @@ export class WitchHunterService {
     // Bậc 2 trở lên: Kẻ Mang Khế Ước thức tỉnh Supporter mới
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓢𝓾𝓹𝓹𝓸𝓻𝓽𝓮𝓻 𝓜𝓸̛́𝓲 𝓣𝓱𝓾̛́𝓬 𝓣𝓲̉𝓷𝓱 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC SUPPORTER MỚI THỨC TỈNH** ${emojis.titleRight}`)
       .setDescription(
         `Chào **Kẻ Mang Khế Ước** thân mến! Em phù thủy nóng bỏng Usagi múp rụp mang tin vui chấn động tới cho **Kẻ Mang Khế Ước** nè!\n\n` +
         `Lữ khách đã tích lũy đủ chiến công Bí Ngô và chính thức thăng cấp lên:\n` +
@@ -2208,7 +2208,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Màu Tím Pastel #D8B4F8
-      .setTitle(`${emojis.titleLeft} 𝓦𝓲𝓽𝓬𝓱 𝓗𝓾𝓷𝓽𝓮𝓻: 𝓚𝓱𝓸 𝓥𝓾̃ 𝓚𝓱𝓲́ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **WITCH HUNTER: KHO VŨ KHÍ MA THUẬT** ${emojis.titleRight}`)
       .setDescription(
         `Trong thế giới **Witch Hunter**, mỗi Thợ Săn hay Phù Thủy khi đột phá từng cảnh giới ma lực sẽ được trang bị một Thần Binh Vũ Khí độc quyền, liên kết cộng hưởng trực tiếp cùng Supporter khế ước để giải phóng sức mạnh tối thượng.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -2246,7 +2246,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple) // Màu Tím Pastel #D8B4F8
-      .setTitle(`${emojis.titleLeft} 𝓥𝓾̃ 𝓚𝓱𝓲́ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${weapon.titleFancy} ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **VŨ KHÍ MA THUẬT: ${weapon.name.toUpperCase()}** ${emojis.titleRight}`)
       .setDescription(
         `${factionBadge} **${weapon.factionName}** • ${emojis.decor15 || '<a:trangtrig15:1546047955696488489>'} **${weapon.rankName}**\n` +
         `${emojis.pumpkin} **Mốc kích hoạt:** **${milestoneText}**\n\n` +
@@ -2412,7 +2412,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓖𝓲𝓪̉𝓲 𝓜𝓪̃ 𝓒𝓸̂̉ 𝓝𝓰𝓾̛̃ — 𝓠𝓾𝓲𝓬𝓴 𝓟𝓾𝔃𝔃𝓵𝓮 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **GIẢI MÃ CỔ NGỮ — QUICK PUZZLE** ${emojis.titleRight}`)
       .setDescription(
         `Nghi thức khảo nghiệm trí tuệ ma thuật cổ xưa dành cho toàn thể **Thợ Săn** và **Phù Thủy**!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -2700,7 +2700,7 @@ export class WitchHunterService {
     if (!faction) {
       return new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓒𝓪́ 𝓝𝓱𝓪̂𝓷: ${targetUser.username} ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **HỒ SƠ CÁ NHÂN: ${targetUser.username.toUpperCase()}** ${emojis.titleRight}`)
         .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
         .setDescription(
           `Chào **${targetUser.username}**! Hiện tại lữ khách **chưa ký khế ước gia nhập phe phái** nào trong thế giới **Witch Hunter**.\n\n` +
@@ -2783,7 +2783,7 @@ export class WitchHunterService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: ${targetUser.username} ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **HỒ SƠ MA THUẬT: ${targetUser.username.toUpperCase()}** ${emojis.titleRight}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
       .setDescription(
         `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +

@@ -103,7 +103,7 @@ export default {
       // 3. Tạo Embed phong cách ma mị với màu tím pastel nhạt nhạt cố định
       const embed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓣𝓱𝓮̂́ 𝓖𝓲𝓸̛́𝓲 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽: 𝓦𝓲𝓽𝓬𝓱 𝓗𝓾𝓷𝓽𝓮𝓻 ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC THẾ GIỚI MA THUẬT: WITCH HUNTER** ${emojis.titleRight}`)
         .setDescription(
           `Vòng xoay định mệnh giữa hai thế lực ngàn năm lại một lần nữa mở ra...\n` +
           `Trước mắt bạn là bản **Khế Ước Cổ Đại**. Hãy chọn 1 trong 2 phe để tham chiến và dấn thân vào con đường tranh đoạt vinh quang ma thuật!\n\n` +

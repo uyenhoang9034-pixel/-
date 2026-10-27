@@ -187,7 +187,7 @@ export default {
       if (!faction) {
         const unassignedEmbed = new EmbedBuilder()
           .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-          .setTitle(`${emojis.titleLeft} 𝓗𝓸̂̀ 𝓢𝓸̛ 𝓒𝓪́ 𝓝𝓱𝓪̂𝓷: ${targetUser.username} ${emojis.titleRight}`)
+          .setTitle(`${emojis.titleLeft} **HỒ SƠ CÁ NHÂN: ${targetUser.username.toUpperCase()}** ${emojis.titleRight}`)
           .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
           .setDescription(
             `Chào **${targetUser.username}**! Hiện tại lữ khách **chưa ký khế ước gia nhập phe phái** nào trong thế giới **Witch Hunter**.\n\n` +

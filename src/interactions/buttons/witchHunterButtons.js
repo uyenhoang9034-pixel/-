@@ -56,7 +56,7 @@ export default {
 
         const changeEmbed = new EmbedBuilder()
           .setColor(colors.pastelPurple)
-          .setTitle(`${emojis.titleLeft} 𝓐𝓭𝓶𝓲𝓷 𝓒𝓱𝓾𝔂𝓮̂̉𝓷 Đ𝓸̂̉𝓲 𝓟𝓱𝓮 𝓣𝓱𝓪̀𝓷𝓱 𝓒𝓸̂𝓷𝓰 ${emojis.titleRight}`)
+          .setTitle(`${emojis.titleLeft} **ADMIN CHUYỂN ĐỔI PHE THÀNH CÔNG** ${emojis.titleRight}`)
           .setDescription(
             `Vợ của Kim Nong ơi, khế ước đặc quyền Admin của bạn đã được chuyển đổi thành công sang ${newEmoji} **${newFactionName}**!\n\n` +
             `> 🎖️ **Cấp bậc tương ứng:** **${rankInfo.name}** *(Bậc ${result.rank})*\n` +
@@ -85,7 +85,7 @@ export default {
 
       const welcomeEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 𝓚𝓱𝓸̛̉𝓲 𝓢𝓪̆́𝓬 ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC MA THUẬT KHỞI SẮC** ${emojis.titleRight}`)
         .setDescription(welcomeMessage)
         .setFooter({ text: 'Witch Hunter System' })
         .setTimestamp();

@@ -174,7 +174,7 @@ export default {
         if (duel.mainMessage) {
           const cancelEmbed = new EmbedBuilder()
             .setColor(0xef4444)
-            .setTitle('🚫 ─── ✦ ⟨ TRẬN ĐẤU ĐÃ BỊ HỦY BỎ BỞI ADMIN ⟩ ✦ ───')
+            .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **TRẬN ĐẤU ĐÃ BỊ HỦY BỎ BỞI ADMIN** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
             .setDescription(`Admin <@${interaction.user.id}> đã hủy bỏ trận chiến Huyết Thệ này. Toàn bộ Bí Ngô cược đã được hoàn trả 100% cho các đấu thủ và cư dân!`)
             .setTimestamp();
 

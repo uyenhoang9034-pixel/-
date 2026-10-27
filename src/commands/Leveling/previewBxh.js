@@ -176,7 +176,7 @@ export default {
 
       const embed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} 𝓟𝓻𝓮𝓿𝓲𝓮𝔀 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓛𝓮𝓿𝓮𝓵 𝓣𝓱𝓪́𝓷𝓰 ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **PREVIEW BẢNG XẾP HẠNG LEVEL THÁNG** ${emojis.titleRight}`)
         .setDescription(
           `Dưới đây là kết quả **Top 20 thành viên có mức tăng trưởng Cấp Ma Thuật cao nhất** (${cycleStatusLine}):\n` +
             `*(Dữ liệu tổng hợp từ toàn bộ các Báo Cáo Hoạt Động Hằng Ngày, ẩn ở chế độ xem trước dành riêng cho Admin)*\n` +

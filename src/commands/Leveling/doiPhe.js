@@ -113,7 +113,7 @@ export default {
 
       const successEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`${emojis.titleLeft} Đổi Phe Phái Thành Công ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **ĐỔI PHE PHÁI THÀNH CÔNG** ${emojis.titleRight}`)
         .setDescription(
           `Vợ của Kim Nong ơi, bạn vừa chuyển đổi phe phái thành công cho <@${targetUser.id}>!\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +

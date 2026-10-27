@@ -304,7 +304,7 @@ export class WitchHunterSummonService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${sEmojis.titleLeft} ─── ✦ ⟨ **TẾ ĐÀN TRIỆU GỌI HUYẾT NGUYỆT** ⟩ ✦ ─── ${sEmojis.titleRight}`)
+      .setTitle(`${sEmojis.titleLeft} **TẾ ĐÀN TRIỆU GỌI HUYẾT NGUYỆT** ${sEmojis.titleRight}`)
       .setDescription(
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `<a:trangtrig18:1546068102817775626> QUY TẮC CHI PHÍ & TẾ ĐÀN:\n` +
@@ -433,7 +433,7 @@ export class WitchHunterSummonService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${sEmojis.titleLeft} 𝓣𝓲𝓮̂́𝓷 𝓣𝓻𝓲̀𝓷𝓱 𝓑𝓪̉𝓸 𝓗𝓲𝓮̂̉𝓶 𝓟𝓲𝓽𝔂 𝓗𝓾𝔂𝓮̂́𝓽 𝓝𝓰𝓾𝔂𝓮̣̂𝓽 ${sEmojis.titleRight}`)
+      .setTitle(`${sEmojis.titleLeft} **TIẾN TRÌNH BẢO HIỂM PITY HUYẾT NGUYỆT** ${sEmojis.titleRight}`)
       .setDescription(
         `<a:heartg1:1545307544808071258> Lữ Khách: <@${userId}>\n` +
         `${factionBadge} Phe Phái: ${factionName}\n` +
@@ -826,7 +826,7 @@ export class WitchHunterSummonService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${sEmojis.titleLeft} ─── ✦ ⟨ **KẾT QUẢ TRIỆU HỒI HUYẾT NGUYỆT** ⟩ ✦ ─── ${sEmojis.titleRight}`)
+      .setTitle(`${sEmojis.titleLeft} **KẾT QUẢ TRIỆU HỒI HUYẾT NGUYỆT** ${sEmojis.titleRight}`)
       .setDescription(
         `Lữ khách <@${user.id}> vừa hiến tế Bí Ngô tại tế đàn **${summonTypeName}** (${pullCount} lượt)!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +

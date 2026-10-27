@@ -120,7 +120,7 @@ export default {
       // 3. Xây dựng Embed Vinh Danh Hoàng Kim (Màu tím pastel nhạt nhạt cố định)
       const embed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} 𝓥𝓲𝓷𝓱 𝓓𝓪𝓷𝓱 𝓑𝓪̉𝓷𝓰 𝓧𝓮̂́𝓹 𝓗𝓪̣𝓷𝓰 𝓜𝓪 𝓣𝓱𝓾𝓪̣̂𝓽 - ${thang} ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **VINH DANH BẢNG XẾP HẠNG MA THUẬT - ${thang.toUpperCase()}** ${emojis.titleRight}`)
         .setDescription(
           `Trải qua những ngày đêm rèn luyện ma thuật và giao chiến khốc liệt, Bảng Xếp Hạng vinh quang **${thang}** đã chính thức khép lại!\n` +
           `Ban Quản Trị xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +

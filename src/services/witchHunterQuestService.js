@@ -550,7 +550,7 @@ export class WitchHunterQuestService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓝𝓰𝓱𝓲 𝓣𝓱𝓾̛́𝓬 𝓣𝓱𝓪̆́𝓹 𝓝𝓮̂́𝓷 𝓒𝓪̂̀𝓾 𝓝𝓰𝓾𝔂𝓮̣̂𝓷 ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **NGHI THỨC THẮP NẾN CẦU NGUYỆN** ${emojis.titleRight}`)
       .setDescription(
         `Giữa màn đêm vĩnh hằng của đại ngàn phù thủy và tiếng hú rợn người từ lũ quái thú bóng tối, ngọn nến cổ đại chính là ngọn hải đăng duy trì khế ước linh hồn của các chiến binh.\n\n` +
         `<a:trangtrig48:1563552038883958855> **QUY TẮC CẦU NGUYỆN HẰNG NGÀY:**\n` +
@@ -703,7 +703,7 @@ export class WitchHunterQuestService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓑𝓪̉𝓷𝓰 𝓚𝓱𝓮̂́ 𝓤̛𝓸̛́𝓬 𝓣𝓾𝓪̂̀𝓷: ${user.username} ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **BẢNG KHẾ ƯỚC TUẦN: ${user.username.toUpperCase()}** ${emojis.titleRight}`)
       .setDescription(
         `Tiến trình thực hiện khế ước rèn luyện trong tuần này của ngươi:\n\n` +
         `<a:trangtrig30:1546905942476464178> **1. Tụ Họp Quán Rượu (Voice Level)**\n` +
@@ -863,7 +863,7 @@ export class WitchHunterQuestService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓲́ 𝓛𝓾𝔂𝓮̣̂𝓷 𝓒𝓾𝓸̂́𝓲 𝓣𝓾𝓪̂̀𝓷: 𝓖𝓲𝓪̉𝓲 𝓜𝓪̃ 𝓒𝓸̂̉ 𝓝𝓰𝓾̛̃ ${emojis.titleRight}`)
+      .setTitle(`${emojis.titleLeft} **THÍ LUYỆN CUỐI TUẦN: GIẢI MÃ CỔ NGỮ** ${emojis.titleRight}`)
       .setDescription(
         `Cánh cổng tàn tích ngàn năm đã hé mở! Những dòng ký tự cổ ngữ chứa đựng tri thức ma thuật tối thượng và những bí ẩn thời đại đang chờ đón những bộ óc thông tuệ nhất đến khai phá!\n\n` +
         `<:trangtri1:1546093044535660644> **QUY TẮC THI ĐẤU:**\n` +
@@ -975,7 +975,7 @@ export class WitchHunterQuestService {
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
-      .setTitle(`<a:trangtrig18:1546068102817775626> CỔ NGỮ THỨ ${currentNum} / 10 • Điểm hiện tại: ${session.score}/10`)
+      .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **CỔ NGỮ THỨ ${currentNum} / 10 • ĐIỂM: ${session.score}/10** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
       .setDescription(
         `**Câu hỏi:**\n` +
         `${currentQ.question}\n\n` +

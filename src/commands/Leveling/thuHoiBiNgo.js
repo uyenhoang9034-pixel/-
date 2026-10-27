@@ -106,7 +106,7 @@ export default {
       // 3. Phản hồi cho Admin thực hiện
       const replyEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple)
-        .setTitle(`${emojis.titleLeft} 𝓣𝓱𝓾 𝓗𝓸̂̀𝓲 𝓑𝓲́ 𝓝𝓰𝓸̂ 𝓣𝓱𝓪̀𝓷𝓱 𝓒𝓸̂𝓷𝓰 ${emojis.titleRight}`)
+        .setTitle(`${emojis.titleLeft} **THU HỒI BÍ NGÔ THÀNH CÔNG** ${emojis.titleRight}`)
         .setDescription(`Đã thu hồi thành công **-${result.amount.toLocaleString('vi-VN')} Bí Ngô** ${emojis.pumpkin} từ thành viên!`)
         .addFields(
           {
