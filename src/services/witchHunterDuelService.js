@@ -700,13 +700,9 @@ export class WitchHunterDuelService {
     const suppId = equippedSupp?.id;
     const profile = this.COMBAT_PROFILES[suppId] || null;
 
-    // Kiểm tra Cộng Hưởng Đồng Bộ (Resonance): Trang bị đúng vũ khí liên kết gốc
-    let isResonance = false;
-    if (profile && equippedWep) {
-      if (profile.weaponId === equippedWep.id) {
-        isResonance = true;
-      }
-    }
+    // Kiểm tra Cộng Hưởng Đồng Bộ (Resonance): Đồng bộ trực tiếp từ WitchHunterService
+    const resonanceStatus = WitchHunterService.checkResonance(userId);
+    const isResonance = Boolean(resonanceStatus?.isResonance);
 
     return {
       userId,

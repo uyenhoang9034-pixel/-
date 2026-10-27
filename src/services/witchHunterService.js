@@ -29,6 +29,46 @@ const JSON_FILE_PATH = path.join(DATA_DIR, 'witch_hunter.json');
 const SQLITE_FILE_PATH = path.join(DATA_DIR, 'witch_hunter.sqlite');
 
 /**
+ * Bảng ánh xạ Cộng Hưởng Đồng Bộ Khế Ước (Resonance Map)
+ * Supporter liên kết trực tiếp với Thần Binh Vũ Khí gốc -> Kích hoạt x1.5 Bạo Kích Sát Thương
+ */
+export const WITCH_HUNTER_RESONANCE_MAP = {
+  // --- HIỆP HỘI THỢ SĂN (HUNTERS) ---
+  garmr: 'wep_hunter_1',
+  zodiac: 'wep_hunter_2',
+  bastion: 'wep_hunter_3',
+  abyssus: 'wep_hunter_4',
+  oculus: 'wep_hunter_5',
+  fenris: 'wep_frostbite_fangs',
+  brand: 'wep_chain_of_penance',
+  iron_maiden: 'wep_spike_cage_shield',
+  bailong: 'wep_thunder_pearl_rapier',
+  thanatos: 'wep_executioners_guise',
+  astrarium: 'wep_singularity_staff',
+  deus_ex: 'wep_judgement_cannon',
+  ouroboros_core: 'wep_absolute_singularity_lance',
+
+  // --- PHE PHÙ THỦY (WITCHES) ---
+  malice: 'wep_witch_1',
+  corvus: 'wep_witch_2',
+  tamamo: 'wep_witch_3',
+  vermilion: 'wep_witch_4',
+  hallow: 'wep_witch_5',
+  sylph: 'wep_gale_plume_whip',
+  morpheus: 'wep_slumber_mist_censer',
+  hemlock: 'wep_blight_pestle',
+  cerastes: 'wep_petrification_gaze_flute',
+  banshee: 'wep_screaming_veil',
+  ouroboros_witch: 'wep_infinity_mirror',
+  lilith: 'wep_genesis_blood_chalice',
+  tiamat: 'wep_calamity_dragon_horn',
+};
+
+export const WITCH_HUNTER_WEAPON_TO_SUPPORTER_MAP = Object.fromEntries(
+  Object.entries(WITCH_HUNTER_RESONANCE_MAP).map(([s, w]) => [w, s])
+);
+
+/**
  * Storage Engine: Tự động dùng SQLite native nếu môi trường hỗ trợ (Node.js 22+ built-in node:sqlite),
  * hoặc fallback về Atomic JSON siêu nhẹ, không phụ thuộc C++ addon, cực kỳ tiết kiệm RAM (< 2MB).
  * Đã tích hợp Debounce Flush để chống tắc nghẽn I/O đĩa khi xử lý batch nhiều member cùng lúc.
@@ -63,7 +103,10 @@ class WitchHunterStorage {
                   pumpkins INTEGER DEFAULT 0,
                   updated_at INTEGER,
                   last_puzzle_session TEXT,
-                  last_puzzle_week TEXT
+                  last_puzzle_week TEXT,
+                  equipped_supporter TEXT,
+                  equipped_weapon TEXT,
+                  is_resonance INTEGER DEFAULT 0
                 );
               `);
               try {
@@ -77,6 +120,9 @@ class WitchHunterStorage {
               } catch {}
               try {
                 this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN equipped_weapon TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN is_resonance INTEGER DEFAULT 0;');
               } catch {}
               this.isSqlite = true;
               logger.info('🔮 [WitchHunter] Storage Engine: SQLite (Native Node:sqlite) đã sẵn sàng.');
@@ -186,6 +232,7 @@ class WitchHunterStorage {
             unlocked_supporters: Array.isArray(unlockedSupporters) ? unlockedSupporters : [],
             equipped_supporter: row.equipped_supporter || null,
             equipped_weapon: row.equipped_weapon || null,
+            is_resonance: Number(row.is_resonance) || 0,
             last_puzzle_session: row.last_puzzle_session || null,
             last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
             updated_at: Number(row.updated_at) || Date.now(),
@@ -210,6 +257,9 @@ class WitchHunterStorage {
           faction: row.faction,
           current_rank: Number(row.current_rank) || 1,
           pumpkins: Number(row.pumpkins) || 0,
+          equipped_supporter: row.equipped_supporter || null,
+          equipped_weapon: row.equipped_weapon || null,
+          is_resonance: Number(row.is_resonance) || 0,
           last_puzzle_session: row.last_puzzle_session || null,
           last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
           updated_at: Number(row.updated_at) || Date.now(),
@@ -230,8 +280,8 @@ class WitchHunterStorage {
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare(`
-          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon, is_resonance)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id) DO UPDATE SET
             faction = excluded.faction,
             current_rank = excluded.current_rank,
@@ -240,7 +290,8 @@ class WitchHunterStorage {
             last_puzzle_session = excluded.last_puzzle_session,
             last_puzzle_week = excluded.last_puzzle_week,
             equipped_supporter = excluded.equipped_supporter,
-            equipped_weapon = excluded.equipped_weapon
+            equipped_weapon = excluded.equipped_weapon,
+            is_resonance = excluded.is_resonance
         `);
         stmt.run(
           userObj.user_id,
@@ -251,7 +302,8 @@ class WitchHunterStorage {
           userObj.last_puzzle_session || null,
           userObj.last_puzzle_week || userObj.last_puzzle_session || null,
           userObj.equipped_supporter || null,
-          userObj.equipped_weapon || null
+          userObj.equipped_weapon || null,
+          userObj.is_resonance ? 1 : 0
         );
       } catch (err) {
         logger.error('❌ [WitchHunter] SQLite saveUser error:', err);
@@ -2468,6 +2520,100 @@ export class WitchHunterService {
   }
 
   /**
+   * Định dạng Rank hiển thị chuẩn hóa thành ký tự chữ (C, B, A, S, SS)
+   */
+  static formatRankLetter(rank) {
+    const tier = this.rankToTier(rank);
+    return this.tierToLetter(tier);
+  }
+
+  /**
+   * Kiểm tra xem Supporter và Thần Binh Vũ Khí đang kích hoạt có Cộng Hưởng Đồng Bộ Khế Ước không.
+   * Cung cấp lời khuyên chi tiết từ Em Phù Thủy Usagi khi chưa đồng bộ.
+   */
+  static checkResonance(userId) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) {
+      return {
+        hasFaction: false,
+        isResonance: false,
+        message: 'Lữ khách chưa ký khế ước gia nhập phe!',
+      };
+    }
+
+    const equippedSupp = this.getEquippedSupporter(userId);
+    const equippedWep = this.getEquippedWeapon(userId);
+
+    if (!equippedSupp || !equippedWep) {
+      return {
+        hasFaction: true,
+        isResonance: false,
+        equippedSupporter: equippedSupp,
+        equippedWeapon: equippedWep,
+        suggestion: 'Lữ khách hãy trang bị đầy đủ cả Supporter và Thần Binh Vũ Khí để kích hoạt sức mạnh cộng hưởng nha!',
+      };
+    }
+
+    const matchedWepId = WITCH_HUNTER_RESONANCE_MAP[equippedSupp.id];
+    const matchedSuppId = WITCH_HUNTER_WEAPON_TO_SUPPORTER_MAP[equippedWep.id];
+    const isResonance = Boolean(matchedWepId && matchedWepId === equippedWep.id);
+
+    // Đồng bộ thuộc tính vào userData
+    if (userData.is_resonance !== (isResonance ? 1 : 0)) {
+      userData.is_resonance = isResonance ? 1 : 0;
+      witchHunterStorage.saveUser(userData, true);
+    }
+
+    if (isResonance) {
+      return {
+        hasFaction: true,
+        isResonance: true,
+        equippedSupporter: equippedSupp,
+        equippedWeapon: equippedWep,
+        matchedWeapon: equippedWep,
+        matchedSupporter: equippedSupp,
+        bonusDesc: 'Tăng **x1.5 Bạo Kích Sát Thương** & kích hoạt 100% Thuộc Tính Thần Binh khi giao tranh!',
+      };
+    }
+
+    // Nếu không đồng bộ -> Tìm vật phẩm gợi ý từ kho đồ hoặc hệ thống
+    const matchedWep = matchedWepId ? getWeaponById(matchedWepId) : null;
+    const matchedSupp = matchedSuppId ? getSupporterById(matchedSuppId) : null;
+
+    const ownedSupporters = this.getOwnedSupporters(userId);
+    const ownedWeapons = this.getOwnedWeapons(userId);
+
+    const hasMatchedWep = Boolean(matchedWep && ownedWeapons.some((w) => w.id === matchedWep.id));
+    const hasMatchedSupp = Boolean(matchedSupp && ownedSupporters.some((s) => s.id === matchedSupp.id));
+
+    let suggestion = '';
+    const suppRankLetter = this.formatRankLetter(equippedSupp.rank);
+    const wepRankLetter = this.formatRankLetter(equippedWep.rank);
+
+    if (hasMatchedWep && matchedWep) {
+      suggestion = `Lữ khách đã sở hữu Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] trong kho! Hãy đổi sang vũ khí này để đồng bộ với Supporter **${equippedSupp.name}** [${suppRankLetter}-Rank], kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+    } else if (hasMatchedSupp && matchedSupp) {
+      suggestion = `Lữ khách đã sở hữu Supporter **${matchedSupp.name}** [${this.formatRankLetter(matchedSupp.rank)}-Rank] trong kho! Hãy đổi sang Supporter này để đồng bộ với Thần Binh **${equippedWep.shortName || equippedWep.name}** [${wepRankLetter}-Rank], kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+    } else if (matchedWep && matchedSupp) {
+      suggestion = `Nên đổi sang Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] (phù hợp với Supporter **${equippedSupp.name}**) hoặc đổi sang Supporter **${matchedSupp.name}** [${this.formatRankLetter(matchedSupp.rank)}-Rank] (phù hợp với Thần Binh **${equippedWep.shortName || equippedWep.name}**) để kích hoạt tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+    } else if (matchedWep) {
+      suggestion = `Nên trang bị Thần Binh **${matchedWep.shortName || matchedWep.name}** [${this.formatRankLetter(matchedWep.rank)}-Rank] để đồng bộ khế ước cùng Supporter **${equippedSupp.name}**, tăng **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+    } else {
+      suggestion = `Hãy chọn cặp Supporter và Thần Binh Vũ Khí cùng hệ đồng bộ bậc [${suppRankLetter}-Rank] để kích hoạt **x1.5 Bạo Kích Sát Thương** nha! 💕`;
+    }
+
+    return {
+      hasFaction: true,
+      isResonance: false,
+      equippedSupporter: equippedSupp,
+      equippedWeapon: equippedWep,
+      matchedWeapon: matchedWep,
+      matchedSupporter: matchedSupp,
+      suggestion,
+    };
+  }
+
+  /**
    * Lấy danh sách Supporter đã sở hữu của một thành viên
    */
   static getOwnedSupporters(userId) {
@@ -2605,7 +2751,8 @@ export class WitchHunterService {
       userData.equipped_supporter = null;
       witchHunterStorage.saveUser(userData, true);
       const defaultSupp = getSupporterByRank(userData.faction, currentRank);
-      return { success: true, supporter: defaultSupp, isDefault: true };
+      const resonance = this.checkResonance(userId);
+      return { success: true, supporter: defaultSupp, isDefault: true, resonance };
     }
 
     const owned = this.getOwnedSupporters(userId);
@@ -2623,13 +2770,14 @@ export class WitchHunterService {
       return {
         success: false,
         locked: true,
-        message: `🔒 **CẤP BẬC KHÔNG ĐỦ ĐIỀU KIỆN!**\n> Cấp bậc hiện tại của lữ khách là **${rankInfo?.name || `Bậc ${currentRank}`}** (${userLetter}-Rank).\n> Quy tắc ma thuật giới hạn lữ khách chỉ có thể trang bị Supporter tối đa từ bậc **${maxLetter}-Rank trở xuống** *(Bậc hiện tại + 1)*!\n> Để sử dụng Supporter **${targetSupporter.name}** [${targetSupporter.rank}-Rank], lữ khách cần đạt tối thiểu cấp bậc **${requiredRankObj?.name || `Bậc ${requiredRankTier}`}** (${this.tierToLetter(requiredRankTier)}-Rank) nha! 💕`,
+        message: `🔒 **CẤP BẬC KHÔNG ĐỦ ĐIỀU KIỆN!**\n> Cấp bậc hiện tại của lữ khách là **${rankInfo?.name || `Bậc ${currentRank}`}** (${userLetter}-Rank).\n> Quy tắc ma thuật giới hạn lữ khách chỉ có thể trang bị Supporter tối đa từ bậc **${maxLetter}-Rank trở xuống** *(Bậc hiện tại + 1)*!\n> Để sử dụng Supporter **${targetSupporter.name}** [${this.formatRankLetter(targetSupporter.rank)}-Rank], lữ khách cần đạt tối thiểu cấp bậc **${requiredRankObj?.name || `Bậc ${requiredRankTier}`}** (${this.tierToLetter(requiredRankTier)}-Rank) nha! 💕`,
       };
     }
 
     userData.equipped_supporter = targetSupporter.id;
     witchHunterStorage.saveUser(userData, true);
-    return { success: true, supporter: targetSupporter };
+    const resonance = this.checkResonance(userId);
+    return { success: true, supporter: targetSupporter, resonance };
   }
 
   /**
@@ -2650,7 +2798,8 @@ export class WitchHunterService {
       userData.equipped_weapon = null;
       witchHunterStorage.saveUser(userData, true);
       const defaultWep = getWeaponByRank(userData.faction, currentRank);
-      return { success: true, weapon: defaultWep, isDefault: true };
+      const resonance = this.checkResonance(userId);
+      return { success: true, weapon: defaultWep, isDefault: true, resonance };
     }
 
     const owned = this.getOwnedWeapons(userId);
@@ -2668,13 +2817,14 @@ export class WitchHunterService {
       return {
         success: false,
         locked: true,
-        message: `🔒 **CẤP BẬC KHÔNG ĐỦ ĐIỀU KIỆN!**\n> Cấp bậc hiện tại của lữ khách là **${rankInfo?.name || `Bậc ${currentRank}`}** (${userLetter}-Rank).\n> Quy tắc ma thuật giới hạn lữ khách chỉ có thể trang bị Thần Binh Vũ Khí tối đa từ bậc **${maxLetter}-Rank trở xuống** *(Bậc hiện tại + 1)*!\n> Để sử dụng Vũ Khí **${targetWeapon.name}** [${targetWeapon.rank}-Rank], lữ khách cần đạt tối thiểu cấp bậc **${requiredRankObj?.name || `Bậc ${requiredRankTier}`}** (${this.tierToLetter(requiredRankTier)}-Rank) nha! 💕`,
+        message: `🔒 **CẤP BẬC KHÔNG ĐỦ ĐIỀU KIỆN!**\n> Cấp bậc hiện tại của lữ khách là **${rankInfo?.name || `Bậc ${currentRank}`}** (${userLetter}-Rank).\n> Quy tắc ma thuật giới hạn lữ khách chỉ có thể trang bị Thần Binh Vũ Khí tối đa từ bậc **${maxLetter}-Rank trở xuống** *(Bậc hiện tại + 1)*!\n> Để sử dụng Vũ Khí **${targetWeapon.name}** [${this.formatRankLetter(targetWeapon.rank)}-Rank], lữ khách cần đạt tối thiểu cấp bậc **${requiredRankObj?.name || `Bậc ${requiredRankTier}`}** (${this.tierToLetter(requiredRankTier)}-Rank) nha! 💕`,
       };
     }
 
     userData.equipped_weapon = targetWeapon.id;
     witchHunterStorage.saveUser(userData, true);
-    return { success: true, weapon: targetWeapon };
+    const resonance = this.checkResonance(userId);
+    return { success: true, weapon: targetWeapon, resonance };
   }
 
   /**
@@ -2738,40 +2888,55 @@ export class WitchHunterService {
     if (equippedSupporter) {
       const cat = WITCH_HUNTER_CONFIG.supporters.categories[equippedSupporter.categoryKey];
       const catEmoji = cat?.emoji || defaultLinhTocEmoji;
-      const rankBadge = `**[${equippedSupporter.rank}-Rank]**`;
+      const rankBadge = `**[${this.formatRankLetter(equippedSupporter.rank)}-Rank]**`;
       equippedSupporterLine = `${catEmoji} ${rankBadge} **${equippedSupporter.name}** *(${cat?.shortName || ''})*`;
     }
 
     // Vũ khí đang kích hoạt
     let equippedWeaponLine = `*Chưa trang bị*`;
     if (equippedWeapon) {
-      const rankBadge = `**[${equippedWeapon.rank}-Rank]**`;
+      const rankBadge = `**[${this.formatRankLetter(equippedWeapon.rank)}-Rank]**`;
       const energyEmoji = equippedWeapon.energyEmoji || '⚔️';
       equippedWeaponLine = `${energyEmoji} ${rankBadge} **${equippedWeapon.name}** *(${equippedWeapon.energyAttribute || ''})*`;
     }
 
-    // Danh sách Supporter sở hữu
+    // Kiểm tra Cộng Hưởng Khế Ước giữa Supporter và Thần Binh Vũ Khí
+    const resonance = this.checkResonance(userId);
+    let resonanceLine = '';
+    if (resonance.isResonance) {
+      resonanceLine =
+        `<a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước:** <a:trangtrig20:1546092997299667055> **KÍCH HOẠT THÀNH CÔNG!**\n` +
+        `> <a:knifeg1:1546058092016312381> **Hiệu quả:** Tăng **x1.5 Bạo Kích Sát Thương** & kích hoạt 100% Thuộc Tính Thần Binh khi giao tranh!\n\n`;
+    } else {
+      resonanceLine =
+        `<a:bang2:1546891483250954290> **Lữ khách xin lưu ý:** Supporter và Vũ Khí của lữ khách chưa có đồng bộ cộng hưởng.\n` +
+        `> <a:bang2:1546891483250954290> **Em Phù Thủy Usagi khuyên dùng:** ${resonance.suggestion}\n\n`;
+    }
+
+    // Danh sách Supporter sở hữu (đổi 1 2 3 4 sang C B A S SS, bỏ chấm ngang thay bằng 1.  2.  cách nhau)
     let ownedSupportersLines = '';
     if (ownedSupporters.length > 0) {
-      ownedSupportersLines = ownedSupporters.map((s) => {
+      ownedSupportersLines = ownedSupporters.map((s, idx) => {
         const isEquipped = equippedSupporter && s.id === equippedSupporter.id;
         const cat = WITCH_HUNTER_CONFIG.supporters.categories[s.categoryKey];
         const catEmoji = cat?.emoji || '🔮';
+        const rankLetter = this.formatRankLetter(s.rank);
         const tag = isEquipped ? ' <a:trangtrig36:1563065680922808340> *(Đang dùng)*' : '';
-        return `> • ${catEmoji} **[${s.rank}-Rank]** ${s.name}${tag}`;
+        return `> ${idx + 1}.  ${catEmoji} **[${rankLetter}-Rank]** ${s.name}${tag}`;
       }).join('\n');
     } else {
       ownedSupportersLines = `> *(Chưa có Supporter nào)*`;
     }
 
-    // Danh sách Vũ Khí sở hữu
+    // Danh sách Vũ Khí sở hữu (đổi 1 2 3 4 sang C B A S SS, bỏ chấm ngang thay bằng 1.  2.  cách nhau)
     let ownedWeaponsLines = '';
     if (ownedWeapons.length > 0) {
-      ownedWeaponsLines = ownedWeapons.map((w) => {
+      ownedWeaponsLines = ownedWeapons.map((w, idx) => {
         const isEquipped = equippedWeapon && w.id === equippedWeapon.id;
         const energyEmoji = w.energyEmoji || '⚔️';
+        const rankLetter = this.formatRankLetter(w.rank);
         const tag = isEquipped ? ' <a:trangtrig36:1563065680922808340> *(Đang dùng)*' : '';
-        return `> • ${energyEmoji} **[${w.rank}-Rank]** ${w.shortName || w.name}${tag}`;
+        return `> ${idx + 1}.  ${energyEmoji} **[${rankLetter}-Rank]** ${w.shortName || w.name}${tag}`;
       }).join('\n');
     } else {
       ownedWeaponsLines = `> *(Chưa có Vũ Khí nào)*`;
@@ -2796,6 +2961,7 @@ export class WitchHunterService {
         `<a:whg2:1564145798537683034> **TRANG BỊ ĐANG KÍCH HOẠT:**\n` +
         `• **Supporter:** ${equippedSupporterLine}\n` +
         `• **Thần Binh Vũ Khí:** ${equippedWeaponLine}\n\n` +
+        `${resonanceLine}` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `<a:giftg1:1543150714732412948> **KHO BÁU VẬT ĐÃ SỞ HỮU:**\n` +
         `<a:linhtocg:1563399670351536310> **Supporter Đã Ký Khế Ước (${ownedSupporters.length}):**\n` +
@@ -2853,10 +3019,11 @@ export class WitchHunterService {
       },
       ...ownedSupporters.slice(0, 24).map((s) => {
         const itemTier = this.rankToTier(s.rank);
+        const rankLetter = this.formatRankLetter(s.rank);
         const isLocked = itemTier > maxAllowedTier;
         const isEquipped = equippedSupporter && s.id === equippedSupporter.id;
         const cat = WITCH_HUNTER_CONFIG.supporters.categories[s.categoryKey];
-        const prefix = isLocked ? `🔒 [Khóa Bậc ${s.rank}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${s.rank}-Rank] `;
+        const prefix = isLocked ? `🔒 [Khóa Bậc ${rankLetter}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${rankLetter}-Rank] `;
         return {
           label: `${prefix}${s.name}`.slice(0, 100),
           description: isLocked
@@ -2880,9 +3047,10 @@ export class WitchHunterService {
       },
       ...ownedWeapons.slice(0, 24).map((w) => {
         const itemTier = this.rankToTier(w.rank);
+        const rankLetter = this.formatRankLetter(w.rank);
         const isLocked = itemTier > maxAllowedTier;
         const isEquipped = equippedWeapon && w.id === equippedWeapon.id;
-        const prefix = isLocked ? `🔒 [Khóa Bậc ${w.rank}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${w.rank}-Rank] `;
+        const prefix = isLocked ? `🔒 [Khóa Bậc ${rankLetter}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${rankLetter}-Rank] `;
         return {
           label: `${prefix}${w.shortName || w.name}`.slice(0, 100),
           description: isLocked

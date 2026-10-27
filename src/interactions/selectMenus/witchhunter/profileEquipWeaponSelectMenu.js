@@ -41,8 +41,20 @@ export default {
         ? `Mặc Định Theo Cấp Bậc (${result.weapon?.name || ''})`
         : result.weapon?.name;
 
+      const resonance = result.resonance || WitchHunterService.checkResonance(interaction.user.id);
+      let resonanceNotice = '';
+      if (resonance && !resonance.isResonance) {
+        resonanceNotice =
+          `\n\n<a:bang2:1546891483250954290> Lữ khách xin lưu ý: Supporter và Vũ Khí của lữ khách chưa có đồng bộ cộng hưởng.\n` +
+          `<a:bang2:1546891483250954290> Em Phù Thủy Usagi khuyên dùng: ${resonance.suggestion}`;
+      } else if (resonance && resonance.isResonance) {
+        resonanceNotice =
+          `\n\n<a:trangtrig14:1546047912969113622> **Cộng Hưởng Đồng Bộ Khế Ước:** <a:trangtrig20:1546092997299667055> **KÍCH HOẠT THÀNH CÔNG!**\n` +
+          `> <a:knifeg1:1546058092016312381> **Hiệu quả:** Tăng **x1.5 Bạo Kích Sát Thương** & kích hoạt 100% Thuộc Tính Thần Binh khi giao tranh!`;
+      }
+
       await interaction.followUp({
-        content: `<a:trangtrig31:1546905996893626440> Đã trang bị thành công Thần Binh Vũ Khí **${wepName}** xuất trận!`,
+        content: `<a:trangtrig31:1546905996893626440> Đã trang bị thành công Thần Binh Vũ Khí **${wepName}** xuất trận!${resonanceNotice}`,
         flags: MessageFlags.Ephemeral,
       }).catch(() => null);
     } catch (error) {
