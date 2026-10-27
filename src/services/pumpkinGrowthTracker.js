@@ -496,12 +496,13 @@ class PumpkinGrowthTracker {
       // 3. Mặc định lấy từ this.todayBuffer
       else {
         for (const [userId, stats] of this.todayBuffer.entries()) {
-          const voiceMinutes = Math.floor(stats.voiceMs / 60000);
-          const voiceLevels = stats.voiceLevels > 0 ? stats.voiceLevels : Math.floor(voiceMinutes / 30);
-          const chatLevels = stats.chatLevels || 0;
+          const voiceMinutes = Math.floor((Number(stats.voiceMs) || 0) / 60000);
+          const voiceLevels = (Number(stats.voiceLevels) || 0) > 0 ? Number(stats.voiceLevels) : Math.floor(voiceMinutes / 30);
+          const chatLevels = Number(stats.chatLevels) || 0;
           const totalLevels = voiceLevels + chatLevels;
+          const messageCount = Number(stats.messageCount) || 0;
 
-          if (voiceMinutes > 0 || stats.messageCount > 0 || totalLevels > 0) {
+          if (voiceMinutes > 0 || messageCount > 0 || totalLevels > 0) {
             const rec = {
               date: todayStr,
               userId,
@@ -552,7 +553,7 @@ class PumpkinGrowthTracker {
           if (reportChannel) {
             userSummaryList.sort((a, b) => b.totalLevels - a.totalLevels || b.voiceMinutes - a.voiceMinutes);
 
-            const topActive = userSummaryList.slice(0, 25);
+            const topActive = userSummaryList.slice(0, 20);
             const descriptionLines = topActive.map((item, index) => {
               const profile = WitchHunterService.getUserProfile(item.userId);
               const factionTag = profile?.faction
@@ -563,21 +564,33 @@ class PumpkinGrowthTracker {
 
               return (
                 `**#${index + 1}.** <@${item.userId}> ${factionTag}\n` +
-                `> 🎙️ Voice: \`${item.voiceMinutes.toLocaleString('vi-VN')} phút\` $\\rightarrow$ **+${item.voiceLevels} cấp**\n` +
-                `> 💬 Chat: \`${item.messageCount.toLocaleString('vi-VN')} tin nhắn\` $\\rightarrow$ **+${item.chatLevels} cấp thực tế**\n` +
-                `> ⭐ **Tổng cấp tăng hôm nay: +${item.totalLevels} cấp**`
+                `> 🎙️ Voice: \`${(item.voiceMinutes || 0).toLocaleString('vi-VN')} phút\` $\\rightarrow$ **+${item.voiceLevels || 0} cấp**\n` +
+                `> 💬 Chat: \`${(item.messageCount || 0).toLocaleString('vi-VN')} tin nhắn\` $\\rightarrow$ **+${item.chatLevels || 0} cấp thực tế**\n` +
+                `> ⭐ **Tổng cấp tăng hôm nay: +${item.totalLevels || 0} cấp**`
               );
             });
+
+            let fullDesc =
+              `Dưới đây là tổng kết hoạt động rèn luyện ma thuật (Voice + Chat) trong ngày **${todayStr}**:\n` +
+              `*(Báo cáo gửi tự động lúc 00:00 dành riêng cho Ban Quản Trị)*\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+            if (descriptionLines.length === 0) {
+              fullDesc += '*Không có thành viên nào hoạt động trong ngày này.*';
+            } else {
+              for (const line of descriptionLines) {
+                if ((fullDesc + line + '\n\n').length > 3900) {
+                  fullDesc += `*... và các thành viên khác.*`;
+                  break;
+                }
+                fullDesc += line + '\n\n';
+              }
+            }
 
             const embed = new EmbedBuilder()
               .setColor(colors.pastelPurple)
               .setTitle(`${emojis.titleLeft} 𝓑𝓪́𝓸 𝓒𝓪́𝓸 𝓗𝓸𝓪̣𝓽 Đ𝓸̣̂𝓷𝓰 𝓗𝓪̆̀𝓷𝓰 𝓝𝓰𝓪̀𝔂: ${todayStr} ${emojis.titleRight}`)
-              .setDescription(
-                `Dưới đây là tổng kết hoạt động rèn luyện ma thuật (Voice + Chat) trong ngày **${todayStr}**:\n` +
-                  `*(Báo cáo gửi tự động lúc 00:00 dành riêng cho Ban Quản Trị)*\n` +
-                  `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-                  (descriptionLines.length > 0 ? descriptionLines.join('\n\n') : '*Không có thành viên nào hoạt động trong ngày này.*')
-              )
+              .setDescription(fullDesc.slice(0, 4000))
               .setFooter({
                 text: 'Witch Hunter Daily Tracker',
               })

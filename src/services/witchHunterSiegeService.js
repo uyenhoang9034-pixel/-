@@ -71,7 +71,7 @@ class WitchHunterSiegeService {
     if (this.isSiegeActive()) {
       return {
         success: false,
-        message: '⚠️ Chiến trường Cổ Tháp Phong Ấn hiện đang diễn ra rồi!',
+        message: '<a:bang2:1546891483250954290> Chiến trường Cổ Tháp Phong Ấn hiện đang diễn ra rồi!',
       };
     }
 
@@ -143,7 +143,7 @@ class WitchHunterSiegeService {
       towers: this.activeSiege.towers,
     });
 
-    const embed = this.buildDashboardEmbed(timeRemainingStr);
+    const embed = this.buildDashboardEmbed(timeRemainingStr, !!attachment);
     const components = this.buildDashboardComponents(false);
 
     const messagePayload = {
@@ -174,7 +174,7 @@ class WitchHunterSiegeService {
   /**
    * Tạo Embed Bảng Điều Khiển Chiến Trường (Giao diện 1)
    */
-  buildDashboardEmbed(timeRemainingStr = '30:00') {
+  buildDashboardEmbed(timeRemainingStr = '30:00', hasAttachment = false) {
     const { colors } = WITCH_HUNTER_CONFIG;
 
     const embed = new EmbedBuilder()
@@ -196,9 +196,12 @@ class WitchHunterSiegeService {
         `> Mỗi trận thắng sẽ tăng điểm chiếm đóng cho phe mình và tích lũy chuỗi thắng (Win-Streak).\n` +
         `> Đánh bại **Chiến Tướng Tại Trụ** của phe địch để bẻ gãy chuỗi thắng và đoạt quyền kiểm soát tháp!`
       )
-      .setImage('attachment://tower_battlefield_live.png')
-      .setFooter({ text: 'Hệ thống tự động đồng bộ hình ảnh mỗi 25 giây • Witch Hunter Siege' })
+      .setFooter({ text: 'Hệ thống tự động đồng bộ mỗi 25 giây • Witch Hunter Siege' })
       .setTimestamp();
+
+    if (hasAttachment) {
+      embed.setImage('attachment://tower_battlefield_live.png');
+    }
 
     return embed;
   }
@@ -256,7 +259,7 @@ class WitchHunterSiegeService {
           towers: this.activeSiege.towers,
         });
 
-        const embed = this.buildDashboardEmbed(timeRemainingStr);
+        const embed = this.buildDashboardEmbed(timeRemainingStr, !!attachment);
         const components = this.buildDashboardComponents(false);
 
         const editPayload = {
@@ -304,7 +307,7 @@ class WitchHunterSiegeService {
     if (p.lastAttackTime && now - p.lastAttackTime < cooldownMs) {
       const waitSec = Math.ceil((p.lastAttackTime + cooldownMs - now) / 1000);
       return interaction.reply({
-        content: `⏳ Lữ khách vừa xuất trận, cần dưỡng sức thêm **${waitSec} giây** nữa trước khi tiếp tục chi viện Cổ Tháp!`,
+        content: `<a:kuromig4:1546058744281174077> Lữ khách vừa xuất trận, cần dưỡng sức thêm **${waitSec} giây** nữa trước khi tiếp tục chi viện Cổ Tháp!`,
         flags: MessageFlags.Ephemeral,
       });
     }
