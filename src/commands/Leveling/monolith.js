@@ -38,7 +38,8 @@ export default {
                     day: '2-digit',
                     month: '2-digit',
                   });
-                  return `> \`[${dateStr}]\` ${l.text}`;
+                  const formattedText = WitchHunterDuelService.formatLogText(l);
+                  return `> \`[${dateStr}]\` ${formattedText}`;
                 })
                 .join('\n')
             : '> *(Chưa có sự kiện chiến sự nào được ghi nhận)*';

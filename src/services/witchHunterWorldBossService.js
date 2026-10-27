@@ -734,11 +734,12 @@ class WitchHunterWorldBossService {
 
       // 1. BAN PHƯỚC TỐI CAO: Hồi phục +5% HP Trụ Tổng cho phe thắng sát thương
       if (winFaction && guild) {
+        const winFactionName = winFaction === 'hunter' ? 'Phe Thợ Săn' : 'Phe Phù Thủy';
         await WitchHunterDuelService.healTowerHp(
           guild,
           winFaction,
           5,
-          `Ban Phước Tối Cao từ Đại Chiến Bách Quỷ Dạ Hành (+5% HP Trụ Tổng)`
+          `Ban Phước Tối Cao từ Đại Chiến Bách Quỷ Dạ Hành (+5% HP Trụ Tổng ${winFactionName})`
         );
       }
 

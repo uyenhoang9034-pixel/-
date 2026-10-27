@@ -541,6 +541,9 @@ export class WitchHunterDuelService {
       data.logs = Array.isArray(data.logs) ? data.logs : [];
       data.logs.unshift({
         time: Date.now(),
+        faction,
+        percent,
+        type: 'deduct',
         text: reasonText,
       });
       if (data.logs.length > 10) {
@@ -554,7 +557,7 @@ export class WitchHunterDuelService {
         await this.updateMonolithMessage(guild).catch(() => null);
       }
 
-      logger.info(`🏰 [Monolith] Trụ ${faction} bị trừ -${percent}% HP (${reasonText}).`);
+      logger.info(`🏰 [Monolith] Trụ ${faction} bị trừ ${percent}% HP (${reasonText}).`);
       return data;
     } catch (err) {
       logger.error('❌ [WitchHunterDuel] Lỗi deductTowerHp:', err);
@@ -578,6 +581,9 @@ export class WitchHunterDuelService {
       data.logs = Array.isArray(data.logs) ? data.logs : [];
       data.logs.unshift({
         time: Date.now(),
+        faction,
+        percent,
+        type: 'heal',
         text: reasonText,
       });
       if (data.logs.length > 10) {
@@ -670,6 +676,30 @@ export class WitchHunterDuelService {
   /**
    * Xây dựng Embed Trụ Tổng Pháo Đài
    */
+  static formatLogText(log) {
+    let text = typeof log === 'string' ? log : (log?.text || '');
+    // Thay thế raw Discord ID thành tag <@id>
+    text = text.replace(/(?<!<@)(\b\d{17,20}\b)/g, '<@$1>');
+    // Chuẩn hóa lỗi lặp dấu "Trừ -"
+    text = text.replace(/Trừ\s*-\s*/g, 'Trừ ');
+
+    // Nếu log chưa ghi rõ Trụ phe nào, tự động bổ sung dựa theo context hoặc log.faction:
+    if (/Ban Phước Tối Cao/i.test(text) && !/HP Trụ Tổng Phe/i.test(text)) {
+      const fName = log?.faction === 'hunter' ? 'Phe Thợ Săn' : (log?.faction === 'witch' ? 'Phe Phù Thủy' : '');
+      if (fName) {
+        text = text.replace(/HP Trụ Tổng\)/g, `HP Trụ Tổng ${fName})`);
+      }
+    }
+
+    if (/Phe Thợ Săn/i.test(text) && /HP Trụ Tổng!/i.test(text) && !/HP Trụ Tổng Phe/i.test(text)) {
+      text = text.replace(/HP Trụ Tổng!/g, 'HP Trụ Tổng Phe Thợ Săn!');
+    } else if (/Phe Phù Thủy/i.test(text) && /HP Trụ Tổng!/i.test(text) && !/HP Trụ Tổng Phe/i.test(text)) {
+      text = text.replace(/HP Trụ Tổng!/g, 'HP Trụ Tổng Phe Phù Thủy!');
+    }
+
+    return text;
+  }
+
   static buildMonolithEmbed(data) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
 
@@ -680,9 +710,7 @@ export class WitchHunterDuelService {
     const witchStatusText = data.witchHp <= 0 ? '❌ *(ĐÃ BỊ PHONG ẤN MA LỰC)*' : '';
 
     const recentLogs = (data.logs || []).slice(0, 5).map((l) => {
-      let text = l.text || '';
-      // Thay thế raw Discord ID thành tag <@id>
-      text = text.replace(/(?<!<@)(\b\d{17,20}\b)/g, '<@$1>');
+      const text = this.formatLogText(l);
       return `> • ${text}`;
     }).join('\n') || '> *(Chưa có biến động chấn động nào gần đây)*';
 
@@ -938,8 +966,11 @@ export class WitchHunterDuelService {
       return;
     }
 
+    const challengerFaction = duel.challenger?.faction || 'hunter';
+    const targetFaction = challengerFaction === 'hunter' ? 'witch' : 'hunter';
+    const targetFactionName = targetFaction === 'hunter' ? 'Phe Thợ Săn' : 'Phe Phù Thủy';
     const challengerId = duel.challenger.id || duel.challenger.user?.id;
-    const reason = `${factionName} né tránh khiêu chiến từ <@${challengerId}> ➔ Trừ -5% HP Trụ Tổng!`;
+    const reason = `${targetFactionName} né tránh khiêu chiến từ <@${challengerId}> ➔ Trừ 5% HP Trụ Tổng ${targetFactionName}!`;
     const guild = duel.mainMessage?.guild;
     await this.deductTowerHp(guild, targetFaction, 5, reason);
 
@@ -949,8 +980,8 @@ export class WitchHunterDuelService {
         .setColor(WITCH_HUNTER_CONFIG.colors.pastelPurple)
         .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **KHIÊU CHIẾN HẾT HẠN: NÉ TRÁNH CHIẾN ĐẤU** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
         .setDescription(
-          `Đã hết **180 giây** tiếp chiến nhưng không có bất kỳ ${roleMissing} nào thuộc **${factionName}** dám bước lên đài phong ấn!\n\n` +
-          `> <a:bang2:1546891483250954290> **HÌNH PHẠT HÈN NHÁT:** Trụ Tổng của **${factionName}** bị đánh phạt trừ thẳng **-5% HP**!\n\n` +
+          `Đã hết **180 giây** tiếp chiến nhưng không có bất kỳ ${roleMissing} nào thuộc **${targetFactionName}** dám bước lên đài phong ấn!\n\n` +
+          `> <a:bang2:1546891483250954290> **HÌNH PHẠT HÈN NHÁT:** Trụ Tổng của **${targetFactionName}** bị đánh phạt trừ thẳng **5% HP**!\n\n` +
           `*Cổng khiêu chiến đã đóng lại. Hãy rèn luyện thêm dũng khí cho lần sau!*`
         )
         .setTimestamp();
@@ -1061,7 +1092,7 @@ export class WitchHunterDuelService {
 
     // Chỉ trừ máu Trụ khi không phải trận test
     if (!duel.isBotTest) {
-      const reason = `<@${interaction.user.id}> (${factionName}) chủ động từ chối khiêu chiến ➔ Trừ -5% HP Trụ Tổng!`;
+      const reason = `<@${interaction.user.id}> (${factionName}) chủ động từ chối khiêu chiến ➔ Trừ 5% HP Trụ Tổng ${factionName}!`;
       await this.deductTowerHp(interaction.guild, targetFaction, 5, reason);
     }
 
@@ -1070,7 +1101,7 @@ export class WitchHunterDuelService {
       .setTitle(`${WITCH_HUNTER_CONFIG.emojis.titleLeft} **TỪ CHỐI TIẾP CHIẾN: TRỤ TỔNG BỊ THỦNG** ${WITCH_HUNTER_CONFIG.emojis.titleRight}`)
       .setDescription(
         `Đại diện <@${interaction.user.id}> thuộc **${factionName}** đã chủ động bấm nút **Từ Chối**!\n\n` +
-        `> <a:bang2:1546891483250954290> **HÌNH PHẠT TỪ CHỐI:** Trụ Tổng của **${factionName}** bị đánh phạt trừ thẳng **-5% HP**!\n\n` +
+        `> <a:bang2:1546891483250954290> **HÌNH PHẠT TỪ CHỐI:** Trụ Tổng của **${factionName}** bị đánh phạt trừ thẳng **5% HP**!\n\n` +
         `*Trận đấu bị hủy bỏ. Trụ phe thách thức bảo toàn nguyên vẹn.*`
       )
       .setTimestamp();
@@ -1498,7 +1529,7 @@ export class WitchHunterDuelService {
       const loserFactionName = loserFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
       const loserRole = this.getFighterRoleName(loserFaction);
       const loserUserId = loser.id || loser.user?.id;
-      const reasonText = `${loserRole} <@${loserUserId}> (${loserFactionName}) bị đánh bại ➔ Trừ -2% HP Trụ Tổng!`;
+      const reasonText = `${loserRole} <@${loserUserId}> (${loserFactionName}) bị đánh bại ➔ Trừ 2% HP Trụ Tổng ${loserFactionName}!`;
       await this.deductTowerHp(guild, loserFaction, 2, reasonText);
     }
 
