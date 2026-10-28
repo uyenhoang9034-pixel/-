@@ -1204,6 +1204,16 @@ export class WitchHunterService {
         if (guild) {
           await this.syncRankRole(guild, member || userId, newRank, userData.faction);
         }
+
+        // Nếu đang mang Supporter / Vũ Khí mặc định của bậc cũ thì tự động nâng lên bậc mới
+        const oldDefaultSupporter = getSupporterByRank(userData.faction, oldRank);
+        const oldDefaultWeapon = getWeaponByRank(userData.faction, oldRank);
+        if (userData.equipped_supporter === oldDefaultSupporter?.id) {
+          userData.equipped_supporter = null;
+        }
+        if (userData.equipped_weapon === oldDefaultWeapon?.id) {
+          userData.equipped_weapon = null;
+        }
       } else {
         rankInfo = this.getRankInfo(userData.faction, oldRank);
       }
@@ -1499,6 +1509,29 @@ export class WitchHunterService {
         // Tự động thu hồi role bậc cũ và cấp lại role bậc mới tương ứng
         if (guild) {
           await this.syncRankRole(guild, member || userId, newRank, userData.faction);
+        }
+
+        // Tự động kiểm tra và hạ cấp Supporter & Vũ Khí đang kích hoạt nếu vượt quá rank mới
+        const maxAllowedTier = Math.min(5, newRank + 1);
+        if (userData.equipped_supporter) {
+          const equippedSupp = getSupporterById(userData.equipped_supporter);
+          if (
+            !equippedSupp ||
+            (!equippedSupp.isSummon && Number(equippedSupp.rank) > newRank) ||
+            (equippedSupp.isSummon && this.rankToTier(equippedSupp.rank) > maxAllowedTier)
+          ) {
+            userData.equipped_supporter = null;
+          }
+        }
+        if (userData.equipped_weapon) {
+          const equippedWep = getWeaponById(userData.equipped_weapon);
+          if (
+            !equippedWep ||
+            (!equippedWep.isSummon && Number(equippedWep.rank) > newRank) ||
+            (equippedWep.isSummon && this.rankToTier(equippedWep.rank) > maxAllowedTier)
+          ) {
+            userData.equipped_weapon = null;
+          }
         }
       }
     }
@@ -2318,6 +2351,29 @@ export class WitchHunterService {
             });
           }
 
+          // Giáng Supporter & Vũ Khí: nếu trang bị hiện tại vượt quá cấp bậc mới thì hạ về mặc định theo bậc mới
+          const maxAllowedTier = Math.min(5, expectedRank + 1);
+          if (user.equipped_supporter) {
+            const equippedSupp = getSupporterById(user.equipped_supporter);
+            if (
+              !equippedSupp ||
+              (!equippedSupp.isSummon && Number(equippedSupp.rank) > expectedRank) ||
+              (equippedSupp.isSummon && this.rankToTier(equippedSupp.rank) > maxAllowedTier)
+            ) {
+              user.equipped_supporter = null; // Tự động hạ về supporter mặc định của rank mới
+            }
+          }
+          if (user.equipped_weapon) {
+            const equippedWep = getWeaponById(user.equipped_weapon);
+            if (
+              !equippedWep ||
+              (!equippedWep.isSummon && Number(equippedWep.rank) > expectedRank) ||
+              (equippedWep.isSummon && this.rankToTier(equippedWep.rank) > maxAllowedTier)
+            ) {
+              user.equipped_weapon = null; // Tự động hạ về vũ khí mặc định của rank mới
+            }
+          }
+
           // Cập nhật role Discord
           if (member) {
             await this.syncRankRole(guild, member, expectedRank, user.faction);
@@ -2361,6 +2417,17 @@ export class WitchHunterService {
           if (member) {
             await this.syncRankRole(guild, member, expectedRank, user.faction);
           }
+
+          // Thăng Supporter & Vũ Khí: nếu đang mang Supporter / Vũ Khí mặc định của bậc cũ thì tự động nâng lên bậc mới
+          const oldDefaultSupporter = getSupporterByRank(user.faction, oldRank);
+          const oldDefaultWeapon = getWeaponByRank(user.faction, oldRank);
+          if (user.equipped_supporter === oldDefaultSupporter?.id) {
+            user.equipped_supporter = null; // Tự động nhận supporter mặc định của rank mới
+          }
+          if (user.equipped_weapon === oldDefaultWeapon?.id) {
+            user.equipped_weapon = null; // Tự động nhận vũ khí mặc định của rank mới
+          }
+
           witchHunterStorage.saveUser(user, true);
 
           // Thông báo thăng cấp vào Kênh Chỉ Định
@@ -2383,7 +2450,36 @@ export class WitchHunterService {
           }
         }
       } else {
-        // Cấp bậc trong DB đã đúng, nhưng rà soát lại role Discord xem có đang lệch không
+        // Cấp bậc trong DB đã đúng, nhưng rà soát lại Supporter / Vũ Khí xem có bị lưu lệch bậc tiến trình không
+        let needsSave = false;
+        const maxAllowedTier = Math.min(5, expectedRank + 1);
+        if (user.equipped_supporter) {
+          const equippedSupp = getSupporterById(user.equipped_supporter);
+          if (
+            !equippedSupp ||
+            (!equippedSupp.isSummon && Number(equippedSupp.rank) > expectedRank) ||
+            (equippedSupp.isSummon && this.rankToTier(equippedSupp.rank) > maxAllowedTier)
+          ) {
+            user.equipped_supporter = null;
+            needsSave = true;
+          }
+        }
+        if (user.equipped_weapon) {
+          const equippedWep = getWeaponById(user.equipped_weapon);
+          if (
+            !equippedWep ||
+            (!equippedWep.isSummon && Number(equippedWep.rank) > expectedRank) ||
+            (equippedWep.isSummon && this.rankToTier(equippedWep.rank) > maxAllowedTier)
+          ) {
+            user.equipped_weapon = null;
+            needsSave = true;
+          }
+        }
+        if (needsSave) {
+          witchHunterStorage.saveUser(user, true);
+        }
+
+        // Rà soát lại role Discord xem có đang lệch không
         if (member) {
           const targetRoleId = WITCH_HUNTER_CONFIG.roles[user.faction]?.[expectedRank];
           const hasTargetRole = targetRoleId && member.roles.cache.has(targetRoleId);
@@ -2918,9 +3014,14 @@ export class WitchHunterService {
     if (userData.equipped_supporter) {
       const s = getSupporterById(userData.equipped_supporter);
       if (s && s.faction === userData.faction) {
-        const tier = this.rankToTier(s.rank);
-        if (tier <= maxAllowedTier) {
-          return s;
+        // Supporter tiến trình mặc định không bao giờ được vượt quá currentRank
+        if (!s.isSummon && Number(s.rank) > currentRank) {
+          // Vượt cấp bậc tiến trình -> rơi về supporter chuẩn theo currentRank
+        } else {
+          const tier = this.rankToTier(s.rank);
+          if (tier <= maxAllowedTier) {
+            return s;
+          }
         }
       }
     }
@@ -2941,9 +3042,14 @@ export class WitchHunterService {
     if (userData.equipped_weapon) {
       const w = getWeaponById(userData.equipped_weapon);
       if (w && w.faction === userData.faction) {
-        const tier = this.rankToTier(w.rank);
-        if (tier <= maxAllowedTier) {
-          return w;
+        // Vũ khí tiến trình mặc định không bao giờ được vượt quá currentRank
+        if (!w.isSummon && Number(w.rank) > currentRank) {
+          // Vượt cấp bậc tiến trình -> rơi về vũ khí chuẩn theo currentRank
+        } else {
+          const tier = this.rankToTier(w.rank);
+          if (tier <= maxAllowedTier) {
+            return w;
+          }
         }
       }
     }
