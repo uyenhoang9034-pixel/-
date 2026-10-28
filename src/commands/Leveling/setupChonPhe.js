@@ -38,13 +38,7 @@ function isWitchHunterAdmin(interaction) {
 export default {
   data: new SlashCommandBuilder()
     .setName('setup-chon-phe')
-    .setDescription('Tạo hộp thoại ký kết khế ước chọn phe Witch Hunter (Chỉ Admin)')
-    .addBooleanOption((option) =>
-      option
-        .setName('xoa-du-lieu-cu')
-        .setDescription('Xóa 1 lần duy nhất toàn bộ bí ngô & gỡ sạch role phe cũ của tất cả member')
-        .setRequired(false)
-    ),
+    .setDescription('Tạo hộp thoại ký kết khế ước chọn phe Witch Hunter (Chỉ Admin)'),
 
   category: 'Leveling',
 
@@ -56,35 +50,6 @@ export default {
           content: `❌ Bạn không có quyền sử dụng lệnh này đâu nè vợ của Kim Nong ơi! Chỉ chủ máy chủ hoặc thành viên sở hữu role <@&${WITCH_HUNTER_CONFIG.adminRoleId}> mới được phép tạo bảng chọn phe ạ 💕`,
           flags: MessageFlags.Ephemeral,
         });
-      }
-
-      const shouldReset = interaction.options.getBoolean('xoa-du-lieu-cu') || false;
-      let resetNotice = '';
-
-      if (shouldReset) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
-        // Gỡ toàn bộ 10 role của Thợ Săn & Phù Thủy khỏi tất cả thành viên trong server
-        const allRoles = getAllWitchHunterRoleIds();
-        let strippedCount = 0;
-        for (const roleId of allRoles) {
-          try {
-            const role = interaction.guild.roles.cache.get(roleId) ||
-              await interaction.guild.roles.fetch(roleId).catch(() => null);
-            if (role) {
-              for (const [memberId, member] of role.members) {
-                await member.roles.remove(roleId).catch(() => null);
-                strippedCount++;
-              }
-            }
-          } catch (err) {
-            logger.warn(`⚠️ [WitchHunter] Lỗi khi gỡ role ${roleId}:`, err.message);
-          }
-        }
-
-        // Xóa sạch cơ sở dữ liệu
-        witchHunterStorage.clearAllData();
-        resetNotice = `\n🧹 *Đã dọn dẹp sạch toàn bộ dữ liệu bí ngô và gỡ ${strippedCount} lượt role phe cũ từ các thành viên!*`;
       }
 
       const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
@@ -106,20 +71,12 @@ export default {
         .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC THẾ GIỚI MA THUẬT: WITCH HUNTER** ${emojis.titleRight}`)
         .setDescription(
           `Vòng xoay định mệnh giữa hai thế lực ngàn năm lại một lần nữa mở ra...\n` +
-          `Trước mắt bạn là bản **Khế Ước Cổ Đại**. Hãy chọn 1 trong 2 phe để tham chiến và dấn thân vào con đường tranh đoạt vinh quang ma thuật!\n\n` +
+          `Trước mắt lữ khách là bản **Khế Ước Cổ Đại**. Hãy chọn 1 trong 2 phe để tham chiến và dấn thân vào con đường tranh đoạt vinh quang ma thuật!\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `<a:trangtrig36:1563065680922808340> **PHE THỢ SĂN (W.H. ASSOCIATION):**\n` +
           `> Những chiến binh quả cảm tôi luyện ý chí sắt đá, săn lùng và phong ấn hắc ma thuật. Tích lũy chiến công Bí Ngô để từng bước thăng cấp từ **C-Rank Hunter** lên huyền thoại **SS-Rank Hunter**!\n\n` +
           `<a:trangtrig32:1546906170994856026> **PHE PHÙ THỦY (WITCHES):**\n` +
-          `> Những bậc thầy cổ thuật bí ẩn, thao túng bóng đêm và bùa chú cấm kỵ. Khởi đầu từ một **Apprentice Witch**, tích lũy tinh hoa Bí Ngô để thức tỉnh thành **Great Witch** tối cao!\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `<a:trangtrig18:1546068102817775626> **5 BẬC CẤP BẬC & MỐC BÍ NGÔ TÍCH LŨY:**\n` +
-          `• **Bậc 1 (0 ${emojis.pumpkin}):** C-Rank Hunter | Apprentice Witch\n` +
-          `• **Bậc 2 (100 ${emojis.pumpkin}):** B-Rank Hunter | Coven Witch\n` +
-          `• **Bậc 3 (500 ${emojis.pumpkin}):** A-Rank Hunter | High Witch\n` +
-          `• **Bậc 4 (3.000 ${emojis.pumpkin}):** S-Rank Hunter | Archwitch\n` +
-          `• **Bậc 5 (10.000 ${emojis.pumpkin}):** SS-Rank Hunter | Great Witch\n\n` +
-          `<a:trangtrig4:1546041273813827645> **LƯU Ý:** Một khi đã chọn phe, thành viên không thể tự ý đổi phe (Admin sở hữu role đặc quyền có thể đổi phe). Ban Quản Trị có toàn quyền cấp hoặc thu hồi role phe thủ công khi cần thiết!`
+          `> Những bậc thầy cổ thuật bí ẩn, thao túng bóng đêm và bùa chú cấm kỵ. Khởi đầu từ một **Apprentice Witch**, tích lũy tinh hoa Bí Ngô để thức tỉnh thành **Great Witch** tối cao!`
         )
         .setFooter({
           text: 'Nhấn vào nút bên dưới để chính thức ký kết khế ước',
@@ -149,15 +106,10 @@ export default {
         components: [row],
       });
 
-      const responseContent = `✅ Em bot Usagi múp rụp đã thiết lập bảng chọn phe Witch Hunter tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕${resetNotice}`;
-
-      if (shouldReset) {
-        return interaction.editReply({ content: responseContent });
-      } else {
-        return interaction.reply({
-          content: responseContent,
-          flags: MessageFlags.Ephemeral,
-        });
+      return interaction.reply({
+        content: `✅ Em bot Usagi múp rụp đã thiết lập lại bảng chọn phe Witch Hunter tại kênh <#${targetChannel.id}> thành công và bảo toàn 100% dữ liệu rồi nè vợ của Kim Nong ơi! 💕`,
+        flags: MessageFlags.Ephemeral,
+      });
       }
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi lệnh setup-chon-phe:', error);

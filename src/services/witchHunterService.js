@@ -914,6 +914,38 @@ export class WitchHunterService {
       (Array.isArray(member._roles) && member._roles.includes(adminRoleId)) ||
       (Array.isArray(member.roles) && member.roles.includes(adminRoleId));
 
+    // Khôi phục phe phái từ Role Discord nếu database chưa ghi nhận để bảo toàn dữ liệu tuyệt đối
+    if (!userData?.faction && member.roles?.cache) {
+      let existingDiscordFaction = null;
+      let existingDiscordRank = 1;
+      for (const [rStr, rId] of Object.entries(WITCH_HUNTER_CONFIG.roles.hunter)) {
+        if (member.roles.cache.has(rId)) {
+          existingDiscordFaction = 'hunter';
+          existingDiscordRank = Math.max(existingDiscordRank, Number(rStr));
+        }
+      }
+      if (!existingDiscordFaction) {
+        for (const [rStr, rId] of Object.entries(WITCH_HUNTER_CONFIG.roles.witch)) {
+          if (member.roles.cache.has(rId)) {
+            existingDiscordFaction = 'witch';
+            existingDiscordRank = Math.max(existingDiscordRank, Number(rStr));
+          }
+        }
+      }
+
+      if (existingDiscordFaction) {
+        const pumpkins = userData?.pumpkins || 0;
+        userData = {
+          ...(userData || {}),
+          user_id: userId,
+          faction: existingDiscordFaction,
+          current_rank: Math.max(existingDiscordRank, this.calculateRank(pumpkins)),
+          pumpkins,
+        };
+        witchHunterStorage.saveUser(userData, true);
+      }
+    }
+
     // 1. TRƯỜNG HỢP ĐÃ CÓ PHE TRƯỚC ĐÓ:
     if (userData && userData.faction) {
       // Nếu là ADMIN role 1541303749916754001: Cho phép đổi role / phe!
@@ -969,6 +1001,7 @@ export class WitchHunterService {
     const calculatedRank = this.calculateRank(currentPumpkins);
 
     userData = {
+      ...(userData || {}),
       user_id: userId,
       faction: chosenFaction,
       current_rank: calculatedRank,
