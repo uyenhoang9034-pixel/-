@@ -64,12 +64,6 @@ import {
   isCommandEnabled,
 } from '../services/commandAccessService.js';
 
-import {
-  getCountingGameConfig,
-  saveCountingGameConfig,
-  isValidCountingMessage,
-  recordCorrectCount,
-} from '../services/countingGameService.js';
 
 import {
   getAutoresponderConfig,
@@ -184,21 +178,12 @@ export default {
         `Message received from ${message.author.tag}: ${message.content}`,
       );
 
-      const countingProcessed = await handleCountingGame(
+      const wordChainProcessed = await handleWordChain(
         message,
         client,
       );
 
-      let wordChainProcessed = false;
-
-      if (!countingProcessed) {
-        wordChainProcessed = await handleWordChain(
-          message,
-          client,
-        );
-      }
-
-      if (!countingProcessed && !wordChainProcessed) {
+      if (!wordChainProcessed) {
         const quoteProcessed = await handleQuoteTrigger(
           message,
           client,
@@ -383,59 +368,6 @@ async function handlePrefixCommand(message, client) {
   }
 }
 
-async function handleCountingGame(message, client) {
-  try {
-    const config = await getCountingGameConfig(
-      client,
-      message.guild.id,
-    );
-
-    if (
-      !config.enabled ||
-      !config.channelId ||
-      message.channel.id !== config.channelId
-    ) {
-      return false;
-    }
-
-    const content = message.content.trim();
-    const validCount = isValidCountingMessage(content, config);
-    const invalidAttempt =
-      !validCount || message.author.id === config.lastUserId;
-
-    if (invalidAttempt) {
-      await message.delete().catch(() => {});
-
-      await saveCountingGameConfig(client, message.guild.id, {
-        ...config,
-        nextNumber: 1,
-        lastUserId: null,
-        currentStreak: 0,
-      });
-
-      const failureMessage = await message.channel.send(
-        `❌ Count broken by <@${message.author.id}>. The sequence has been reset to **1**.`,
-      );
-
-      setTimeout(() => {
-        failureMessage.delete().catch(() => {});
-      }, 10000);
-
-      return true;
-    }
-
-    await recordCorrectCount(
-      client,
-      message.guild.id,
-      message.author.id,
-    );
-
-    return true;
-  } catch (error) {
-    logger.error('Error handling counting game:', error);
-    return false;
-  }
-}
 
 async function handleWordChain(message, client) {
   try {
