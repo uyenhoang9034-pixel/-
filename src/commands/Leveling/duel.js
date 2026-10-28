@@ -93,11 +93,20 @@ export default {
           });
         }
 
-        const msg = await interaction.reply({
+        const replyOptions = {
           embeds: [result.embed],
           components: result.components,
           fetchReply: true,
-        });
+        };
+
+        if (result.content || targetUser) {
+          replyOptions.content = result.content || `<@${targetUser.id}>`;
+          if (targetUser) {
+            replyOptions.allowedMentions = { users: [targetUser.id] };
+          }
+        }
+
+        const msg = await interaction.reply(replyOptions);
 
         result.duelState.mainMessage = msg;
         return;

@@ -880,12 +880,14 @@ export class WitchHunterDuelService {
 
     const embed = this.buildChallengeEmbed(duelState);
     const components = this.createChallengeComponents(duelState);
+    const content = targetUser ? `<@${targetUser.id}>` : null;
 
     return {
       success: true,
       embed,
       components,
       duelState,
+      content,
     };
   }
 
@@ -944,7 +946,7 @@ export class WitchHunterDuelService {
     if (duel.mainMessage) {
       const betEmbed = this.buildBettingEmbed(duel);
       const betComponents = this.createBettingComponents(duel);
-      await duel.mainMessage.edit({ embeds: [betEmbed], components: betComponents }).catch(() => null);
+      await duel.mainMessage.edit({ content: null, embeds: [betEmbed], components: betComponents }).catch(() => null);
     }
 
     duel.betTimer = setTimeout(async () => {
@@ -986,7 +988,7 @@ export class WitchHunterDuelService {
         )
         .setTimestamp();
 
-      await duel.mainMessage.edit({ embeds: [timeoutEmbed], components: [] }).catch(() => null);
+      await duel.mainMessage.edit({ content: null, embeds: [timeoutEmbed], components: [] }).catch(() => null);
     }
   }
 
@@ -1057,6 +1059,7 @@ export class WitchHunterDuelService {
     const betComponents = this.createBettingComponents(duel);
 
     await interaction.update({
+      content: null,
       embeds: [betEmbed],
       components: betComponents,
     });
@@ -1107,6 +1110,7 @@ export class WitchHunterDuelService {
       .setTimestamp();
 
     await interaction.update({
+      content: null,
       embeds: [declineEmbed],
       components: [],
     });
@@ -1196,7 +1200,7 @@ export class WitchHunterDuelService {
     if (duel.mainMessage) {
       const betEmbed = this.buildBettingEmbed(duel);
       const betComponents = this.createBettingComponents(duel);
-      await duel.mainMessage.edit({ embeds: [betEmbed], components: betComponents }).catch(() => null);
+      await duel.mainMessage.edit({ content: null, embeds: [betEmbed], components: betComponents }).catch(() => null);
     }
 
     return {
