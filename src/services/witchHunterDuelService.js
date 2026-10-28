@@ -1125,11 +1125,18 @@ export class WitchHunterDuelService {
     }
 
     const totalPool = hunterTotal + witchTotal;
-    const netPool = totalPool * 0.95; // Trừ 5% thuế
+    const netPool = totalPool * 0.90; // Trừ 10% thuế
 
-    // Tỷ lệ ăn cược (Pari-mutuel)
-    const hunterOdds = hunterTotal > 0 ? (netPool / hunterTotal).toFixed(2) : '2.00';
-    const witchOdds = witchTotal > 0 ? (netPool / witchTotal).toFixed(2) : '2.00';
+    // Tỷ lệ ăn cược (Thuế 10% trên tiền lãi).
+    // Người thắng luôn bảo toàn 100% vốn cược + nhận lãi cược sau thuế 10% (tối thiểu x1.90):
+    // Ví dụ: cược 10 nhận 19, cược 200 nhận 380. Nếu quỹ đối phương lớn hơn thì tỷ lệ ăn sẽ cao hơn nữa.
+    const hunterOdds = hunterTotal > 0
+      ? Math.max(1.90, Number((1 + (witchTotal * 0.90) / hunterTotal).toFixed(2))).toFixed(2)
+      : '1.90';
+
+    const witchOdds = witchTotal > 0
+      ? Math.max(1.90, Number((1 + (hunterTotal * 0.90) / witchTotal).toFixed(2))).toFixed(2)
+      : '1.90';
 
     return {
       hunterTotal,
@@ -1541,13 +1548,13 @@ export class WitchHunterDuelService {
 
     const payoutList = [];
     if (!duel.isBotTest && winningBets.length > 0 && winningPoolTotal > 0 && guild) {
+      const oddsNumber = Number(winningFaction === 'hunter' ? hunterOdds : witchOdds) || 1.90;
       for (const bet of winningBets) {
         if (bet.userId === 'fan1' || bet.userId === 'fan2') continue; // Bỏ qua bot cược ảo
-        const share = bet.amount / winningPoolTotal;
-        const rewardPumpkins = Math.max(1, Math.round(share * netPool));
+        const rewardPumpkins = Math.max(1, Math.round(bet.amount * oddsNumber));
 
         await WitchHunterService.awardPumpkins(guild, bet.userId, rewardPumpkins, {
-          reason: `Thắng Sòng Cược Huyết Thệ (Nhận thưởng x${(netPool / winningPoolTotal).toFixed(2)})`,
+          reason: `Thắng Sòng Cược Huyết Thệ (Nhận x${oddsNumber.toFixed(2)} vốn + lãi sau thuế 10%)`,
           executor: null,
           notifyDM: true,
           notifyAdminLog: false,
@@ -1657,7 +1664,7 @@ export class WitchHunterDuelService {
         `• Tổng cược: **${witchTotal.toLocaleString('vi-VN')}** <a:bingo:1563061901800243253> (${witchCount} lượt)\n` +
         `• Tỷ lệ ăn dự kiến: **x${witchOdds}**\n\n` +
         `────────────────────────────────────────────────────────────\n` +
-        `*Trích 5% thuế chiến tranh sung quỹ server. 95% còn lại chia theo tỷ lệ đóng góp của người cược bên thắng.*`
+        `*Thuế sòng cược 10% sung quỹ máy chủ. Khi thắng luôn bảo toàn 100% vốn cược + nhận thêm lãi cược sau thuế (tối thiểu x1.90 vốn cược).*`
       )
       .setFooter({ text: 'Witch Hunter Pari-mutuel Betting' })
       .setTimestamp();
@@ -1801,7 +1808,7 @@ export class WitchHunterDuelService {
         `• Trụ Tổng Phe ${loser.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}: Bị đánh thủng **-2% HP**!\n` +
         `• Trụ Tổng Phe ${winner.faction === 'witch' ? 'Phù Thủy' : 'Thợ Săn'}: Bảo toàn nguyên vẹn!\n\n` +
         `<a:heartg2:1546031808364413019> **THANH TOÁN SÒNG CƯỢC:**\n` +
-        `• Tổng quỹ thưởng (đã trừ 5% thuế): **${Math.round(netPool).toLocaleString('vi-VN')}** <a:bingo:1563061901800243253>\n` +
+        `• Tổng quỹ thưởng (đã trừ 10% thuế): **${Math.round(netPool).toLocaleString('vi-VN')}** <a:bingo:1563061901800243253>\n` +
         `• Toàn bộ cư dân đặt cược vào ${this.getFighterTag(winner)} đã được cộng thưởng tự động theo tỷ lệ vào tài khoản!\n\n` +
         `*(Cổng khiêu chiến đã làm mới, hai phe có thể tiếp tục phát động hiệp đấu tiếp theo!)*`
       )

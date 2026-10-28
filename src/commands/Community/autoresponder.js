@@ -188,12 +188,15 @@ export default {
                         PermissionFlagsBits.ManageGuild,
                     ) &&
                     interaction.guild.ownerId !==
-                        interaction.user.id
+                        interaction.user.id &&
+                    !interaction.member.roles?.cache?.has(
+                        '1545295139390619768',
+                    )
                 ) {
                     throw createError(
                         'Manager role change denied',
                         ErrorTypes.PERMISSION,
-                        'Chỉ Administrator hoặc Manage Server mới có thể đổi Manager Role.',
+                        'Chỉ Administrator, Manage Server hoặc Admin Autoresponder mới có thể đổi Manager Role.',
                     );
                 }
 

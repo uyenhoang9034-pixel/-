@@ -31,11 +31,11 @@ export const WORLD_BOSS_CONFIGS = {
     title: 'Ma Nữ Tha Hóa Cổ Đại - Avalonia',
     trait: 'Ma Thuật Hắc Ám Cổ Cực',
     weakness: 'Bị đạn bạc & cấm khí khắc chế mạnh!',
-    hunterEffect: 'Khắc chế điểm yếu -> 2% Kháng Cự / đòn.',
-    witchEffect: 'Đòn đánh tiêu chuẩn -> 1% Kháng Cự / đòn.',
+    hunterEffect: 'Khắc chế điểm yếu -> 1% ~ 5% (x1.5 Cộng Hưởng: 1.5% ~ 8%) / đòn theo Bậc.',
+    witchEffect: 'Đòn đánh tiêu chuẩn -> 0.5% ~ 2.5% (x1.5 Cộng Hưởng: 0.8% ~ 4%) / đòn theo Bậc.',
     weaknessFaction: 'hunter',
-    weaknessFlavor: 'Đòn đánh xuyên qua ma khí hắc ám của Boss!\n<a:linhtocg:1563399670351536310> Gây trực tiếp: -2% Kháng Cự của Boss!',
-    normalFlavor: 'Đòn đánh ma thuật tiêu chuẩn!\n<a:linhtocg:1563399670351536310> Gây trực tiếp: -1% Kháng Cự của Boss!',
+    weaknessFlavor: 'Đòn đánh xuyên qua ma khí hắc ám của Boss (Khắc Chế Điểm Yếu)!',
+    normalFlavor: 'Đòn đánh ma thuật tiêu chuẩn!',
   },
   void: {
     id: 'void',
@@ -43,11 +43,11 @@ export const WORLD_BOSS_CONFIGS = {
     title: 'Cấm Khí Hư Không',
     trait: 'Hư Không Thao Túng & Huyết Ma Giới',
     weakness: 'Bị cổ thuật & nguyên thể phong ấn mạnh!',
-    hunterEffect: 'Đòn đánh tiêu chuẩn -> 1% Kháng Cự / đòn.',
-    witchEffect: 'Khắc chế điểm yếu -> 2% Kháng Cự / đòn.',
+    hunterEffect: 'Đòn đánh tiêu chuẩn -> 0.5% ~ 2.5% (x1.5 Cộng Hưởng: 0.8% ~ 4%) / đòn theo Bậc.',
+    witchEffect: 'Khắc chế điểm yếu -> 1% ~ 5% (x1.5 Cộng Hưởng: 1.5% ~ 8%) / đòn theo Bậc.',
     weaknessFaction: 'witch',
-    weaknessFlavor: 'Cổ thuật phá vỡ kết giới Hư Không của Boss!\n<a:linhtocg:1563399670351536310> Gây trực tiếp: -2% Kháng Cự của Boss!',
-    normalFlavor: 'Đòn đánh vật lý ma thuật tiêu chuẩn!\n<a:linhtocg:1563399670351536310> Gây trực tiếp: -1% Kháng Cự của Boss!',
+    weaknessFlavor: 'Cổ thuật phá vỡ kết giới Hư Không của Boss (Khắc Chế Điểm Yếu)!',
+    normalFlavor: 'Đòn đánh vật lý ma thuật tiêu chuẩn!',
   },
 };
 
@@ -400,13 +400,13 @@ class WitchHunterWorldBossService {
       state.participants.set(userId, participant);
     }
 
-    // 2. Giới hạn tối đa 10 lượt đánh trong suốt sự kiện
-    if (participant.hits >= 10) {
+    // 2. Giới hạn tối đa 5 lượt đánh trong suốt sự kiện
+    if (participant.hits >= 5) {
       return interaction.reply({
         content:
           `<a:bang2:1546891483250954290> **ĐÃ ĐẠT GIỚI HẠN TẤN CÔNG!**\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `Lữ khách đã tung đủ **10/10 đòn đánh** ma thuật tối đa trong sự kiện Bách Quỷ Dạ Hành lần này.\n` +
+          `Lữ khách đã tung đủ **5/5 đòn đánh** ma thuật tối đa trong sự kiện Bách Quỷ Dạ Hành lần này.\n` +
           `Hãy nghỉ ngơi và theo dõi đồng đội tiếp tục công phá kết giới Boss nhé!`,
         flags: MessageFlags.Ephemeral,
       });
@@ -427,18 +427,32 @@ class WitchHunterWorldBossService {
       });
     }
 
-    // 4. Tính toán sát thương theo điểm yếu của Boss
+    // 4. Tính toán sát thương theo cấp bậc người chơi (1-5), điểm yếu Boss và cộng hưởng Thần Binh
     const isHunter = participant.faction === 'hunter';
     const isWeakness = state.bossConfig.weaknessFaction === participant.faction;
-    const damageDeducted = isWeakness ? 2 : 1;
+
+    const userRank = Math.max(1, Math.min(5, Number(userData.current_rank) || 1));
+    const resonanceInfo = WitchHunterService.checkResonance(userId);
+    const hasResonance = Boolean(resonanceInfo && resonanceInfo.isResonance);
+
+    // Bậc C/Apprentice: 1%, B: 2%, A: 3%, S: 4%, SS: 5% cho phe khắc chế điểm yếu
+    // Phe tiêu chuẩn (không khắc) gây 50% sát thương (0.5% - 2.5%)
+    const baseDamage = isWeakness ? userRank : userRank * 0.5;
+    const resonanceMultiplier = hasResonance ? 1.5 : 1.0;
+    let calculatedDamage = baseDamage * resonanceMultiplier;
+    // Làm tròn 1 chữ số thập phân (ví dụ 1.5%, 7.5% ~ 8%)
+    calculatedDamage = Math.round(calculatedDamage * 10) / 10;
+    if (calculatedDamage <= 0) calculatedDamage = 0.5;
 
     // Giảm kháng cự của Boss
-    const actualDamage = Math.min(state.resistance, damageDeducted);
-    state.resistance = Math.max(0, state.resistance - actualDamage);
-    state.factionDamage[participant.faction] += actualDamage;
+    const actualDamage = Math.min(state.resistance, calculatedDamage);
+    const roundedActualDamage = Math.round(actualDamage * 10) / 10;
+
+    state.resistance = Math.max(0, Math.round((state.resistance - roundedActualDamage) * 10) / 10);
+    state.factionDamage[participant.faction] = Math.round(((state.factionDamage[participant.faction] || 0) + roundedActualDamage) * 10) / 10;
 
     participant.hits += 1;
-    participant.damage += actualDamage;
+    participant.damage = Math.round(((participant.damage || 0) + roundedActualDamage) * 10) / 10;
     participant.lastAttackTime = now;
     state.isDirty = true;
 
@@ -460,8 +474,8 @@ class WitchHunterWorldBossService {
     const sorted = Array.from(state.participants.values()).sort(
       (a, b) => b.damage - a.damage || a.hits - b.hits
     );
-    const userRank = sorted.findIndex((p) => p.userId === userId) + 1;
-    const isTop1 = userRank === 1;
+    const userRankNumber = sorted.findIndex((p) => p.userId === userId) + 1;
+    const isTop1 = userRankNumber === 1;
 
     const userFactionEmoji = isHunter
       ? '<a:trangtrig36:1563065680922808340>'
@@ -469,7 +483,15 @@ class WitchHunterWorldBossService {
     const userFactionTitle = isHunter ? 'Thần Khí Sĩ' : 'Cổ Thuật Sĩ';
     const userFactionName = isHunter ? 'Hiệp Hội Thợ Săn' : 'Hội Phù Thủy';
     const factionShortName = isHunter ? 'Hiệp Hội' : 'Coven';
-    const flavorText = isWeakness ? state.bossConfig.weaknessFlavor : state.bossConfig.normalFlavor;
+    const rankInfo = WitchHunterService.getRankInfo(participant.faction, userRank);
+    const rankName = rankInfo?.name || `Bậc ${userRank}`;
+    const resonanceNotice = hasResonance
+      ? '<a:trangtrig20:1546092997299667055> **KÍCH HOẠT ĐỒNG BỘ THẦN BINH (x1.5 Sát Thương)!**'
+      : '*Chưa kích hoạt đồng bộ Thần Binh & Supporter*';
+
+    const flavorText = isWeakness
+      ? `${state.bossConfig.weaknessFlavor}\n<a:linhtocg:1563399670351536310> Bào mòn trực tiếp: **-${roundedActualDamage}% Kháng Cự** của Boss!`
+      : `${state.bossConfig.normalFlavor}\n<a:linhtocg:1563399670351536310> Bào mòn trực tiếp: **-${roundedActualDamage}% Kháng Cự** của Boss!`;
 
     // Phản hồi Ephemeral tức thì (Không chờ batch)
     await interaction.reply({
@@ -478,13 +500,14 @@ class WitchHunterWorldBossService {
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `**Mục tiêu:** ${state.bossConfig.title}\n` +
         `**Thân phận:** ${userFactionEmoji} [${userFactionTitle}] **${participant.displayName}** (${userFactionName})\n` +
+        `**Cấp bậc:** **${rankName}** (Bậc ${userRank}/5) | ${resonanceNotice}\n` +
         `**Khí tài mang theo:** \`${gearText}\`\n\n` +
-        `<a:linhtocg:1563399670351536310> **HIỆU ỨNG KHẮC HỆ:**\n` +
+        `<a:linhtocg:1563399670351536310> **HIỆU ỨNG KHẮC HỆ & SÁT THƯƠNG:**\n` +
         `${flavorText}\n\n` +
         `**CỐNG HIẾN CÁ NHÂN:**\n` +
-        `- Tổng Kháng Cự đã trừ: **${participant.damage}%** (${participant.hits}/10 lượt)\n` +
-        `- Thứ hạng hiện tại: **Top ${userRank}** ${isTop1 ? '<a:trangtrig14:1546047912969113622>' : ''}\n` +
-        `- Điểm đóng góp cho phe ${factionShortName}: **+${actualDamage}%**\n\n` +
+        `- Tổng Kháng Cự đã trừ: **${participant.damage}%** (${participant.hits}/5 lượt)\n` +
+        `- Thứ hạng hiện tại: **Top ${userRankNumber}** ${isTop1 ? '<a:trangtrig14:1546047912969113622>' : ''}\n` +
+        `- Điểm đóng góp cho phe ${factionShortName}: **+${roundedActualDamage}%**\n\n` +
         `<:wh2:1563431832546967624> Hồi phục ma năng (Cooldown): **30 giây** trước đòn đánh tiếp theo!`,
       flags: MessageFlags.Ephemeral,
     });
@@ -662,7 +685,7 @@ class WitchHunterWorldBossService {
         `**Vũ Khí:** \`${weapon ? `${weapon.name} (${weapon.rank})` : 'Mặc Định'}\`\n` +
         `**Supporter:** \`${supporter ? `${supporter.name} (${supporter.rank})` : 'Chưa Đồng Hành'}\`\n\n` +
         `<a:linhtocg:1563399670351536310> **SỐ LIỆU CỐNG HIẾN CHIẾN DỊCH:**\n` +
-        `> • Số lượt xuất kích: **${participant.hits} / 10 lượt**\n` +
+        `> • Số lượt xuất kích: **${participant.hits} / 5 lượt**\n` +
         `> • Tổng Kháng Cự đã bào mòn: **${participant.damage}%**\n` +
         `> • Thứ hạng cá nhân hiện tại: **Hạng #${userRank}**\n` +
         `> • Phần thưởng dự kiến: **${expectedReward}**\n\n` +

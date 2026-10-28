@@ -96,7 +96,7 @@ export default {
           content:
             `🎲 **THÔNG TIN BỂ CƯỢC SÒNG CƯỢC HUYẾT THỆ:**\n` +
             `• Trạng thái: ${statusText}\n` +
-            `• Tổng quỹ cược: **${totalPool.toLocaleString('vi-VN')}** <a:bingo:1563061901800243253> (Quỹ trả sau thuế 5%: **${Math.round(netPool).toLocaleString('vi-VN')}**)\n\n` +
+            `• Tổng quỹ cược: **${totalPool.toLocaleString('vi-VN')}** <a:bingo:1563061901800243253> (Quỹ trả sau thuế 10%: **${Math.round(netPool).toLocaleString('vi-VN')}**)\n\n` +
             `<a:trangtrig36:1563065680922808340> **Hiệp Hội Thợ Săn:**\n` +
             `  - Tổng cược: **${hunterTotal.toLocaleString('vi-VN')}** Bí Ngô (${hunterCount} lượt)\n` +
             `  - Tỷ lệ ăn dự kiến: **x${hunterOdds}**\n\n` +

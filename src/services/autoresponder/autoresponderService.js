@@ -15,8 +15,10 @@ import {
     validateAutoresponderResponse,
 } from './responseValidator.js';
 
+export const AUTORESPONDER_ADMIN_ROLE_ID = '1545295139390619768';
+
 const DEFAULT_CONFIG = {
-    managerRoleId: null,
+    managerRoleId: AUTORESPONDER_ADMIN_ROLE_ID,
     responders: [],
 };
 
@@ -47,7 +49,7 @@ function normalizeConfig(data) {
         managerRoleId:
             typeof data.managerRoleId === 'string'
                 ? data.managerRoleId
-                : null,
+                : AUTORESPONDER_ADMIN_ROLE_ID,
 
         responders:
             Array.isArray(data.responders)
@@ -252,9 +254,17 @@ export function canManageAutoresponder(
         return true;
     }
 
+    if (
+        member.roles?.cache?.has(
+            AUTORESPONDER_ADMIN_ROLE_ID,
+        )
+    ) {
+        return true;
+    }
+
     return Boolean(
-        config.managerRoleId &&
-        member.roles.cache.has(
+        config?.managerRoleId &&
+        member.roles?.cache?.has(
             config.managerRoleId,
         ),
     );

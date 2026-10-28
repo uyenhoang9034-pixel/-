@@ -54,9 +54,9 @@ export default {
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:bingo:1563061901800243253> **VI. SÒNG CƯỢC HUYẾT THỆ (PARI-MUTUEL POOL)**\n` +
           `• Mở cược trong **45s - 90s** trước khi Hiệp 1 bắt đầu. Khóa hoàn toàn khi giao tranh.\n` +
-          `• **Thuật toán trả thưởng:** Trích **5% thuế** sung quỹ máy chủ. 95% còn lại chia theo tỷ lệ đóng góp của người cược bên thắng:\n` +
-          `  > \`Quỹ Trả Thưởng = Tổng Cược * 95%\`\n` +
-          `  > \`Bí Ngô Nhận Về = (Bí Ngô Đã Cược / Tổng Cược Bên Thắng) * Quỹ Trả Thưởng\`\n\n` +
+          `• **Thuật toán trả thưởng:** Trích **10% thuế** sung quỹ máy chủ. Khi thắng luôn bảo toàn 100% vốn cược + nhận thêm lãi cược sau thuế (tối thiểu x1.90 vốn cược):\n` +
+          `  > \`Thực Nhận = Vốn Cược + Lãi Cược (sau khấu trừ 10% thuế)\` (Ví dụ: Cược 10 nhận 19, cược 200 nhận 380)\n` +
+          `  > \`Tỷ lệ ăn cơ sở = x1.90 vốn cược\` (Sẽ tăng cao hơn nếu quỹ cược phe đối phương lớn hơn)\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:heartg3:1546047728314884226> **VII. CƠ CHẾ KHẤU TRỪ TRỤ TỔNG CHIẾN TUYẾN (<#1564210315812667412>)**\n` +
           `• **Né Chiến / Quá hạn:** Khiêu chiến sau 3 phút không có ai nhận hoặc bấm Từ Chối ➔ Trụ Tổng phe né bị phạt trừ **-5% HP**.\n` +
