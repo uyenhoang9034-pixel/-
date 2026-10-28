@@ -614,7 +614,7 @@ class PumpkinGiveawayService {
     // RÀNG BUỘC PHÂN QUYỀN: CHỈ ADMIN MỚI ĐƯỢC XEM
     if (!isWitchHunterAdmin(interaction)) {
       return interaction.reply({
-        content: `<a:bang2:1546891483250954290> Chỉ Ban Quản Trị mới có quyền xem danh sách ghi danh ban thưởng Bí Ngô nhé vợ của Kim Nong ơi! 💕`,
+        content: `<a:bang2:1546891483250954290> Chỉ Hội Đồng Tối Cao mới có quyền xem danh sách ghi danh ban thưởng Bí Ngô nhé Lữ Khách ơi! <a:heartg1:1545307544808071258>`,
         flags: MessageFlags.Ephemeral,
       });
     }
