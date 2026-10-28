@@ -217,11 +217,17 @@ class PumpkinGrowthTracker {
         if (!msg.embeds || msg.embeds.length === 0) continue;
         for (const embed of msg.embeds) {
           const title = embed.title || '';
-          if (!title.includes('Báo Cáo Hoạt Động Hằng Ngày:')) continue;
-          const matchDate = title.match(/(\d{2}\/\d{2}\/\d{4})/);
+          const footer = embed.footer?.text || '';
+          const desc = embed.description || '';
+          const isDailyReport =
+            footer.includes('Daily Tracker') ||
+            title.includes('𝓑𝓪́𝓸 𝓒𝓪́𝓸') ||
+            title.includes('Báo Cáo') ||
+            desc.includes('rèn luyện ma thuật');
+          if (!isDailyReport) continue;
+          const matchDate = (title + ' ' + desc).match(/(\d{2}\/\d{2}\/\d{4})/);
           if (!matchDate) continue;
           const reportDate = matchDate[1];
-          const desc = embed.description || '';
 
           const userBlocks = desc.split(/\*\*#\d+\.\*\*/);
           for (const block of userBlocks) {
@@ -643,14 +649,63 @@ class PumpkinGrowthTracker {
         await this.syncWithPersistentDb(client);
       }
 
-      // 1. Nếu có pendingCatchupBuffer từ ngày cũ chưa flush
+      const reportChannelId = WITCH_HUNTER_CONFIG.channels.dailyReportChannelId;
+      const channel =
+        client.channels.cache.get(reportChannelId) ||
+        (await client.channels.fetch(reportChannelId).catch(() => null));
+
+      // Lấy danh sách tin nhắn gần nhất trong kênh Admin để kiểm tra
+      let recentMessages = null;
+      if (channel && channel.isTextBased()) {
+        recentMessages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+      }
+
+      // Hàm kiểm tra báo cáo của ngày targetDateStr đã được gửi vào kênh hoặc lưu DB chưa
+      const isReportAlreadySent = (targetDateStr) => {
+        if (recentMessages) {
+          for (const msg of recentMessages.values()) {
+            if (!msg.embeds || msg.embeds.length === 0) continue;
+            for (const embed of msg.embeds) {
+              const title = embed.title || '';
+              const footer = embed.footer?.text || '';
+              const desc = embed.description || '';
+              const isDaily =
+                footer.includes('Daily Tracker') ||
+                title.includes('𝓑𝓪́𝓸 𝓒𝓪́𝓸') ||
+                title.includes('Báo Cáo') ||
+                desc.includes('rèn luyện ma thuật');
+
+              if (isDaily && (title.includes(targetDateStr) || desc.includes(targetDateStr))) {
+                return true;
+              }
+            }
+          }
+        }
+        // Kiểm tra bổ sung trong dailyLogs đã có dữ liệu chốt của ngày này chưa
+        if (this.dailyLogs.some((l) => l.date === targetDateStr)) {
+          return true;
+        }
+        return false;
+      };
+
+      // 1. Nếu có pendingCatchupBuffer từ ngày cũ
       if (this.pendingCatchupBuffer && this.pendingCatchupBuffer.date) {
         const catchupDate = this.pendingCatchupBuffer.date;
         const entries = this.pendingCatchupBuffer.entries;
-        logger.info(`🎃 [PumpkinTracker] Đang tự động gửi báo cáo bù từ bộ nhớ tạm cho ngày ${catchupDate}...`);
-        await this.flushDailyReport(client, catchupDate, entries, true);
-        this.pendingCatchupBuffer = null;
-        return;
+
+        if (isReportAlreadySent(catchupDate)) {
+          logger.info(`🎃 [PumpkinTracker] Báo cáo ngày cũ (${catchupDate}) đã có trong kênh Admin hoặc database. Bỏ qua gửi bù để tránh lặp khi update code.`);
+          this.pendingCatchupBuffer = null;
+          try {
+            if (fs.existsSync(TODAY_BUFFER_PATH)) fs.unlinkSync(TODAY_BUFFER_PATH);
+          } catch {}
+          setInDb('temp:witch_hunter:today_buffer', null).catch(() => null);
+        } else {
+          logger.info(`🎃 [PumpkinTracker] Đang tự động gửi báo cáo bù từ bộ nhớ tạm cho ngày ${catchupDate}...`);
+          await this.flushDailyReport(client, catchupDate, entries, true);
+          this.pendingCatchupBuffer = null;
+          return;
+        }
       }
 
       // 2. Tính ngày hôm qua
@@ -663,32 +718,13 @@ class PumpkinGrowthTracker {
         year: 'numeric',
       });
 
-      const reportChannelId = WITCH_HUNTER_CONFIG.channels.dailyReportChannelId;
-      const channel =
-        client.channels.cache.get(reportChannelId) ||
-        (await client.channels.fetch(reportChannelId).catch(() => null));
+      const alreadyHasYesterdayReport = isReportAlreadySent(yesterdayStr);
 
-      let hasReportInChannel = false;
-      if (channel && channel.isTextBased()) {
-        const messages = await channel.messages.fetch({ limit: 30 }).catch(() => null);
-        if (messages) {
-          for (const msg of messages.values()) {
-            if (msg.embeds && msg.embeds.length > 0) {
-              const title = msg.embeds[0].title || '';
-              if (title.includes('Báo Cáo Hoạt Động Hằng Ngày') && title.includes(yesterdayStr)) {
-                hasReportInChannel = true;
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      if (!hasReportInChannel) {
+      if (!alreadyHasYesterdayReport) {
         logger.info(`🎃 [PumpkinTracker] Phát hiện ngày hôm qua (${yesterdayStr}) chưa có báo cáo trong kênh Admin. Đang tiến hành gửi báo cáo bù...`);
         await this.flushDailyReport(client, yesterdayStr, null, true);
       } else {
-        logger.info(`🎃 [PumpkinTracker] Báo cáo ngày hôm qua (${yesterdayStr}) đã có trong kênh Admin.`);
+        logger.info(`🎃 [PumpkinTracker] Báo cáo ngày hôm qua (${yesterdayStr}) đã có trong kênh Admin. Bỏ qua gửi lại khi khởi động bot.`);
       }
     } catch (err) {
       logger.error('❌ [PumpkinTracker] Lỗi trong autoCheckAndCatchup:', err);
