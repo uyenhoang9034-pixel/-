@@ -16,6 +16,20 @@ import {
 } from './responseValidator.js';
 
 export const AUTORESPONDER_ADMIN_ROLE_ID = '1545295139390619768';
+export const WITCH_HUNTER_ADMIN_ROLE_ID = '1541303749916754001';
+
+export const AUTORESPONDER_ADMIN_ROLES = [
+    AUTORESPONDER_ADMIN_ROLE_ID,
+    WITCH_HUNTER_ADMIN_ROLE_ID,
+];
+
+export function hasRole(member, roleId) {
+    if (!member || !roleId) return false;
+    if (member.roles?.cache?.has?.(roleId)) return true;
+    if (Array.isArray(member._roles) && member._roles.includes(roleId)) return true;
+    if (Array.isArray(member.roles) && member.roles.includes(roleId)) return true;
+    return false;
+}
 
 const DEFAULT_CONFIG = {
     managerRoleId: AUTORESPONDER_ADMIN_ROLE_ID,
@@ -239,7 +253,7 @@ export function canManageAutoresponder(
     }
 
     if (
-        member.permissions.has(
+        member.permissions?.has?.(
             PermissionFlagsBits.Administrator,
         )
     ) {
@@ -247,26 +261,22 @@ export function canManageAutoresponder(
     }
 
     if (
-        member.permissions.has(
+        member.permissions?.has?.(
             PermissionFlagsBits.ManageGuild,
         )
     ) {
         return true;
     }
 
-    if (
-        member.roles?.cache?.has(
-            AUTORESPONDER_ADMIN_ROLE_ID,
-        )
-    ) {
-        return true;
+    for (const roleId of AUTORESPONDER_ADMIN_ROLES) {
+        if (hasRole(member, roleId)) {
+            return true;
+        }
     }
 
     return Boolean(
         config?.managerRoleId &&
-        member.roles?.cache?.has(
-            config.managerRoleId,
-        ),
+        hasRole(member, config.managerRoleId),
     );
 }
 
@@ -275,6 +285,10 @@ export function canTriggerResponder(
     responder,
     config,
 ) {
+    if (!responder) {
+        return false;
+    }
+
     if (
         responder.type ===
         'everyone'
@@ -286,12 +300,31 @@ export function canTriggerResponder(
         responder.type ===
         'manager'
     ) {
-        return Boolean(
-            config.managerRoleId &&
-            member?.roles?.cache?.has(
-                config.managerRoleId,
-            ),
-        );
+        if (!member) {
+            return false;
+        }
+
+        // Quyền quản lý autoresponder (Owner, Administrator, ManageGuild)
+        if (canManageAutoresponder(member, config)) {
+            return true;
+        }
+
+        // Admin roles mặc định/đính kèm
+        for (const roleId of AUTORESPONDER_ADMIN_ROLES) {
+            if (hasRole(member, roleId)) {
+                return true;
+            }
+        }
+
+        // Manager role được cấu hình trong server
+        if (
+            config?.managerRoleId &&
+            hasRole(member, config.managerRoleId)
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     return false;

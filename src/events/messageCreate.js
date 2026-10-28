@@ -835,9 +835,18 @@ async function handleAutoresponder(message, client) {
       return false;
     }
 
+    let member = message.member;
+    if (!member && message.guild) {
+      try {
+        member = await message.guild.members.fetch(message.author.id);
+      } catch (fetchErr) {
+        logger.debug('Failed to fetch guild member for autoresponder:', fetchErr);
+      }
+    }
+
     if (
       !canTriggerResponder(
-        message.member,
+        member,
         responder,
         config,
       )

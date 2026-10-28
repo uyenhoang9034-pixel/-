@@ -181,16 +181,9 @@ export default {
                 subcommand === 'setrole'
             ) {
                 if (
-                    !interaction.member.permissions.has(
-                        PermissionFlagsBits.Administrator,
-                    ) &&
-                    !interaction.member.permissions.has(
-                        PermissionFlagsBits.ManageGuild,
-                    ) &&
-                    interaction.guild.ownerId !==
-                        interaction.user.id &&
-                    !interaction.member.roles?.cache?.has(
-                        '1545295139390619768',
+                    !canManageAutoresponder(
+                        interaction.member,
+                        config,
                     )
                 ) {
                     throw createError(
