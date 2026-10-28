@@ -295,6 +295,10 @@ class WitchHunterWorldBossService {
         `<a:animeg2:1546040159886114846> **TOP 5 THỢ SĂN & CỔ THUẬT SĨ DẪN ĐẦU (TIẾN TRÌNH VÉ TẾ ĐÀN):**\n` +
         `${top5Text}\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `<a:giftg1:1543150714732412948> **CƠ CẤU PHẦN THƯỞNG (DÙ BOSS CHẾT HAY KHÔNG):**\n` +
+        `> • **Thưởng BXH:** Top 1: +20, Top 2: +15, Top 3: +12, Top 4-5: +10, Top 6-7: +8, Top 8-9: +6, Top 10-12: +4 <a:bingo:1563061901800243253>\n` +
+        `> • **Top 1 – 5 DPS:** Nhận thêm **1 Vé Quay Tế Đàn Miễn Phí** (Supporter/Thần Khí A-SS)\n` +
+        `> • **Nếu diệt Boss:** Tất cả người tham chiến nhận thêm **+1 <a:bingo:1563061901800243253>**\n\n` +
         `<a:bang2:1546891483250954290> **Bấm nút bên dưới để dồn toàn lực xuất chiêu công phá kết giới Boss!**`
       )
       .setFooter({ text: 'Hệ thống tự động gom batch đồng bộ mỗi 2 phút • Witch Hunter World Boss' })
@@ -611,9 +615,15 @@ class WitchHunterWorldBossService {
       .setTitle(`${emojis.titleLeft} BẢNG THỐNG KÊ CHIẾN TÍCH TOP 12 ${emojis.titleRight}`)
       .setDescription(
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `<a:giftg1:1543150714732412948> **VINH DANH TOP 5 (TIẾN TRÌNH VÉ TẾ ĐÀN & BÍ NGÔ CAO CẤP):**\n` +
+        `<a:giftg1:1543150714732412948> **CƠ CẤU PHẦN THƯỞNG BÍ NGÔ (DÙ BOSS CHẾT HAY KHÔNG):**\n` +
+        `> • **Top 1:** +20 <a:bingo:1563061901800243253> | **Top 2:** +15 <a:bingo:1563061901800243253> | **Top 3:** +12 <a:bingo:1563061901800243253>\n` +
+        `> • **Top 4-5:** +10 <a:bingo:1563061901800243253> | **Top 6-7:** +8 <a:bingo:1563061901800243253>\n` +
+        `> • **Top 8-9:** +6 <a:bingo:1563061901800243253> | **Top 10-12:** +4 <a:bingo:1563061901800243253>\n` +
+        `> • **Top 1 – 5 DPS:** Nhận thêm **1 Vé Quay Tế Đàn Miễn Phí**\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `<a:trangtrig20:1546092997299667055> **VINH DANH TOP 5 (TIẾN TRÌNH VÉ TẾ ĐÀN & BÍ NGÔ CAO CẤP):**\n` +
         `${top5Section}\n\n` +
-        `<a:giftg1:1543150714732412948> **VINH DANH TOP 6 - 12:**\n` +
+        `<a:trangtrig20:1546092997299667055> **VINH DANH TOP 6 - 12:**\n` +
         `${top6to12Section}\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `${myPositionStr}`
@@ -788,64 +798,41 @@ class WitchHunterWorldBossService {
         }
       }
 
-      // Thưởng Bí Ngô
-      if (reason === 'defeated') {
-        // TH1: Boss bị hạ gục -> +1 Bí Ngô thầm lặng cho TẤT CẢ ai tham gia ít nhất 1 đòn
-        if (guild) {
-          for (const p of sorted) {
-            if (p.hits >= 1) {
-              await WitchHunterService.awardPumpkins(guild, p.userId, 1, {
-                reason: 'Phần thưởng tham chiến diệt Boss Bách Quỷ Dạ Hành',
-                notifyDM: false,
-                notifyAdminLog: false,
-              }).catch(() => null);
-            }
+      // Thưởng Bí Ngô:
+      // TH1: Nếu Boss bị tiêu diệt -> +1 Bí Ngô cho TẤT CẢ ai tham gia ít nhất 1 đòn
+      if (reason === 'defeated' && guild) {
+        for (const p of sorted) {
+          if (p.hits >= 1) {
+            await WitchHunterService.awardPumpkins(guild, p.userId, 1, {
+              reason: 'Phần thưởng tham chiến diệt Boss Bách Quỷ Dạ Hành',
+              notifyDM: false,
+              notifyAdminLog: false,
+            }).catch(() => null);
           }
         }
+      }
 
-        // Top 1 - 12 nhận thêm Bí Ngô theo BXH
-        if (guild) {
-          for (let i = 0; i < Math.min(12, sorted.length); i++) {
-            const p = sorted[i];
-            const rank = i + 1;
-            let addPumpkins = 0;
-            if (rank === 1) addPumpkins = 20;
-            else if (rank === 2) addPumpkins = 15;
-            else if (rank === 3) addPumpkins = 12;
-            else if (rank <= 5) addPumpkins = 10;
-            else if (rank <= 7) addPumpkins = 8;
-            else if (rank <= 9) addPumpkins = 6;
-            else if (rank <= 12) addPumpkins = 4;
+      // TH2 & TH1: Dù Boss chết hay không chết, Top 1 - 12 ĐỀU nhận thưởng Bí Ngô chuẩn theo BXH:
+      // Top 1: +20, Top 2: +15, Top 3: +12, Top 4-5: +10, Top 6-7: +8, Top 8-9: +6, Top 10-12: +4 Bí Ngô
+      if (guild) {
+        for (let i = 0; i < Math.min(12, sorted.length); i++) {
+          const p = sorted[i];
+          const rank = i + 1;
+          let addPumpkins = 0;
+          if (rank === 1) addPumpkins = 20;
+          else if (rank === 2) addPumpkins = 15;
+          else if (rank === 3) addPumpkins = 12;
+          else if (rank <= 5) addPumpkins = 10;
+          else if (rank <= 7) addPumpkins = 8;
+          else if (rank <= 9) addPumpkins = 6;
+          else if (rank <= 12) addPumpkins = 4;
 
-            if (addPumpkins > 0) {
-              await WitchHunterService.awardPumpkins(guild, p.userId, addPumpkins, {
-                reason: `Top ${rank} DPS Bách Quỷ Dạ Hành (Tiêu diệt Boss)`,
-                notifyDM: false,
-                notifyAdminLog: false,
-              }).catch(() => null);
-            }
-          }
-        }
-      } else {
-        // TH2: Hết giờ mà Boss KHÔNG CHẾT -> Chỉ phát thưởng Top 1 - 12
-        if (guild) {
-          for (let i = 0; i < Math.min(12, sorted.length); i++) {
-            const p = sorted[i];
-            const rank = i + 1;
-            let addPumpkins = 0;
-            if (rank === 1) addPumpkins = 12;
-            else if (rank === 2) addPumpkins = 10;
-            else if (rank === 3) addPumpkins = 8;
-            else if (rank <= 5) addPumpkins = 5;
-            else if (rank <= 12) addPumpkins = 2;
-
-            if (addPumpkins > 0) {
-              await WitchHunterService.awardPumpkins(guild, p.userId, addPumpkins, {
-                reason: `Top ${rank} DPS Bách Quỷ Dạ Hành (Boss rút lui)`,
-                notifyDM: false,
-                notifyAdminLog: false,
-              }).catch(() => null);
-            }
+          if (addPumpkins > 0) {
+            await WitchHunterService.awardPumpkins(guild, p.userId, addPumpkins, {
+              reason: `Top ${rank} DPS Bách Quỷ Dạ Hành (${reason === 'defeated' ? 'Tiêu diệt Boss' : 'Boss rút lui'})`,
+              notifyDM: false,
+              notifyAdminLog: false,
+            }).catch(() => null);
           }
         }
       }
@@ -868,26 +855,35 @@ class WitchHunterWorldBossService {
             `<a:trangtrig41:1547238037832863744> **BAN PHƯỚC TỐI CAO:**\n` +
             `> Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n` +
             `> Trụ Tổng Phe **${loseFactionName}** bảo toàn nguyên vẹn, không bị khấu trừ.\n\n` +
-            `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG TOÀN SERVER:**\n` +
+            `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG CHIẾN DỊCH (BOSS BỊ TIÊU DIỆT):**\n` +
             `- **Tất cả Thần Khí Sĩ và Cổ Thuật Sĩ** tham gia đánh ít nhất 1 đòn: Nhận ngay **+1 <a:bingo:1563061901800243253>**.\n` +
-            `- **Top 1 – 5 DPS:** Nhận thêm **1 Vé Quay Tế Đàn Miễn Phí** (Triệu Hồi Supporter/Thần Khí A-SS) + Điểm Bí Ngô tương ứng theo thứ hạng.`
+            `- **Thưởng BXH Top 1 – 12 DPS:**\n` +
+            `  > • **Top 1:** +20 <a:bingo:1563061901800243253> | **Top 2:** +15 <a:bingo:1563061901800243253> | **Top 3:** +12 <a:bingo:1563061901800243253>\n` +
+            `  > • **Top 4 – 5:** +10 <a:bingo:1563061901800243253> | **Top 6 – 7:** +8 <a:bingo:1563061901800243253>\n` +
+            `  > • **Top 8 – 9:** +6 <a:bingo:1563061901800243253> | **Top 10 – 12:** +4 <a:bingo:1563061901800243253>\n` +
+            `- **Top 1 – 5 DPS:** Nhận thêm **1 Vé Quay Tế Đàn Miễn Phí** (Triệu Hồi Supporter/Thần Khí A-SS).`
           );
       } else {
         endEmbed
           .setTitle(`${emojis.titleLeft} THỜI GIAN ĐÃ HẾT: BOSS ĐÃ RÚT LUI VÀO HƯ KHÔNG! ${emojis.titleRight}`)
           .setDescription(
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `Kết giới chưa bị phá hủy hoàn toàn vì Boss còn lại **${state.resistance}% Kháng Cự**.\n` +
-            `> *Không kích hoạt thưởng diệt Boss toàn server.*\n\n` +
+            `Hết thời gian chiến dịch! Thực thể **${state.bossConfig.title}** đã ẩn thân vào bóng tối.\n` +
+            `> *Kết giới chưa bị phá hủy hoàn toàn (còn ${state.resistance}% Kháng Cự), không kích hoạt +1 Bí Ngô toàn server.*\n\n` +
             `<a:trangtrig15:1546047955696488489> **KẾT QUẢ TÍCH LŨY SÁT THƯƠNG PHE PHÁI:**\n` +
             `${winFactionEmoji} **${winFactionName}:** ${winFactionPct}% Tổng Kháng Cự\n` +
             `<a:trangtrig20:1546092997299667055> **CHIẾN THẮNG ÁP ĐẢO!**\n` +
             `${loseFactionEmoji} **${loseFactionName}:** ${loseFactionPct}% Tổng Kháng Cự\n\n` +
             `<a:trangtrig41:1547238037832863744> **BAN PHƯỚC TỐI CAO:**\n` +
             `> Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n\n` +
-            `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG XẾP HẠNG CÁ NHÂN:**\n` +
-            `- **Top 1 – Top 5 DPS:** Nhận **1 Vé Quay Tế Đàn Miễn Phí** + Điểm Bí Ngô <a:bingo:1563061901800243253> tương ứng.\n` +
-            `- **Top 6 – Top 12 DPS:** Nhận Điểm Bí Ngô <a:bingo:1563061901800243253> tương ứng theo bảng xếp hạng.`
+            `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG XẾP HẠNG CÁ NHÂN (DÙ BOSS KHÔNG CHẾT):**\n` +
+            `> • **Top 1:** +20 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 2:** +15 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 3:** +12 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 4 – 5:** +10 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 6 – 7:** +8 <a:bingo:1563061901800243253>\n` +
+            `> • **Top 8 – 9:** +6 <a:bingo:1563061901800243253>\n` +
+            `> • **Top 10 – 12:** +4 <a:bingo:1563061901800243253>`
           );
       }
 

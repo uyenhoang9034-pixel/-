@@ -577,7 +577,7 @@ class PumpkinGiveawayService {
     if (giveaway.participants.includes(userId)) {
       const idx = giveaway.participants.indexOf(userId) + 1;
       return interaction.reply({
-        content: `<a:bang2:1546891483250954290> **LỮ KHÁCH ĐÃ GHI DANH RỒI!**\nBạn đã có tên trong danh sách nhận Bí Ngô ở vị trí **#${idx}**.\nHãy yên tâm kiên nhẫn đợi đến khi cổng đếm ngược kết thúc để nhận phần thưởng nhé! 💕`,
+        content: `<a:bang2:1546891483250954290> **LỮ KHÁCH ĐÃ GHI DANH RỒI!**\nLữ Khách đã có tên trong danh sách nhận Bí Ngô ở vị trí **#${idx}**.\nHãy yên tâm kiên nhẫn đợi đến khi cổng đếm ngược kết thúc để nhận phần thưởng nhé! 💕`,
         flags: MessageFlags.Ephemeral,
       });
     }
@@ -602,7 +602,7 @@ class PumpkinGiveawayService {
       content:
         `<a:trangtrig20:1546092997299667055> **ĐÃ ĐIỂM DANH THÀNH CÔNG!**\n` +
         `Lữ khách đã ghi danh nhận chia Bí Ngô thành công (Số thứ tự: **#${count}**).\n` +
-        `Khi cổng thời gian đếm ngược kết thúc, bạn sẽ được tự động cộng phần chia Bí Ngô vào tài khoản! ✨`,
+        `Khi cổng thời gian đếm ngược kết thúc, Lữ Khách sẽ được tự động cộng phần chia Bí Ngô vào tài khoản! ✨`,
       flags: MessageFlags.Ephemeral,
     });
   }
