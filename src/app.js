@@ -363,6 +363,21 @@ class TitanBot extends Client {
     // Tối ưu RAM định kỳ mỗi 30 phút: dọn dẹp cache hết hạn & thu hồi rác GC
     cron.schedule('*/30 * * * *', runSafeTask('memory_cleanup', () => this.cleanupMemory()));
 
+    // Hồi phục sinh lực tự nhiên cho Supporter (+10% HP / 1 giờ)
+    cron.schedule('0 * * * *', runSafeTask('supporter_hp_regen', async () => {
+      try {
+        const { WitchHunterService, witchHunterStorage } = await import('./services/witchHunterService.js');
+        const allUsers = witchHunterStorage.getAllUsers();
+        for (const u of allUsers) {
+          if (u.supporter_hp && Object.keys(u.supporter_hp).length > 0) {
+            WitchHunterService.updateNaturalRegen(u);
+          }
+        }
+      } catch (err) {
+        logger.error('❌ [WitchHunterExpedition] Lỗi cron hồi phục sinh lực Supporter:', err);
+      }
+    }));
+
     // Sự kiện Thí Luyện Cuối Tuần (Witch Hunter): Mở lúc 20:00 Thứ Bảy
     cron.schedule('0 20 * * 6', runSafeTask('witch_hunter_puzzle_open', async () => {
       try {

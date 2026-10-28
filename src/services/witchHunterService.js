@@ -124,6 +124,18 @@ class WitchHunterStorage {
               try {
                 this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN is_resonance INTEGER DEFAULT 0;');
               } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN supporter_hp TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN last_hp_update INTEGER;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN active_expedition TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN memory_shards INTEGER DEFAULT 0;');
+              } catch {}
               this.isSqlite = true;
               logger.info('🔮 [WitchHunter] Storage Engine: SQLite (Native Node:sqlite) đã sẵn sàng.');
             }
@@ -224,6 +236,14 @@ class WitchHunterStorage {
           try {
             unlockedSupporters = row.unlocked_supporters ? JSON.parse(row.unlocked_supporters) : [];
           } catch {}
+          let supporterHp = {};
+          try {
+            supporterHp = row.supporter_hp ? (typeof row.supporter_hp === 'string' ? JSON.parse(row.supporter_hp) : row.supporter_hp) : {};
+          } catch {}
+          let activeExpedition = null;
+          try {
+            activeExpedition = row.active_expedition ? (typeof row.active_expedition === 'string' ? JSON.parse(row.active_expedition) : row.active_expedition) : null;
+          } catch {}
           const userObj = {
             user_id: row.user_id,
             faction: row.faction,
@@ -235,6 +255,10 @@ class WitchHunterStorage {
             is_resonance: Number(row.is_resonance) || 0,
             last_puzzle_session: row.last_puzzle_session || null,
             last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
+            supporter_hp: supporterHp,
+            last_hp_update: row.last_hp_update ? Number(row.last_hp_update) : null,
+            active_expedition: activeExpedition,
+            memory_shards: Number(row.memory_shards) || 0,
             updated_at: Number(row.updated_at) || Date.now(),
           };
           this.memoryCache.set(userId, userObj);
@@ -252,18 +276,32 @@ class WitchHunterStorage {
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare('SELECT * FROM witch_hunter_members ORDER BY pumpkins DESC');
-        return stmt.all().map((row) => ({
-          user_id: row.user_id,
-          faction: row.faction,
-          current_rank: Number(row.current_rank) || 1,
-          pumpkins: Number(row.pumpkins) || 0,
-          equipped_supporter: row.equipped_supporter || null,
-          equipped_weapon: row.equipped_weapon || null,
-          is_resonance: Number(row.is_resonance) || 0,
-          last_puzzle_session: row.last_puzzle_session || null,
-          last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
-          updated_at: Number(row.updated_at) || Date.now(),
-        }));
+        return stmt.all().map((row) => {
+          let supporterHp = {};
+          try {
+            supporterHp = row.supporter_hp ? (typeof row.supporter_hp === 'string' ? JSON.parse(row.supporter_hp) : row.supporter_hp) : {};
+          } catch {}
+          let activeExpedition = null;
+          try {
+            activeExpedition = row.active_expedition ? (typeof row.active_expedition === 'string' ? JSON.parse(row.active_expedition) : row.active_expedition) : null;
+          } catch {}
+          return {
+            user_id: row.user_id,
+            faction: row.faction,
+            current_rank: Number(row.current_rank) || 1,
+            pumpkins: Number(row.pumpkins) || 0,
+            equipped_supporter: row.equipped_supporter || null,
+            equipped_weapon: row.equipped_weapon || null,
+            is_resonance: Number(row.is_resonance) || 0,
+            last_puzzle_session: row.last_puzzle_session || null,
+            last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
+            supporter_hp: supporterHp,
+            last_hp_update: row.last_hp_update ? Number(row.last_hp_update) : null,
+            active_expedition: activeExpedition,
+            memory_shards: Number(row.memory_shards) || 0,
+            updated_at: Number(row.updated_at) || Date.now(),
+          };
+        });
       } catch (err) {
         logger.error('❌ [WitchHunter] SQLite getAllUsers error:', err);
       }
@@ -275,13 +313,19 @@ class WitchHunterStorage {
   saveUser(userObj, immediate = false) {
     userObj.updated_at = Date.now();
     userObj.unlocked_supporters = Array.isArray(userObj.unlocked_supporters) ? userObj.unlocked_supporters : [];
+    if (!userObj.supporter_hp || typeof userObj.supporter_hp !== 'object') {
+      userObj.supporter_hp = {};
+    }
+    if (userObj.memory_shards === undefined) {
+      userObj.memory_shards = 0;
+    }
     this.memoryCache.set(userObj.user_id, userObj);
 
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare(`
-          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon, is_resonance)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon, is_resonance, supporter_hp, last_hp_update, active_expedition, memory_shards)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id) DO UPDATE SET
             faction = excluded.faction,
             current_rank = excluded.current_rank,
@@ -291,7 +335,11 @@ class WitchHunterStorage {
             last_puzzle_week = excluded.last_puzzle_week,
             equipped_supporter = excluded.equipped_supporter,
             equipped_weapon = excluded.equipped_weapon,
-            is_resonance = excluded.is_resonance
+            is_resonance = excluded.is_resonance,
+            supporter_hp = excluded.supporter_hp,
+            last_hp_update = excluded.last_hp_update,
+            active_expedition = excluded.active_expedition,
+            memory_shards = excluded.memory_shards
         `);
         stmt.run(
           userObj.user_id,
@@ -303,7 +351,11 @@ class WitchHunterStorage {
           userObj.last_puzzle_week || userObj.last_puzzle_session || null,
           userObj.equipped_supporter || null,
           userObj.equipped_weapon || null,
-          userObj.is_resonance ? 1 : 0
+          userObj.is_resonance ? 1 : 0,
+          userObj.supporter_hp ? JSON.stringify(userObj.supporter_hp) : null,
+          userObj.last_hp_update || null,
+          userObj.active_expedition ? JSON.stringify(userObj.active_expedition) : null,
+          userObj.memory_shards || 0
         );
       } catch (err) {
         logger.error('❌ [WitchHunter] SQLite saveUser error:', err);
@@ -2734,6 +2786,74 @@ export class WitchHunterService {
   }
 
   /**
+   * Tính toán hồi phục sinh lực tự nhiên cho tất cả Supporter của user (+10% HP / 1 giờ)
+   */
+  static updateNaturalRegen(userData) {
+    if (!userData) return;
+    if (!userData.supporter_hp || typeof userData.supporter_hp !== 'object') {
+      userData.supporter_hp = {};
+    }
+    const now = Date.now();
+    if (!userData.last_hp_update) {
+      userData.last_hp_update = now;
+      return;
+    }
+    const elapsedMs = now - userData.last_hp_update;
+    const hoursPassed = Math.floor(elapsedMs / (60 * 60 * 1000));
+    if (hoursPassed > 0) {
+      const hpGain = hoursPassed * 10;
+      let hasChanges = false;
+      for (const [sId, hp] of Object.entries(userData.supporter_hp)) {
+        if (hp < 100) {
+          userData.supporter_hp[sId] = Math.min(100, (Number(hp) || 0) + hpGain);
+          hasChanges = true;
+        }
+      }
+      userData.last_hp_update = userData.last_hp_update + (hoursPassed * 3600000);
+      if (hasChanges) {
+        witchHunterStorage.saveUser(userData);
+      }
+    }
+  }
+
+  /**
+   * Lấy lượng máu hiện tại của Supporter (0 - 100%, mặc định 100% nếu chưa từng bị trừ)
+   */
+  static getSupporterHp(userId, supporterId) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData) return 100;
+    this.updateNaturalRegen(userData);
+    if (userData.supporter_hp && userData.supporter_hp[supporterId] !== undefined) {
+      return Math.min(100, Math.max(0, Number(userData.supporter_hp[supporterId])));
+    }
+    return 100;
+  }
+
+  /**
+   * Cập nhật lượng máu của Supporter
+   */
+  static setSupporterHp(userId, supporterId, hp) {
+    const userData = witchHunterStorage.getUser(userId);
+    if (!userData) return;
+    this.updateNaturalRegen(userData);
+    if (!userData.supporter_hp || typeof userData.supporter_hp !== 'object') {
+      userData.supporter_hp = {};
+    }
+    userData.supporter_hp[supporterId] = Math.min(100, Math.max(0, Math.round(hp)));
+    witchHunterStorage.saveUser(userData, true);
+  }
+
+  /**
+   * Trừ lượng máu của Supporter (không giảm xuống dưới 0%)
+   */
+  static deductSupporterHp(userId, supporterId, amount) {
+    const currentHp = this.getSupporterHp(userId, supporterId);
+    const newHp = Math.max(0, currentHp - amount);
+    this.setSupporterHp(userId, supporterId, newHp);
+    return newHp;
+  }
+
+  /**
    * Đổi Supporter trang bị cho thành viên
    */
   static equipSupporter(userId, supporterId) {
@@ -2900,6 +3020,19 @@ export class WitchHunterService {
       equippedWeaponLine = `${energyEmoji} ${rankBadge} **${equippedWeapon.name}** *(${equippedWeapon.energyAttribute || ''})*`;
     }
 
+    // Sinh lực Supporter đang xuất trận
+    let supporterHpBlock = '';
+    if (equippedSupporter) {
+      const suppHp = this.getSupporterHp(userId, equippedSupporter.id);
+      const filledBars = Math.min(10, Math.max(0, Math.floor(suppHp / 10)));
+      const emptyBars = 10 - filledBars;
+      const hpBarString = `[${'█'.repeat(filledBars)}${'░'.repeat(emptyBars)}]`;
+      supporterHpBlock =
+        `<:wh4:1564143733690204190> Sinh Lực Supporter Đang Xuất Trận:\n` +
+        `\`${hpBarString}\` **${suppHp}%** (${suppHp}/100 HP)\n` +
+        `> <:wh4:1564143733690204190> Tốc độ hồi phục tự nhiên: **+10% HP / mỗi 1 giờ** (Tối đa 100%)\n\n`;
+    }
+
     // Kiểm tra Cộng Hưởng Khế Ước giữa Supporter và Thần Binh Vũ Khí
     const resonance = this.checkResonance(userId);
     let resonanceLine = '';
@@ -2962,6 +3095,7 @@ export class WitchHunterService {
         `<a:whg2:1564145798537683034> **TRANG BỊ ĐANG KÍCH HOẠT:**\n` +
         `• **Supporter:** ${equippedSupporterLine}\n` +
         `• **Thần Binh Vũ Khí:** ${equippedWeaponLine}\n\n` +
+        supporterHpBlock +
         `${resonanceLine}` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `<a:giftg1:1543150714732412948> **KHO BÁU VẬT ĐÃ SỞ HỮU:**\n` +
@@ -2972,9 +3106,7 @@ export class WitchHunterService {
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `${decor21Emoji} **Tiến trình đột phá bậc kế tiếp:**\n` +
         `${progress.progressBar}\n` +
-        `${progressText}\n\n` +
-        `${decor30Emoji} **Lời nhắn từ Phù Thủy Usagi:**\n` +
-        `> Hãy dùng bảng chọn bên dưới để đổi Supporter & Vũ Khí đang xuất trận nha! ${heartEmoji}`
+        `${progressText}`
       )
       .setFooter({ text: 'Witch Hunter Profile' })
       .setTimestamp();

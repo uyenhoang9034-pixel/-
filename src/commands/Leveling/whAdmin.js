@@ -1,6 +1,7 @@
 import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
 import { WitchHunterSummonService } from '../../services/witchHunterSummonService.js';
+import { WitchHunterExpeditionService } from '../../services/witchHunterExpeditionService.js';
 import { logger } from '../../utils/logger.js';
 
 function isWitchHunterAdmin(interaction) {
@@ -40,6 +41,18 @@ export default {
           opt
             .setName('kenh')
             .setDescription('Kênh gửi bảng triệu hồi cố định (mặc định kênh hiện tại hoặc #trieu-hoi)')
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('setup-expedition')
+        .setDescription('Tạo bảng cố định Viễn Chinh: Ranh Giới Hắc Ám (Idle Expedition)')
+        .addChannelOption((opt) =>
+          opt
+            .setName('kenh')
+            .setDescription('Kênh gửi bảng viễn chinh (mặc định kênh hiện tại hoặc #vien-chinh)')
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(false)
         )
@@ -208,6 +221,37 @@ export default {
 
         return interaction.reply({
           content: `✅ Đã thiết lập bảng **Tế Đàn Triệu Gọi Huyết Nguyệt** tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // SETUP EXPEDITION
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'setup-expedition') {
+        const chosenChannel = interaction.options.getChannel('kenh');
+        let targetChannel = chosenChannel;
+
+        if (!targetChannel) {
+          targetChannel =
+            interaction.guild.channels.cache.find(
+              (c) =>
+                c.name === 'vien-chinh' ||
+                c.name === 'expedition' ||
+                c.name === 'ranh-gioi-hac-am'
+            ) || interaction.channel;
+        }
+
+        const embed = WitchHunterExpeditionService.buildExpeditionDashboardEmbed();
+        const components = WitchHunterExpeditionService.createExpeditionDashboardComponents();
+
+        await targetChannel.send({
+          embeds: [embed],
+          components,
+        });
+
+        return interaction.reply({
+          content: `✅ Đã thiết lập bảng **Viễn Chinh: Ranh Giới Hắc Ám** tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
           flags: MessageFlags.Ephemeral,
         });
       }
