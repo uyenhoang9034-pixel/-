@@ -1373,6 +1373,50 @@ export function getQuickPuzzleById(id) {
   return WITCH_HUNTER_CONFIG.quickPuzzle.questions.find((q) => q.id === numId) || null;
 }
 
+/**
+ * Bảng ánh xạ Cộng Hưởng Đồng Bộ Khế Ước (Resonance Map)
+ * Supporter liên kết trực tiếp với Thần Binh Vũ Khí gốc -> Kích hoạt x1.5 Bạo Kích Sát Thương
+ */
+export const WITCH_HUNTER_RESONANCE_MAP = {
+  // --- HIỆP HỘI THỢ SĂN (HUNTERS) ---
+  garmr: 'wep_hunter_1',
+  zodiac: 'wep_hunter_2',
+  bastion: 'wep_hunter_3',
+  abyssus: 'wep_hunter_4',
+  oculus: 'wep_hunter_5',
+  fenris: 'wep_frostbite_fangs',
+  brand: 'wep_chain_of_penance',
+  iron_maiden: 'wep_spike_cage_shield',
+  bailong: 'wep_thunder_pearl_rapier',
+  thanatos: 'wep_executioners_guise',
+  astrarium: 'wep_singularity_staff',
+  deus_ex: 'wep_judgement_cannon',
+  ouroboros_core: 'wep_absolute_singularity_lance',
+
+  // --- PHE PHÙ THỦY (WITCHES) ---
+  malice: 'wep_witch_1',
+  corvus: 'wep_witch_2',
+  tamamo: 'wep_witch_3',
+  vermilion: 'wep_witch_4',
+  hallow: 'wep_witch_5',
+  sylph: 'wep_gale_plume_whip',
+  morpheus: 'wep_slumber_mist_censer',
+  hemlock: 'wep_blight_pestle',
+  cerastes: 'wep_petrification_gaze_flute',
+  chrysalis: 'wep_void_chrysalis_staff',
+  inferna: 'wep_hellfire_crucible',
+  leviathan_core: 'wep_abyssal_sovereign_orb',
+  ouroboros_eye: 'wep_genesis_ouroboros_eye',
+  banshee: 'wep_screaming_veil',
+  ouroboros_witch: 'wep_infinity_mirror',
+  lilith: 'wep_genesis_blood_chalice',
+  tiamat: 'wep_calamity_dragon_horn',
+};
+
+export const WITCH_HUNTER_WEAPON_TO_SUPPORTER_MAP = Object.fromEntries(
+  Object.entries(WITCH_HUNTER_RESONANCE_MAP).map(([s, w]) => [w, s])
+);
+
 export default WITCH_HUNTER_CONFIG;
 
 
