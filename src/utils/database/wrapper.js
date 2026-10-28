@@ -84,6 +84,11 @@ class DatabaseWrapper {
     }
 
     async set(key, value, ttl = null) {
+        if (!this.db) {
+            logger.warn(`[DatabaseWrapper] Cannot set key "${key}": Database is not initialized yet.`);
+            return false;
+        }
+
         if (this.useFallback) {
             logger.debug(`[DEGRADED] Writing to memory: ${key}`);
         }
@@ -100,10 +105,19 @@ class DatabaseWrapper {
     }
 
     async get(key, defaultValue = null) {
+        if (!this.db) {
+            logger.warn(`[DatabaseWrapper] Cannot get key "${key}": Database is not initialized yet.`);
+            return defaultValue;
+        }
         return this.db.get(key, defaultValue);
     }
 
     async delete(key) {
+        if (!this.db) {
+            logger.warn(`[DatabaseWrapper] Cannot delete key "${key}": Database is not initialized yet.`);
+            return false;
+        }
+
         if (this.useFallback) {
             logger.debug(`[DEGRADED] Deleting from memory: ${key}`);
         }
@@ -111,10 +125,16 @@ class DatabaseWrapper {
     }
 
     async list(prefix) {
+        if (!this.db) {
+            return [];
+        }
         return this.db.list(prefix);
     }
 
     async exists(key) {
+        if (!this.db) {
+            return false;
+        }
         if (this.db.exists) {
             return this.db.exists(key);
         }

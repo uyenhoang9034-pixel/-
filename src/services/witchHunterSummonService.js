@@ -100,8 +100,6 @@ class WitchHunterSummonStorage {
           }
         } catch (e) {}
       }
-
-      this.syncWithPersistentDb().catch(() => null);
     } catch (error) {
       logger.error('❌ [WitchHunterSummon] Lỗi khởi tạo Storage:', error);
     }

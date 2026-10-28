@@ -154,9 +154,6 @@ class WitchHunterQuestStorage {
 
       // Nạp ngân hàng câu hỏi từ JSON
       this.loadQuestionsFromJson();
-
-      // Đồng bộ dữ liệu với PostgreSQL
-      this.syncWithPersistentDb().catch(() => null);
     } catch (error) {
       logger.error('❌ [WitchHunterQuest] Lỗi khởi tạo Quest Storage:', error);
     }
