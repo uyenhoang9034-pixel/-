@@ -1521,62 +1521,83 @@ export class WitchHunterDuelService {
     const guild = duel.mainMessage?.guild;
 
     // 1. Thưởng Bí Ngô cho Phe Thắng (+10 Bí Ngô) - Chỉ áp dụng cho trận thật
-    if (!duel.isBotTest && winner.id !== 'bot_mock_id' && guild) {
-      await WitchHunterService.awardPumpkins(guild, winner.id, 10, {
-        reason: 'Chiến thắng Đấu Trường Huyết Thệ (+10 Bí Ngô)',
-        executor: null,
-        notifyDM: true,
-        notifyAdminLog: true,
-      });
+    try {
+      if (!duel.isBotTest && winner.id !== 'bot_mock_id' && guild) {
+        await WitchHunterService.awardPumpkins(guild, winner.id, 10, {
+          reason: 'Chiến thắng Đấu Trường Huyết Thệ (+10 Bí Ngô)',
+          executor: null,
+          notifyDM: true,
+          notifyAdminLog: true,
+        }).catch(() => null);
+      }
+    } catch (winErr) {
+      logger.error('❌ [Duel] Lỗi trao thưởng cho người chiến thắng:', winErr);
     }
 
     // 2. Khấu trừ máu Trụ Tổng (-2% HP cho phe thua) - Chỉ áp dụng cho trận thật
-    if (!duel.isBotTest && guild) {
-      const loserFaction = loser.faction;
-      const loserFactionName = loserFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
-      const loserRole = this.getFighterRoleName(loserFaction);
-      const loserUserId = loser.id || loser.user?.id;
-      const reasonText = `${loserRole} <@${loserUserId}> (${loserFactionName}) bị đánh bại ➔ Trừ 2% HP Trụ Tổng ${loserFactionName}!`;
-      await this.deductTowerHp(guild, loserFaction, 2, reasonText);
+    try {
+      if (!duel.isBotTest && guild) {
+        const loserFaction = loser.faction;
+        const loserFactionName = loserFaction === 'witch' ? 'Phe Phù Thủy' : 'Phe Thợ Săn';
+        const loserRole = this.getFighterRoleName(loserFaction);
+        const loserUserId = loser.id || loser.user?.id;
+        const reasonText = `${loserRole} <@${loserUserId}> (${loserFactionName}) bị đánh bại ➔ Trừ 2% HP Trụ Tổng ${loserFactionName}!`;
+        await this.deductTowerHp(guild, loserFaction, 2, reasonText).catch(() => null);
+      }
+    } catch (towerErr) {
+      logger.error('❌ [Duel] Lỗi khấu trừ máu Trụ Tổng:', towerErr);
     }
 
     // 3. Thanh toán sòng cược (Pari-mutuel Pool) - Chỉ áp dụng cho trận thật
-    const { totalPool, netPool, hunterTotal, witchTotal } = this.calculateBetOdds(duel);
-    const winningFaction = winner.faction;
-    const winningBets = duel.bets.filter((b) => b.faction === winningFaction);
-    const winningPoolTotal = winningFaction === 'hunter' ? hunterTotal : witchTotal;
+    let netPool = 0;
+    try {
+      const oddsData = this.calculateBetOdds(duel);
+      netPool = oddsData.netPool;
+      const { hunterTotal, witchTotal, hunterOdds, witchOdds } = oddsData;
+      const winningFaction = winner.faction;
+      const winningBets = duel.bets.filter((b) => b.faction === winningFaction);
+      const winningPoolTotal = winningFaction === 'hunter' ? hunterTotal : witchTotal;
 
-    const payoutList = [];
-    if (!duel.isBotTest && winningBets.length > 0 && winningPoolTotal > 0 && guild) {
-      const oddsNumber = Number(winningFaction === 'hunter' ? hunterOdds : witchOdds) || 1.90;
-      for (const bet of winningBets) {
-        if (bet.userId === 'fan1' || bet.userId === 'fan2') continue; // Bỏ qua bot cược ảo
-        const rewardPumpkins = Math.max(1, Math.round(bet.amount * oddsNumber));
+      const payoutList = [];
+      if (!duel.isBotTest && winningBets.length > 0 && winningPoolTotal > 0 && guild) {
+        const oddsNumber = Number(winningFaction === 'hunter' ? hunterOdds : witchOdds) || 1.90;
+        for (const bet of winningBets) {
+          if (bet.userId === 'fan1' || bet.userId === 'fan2') continue; // Bỏ qua bot cược ảo
+          const rewardPumpkins = Math.max(1, Math.round(bet.amount * oddsNumber));
 
-        await WitchHunterService.awardPumpkins(guild, bet.userId, rewardPumpkins, {
-          reason: `Thắng Sòng Cược Huyết Thệ (Nhận x${oddsNumber.toFixed(2)} vốn + lãi sau thuế 10%)`,
-          executor: null,
-          notifyDM: true,
-          notifyAdminLog: false,
-        });
+          await WitchHunterService.awardPumpkins(guild, bet.userId, rewardPumpkins, {
+            reason: `Thắng Sòng Cược Huyết Thệ (Nhận x${oddsNumber.toFixed(2)} vốn + lãi sau thuế 10%)`,
+            executor: null,
+            notifyDM: true,
+            notifyAdminLog: false,
+          }).catch(() => null);
 
-        payoutList.push(`<@${bet.userId}> (+${rewardPumpkins} <a:bingo:1563061901800243253>)`);
+          payoutList.push(`<@${bet.userId}> (+${rewardPumpkins} <a:bingo:1563061901800243253>)`);
+        }
       }
+    } catch (betErr) {
+      logger.error('❌ [Duel] Lỗi thanh toán sòng cược:', betErr);
     }
 
     // 4. Cập nhật Embed Trụ Tổng tại kênh cố định (Chỉ khi không phải bot test)
-    if (!duel.isBotTest && guild) {
-      await this.updateMonolithMessage(guild).catch(() => null);
-    }
+    try {
+      if (!duel.isBotTest && guild) {
+        await this.updateMonolithMessage(guild).catch(() => null);
+      }
+    } catch {}
 
-    // 5. Gửi Embed Kết Quả Hoàn Tất
-    const resultEmbed = this.buildDuelResultEmbed(duel, winner, loser, netPool);
+    // 5. Gửi Embed Kết Quả Hoàn Tất & Xóa nút bấm tương tác
+    try {
+      const resultEmbed = this.buildDuelResultEmbed(duel, winner, loser, netPool);
 
-    if (duel.mainMessage) {
-      await duel.mainMessage.edit({
-        embeds: [resultEmbed],
-        components: [],
-      }).catch(() => null);
+      if (duel.mainMessage) {
+        await duel.mainMessage.edit({
+          embeds: [resultEmbed],
+          components: [],
+        }).catch(() => null);
+      }
+    } catch (editErr) {
+      logger.error('❌ [Duel] Lỗi cập nhật Embed kết quả trận đấu:', editErr);
     }
   }
 
