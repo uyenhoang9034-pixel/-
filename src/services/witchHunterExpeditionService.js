@@ -36,17 +36,17 @@ export const EXPEDITION_ZONES = {
     },
     rewards: {
       success: {
-        minPumpkins: 100,
-        maxPumpkins: 200,
-        minShards: 0,
-        maxShards: 0,
+        minPumpkins: 2,
+        maxPumpkins: 2,
+        minShards: 20,
+        maxShards: 20,
         minTickets: 0,
         maxTickets: 0,
         hpLoss: 0,
       },
       failure: {
-        minPumpkins: 100,
-        maxPumpkins: 100,
+        minPumpkins: 0,
+        maxPumpkins: 0,
         hpLoss: 0,
       },
     },
@@ -66,24 +66,24 @@ export const EXPEDITION_ZONES = {
     dangerLevel: 'Trung cấp (Thất bại trừ 30% HP)',
     rates: {
       C: 0.20,
-      B: 0.80,
+      B: 0.20,
       A: 0.80,
       S: 0.80,
       SS: 0.80,
     },
     rewards: {
       success: {
-        minPumpkins: 200,
-        maxPumpkins: 300,
-        minShards: 20,
+        minPumpkins: 5,
+        maxPumpkins: 5,
+        minShards: 30,
         maxShards: 30,
         minTickets: 0,
         maxTickets: 0,
         hpLoss: 0,
       },
       failure: {
-        minPumpkins: 100,
-        maxPumpkins: 100,
+        minPumpkins: 2,
+        maxPumpkins: 2,
         minShards: 0,
         maxShards: 0,
         minTickets: 0,
@@ -108,23 +108,23 @@ export const EXPEDITION_ZONES = {
     rates: {
       C: 0.01,
       B: 0.01,
-      A: 0.30,
-      S: 0.50,
-      SS: 0.90,
+      A: 0.01,
+      S: 0.10,
+      SS: 0.50,
     },
     rewards: {
       success: {
-        minPumpkins: 900,
-        maxPumpkins: 1000,
-        minShards: 90,
-        maxShards: 200,
-        minTickets: 10,
-        maxTickets: 20,
+        minPumpkins: 10,
+        maxPumpkins: 10,
+        minShards: 100,
+        maxShards: 100,
+        minTickets: 2,
+        maxTickets: 2,
         hpLoss: 0,
       },
       failure: {
-        minPumpkins: 200,
-        maxPumpkins: 200,
+        minPumpkins: 5,
+        maxPumpkins: 5,
         minShards: 0,
         maxShards: 0,
         minTickets: 0,
@@ -189,7 +189,9 @@ export class WitchHunterExpeditionService {
    * 1. BẢNG ĐIỀU KHIỂN CỐ ĐỊNH (Dashboard Embed)
    */
   static buildExpeditionDashboardEmbed() {
-    const { colors } = WITCH_HUNTER_CONFIG;
+    const { colors, emojis } = WITCH_HUNTER_CONFIG;
+    const pumpkinEmoji = emojis?.pumpkin || '<a:bingo:1563061901800243253>';
+    const shardEmoji = emojis?.memoryShard || emojis?.decor46 || '<a:trangtrig46:1547240249761996812>';
 
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
@@ -210,32 +212,32 @@ export class WitchHunterExpeditionService {
           `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 50% HP**\n` +
           `<a:bang2:1546891483250954290> Tỉ lệ: 100% THÀNH CÔNG (Mức độ An Toàn)\n` +
           `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:linhtocg:1563399670351536310> Hệ Linh Tộc\n` +
-          `> Khứu giác & linh lực xua tan sương mù ➔ Giảm 10% giờ\n` +
-          `<a:giftg1:1543150714732412948> Phần thưởng: \`100 ~ 200 Điểm Bí Ngô\` <a:bingo:1563061901800243253>\n\n` +
+          `• Khứu giác & linh lực xua tan sương mù ➔ Giảm 10% giờ\n` +
+          `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
+          `• <a:giftg1:1543150714732412948> Thành công: \`2 Bí Ngô\` ${pumpkinEmoji} + \`20 Mảnh Ký Ức\` ${shardEmoji}\n\n` +
           `<a:whg1:1563430946835931187> 2. VỰC CỔ KHẮC TRO TÀN (Cinder Ash Chasm)\n` +
           `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 50% HP**\n` +
           `<a:bang2:1546891483250954290> Tỉ lệ thành công:\n` +
-          `  > Supporter Bậc B trở lên: 80% Thành công — 20% Thất bại\n` +
-          `  > Supporter Bậc C: 20% Thành công — 80% Thất bại\n` +
-          `  > Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
+          `• Supporter Bậc A trở lên: 80% Thành công — 20% Thất bại\n` +
+          `• Supporter Bậc B - C: 20% Thành công — 80% Thất bại\n` +
+          `• Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
           `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:camkhig:1563399321125134346> Hệ Cấm Khí\n` +
-          `> Cơ quan cổ kháng hỏa ngục ➔ Giảm 10% giờ\n` +
+          `• Cơ quan cổ kháng hỏa ngục ➔ Giảm 10% giờ\n` +
           `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
-          `  > <a:giftg1:1543150714732412948> Thành công: \`200 ~ 300 Bí Ngô\` + \`20 ~ 30 Mảnh Ký Ức\` <a:trangtrig46:1547240249761996812>\n` +
-          `  > <:wh4:1564143733690204190> Thất bại: Nhận an ủi \`100 Bí Ngô\` & **Trừ 30% Máu Supporter**\n\n` +
+          `• <a:giftg1:1543150714732412948> Thành công: \`5 Bí Ngô\` ${pumpkinEmoji} + \`30 Mảnh Ký Ức\` ${shardEmoji}\n` +
+          `• <:wh4:1564143733690204190> Thất bại: Nhận an ủi \`2 Bí Ngô\` ${pumpkinEmoji} & **Trừ 30% Máu Supporter**\n\n` +
           `<a:whg1:1563430946835931187> 3. VỰC THẲM HƯ VÔ TẬN (Abyssal Oblivion)\n` +
           `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 90% HP**\n` +
           `<a:bang2:1546891483250954290> Tỉ lệ thành công:\n` +
-          `  > Supporter Bậc SS trở lên: 90% Thành công — 10% Thất bại\n` +
-          `  > Supporter Bậc S trở lên: 50% Thành công — 50% Thất bại\n` +
-          `  > Supporter Bậc A trở lên: 30% Thành công — 70% Thất bại\n` +
-          `  > Supporter Bậc B hoặc C: 1% Thành công — 99% Thất bại\n` +
-          `  > Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
+          `• Supporter Bậc SS: 50% Thành công — 50% Thất bại\n` +
+          `• Supporter Bậc S trở lên: 10% Thành công — 90% Thất bại\n` +
+          `• Supporter Bậc A - B - C: 1% Thành công — 99% Thất bại\n` +
+          `• Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
           `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:nguyentheg:1563399515732443177> Hệ Nguyền Thể\n` +
-          `> Oán niệm tương thích Hư Không ➔ Giảm 10% giờ\n` +
+          `• Oán niệm tương thích Hư Không ➔ Giảm 10% giờ\n` +
           `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
-          `  > <a:giftg1:1543150714732412948> Thành công: \`900 ~ 1,000 Bí Ngô\` + \`90 ~ 200 Mảnh Ký Ức\` <a:trangtrig46:1547240249761996812> + \`10 ~ 20 Vé Tế Đàn\`\n` +
-          `  > <:wh4:1564143733690204190> Thất bại: Nhận an ủi \`200 Bí Ngô\` & **Trừ 90% Máu Supporter**\n` +
+          `• <a:giftg1:1543150714732412948> Thành công: \`10 Bí Ngô\` ${pumpkinEmoji} + \`100 Mảnh Ký Ức\` ${shardEmoji} + \`2 Vé Tế Đàn\`\n` +
+          `• <:wh4:1564143733690204190> Thất bại: Nhận an ủi \`5 Bí Ngô\` ${pumpkinEmoji} & **Trừ 90% Máu Supporter**\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:trangtrig13:1546047657963819048> Bấm các nút bên dưới để điều phối đội ngũ thám hiểm của bạn!`
       )
@@ -713,15 +715,14 @@ export class WitchHunterExpeditionService {
     if (zone.id === 'zone_1') {
       successRate = 1.0;
     } else if (zone.id === 'zone_2') {
-      // Bậc B trở lên: 80%, Bậc C: 20%. Cộng hưởng: +2%
-      const baseRate = zone.rates[rankLetter] || (['B', 'A', 'S', 'SS'].includes(rankLetter) ? 0.80 : 0.20);
+      // Sup A trở lên: 80%, B-C: 20%. Cộng hưởng: +2%
+      const baseRate = ['A', 'S', 'SS'].includes(rankLetter) ? 0.80 : 0.20;
       successRate = baseRate + (exp.isResonant ? 0.02 : 0.0);
     } else if (zone.id === 'zone_3') {
-      // Bậc SS: 90%, Bậc S: 50%, Bậc A: 30%, Bậc B/C: 1%. Cộng hưởng: +2%
+      // SS: 50%, Sup S: 10%, A-B-C: 1%. Cộng hưởng: +2%
       let baseRate = 0.01;
-      if (rankLetter === 'SS') baseRate = 0.90;
-      else if (rankLetter === 'S') baseRate = 0.50;
-      else if (rankLetter === 'A') baseRate = 0.30;
+      if (rankLetter === 'SS') baseRate = 0.50;
+      else if (rankLetter === 'S') baseRate = 0.10;
       else baseRate = 0.01;
 
       successRate = baseRate + (exp.isResonant ? 0.02 : 0.0);
@@ -729,6 +730,9 @@ export class WitchHunterExpeditionService {
 
     const roll = Math.random();
     const isSuccess = roll < successRate;
+
+    const pumpkinEmoji = WITCH_HUNTER_CONFIG.emojis?.pumpkin || '<a:bingo:1563061901800243253>';
+    const shardEmoji = WITCH_HUNTER_CONFIG.emojis?.memoryShard || WITCH_HUNTER_CONFIG.emojis?.decor46 || '<a:trangtrig46:1547240249761996812>';
 
     const randomRange = (min, max) =>
       Math.floor(Math.random() * (max - min + 1)) + min;
@@ -773,7 +777,8 @@ export class WitchHunterExpeditionService {
             `Supporter **[${rankLetter}-Rank] ${supporterName}** đã an toàn trở về từ màn sương mờ mịt của Vụ Giới Phế Tích!\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `<a:giftg1:1543150714732412948> **TỔNG KẾT TÀI NGUYÊN THU HOẠCH:**\n` +
-              `<a:bingo:1563061901800243253> Bí Ngô mang về: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
+              `${pumpkinEmoji} Bí Ngô mang về: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
+              `${shardEmoji} Mảnh Vỡ Ký Ức: **+${shardsWon} Mảnh Ký Ức**\n` +
               `<a:linhtocg:1563399670351536310> Tình trạng Supporter: Bảo toàn nguyên vẹn ${currentHp}% Sinh Lực.\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `*Tất cả tài nguyên đã được tự động cộng thẳng vào túi đồ của Lữ Khách!*`
@@ -788,8 +793,8 @@ export class WitchHunterExpeditionService {
             `Bằng bản lĩnh kiên cường, Supporter **[${rankLetter}-Rank] ${supporterName}** đã xuyên qua dung nham và thu thập được những cổ vật quý giá!\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `<a:giftg1:1543150714732412948> **TỔNG KẾT TÀI NGUYÊN THU HOẠCH:**\n` +
-              `<a:bingo:1563061901800243253> Bí Ngô mang về: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
-              `<a:trangtrig46:1547240249761996812> Mảnh Vỡ Ký Ức: **+${shardsWon} Mảnh Ký Ức**\n` +
+              `${pumpkinEmoji} Bí Ngô mang về: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
+              `${shardEmoji} Mảnh Vỡ Ký Ức: **+${shardsWon} Mảnh Ký Ức**\n` +
               `<a:linhtocg:1563399670351536310> Tình trạng Supporter: An toàn trở về, bảo toàn ${currentHp}% Sinh Lực.\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `*Tất cả tài nguyên đã được tự động cộng thẳng vào túi đồ của Lữ Khách!*`
@@ -804,8 +809,8 @@ export class WitchHunterExpeditionService {
             `Không tưởng! Supporter **[${rankLetter}-Rank] ${supporterName}** đã trấn áp ma khí Hư Vô và mang về kho báu huyền thoại của cõi vĩnh hằng!\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `<a:giftg1:1543150714732412948> **TỔNG KẾT TÀI NGUYÊN THU HOẠCH:**\n` +
-              `<a:bingo:1563061901800243253> Bí Ngô mang về: **+${pumpkinsWon.toLocaleString('vi-VN')} Điểm Bí Ngô**\n` +
-              `<a:trangtrig46:1547240249761996812> Mảnh Vỡ Ký Ức: **+${shardsWon} Mảnh Ký Ức**\n` +
+              `${pumpkinEmoji} Bí Ngô mang về: **+${pumpkinsWon.toLocaleString('vi-VN')} Điểm Bí Ngô**\n` +
+              `${shardEmoji} Mảnh Vỡ Ký Ức: **+${shardsWon} Mảnh Ký Ức**\n` +
               `<a:linhtocg:1563399670351536310> Vé Triệu Hồi Tế Đàn: **+${ticketsWon} Vé Quay Tế Đàn Free**\n` +
               `<a:linhtocg:1563399670351536310> Tình trạng Supporter: Vẹn nguyên uy lực tối thượng ${currentHp}% Sinh Lực.\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -841,7 +846,7 @@ export class WitchHunterExpeditionService {
               `> Thương tích: **-30% Máu Supporter** *(Còn ${newHp}% HP)*!\n` +
               `> Supporter cần nghỉ ngơi hồi phục tự nhiên 10% mỗi giờ trước khi đủ điều kiện đi tiếp.\n\n` +
               `<a:giftg1:1543150714732412948> **CHIẾN LỢI PHẨM AN ỦI:**\n` +
-              `<a:bingo:1563061901800243253> Bí Ngô thu gom sót lại: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
+              `${pumpkinEmoji} Bí Ngô thu gom sót lại: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `*Hãy chú ý dưỡng thương cho Supporter trước khi tiếp tục các chuyến đi hiểm trở tiếp theo!*`
           );
@@ -858,7 +863,7 @@ export class WitchHunterExpeditionService {
               `> Thương tích chí mạng: **-90% Máu Supporter** *(Còn ${newHp}% HP)*!\n` +
               `> Supporter rơi vào trạng thái suy kiệt, cần hồi phục ít nhất 9 tiếng để đầy máu lại.\n\n` +
               `<a:giftg1:1543150714732412948> **CHIẾN LỢI PHẨM AN ỦI:**\n` +
-              `<a:bingo:1563061901800243253> Bí Ngô thu gom sót lại: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
+              `${pumpkinEmoji} Bí Ngô thu gom sót lại: **+${pumpkinsWon} Điểm Bí Ngô**\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `*Hãy để Supporter tịnh dưỡng hồi máu tự nhiên hoặc chỉ cử đi Khu 1 sau khi hồi phục trên 50% HP!*`
           );

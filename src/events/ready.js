@@ -174,6 +174,16 @@ export default {
         logger.warn('⚠️ [PumpkinGiveaway] Không thể khôi phục active giveaways:', pgErr.message);
       }
 
+      // Rà soát và tự động điều chỉnh Rank/Role theo mốc Bí Ngô mới (C: 0, B: 500, A: 3000, S: 10000, SS: 20000)
+      try {
+        const { WitchHunterService } = await import('../services/witchHunterService.js');
+        for (const guild of client.guilds.cache.values()) {
+          await WitchHunterService.reconcileAllMemberRanks(guild);
+        }
+      } catch (rankErr) {
+        logger.warn('⚠️ [WitchHunter] Không thể tự động đồng bộ Rank/Role:', rankErr.message);
+      }
+
 
     } catch (
       error

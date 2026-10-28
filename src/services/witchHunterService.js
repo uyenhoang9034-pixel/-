@@ -18,6 +18,8 @@ import {
   getSupporterByRank,
   getWeaponById,
   getWeaponByRank,
+  WITCH_HUNTER_RESONANCE_MAP,
+  WITCH_HUNTER_WEAPON_TO_SUPPORTER_MAP,
 } from '../config/witchHunterConfig.js';
 import { witchHunterSummonStorage } from './witchHunterSummonService.js';
 import { logger } from '../utils/logger.js';
@@ -35,7 +37,7 @@ const SQLITE_FILE_PATH = path.join(DATA_DIR, 'witch_hunter.sqlite');
 export {
   WITCH_HUNTER_RESONANCE_MAP,
   WITCH_HUNTER_WEAPON_TO_SUPPORTER_MAP,
-} from '../config/witchHunterConfig.js';
+};
 
 /**
  * Storage Engine: Tự động dùng SQLite native nếu môi trường hỗ trợ (Node.js 22+ built-in node:sqlite),
@@ -426,13 +428,13 @@ export function isRecentBotAction(userId, roleId, action) {
 export class WitchHunterService {
   /**
    * Tính bậc xếp hạng (1-5) dựa vào số lượng Bí Ngô tích lũy cộng dồn
-   * Mốc điểm: 0 -> 100 -> 500 -> 3.000 -> 10.000
+   * Mốc điểm mới: 0 -> 500 -> 3.000 -> 10.000 -> 20.000
    */
   static calculateRank(pumpkins = 0) {
-    if (pumpkins >= 10000) return 5;
-    if (pumpkins >= 3000) return 4;
-    if (pumpkins >= 500) return 3;
-    if (pumpkins >= 100) return 2;
+    if (pumpkins >= 20000) return 5;
+    if (pumpkins >= 10000) return 4;
+    if (pumpkins >= 3000) return 3;
+    if (pumpkins >= 500) return 2;
     return 1;
   }
 
@@ -2207,6 +2209,201 @@ export class WitchHunterService {
       logger.error('❌ [WitchHunter] Lỗi khi syncInitialRank1Supporters:', err);
       return { syncedCount: 0, error: err.message };
     }
+  }
+
+  /**
+   * Tạo Embed thông báo điều chỉnh cấp bậc (Giáng cấp) gửi vào Kênh Chỉ Định
+   */
+  static buildRankDemoteAnnouncementEmbed(userId, faction, oldRank, newRank, oldRankInfo, newRankInfo, totalPumpkins) {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const isWitch = faction === 'witch';
+    const factionName = isWitch ? 'Hội Phù Thủy (Witches)' : 'Hiệp Hội Thợ Săn (W.H. Association)';
+    const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} **ĐIỀU CHỈNH CẤP BẬC MA THUẬT TIÊU CHUẨN** ${emojis.titleRight}`)
+      .setDescription(
+        `Hội Đồng **Witch Hunter** vừa cập nhật lại thang đo chiến công Bí Ngô tiêu chuẩn mới!\n\n` +
+        `• **Thành viên:** <@${userId}>\n` +
+        `• **Phe phái:** ${factionBadge} **${factionName}**\n` +
+        `• **Tổng Bí Ngô hiện có:** **${totalPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+        `• **Cấp bậc điều chỉnh:** **${oldRankInfo?.name || `Bậc ${oldRank}`}** ➔ **${newRankInfo?.name || `Bậc ${newRank}`}**\n\n` +
+        `*Role cấp bậc trên máy chủ và trang bị tương ứng đã được tự động đồng bộ lại!*`
+      )
+      .setFooter({ text: 'Witch Hunter Ranking System • Đồng Bộ Cấp Bậc' })
+      .setTimestamp();
+  }
+
+  /**
+   * Tạo Embed gửi tin nhắn riêng (DM) cho người chơi khi bị điều chỉnh cấp bậc theo mốc mới
+   */
+  static buildRankDemoteAdjustmentDM(user, faction, oldRank, newRank, oldRankInfo, newRankInfo, totalPumpkins) {
+    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const isWitch = faction === 'witch';
+    const factionName = isWitch ? 'Hội Phù Thủy (Witches)' : 'Hiệp Hội Thợ Săn (W.H. Association)';
+    const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
+
+    return new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} **THÔNG BÁO: CẬP NHẬT CẤP BẬC TIÊU CHUẨN** ${emojis.titleRight}`)
+      .setDescription(
+        `Chào **${user.username}** thân mến! Em bot Usagi múp rụp gửi thông báo cập nhật tới bạn nè! <a:heartg1:1545307544808071258>\n\n` +
+        `Hệ thống Witch Hunter vừa cập nhật lại biểu mốc Bí Ngô yêu cầu cho các cấp bậc:\n` +
+        `> **Bậc C:** 0 Bí Ngô\n` +
+        `> **Bậc B:** 500 Bí Ngô\n` +
+        `> **Bậc A:** 3.000 Bí Ngô\n` +
+        `> **Bậc S:** 10.000 Bí Ngô\n` +
+        `> **Bậc SS:** 20.000 Bí Ngô\n\n` +
+        `Với số lượng **${totalPumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin} hiện có của bạn:\n` +
+        `• Cấp bậc điều chỉnh: **${oldRankInfo?.name || `Bậc ${oldRank}`}** ➔ **${newRankInfo?.name || `Bậc ${newRank}`}** (${factionBadge} ${factionName})\n` +
+        `• Role tương ứng trên máy chủ đã được tự động cập nhật lại.\n\n` +
+        `*Hãy tiếp tục tham gia viễn chinh và giao tranh để sớm đột phá lên các cảnh giới cao hơn nhé!*`
+      )
+      .setFooter({ text: 'Witch Hunter Ranking System • Tin nhắn tự động' })
+      .setTimestamp();
+  }
+
+  /**
+   * Quét và điều chỉnh toàn bộ Rank & Role của người chơi cũ theo mốc điểm Bí Ngô mới:
+   * C: 0, B: 500, A: 3.000, S: 10.000, SS: 20.000
+   * Tự động gỡ role sai, cấp role đúng, và bắn thông báo tăng/giáng cấp.
+   */
+  static async reconcileAllMemberRanks(guild) {
+    if (!guild) return { updatedCount: 0, demotedCount: 0, promotedCount: 0, roleFixedCount: 0 };
+
+    logger.info(`🔄 [WitchHunter] Bắt đầu rà soát và điều chỉnh Rank/Role theo mốc Bí Ngô mới cho guild ${guild.name}...`);
+    const allUsers = witchHunterStorage.getAllUsers();
+    let updatedCount = 0;
+    let demotedCount = 0;
+    let promotedCount = 0;
+    let roleFixedCount = 0;
+
+    const announcementChannelId = WITCH_HUNTER_CONFIG.channels.announcementChannelId;
+    const announceChannel = guild.channels?.cache?.get(announcementChannelId) ||
+      await guild.channels?.fetch?.(announcementChannelId).catch(() => null);
+
+    const allWitchHunterRoleIds = getAllWitchHunterRoleIds();
+
+    for (const user of allUsers) {
+      if (!user.faction) continue;
+
+      const userId = user.user_id;
+      const pumpkins = Number(user.pumpkins) || 0;
+      const oldRank = Number(user.current_rank) || 1;
+      const expectedRank = this.calculateRank(pumpkins);
+
+      const oldRankInfo = this.getRankInfo(user.faction, oldRank);
+      const newRankInfo = this.getRankInfo(user.faction, expectedRank);
+
+      let member = guild.members.cache.get(userId);
+      if (!member) {
+        member = await guild.members.fetch(userId).catch(() => null);
+      }
+
+      if (expectedRank !== oldRank) {
+        updatedCount++;
+        user.current_rank = expectedRank;
+
+        if (expectedRank < oldRank) {
+          // GIÁNG CẤP
+          demotedCount++;
+
+          // Lọc lại unlocked_supporters không vượt quá bậc mới
+          if (Array.isArray(user.unlocked_supporters)) {
+            user.unlocked_supporters = user.unlocked_supporters.filter((key) => {
+              const parts = key.split(':');
+              const r = Number(parts[1]);
+              return isNaN(r) || r <= expectedRank;
+            });
+          }
+
+          // Cập nhật role Discord
+          if (member) {
+            await this.syncRankRole(guild, member, expectedRank, user.faction);
+          }
+
+          witchHunterStorage.saveUser(user, true);
+
+          // Gửi thông báo kênh chung
+          if (announceChannel && announceChannel.isTextBased()) {
+            const demoteEmbed = this.buildRankDemoteAnnouncementEmbed(
+              userId,
+              user.faction,
+              oldRank,
+              expectedRank,
+              oldRankInfo,
+              newRankInfo,
+              pumpkins
+            );
+            await announceChannel.send({ content: `<@${userId}>`, embeds: [demoteEmbed] }).catch(() => null);
+          }
+
+          // Gửi DM cho user
+          try {
+            const userObj = member?.user || (guild.client ? await guild.client.users.fetch(userId).catch(() => null) : null);
+            if (userObj) {
+              const dmEmbed = this.buildRankDemoteAdjustmentDM(
+                userObj,
+                user.faction,
+                oldRank,
+                expectedRank,
+                oldRankInfo,
+                newRankInfo,
+                pumpkins
+              );
+              await userObj.send({ embeds: [dmEmbed] }).catch(() => null);
+            }
+          } catch {}
+        } else if (expectedRank > oldRank) {
+          // THĂNG CẤP
+          promotedCount++;
+          if (member) {
+            await this.syncRankRole(guild, member, expectedRank, user.faction);
+          }
+          witchHunterStorage.saveUser(user, true);
+
+          // Thông báo thăng cấp vào Kênh Chỉ Định
+          const quote = this.getRankUpQuote(userId, user.faction, expectedRank, newRankInfo.name);
+          if (announceChannel && announceChannel.isTextBased()) {
+            const rankUpEmbed = this.buildRankUpAnnouncementEmbed(
+              userId,
+              user.faction,
+              oldRank,
+              expectedRank,
+              newRankInfo,
+              quote,
+              pumpkins
+            );
+            await announceChannel.send({ content: `<@${userId}>`, embeds: [rankUpEmbed] }).catch(() => null);
+          }
+
+          if (guild.client) {
+            await this.notifySupporterUnlock(guild.client, userId, user.faction, expectedRank, false);
+          }
+        }
+      } else {
+        // Cấp bậc trong DB đã đúng, nhưng rà soát lại role Discord xem có đang lệch không
+        if (member) {
+          const targetRoleId = WITCH_HUNTER_CONFIG.roles[user.faction]?.[expectedRank];
+          const hasTargetRole = targetRoleId && member.roles.cache.has(targetRoleId);
+          const hasOtherRole = [...allWitchHunterRoleIds].some(
+            (rId) => rId !== targetRoleId && member.roles.cache.has(rId)
+          );
+
+          if (!hasTargetRole || hasOtherRole) {
+            await this.syncRankRole(guild, member, expectedRank, user.faction);
+            roleFixedCount++;
+          }
+        }
+      }
+    }
+
+    logger.info(
+      `✅ [WitchHunter] Hoàn tất điều chỉnh cấp bậc: ${updatedCount} đổi rank (${demotedCount} giáng, ${promotedCount} thăng), ${roleFixedCount} sửa role lệch.`
+    );
+
+    return { updatedCount, demotedCount, promotedCount, roleFixedCount };
   }
 
   /**

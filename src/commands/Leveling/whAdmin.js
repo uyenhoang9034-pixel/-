@@ -184,6 +184,11 @@ export default {
             )
             .setRequired(false)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('sync-ranks')
+        .setDescription('Rà soát và đồng bộ lại Role & Cấp bậc cho toàn bộ thành viên theo mốc Bí Ngô mới')
     ),
 
   category: 'Leveling',
@@ -490,6 +495,24 @@ export default {
 
         return interaction.editReply({
           content: `✅ Đã kết thúc chiến dịch World Boss (${reason === 'defeated' ? 'Boss bị tiêu diệt' : 'Hết giờ'}) và chốt trao thưởng thành công rồi nè vợ của Kim Nong ơi! 💕`,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // SYNC RANKS & ROLES (ĐỒNG BỘ CẤP BẬC MỐC MỚI)
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'sync-ranks') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const { WitchHunterService } = await import('../../services/witchHunterService.js');
+        const res = await WitchHunterService.reconcileAllMemberRanks(interaction.guild);
+
+        return interaction.editReply({
+          content:
+            `✅ **ĐÃ ĐỒNG BỘ RANK & ROLE THEO MỐC BÍ NGÔ MỚI THÀNH CÔNG!** 💕\n` +
+            `• Tổng số người chơi được cập nhật cấp bậc: **${res.updatedCount}**\n` +
+            `• Số lượt giáng cấp: **${res.demotedCount}** (đã gửi thông báo & cập nhật role)\n` +
+            `• Số lượt thăng cấp: **${res.promotedCount}** (đã gửi thông báo & cập nhật role)\n` +
+            `• Số role lệch được sửa chuẩn: **${res.roleFixedCount}**`,
         });
       }
     } catch (error) {
