@@ -210,34 +210,32 @@ export class WitchHunterExpeditionService {
           `<a:trangtrig18:1546068102817775626> **DANH SÁCH 3 VÙNG ĐẤT NGUY HIỂM:**\n\n` +
           `<a:whg1:1563430946835931187> 1. VỤ GIỚI PHẾ TÍCH (Mistveil Ruins)\n` +
           `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 50% HP**\n` +
-          `<a:bang2:1546891483250954290> Tỉ lệ: 100% THÀNH CÔNG (Mức độ An Toàn)\n` +
           `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:linhtocg:1563399670351536310> Hệ Linh Tộc\n` +
-          `• Khứu giác & linh lực xua tan sương mù ➔ Giảm 10% giờ\n` +
-          `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
-          `• <a:giftg1:1543150714732412948> Thành công: \`2 Bí Ngô\` ${pumpkinEmoji} + \`20 Mảnh Ký Ức\` ${shardEmoji}\n\n` +
+          `> Khứu giác & linh lực xua tan sương mù ➔ Giảm 10% giờ\n` +
+          `<a:giftg1:1543150714732412948> Thành công: 2 Bí Ngô ${pumpkinEmoji} + 20 Mảnh Ký Ức ${shardEmoji}\n\n` +
           `<a:whg1:1563430946835931187> 2. VỰC CỔ KHẮC TRO TÀN (Cinder Ash Chasm)\n` +
           `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 50% HP**\n` +
           `<a:bang2:1546891483250954290> Tỉ lệ thành công:\n` +
-          `• Supporter Bậc A trở lên: 80% Thành công — 20% Thất bại\n` +
-          `• Supporter Bậc B - C: 20% Thành công — 80% Thất bại\n` +
-          `• Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
+          `> Supporter Bậc A trở lên: 80% Thành công — 20% Thất bại\n` +
+          `> Supporter Bậc B - C: 20% Thành công — 80% Thất bại\n` +
+          `> ${shardEmoji} Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
           `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:camkhig:1563399321125134346> Hệ Cấm Khí\n` +
-          `• Cơ quan cổ kháng hỏa ngục ➔ Giảm 10% giờ\n` +
+          `> Cơ quan cổ kháng hỏa ngục ➔ Giảm 10% giờ\n` +
           `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
-          `• <a:giftg1:1543150714732412948> Thành công: \`5 Bí Ngô\` ${pumpkinEmoji} + \`30 Mảnh Ký Ức\` ${shardEmoji}\n` +
-          `• <:wh4:1564143733690204190> Thất bại: Nhận an ủi \`2 Bí Ngô\` ${pumpkinEmoji} & **Trừ 30% Máu Supporter**\n\n` +
+          `> <a:giftg1:1543150714732412948> Thành công: 5 Bí Ngô ${pumpkinEmoji} + 30 Mảnh Ký Ức ${shardEmoji}\n` +
+          `> <:wh4:1564143733690204190> Thất bại: Nhận an ủi 2 Bí Ngô ${pumpkinEmoji} & **Trừ 30% Máu Supporter**\n\n` +
           `<a:whg1:1563430946835931187> 3. VỰC THẲM HƯ VÔ TẬN (Abyssal Oblivion)\n` +
           `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 90% HP**\n` +
           `<a:bang2:1546891483250954290> Tỉ lệ thành công:\n` +
-          `• Supporter Bậc SS: 50% Thành công — 50% Thất bại\n` +
-          `• Supporter Bậc S trở lên: 10% Thành công — 90% Thất bại\n` +
-          `• Supporter Bậc A - B - C: 1% Thành công — 99% Thất bại\n` +
-          `• Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
+          `> Supporter Bậc SS: 50% Thành công — 50% Thất bại\n` +
+          `> Supporter Bậc S trở lên: 10% Thành công — 90% Thất bại\n` +
+          `> Supporter Bậc A - B - C: 1% Thành công — 99% Thất bại\n` +
+          `> ${shardEmoji} Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
           `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:nguyentheg:1563399515732443177> Hệ Nguyền Thể\n` +
-          `• Oán niệm tương thích Hư Không ➔ Giảm 10% giờ\n` +
+          `> Oán niệm tương thích Hư Không ➔ Giảm 10% giờ\n` +
           `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
-          `• <a:giftg1:1543150714732412948> Thành công: \`10 Bí Ngô\` ${pumpkinEmoji} + \`100 Mảnh Ký Ức\` ${shardEmoji} + \`2 Vé Tế Đàn\`\n` +
-          `• <:wh4:1564143733690204190> Thất bại: Nhận an ủi \`5 Bí Ngô\` ${pumpkinEmoji} & **Trừ 90% Máu Supporter**\n` +
+          `> <a:giftg1:1543150714732412948> Thành công: 10 Bí Ngô ${pumpkinEmoji} + 100 Mảnh Ký Ức ${shardEmoji} + 2 Vé Tế Đàn\n` +
+          `> <:wh4:1564143733690204190> Thất bại: Nhận an ủi 5 Bí Ngô ${pumpkinEmoji} & **Trừ 90% Máu Supporter**\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `<a:trangtrig13:1546047657963819048> Bấm các nút bên dưới để điều phối đội ngũ thám hiểm của bạn!`
       )

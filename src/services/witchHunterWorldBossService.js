@@ -162,6 +162,7 @@ class WitchHunterWorldBossService {
     const components = this.buildDashboardComponents(false);
 
     const msg = await targetChannel.send({
+      content: '<@&1563426234787041331>',
       embeds: [embed],
       components,
     });

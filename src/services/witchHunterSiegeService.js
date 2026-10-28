@@ -147,6 +147,7 @@ class WitchHunterSiegeService {
     const components = this.buildDashboardComponents(false);
 
     const messagePayload = {
+      content: '<@&1563426234787041331>',
       embeds: [embed],
       components,
     };

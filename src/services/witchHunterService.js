@@ -3014,14 +3014,9 @@ export class WitchHunterService {
     if (userData.equipped_supporter) {
       const s = getSupporterById(userData.equipped_supporter);
       if (s && s.faction === userData.faction) {
-        // Supporter tiến trình mặc định không bao giờ được vượt quá currentRank
-        if (!s.isSummon && Number(s.rank) > currentRank) {
-          // Vượt cấp bậc tiến trình -> rơi về supporter chuẩn theo currentRank
-        } else {
-          const tier = this.rankToTier(s.rank);
-          if (tier <= maxAllowedTier) {
-            return s;
-          }
+        const tier = this.rankToTier(s.rank);
+        if (tier <= maxAllowedTier) {
+          return s;
         }
       }
     }
@@ -3042,14 +3037,9 @@ export class WitchHunterService {
     if (userData.equipped_weapon) {
       const w = getWeaponById(userData.equipped_weapon);
       if (w && w.faction === userData.faction) {
-        // Vũ khí tiến trình mặc định không bao giờ được vượt quá currentRank
-        if (!w.isSummon && Number(w.rank) > currentRank) {
-          // Vượt cấp bậc tiến trình -> rơi về vũ khí chuẩn theo currentRank
-        } else {
-          const tier = this.rankToTier(w.rank);
-          if (tier <= maxAllowedTier) {
-            return w;
-          }
+        const tier = this.rankToTier(w.rank);
+        if (tier <= maxAllowedTier) {
+          return w;
         }
       }
     }
