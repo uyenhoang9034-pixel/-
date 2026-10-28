@@ -30,11 +30,11 @@ export const WORLD_BOSS_CONFIGS = {
     name: 'MA NỮ THA HÓA CỔ ĐẠI - AVALONIA',
     title: 'Ma Nữ Tha Hóa Cổ Đại - Avalonia',
     trait: 'Ma Thuật Hắc Ám Cổ Cực',
-    weakness: 'Bị đạn bạc & cấm khí khắc chế mạnh!',
-    hunterEffect: 'Khắc chế điểm yếu -> 1% ~ 5% (x1.5 Cộng Hưởng: 1.5% ~ 8%) / đòn theo Bậc.',
-    witchEffect: 'Đòn đánh tiêu chuẩn -> 0.5% ~ 2.5% (x1.5 Cộng Hưởng: 0.8% ~ 4%) / đòn theo Bậc.',
+    weakness: 'Bị đạn bạc & cấm khí khắc chế mạnh (x2 Sát Thương)!',
+    hunterEffect: 'Khắc chế điểm yếu (x2) -> 2% ~ 10% (x1.5 Cộng Hưởng: 3% ~ 15%) / đòn theo Bậc.',
+    witchEffect: 'Đòn đánh tiêu chuẩn (x1) -> 1% ~ 5% (x1.5 Cộng Hưởng: 1.5% ~ 7.5%) / đòn theo Bậc.',
     weaknessFaction: 'hunter',
-    weaknessFlavor: 'Đòn đánh xuyên qua ma khí hắc ám của Boss (Khắc Chế Điểm Yếu)!',
+    weaknessFlavor: 'Đòn đánh xuyên qua ma khí hắc ám của Boss (Khắc Chế Điểm Yếu x2 Sát Thương)!',
     normalFlavor: 'Đòn đánh ma thuật tiêu chuẩn!',
   },
   void: {
@@ -42,11 +42,11 @@ export const WORLD_BOSS_CONFIGS = {
     name: 'CẤM KHÍ HƯ KHÔNG - VOID MONARCH',
     title: 'Cấm Khí Hư Không',
     trait: 'Hư Không Thao Túng & Huyết Ma Giới',
-    weakness: 'Bị cổ thuật & nguyên thể phong ấn mạnh!',
-    hunterEffect: 'Đòn đánh tiêu chuẩn -> 0.5% ~ 2.5% (x1.5 Cộng Hưởng: 0.8% ~ 4%) / đòn theo Bậc.',
-    witchEffect: 'Khắc chế điểm yếu -> 1% ~ 5% (x1.5 Cộng Hưởng: 1.5% ~ 8%) / đòn theo Bậc.',
+    weakness: 'Bị cổ thuật & nguyên thể phong ấn mạnh (x2 Sát Thương)!',
+    hunterEffect: 'Đòn đánh tiêu chuẩn (x1) -> 1% ~ 5% (x1.5 Cộng Hưởng: 1.5% ~ 7.5%) / đòn theo Bậc.',
+    witchEffect: 'Khắc chế điểm yếu (x2) -> 2% ~ 10% (x1.5 Cộng Hưởng: 3% ~ 15%) / đòn theo Bậc.',
     weaknessFaction: 'witch',
-    weaknessFlavor: 'Cổ thuật phá vỡ kết giới Hư Không của Boss (Khắc Chế Điểm Yếu)!',
+    weaknessFlavor: 'Cổ thuật phá vỡ kết giới Hư Không của Boss (Khắc Chế Điểm Yếu x2 Sát Thương)!',
     normalFlavor: 'Đòn đánh vật lý ma thuật tiêu chuẩn!',
   },
 };
@@ -435,14 +435,16 @@ class WitchHunterWorldBossService {
     const resonanceInfo = WitchHunterService.checkResonance(userId);
     const hasResonance = Boolean(resonanceInfo && resonanceInfo.isResonance);
 
-    // Bậc C/Apprentice: 1%, B: 2%, A: 3%, S: 4%, SS: 5% cho phe khắc chế điểm yếu
-    // Phe tiêu chuẩn (không khắc) gây 50% sát thương (0.5% - 2.5%)
-    const baseDamage = isWeakness ? userRank : userRank * 0.5;
+    // Bậc C: 1%, B: 2%, A: 3%, S: 4%, SS: 5% theo cấp bậc (1-5)
+    // Khắc hệ Boss: x2 sát thương nếu phe khắc chế điểm yếu của Boss
+    // Đồng bộ Thần Binh & Supporter: x1.5 sát thương
+    const baseDamage = userRank;
+    const weaknessMultiplier = isWeakness ? 2 : 1;
     const resonanceMultiplier = hasResonance ? 1.5 : 1.0;
-    let calculatedDamage = baseDamage * resonanceMultiplier;
-    // Làm tròn 1 chữ số thập phân (ví dụ 1.5%, 7.5% ~ 8%)
+    let calculatedDamage = baseDamage * weaknessMultiplier * resonanceMultiplier;
+    // Làm tròn 1 chữ số thập phân (ví dụ 1.5%, 7.5%, 12%)
     calculatedDamage = Math.round(calculatedDamage * 10) / 10;
-    if (calculatedDamage <= 0) calculatedDamage = 0.5;
+    if (calculatedDamage <= 0) calculatedDamage = 1;
 
     // Giảm kháng cự của Boss
     const actualDamage = Math.min(state.resistance, calculatedDamage);

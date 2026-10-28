@@ -136,8 +136,8 @@ export default {
             .setName('boss_type')
             .setDescription('Loại thực thể giáng trần')
             .addChoices(
-              { name: 'Ma Nữ Tha Hóa Cổ Đại - Avalonia (Thợ Săn khắc hệ 2%)', value: 'avalonia' },
-              { name: 'Cấm Khí Hư Không - Void Monarch (Phù Thủy khắc hệ 2%)', value: 'void' }
+              { name: 'Ma Nữ Tha Hóa Cổ Đại - Avalonia (Thợ Săn khắc hệ x2)', value: 'avalonia' },
+              { name: 'Cấm Khí Hư Không - Void Monarch (Phù Thủy khắc hệ x2)', value: 'void' }
             )
             .setRequired(false)
         )
