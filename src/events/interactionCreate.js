@@ -103,6 +103,24 @@ if (
       return;
     }
   }
+
+  if (
+    customId.startsWith('pg_') ||
+    customId.startsWith('pgd_') ||
+    customId.startsWith('pgm_')
+  ) {
+    const { pumpkinGiveawayService } = await import(
+      '../services/pumpkinGiveawayService.js'
+    );
+    const handled =
+      await pumpkinGiveawayService.handleInteraction(
+        interaction,
+      );
+
+    if (handled) {
+      return;
+    }
+  }
 }
 
         if (interaction.isChatInputCommand()) {

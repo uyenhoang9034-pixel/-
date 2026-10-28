@@ -166,6 +166,14 @@ export default {
         logger.warn('⚠️ [PumpkinTracker] Không thể nạp daily logs từ database:', trackerErr.message);
       }
 
+      // Khôi phục các sự kiện Đại Lễ Ban Thưởng Bí Ngô đang chạy
+      try {
+        const { pumpkinGiveawayService } = await import('../services/pumpkinGiveawayService.js');
+        await pumpkinGiveawayService.resumeActiveGiveaways(client);
+      } catch (pgErr) {
+        logger.warn('⚠️ [PumpkinGiveaway] Không thể khôi phục active giveaways:', pgErr.message);
+      }
+
 
     } catch (
       error
