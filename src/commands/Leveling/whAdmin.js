@@ -601,7 +601,7 @@ export default {
       if (subcommand === 'bounty-refresh') {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         const { witchHunterBountyService } = await import('../../services/witchHunterBountyService.js');
-        await witchHunterBountyService.ensureBountyBoards(interaction.guild, false);
+        await witchHunterBountyService.ensureBountyBoards(interaction.guild, { force: true });
 
         return interaction.editReply({
           content: `✅ Em bot Usagi múp rụp đã làm mới và ghim Bảng Truy Nã Tội Phạm Chiến Trường cho cả 2 phe thành công rồi nè vợ của Kim Nong ơi! 💕`,

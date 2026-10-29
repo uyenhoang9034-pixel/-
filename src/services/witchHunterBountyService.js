@@ -80,7 +80,7 @@ class WitchHunterBountyService {
   saveData() {
     try {
       fs.writeFileSync(BOUNTY_FILE_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
-      this.schedulePgSave();
+      this.syncSaveToPersistentDb();
     } catch (err) {
       logger.error('❌ [WitchHunterBounty] Lỗi lưu file witch_hunter_bounty.json:', err);
     }
@@ -105,22 +105,54 @@ class WitchHunterBountyService {
     }
   }
 
-  schedulePgSave() {
-    if (this.pgSaveTimeout) return;
-    this.pgSaveTimeout = setTimeout(async () => {
-      this.pgSaveTimeout = null;
-      try {
-        const { setInDb } = await import('../utils/database.js');
-        await setInDb('temp:witch_hunter:bounty_data', this.data);
-      } catch (err) {
-        logger.warn('⚠️ [WitchHunterBounty] Lỗi lưu dữ liệu lên PostgreSQL:', err.message);
+  async syncSaveToPersistentDb() {
+    try {
+      const { setInDb } = await import('../utils/database.js');
+      await setInDb('temp:witch_hunter:bounty_data', this.data);
+    } catch (err) {
+      logger.warn('⚠️ [WitchHunterBounty] Lỗi lưu dữ liệu lên PostgreSQL:', err.message);
+    }
+  }
+
+  /**
+   * Tìm tin nhắn bảng truy nã hiện có trong kênh (kiểm tra cả tin ghim và tin nhắn gần đây)
+   */
+  async findBountyMessageInChannel(channel, clientUserId) {
+    try {
+      // 1. Kiểm tra danh sách tin nhắn ghim
+      const pinned = await channel.messages.fetchPinned().catch(() => null);
+      if (pinned && pinned.size > 0) {
+        for (const [, msg] of pinned) {
+          if (
+            msg.author.id === clientUserId &&
+            msg.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ')
+          ) {
+            return msg;
+          }
+        }
       }
-    }, 500);
+
+      // 2. Kiểm tra trong 30 tin nhắn gần nhất (phòng trường hợp bot chưa ghim kịp hoặc bị unpin)
+      const recent = await channel.messages.fetch({ limit: 30 }).catch(() => null);
+      if (recent && recent.size > 0) {
+        for (const [, msg] of recent) {
+          if (
+            msg.author.id === clientUserId &&
+            msg.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ')
+          ) {
+            return msg;
+          }
+        }
+      }
+    } catch (e) {
+      logger.warn('⚠️ [WitchHunterBounty] Lỗi tìm kiếm tin nhắn bảng truy nã:', e.message);
+    }
+    return null;
   }
 
   /**
    * Khởi tạo cùng Client lúc bot khởi động
-   * Phá lệ: Ra thông báo ghim tin nhắn ngay lập tức nếu chưa có bảng hôm nay
+   * TUYỆT ĐỐI KHÔNG gửi thông báo lặp hay tạo bảng mới nếu kênh đã có bảng hoặc mục tiêu hôm nay đã bị hạ gục!
    */
   async initClient(client) {
     if (this.isInitializing) return;
@@ -142,20 +174,86 @@ class WitchHunterBountyService {
 
       if (!guild) {
         logger.warn('⚠️ [WitchHunterBounty] Không tìm thấy Guild để khởi tạo Bảng Truy Nã!');
-        this.isInitializing = false;
         return;
       }
 
-      // Kiểm tra nếu chưa có bảng hôm nay hoặc chưa từng khởi tạo -> Khởi tạo & ghim ngay
-      const needsHunterBoard = !this.data.targets?.hunter_board?.message_id || this.data.targets?.hunter_board?.is_defeated;
-      const needsWitchBoard = !this.data.targets?.witch_board?.message_id || this.data.targets?.witch_board?.is_defeated;
+      const channelPairs = [
+        {
+          key: 'hunter_board',
+          channelId: WITCH_HUNTER_CONFIG.channels.hunterChannelId,
+          targetFaction: 'witch',
+        },
+        {
+          key: 'witch_board',
+          channelId: WITCH_HUNTER_CONFIG.channels.witchChannelId,
+          targetFaction: 'hunter',
+        },
+      ];
 
-      if (needsHunterBoard || needsWitchBoard || this.data.last_reset_date !== today) {
-        await this.ensureBountyBoards(guild, false);
-      } else {
-        // Nếu đã có bảng hôm nay rồi, chỉ quét dọn dẹp các tin nhắn thừa (nếu lỡ bị gửi lặp do restart)
-        await this.cleanDuplicateMessages(guild);
+      for (const pair of channelPairs) {
+        try {
+          const channel =
+            guild.channels.cache.get(pair.channelId) ||
+            (await guild.channels.fetch(pair.channelId).catch(() => null));
+          if (!channel || !channel.isTextBased()) continue;
+
+          let board = this.data.targets?.[pair.key];
+
+          // Tìm tin nhắn bảng truy nã hiện có trong kênh
+          const existingMsg = await this.findBountyMessageInChannel(channel, guild.client.user.id);
+
+          if (existingMsg) {
+            // Kênh ĐÃ CÓ tin nhắn bảng truy nã -> BIND LẠI ID, GIỮ NGUYÊN, TUYỆT ĐỐI KHÔNG GỬI LẠI!
+            if (!board) {
+              board = {
+                target_user_id: null,
+                target_faction: pair.targetFaction,
+                target_rank: 1,
+                base_bounty: 30,
+                bonus_bounty: 0,
+                total_bounty: 30,
+                is_defeated: false,
+                defeated_by: null,
+                message_id: existingMsg.id,
+                channel_id: pair.channelId,
+                date_assigned: today,
+              };
+              this.data.targets[pair.key] = board;
+            } else {
+              board.message_id = existingMsg.id;
+            }
+
+            logger.info(`🎯 [WitchHunterBounty] Kênh <#${pair.channelId}> đã có sẵn Bảng Truy Nã (${existingMsg.id}). Giữ nguyên, không gửi thông báo mới!`);
+
+            // Dọn dẹp các tin nhắn thừa (nếu trước đó bị gửi trùng do restart lặp)
+            await this.cleanDuplicateMessagesForChannel(channel, guild.client.user.id, existingMsg.id);
+          } else {
+            // Kênh CHƯA CÓ tin nhắn nào:
+            // Nếu mục tiêu hôm nay đã bị tiêu diệt rồi -> Giữ nguyên không gửi lại, chờ 00:00!
+            if (board && board.is_defeated && (board.date_assigned === today || this.data.last_reset_date === today)) {
+              logger.info(`🎯 [WitchHunterBounty] Mục tiêu ${pair.key} hôm nay đã bị tiêu diệt trước đó. Chờ 00:00 reset, không gửi lại!`);
+              continue;
+            }
+
+            // Chỉ khi kênh hoàn toàn trống VÀ chưa bị hạ gục hôm nay -> Khởi tạo bảng ban đầu
+            logger.info(`🎯 [WitchHunterBounty] Kênh <#${pair.channelId}> chưa có bảng truy nã. Khởi tạo bảng ban đầu...`);
+            await this.setupSingleBoard({
+              guild,
+              boardKey: pair.key,
+              targetFaction: pair.targetFaction,
+              channelId: pair.channelId,
+              isMidnightReset: false,
+              force: false,
+              today,
+            });
+          }
+        } catch (err) {
+          logger.error(`❌ [WitchHunterBounty] Lỗi đồng bộ Bảng Truy Nã (${pair.key}):`, err);
+        }
       }
+
+      this.data.last_reset_date = today;
+      this.saveData();
     } catch (error) {
       logger.error('❌ [WitchHunterBounty] Lỗi initClient:', error);
     } finally {
@@ -166,6 +264,27 @@ class WitchHunterBountyService {
   /**
    * Dọn dẹp tin nhắn trùng lặp nếu có trong kênh
    */
+  async cleanDuplicateMessagesForChannel(channel, clientUserId, keepMsgId) {
+    try {
+      const recent = await channel.messages.fetch({ limit: 25 }).catch(() => null);
+      if (recent) {
+        for (const [, m] of recent) {
+          if (
+            m.author.id === clientUserId &&
+            m.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ') &&
+            m.id !== keepMsgId
+          ) {
+            await m.unpin().catch(() => null);
+            await m.delete().catch(() => null);
+            logger.info(`🧹 [WitchHunterBounty] Đã xóa tin nhắn truy nã thừa (${m.id}) tại <#${channel.id}>.`);
+          }
+        }
+      }
+    } catch (e) {
+      logger.debug('⚠️ [WitchHunterBounty] Lỗi dọn dẹp duplicate messages:', e.message);
+    }
+  }
+
   async cleanDuplicateMessages(guild) {
     try {
       const channelPairs = [
@@ -180,20 +299,7 @@ class WitchHunterBountyService {
         const board = this.data.targets?.[pair.key];
         const keepId = board?.message_id;
 
-        const recent = await channel.messages.fetch({ limit: 15 }).catch(() => null);
-        if (recent) {
-          for (const [, m] of recent) {
-            if (
-              m.author.id === guild.client.user.id &&
-              m.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ') &&
-              m.id !== keepId
-            ) {
-              await m.unpin().catch(() => null);
-              await m.delete().catch(() => null);
-              logger.info(`🧹 [WitchHunterBounty] Đã xóa tin nhắn truy nã thừa (${m.id}) tại <#${pair.channelId}>.`);
-            }
-          }
-        }
+        await this.cleanDuplicateMessagesForChannel(channel, guild.client.user.id, keepId);
       }
     } catch (e) {
       logger.debug('⚠️ [WitchHunterBounty] Lỗi dọn dẹp duplicate messages:', e.message);
@@ -222,7 +328,7 @@ class WitchHunterBountyService {
         return;
       }
 
-      await this.ensureBountyBoards(guild, true);
+      await this.ensureBountyBoards(guild, { isMidnightReset: true, force: true });
     } catch (error) {
       logger.error('❌ [WitchHunterBounty] Lỗi processDailyReset:', error);
     }
@@ -230,10 +336,10 @@ class WitchHunterBountyService {
 
   /**
    * Đảm bảo và cập nhật bảng truy nã 2 phe
-   * @param {Guild} guild
-   * @param {boolean} isMidnightReset - True nếu là quét 00:00, False nếu là khởi tạo lúc bot bật
    */
-  async ensureBountyBoards(guild, isMidnightReset = false) {
+  async ensureBountyBoards(guild, options = false) {
+    const isMidnightReset = typeof options === 'boolean' ? options : Boolean(options?.isMidnightReset);
+    const force = typeof options === 'object' ? Boolean(options?.force) : isMidnightReset;
     const today = getVietnamDate();
     this.data.last_reset_date = today;
 
@@ -244,6 +350,7 @@ class WitchHunterBountyService {
       targetFaction: 'witch',
       channelId: WITCH_HUNTER_CONFIG.channels.hunterChannelId,
       isMidnightReset,
+      force,
       today,
     });
 
@@ -254,6 +361,7 @@ class WitchHunterBountyService {
       targetFaction: 'hunter',
       channelId: WITCH_HUNTER_CONFIG.channels.witchChannelId,
       isMidnightReset,
+      force,
       today,
     });
 
@@ -263,7 +371,7 @@ class WitchHunterBountyService {
   /**
    * Thiết lập 1 bảng truy nã riêng cho 1 phe
    */
-  async setupSingleBoard({ guild, boardKey, targetFaction, channelId, isMidnightReset, today }) {
+  async setupSingleBoard({ guild, boardKey, targetFaction, channelId, isMidnightReset = false, force = false, today }) {
     try {
       const channel = guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null));
       if (!channel || !channel.isTextBased()) {
@@ -273,15 +381,31 @@ class WitchHunterBountyService {
 
       let board = this.data.targets[boardKey];
 
+      // Nếu không phải force và không phải 00:00:
+      // Kiểm tra xem đã có tin nhắn trong kênh hoặc mục tiêu đã bị hạ gục chưa
+      if (!force && !isMidnightReset) {
+        const existing = await this.findBountyMessageInChannel(channel, guild.client.user.id);
+        if (existing) {
+          if (board) board.message_id = existing.id;
+          logger.info(`🎯 [WitchHunterBounty] Kênh <#${channelId}> đã có sẵn Bảng Truy Nã (${existing.id}). Giữ nguyên, không gửi lặp!`);
+          return;
+        }
+        if (board && board.is_defeated && (board.date_assigned === today || this.data.last_reset_date === today)) {
+          logger.info(`🎯 [WitchHunterBounty] Mục tiêu ${boardKey} hôm nay đã bị tiêu diệt trước đó. Giữ nguyên không gửi lại!`);
+          return;
+        }
+      }
+
       // LOGIC CHỌN MỤC TIÊU:
       // Nếu là 00:00:
       //  - Nếu mục tiêu cũ CHƯA BỊ HẠ GỤC: Giữ nguyên mục tiêu, cộng dồn +5 🎃
-      //  - Nếu mục tiêu cũ ĐÃ BỊ HẠ GỤC (hoặc chưa từng có): Chọn ngẫu nhiên mục tiêu mới
+      //  - Nếu mục tiêu cũ ĐÃ BỊ HẠ GỤC (hoặc force hoặc chưa từng có): Chọn ngẫu nhiên mục tiêu mới
       if (isMidnightReset && board && !board.is_defeated && board.target_user_id) {
         board.bonus_bounty = (Number(board.bonus_bounty) || 0) + 5;
         board.total_bounty = (Number(board.base_bounty) || 30) + board.bonus_bounty;
+        board.date_assigned = today;
         logger.info(`🎯 [WitchHunterBounty] Mục tiêu ${board.target_user_id} sống sót qua ngày! Cộng dồn +5 Bí Ngô (Tổng: ${board.total_bounty} 🎃)`);
-      } else if (!board || board.is_defeated || !board.target_user_id) {
+      } else if (force || !board || board.is_defeated || !board.target_user_id) {
         // Chọn ngẫu nhiên thành viên phe đối địch
         const targetUserRecord = await this.pickRandomTarget(guild, targetFaction);
         if (!targetUserRecord) {
@@ -308,54 +432,11 @@ class WitchHunterBountyService {
         this.data.targets[boardKey] = board;
       }
 
-      // Gỡ ghim và xóa tin nhắn cũ hoặc tái sử dụng tin nhắn ghim hiện tại (chống gửi trùng)
-      let existingPinnedBoard = null;
-      try {
-        const pinnedMessages = await channel.messages.fetchPinned().catch(() => null);
-        if (pinnedMessages && pinnedMessages.size > 0) {
-          for (const [, pinnedMsg] of pinnedMessages) {
-            if (
-              pinnedMsg.author.id === guild.client.user.id &&
-              pinnedMsg.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ')
-            ) {
-              if (!existingPinnedBoard) {
-                existingPinnedBoard = pinnedMsg;
-              } else {
-                // Nếu có nhiều hơn 1 tin nhắn ghim truy nã, gỡ và xóa ngay lập tức
-                await pinnedMsg.unpin().catch(() => null);
-                await pinnedMsg.delete().catch(() => null);
-                logger.info(`🧹 [WitchHunterBounty] Đã xóa tin nhắn ghim trùng lặp: ${pinnedMsg.id}`);
-              }
-            }
-          }
-        }
-      } catch (pinErr) {
-        logger.debug('⚠️ [WitchHunterBounty] Không thể fetch pinned messages:', pinErr.message);
-      }
-
-      // Nếu KHÔNG phải 00:00 reset (ví dụ bot restart) và đã có sẵn bảng ghim hợp lệ trong kênh:
-      // Tái sử dụng bảng ghim đó, TUYỆT ĐỐI KHÔNG GỬI TIN NHẮN MỚI!
-      if (!isMidnightReset && existingPinnedBoard && board && !board.is_defeated) {
-        board.message_id = existingPinnedBoard.id;
-        logger.info(`🎯 [WitchHunterBounty] Kênh <#${channelId}> đã có sẵn Bảng Truy Nã (${existingPinnedBoard.id}). Giữ nguyên, không gửi lặp!`);
-        return;
-      }
-
-      // Nếu cần thay mới (00:00 hoặc mục tiêu đã bị hạ gục hoặc chưa có bảng):
-      if (existingPinnedBoard) {
-        await existingPinnedBoard.unpin().catch(() => null);
-        await existingPinnedBoard.delete().catch(() => null);
-      }
-      if (board.message_id && board.message_id !== existingPinnedBoard?.id) {
-        try {
-          const oldMsg = await channel.messages.fetch(board.message_id).catch(() => null);
-          if (oldMsg) {
-            await oldMsg.unpin().catch(() => null);
-            await oldMsg.delete().catch(() => null);
-          }
-        } catch (e) {
-          logger.debug(`[WitchHunterBounty] Không thể xóa tin nhắn cũ ${board.message_id}:`, e.message);
-        }
+      // Xóa tin nhắn bảng truy nã cũ nếu có trong kênh
+      const oldBoardMsg = await this.findBountyMessageInChannel(channel, guild.client.user.id);
+      if (oldBoardMsg) {
+        await oldBoardMsg.unpin().catch(() => null);
+        await oldBoardMsg.delete().catch(() => null);
       }
 
       // Tạo Embed và Nút bấm theo đúng mẫu giao diện duyệt
@@ -389,22 +470,8 @@ class WitchHunterBountyService {
         }
       } catch {}
 
-      // Dọn dẹp bất kỳ tin nhắn truy nã thừa nào khác trong recent 10 tin nhắn
-      try {
-        const recent = await channel.messages.fetch({ limit: 10 }).catch(() => null);
-        if (recent) {
-          for (const [, m] of recent) {
-            if (
-              m.author.id === guild.client.user.id &&
-              m.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ') &&
-              m.id !== newMsg.id
-            ) {
-              await m.unpin().catch(() => null);
-              await m.delete().catch(() => null);
-            }
-          }
-        }
-      } catch {}
+      // Dọn dẹp bất kỳ tin nhắn truy nã thừa nào khác trong recent 25 tin nhắn
+      await this.cleanDuplicateMessagesForChannel(channel, guild.client.user.id, newMsg.id);
 
       logger.info(`✅ [WitchHunterBounty] Đã ghim thành công Bảng Truy Nã mới (${boardKey}) tại <#${channelId}>!`);
     } catch (err) {
