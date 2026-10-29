@@ -110,7 +110,6 @@ export default {
         content: `✅ Em bot Usagi múp rụp đã thiết lập lại bảng chọn phe Witch Hunter tại kênh <#${targetChannel.id}> thành công và bảo toàn 100% dữ liệu rồi nè vợ của Kim Nong ơi! 💕`,
         flags: MessageFlags.Ephemeral,
       });
-      }
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi lệnh setup-chon-phe:', error);
       if (interaction.deferred) {

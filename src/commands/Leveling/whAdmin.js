@@ -591,6 +591,11 @@ export default {
       }
     } catch (error) {
       logger.error('❌ [WitchHunterAdmin] Lỗi thực thi lệnh /wh-admin:', error);
+      if (interaction.deferred || interaction.replied) {
+        return interaction.editReply({
+          content: `Đã có lỗi xảy ra: ${error.message}`,
+        }).catch(() => null);
+      }
       return interaction.reply({
         content: `Đã có lỗi xảy ra: ${error.message}`,
         flags: MessageFlags.Ephemeral,
