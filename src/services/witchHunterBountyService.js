@@ -646,3 +646,4 @@ class WitchHunterBountyService {
 
 export const witchHunterBountyService = new WitchHunterBountyService();
 export { WitchHunterBountyService };
+
