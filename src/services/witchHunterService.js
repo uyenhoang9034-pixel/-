@@ -3398,10 +3398,22 @@ export class WitchHunterService {
         `> <a:bang2:1546891483250954290> **Em Phù Thủy Usagi khuyên dùng:** ${resonance.suggestion}\n\n`;
     }
 
-    // Danh sách Supporter sở hữu (đổi 1 2 3 4 sang C B A S SS, bỏ chấm ngang thay bằng 1.  2.  cách nhau)
+    // Danh sách Supporter sở hữu (Tối đa 5 hiển thị để bảo đảm Embed luôn gọn gàng và không vượt quá 4096 ký tự)
+    const MAX_PROFILE_ITEMS = 5;
     let ownedSupportersLines = '';
     if (ownedSupporters.length > 0) {
-      ownedSupportersLines = ownedSupporters.map((s, idx) => {
+      const sortedSupporters = [...ownedSupporters].sort((a, b) => {
+        const aEquipped = equippedSupporter && a.id === equippedSupporter.id;
+        const bEquipped = equippedSupporter && b.id === equippedSupporter.id;
+        if (aEquipped) return -1;
+        if (bEquipped) return 1;
+        return (this.rankToTier(b.rank) || 0) - (this.rankToTier(a.rank) || 0);
+      });
+
+      const displaySupporters = sortedSupporters.slice(0, MAX_PROFILE_ITEMS);
+      const remainingSuppCount = sortedSupporters.length - displaySupporters.length;
+
+      ownedSupportersLines = displaySupporters.map((s, idx) => {
         const isEquipped = equippedSupporter && s.id === equippedSupporter.id;
         const cat = WITCH_HUNTER_CONFIG.supporters.categories[s.categoryKey];
         const catEmoji = cat?.emoji || '🔮';
@@ -3409,20 +3421,39 @@ export class WitchHunterService {
         const tag = isEquipped ? ' <a:trangtrig36:1563065680922808340> *(Đang dùng)*' : '';
         return `> ${idx + 1}.  ${catEmoji} **[${rankLetter}-Rank]** ${s.name}${tag}`;
       }).join('\n');
+
+      if (remainingSuppCount > 0) {
+        ownedSupportersLines += `\n> *...và còn **+${remainingSuppCount}** Supporter khác trong kho (Tra cứu tại \`/supporter\`)*`;
+      }
     } else {
       ownedSupportersLines = `> *(Chưa có Supporter nào)*`;
     }
 
-    // Danh sách Vũ Khí sở hữu (đổi 1 2 3 4 sang C B A S SS, bỏ chấm ngang thay bằng 1.  2.  cách nhau)
+    // Danh sách Vũ Khí sở hữu (Tối đa 5 hiển thị)
     let ownedWeaponsLines = '';
     if (ownedWeapons.length > 0) {
-      ownedWeaponsLines = ownedWeapons.map((w, idx) => {
+      const sortedWeapons = [...ownedWeapons].sort((a, b) => {
+        const aEquipped = equippedWeapon && a.id === equippedWeapon.id;
+        const bEquipped = equippedWeapon && b.id === equippedWeapon.id;
+        if (aEquipped) return -1;
+        if (bEquipped) return 1;
+        return (this.rankToTier(b.rank) || 0) - (this.rankToTier(a.rank) || 0);
+      });
+
+      const displayWeapons = sortedWeapons.slice(0, MAX_PROFILE_ITEMS);
+      const remainingWepCount = sortedWeapons.length - displayWeapons.length;
+
+      ownedWeaponsLines = displayWeapons.map((w, idx) => {
         const isEquipped = equippedWeapon && w.id === equippedWeapon.id;
         const energyEmoji = w.energyEmoji || '⚔️';
         const rankLetter = this.formatRankLetter(w.rank);
         const tag = isEquipped ? ' <a:trangtrig36:1563065680922808340> *(Đang dùng)*' : '';
         return `> ${idx + 1}.  ${energyEmoji} **[${rankLetter}-Rank]** ${w.shortName || w.name}${tag}`;
       }).join('\n');
+
+      if (remainingWepCount > 0) {
+        ownedWeaponsLines += `\n> *...và còn **+${remainingWepCount}** Thần Binh khác trong kho (Tra cứu tại \`/vukhi\`)*`;
+      }
     } else {
       ownedWeaponsLines = `> *(Chưa có Vũ Khí nào)*`;
     }
@@ -3437,37 +3468,43 @@ export class WitchHunterService {
       darkTitleSection = `<a:animeg2:1546040159886114846> Danh Hiệu Hắc Ám: ｢ ${dt.nameVi} ｣ - ${dt.nameEn}\n*"${dt.slogan}"*\n\n`;
     }
 
+    let description =
+      `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      darkTitleSection +
+      `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+      (userData?.memory_shards > 0 ? `<a:trangtrig46:1547240249761996812> **Mảnh Vỡ Ký Ức:** **${(userData.memory_shards || 0).toLocaleString('vi-VN')}**\n` : '') +
+      (userData?.free_summons > 0 ? `<a:linhtocg:1563399670351536310> **Vé Tế Đàn Free:** **${userData.free_summons}** lượt khả dụng\n` : '') +
+      `${factionDisplay}\n` +
+      `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}** *(${rankInfo.title})*\n` +
+      `<a:trangtrig18:1546068102817775626> **Quy tắc trang bị:** Tối đa bậc **${maxAllowedLetter}-Rank** trở xuống *(Bậc hiện tại + 1)*\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `<a:whg2:1564145798537683034> **TRANG BỊ ĐANG KÍCH HOẠT:**\n` +
+      `• **Supporter:** ${equippedSupporterLine}\n` +
+      `• **Thần Binh Vũ Khí:** ${equippedWeaponLine}\n\n` +
+      supporterHpBlock +
+      `${resonanceLine}` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `<a:giftg1:1543150714732412948> **KHO BÁU VẬT ĐÃ SỞ HỮU:**\n` +
+      `<a:linhtocg:1563399670351536310> **Supporter Đã Ký Khế Ước (${ownedSupporters.length}):**\n` +
+      `${ownedSupportersLines}\n\n` +
+      `<a:trangtrig36:1563065680922808340> **Thần Binh Vũ Khí Sở Hữu (${ownedWeapons.length}):**\n` +
+      `${ownedWeaponsLines}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `${decor21Emoji} **Tiến trình đột phá bậc kế tiếp:**\n` +
+      `${progress.progressBar}\n` +
+      `${progressText}`;
+
+    // Đảm bảo an toàn tuyệt đối: Luôn giữ description <= 4000 ký tự (Discord API giới hạn 4096)
+    if (description.length > 4000) {
+      description = description.slice(0, 3990) + '\n...';
+    }
+
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **HỒ SƠ MA THUẬT: ${targetUser.username.toUpperCase()}** ${emojis.titleRight}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
-      .setDescription(
-        `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        darkTitleSection +
-        `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
-        (userData?.memory_shards > 0 ? `<a:trangtrig46:1547240249761996812> **Mảnh Vỡ Ký Ức:** **${(userData.memory_shards || 0).toLocaleString('vi-VN')}**\n` : '') +
-        (userData?.free_summons > 0 ? `<a:linhtocg:1563399670351536310> **Vé Tế Đàn Free:** **${userData.free_summons}** lượt khả dụng\n` : '') +
-        `${factionDisplay}\n` +
-        `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}** *(${rankInfo.title})*\n` +
-        `<a:trangtrig18:1546068102817775626> **Quy tắc trang bị:** Tối đa bậc **${maxAllowedLetter}-Rank** trở xuống *(Bậc hiện tại + 1)*\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `<a:whg2:1564145798537683034> **TRANG BỊ ĐANG KÍCH HOẠT:**\n` +
-        `• **Supporter:** ${equippedSupporterLine}\n` +
-        `• **Thần Binh Vũ Khí:** ${equippedWeaponLine}\n\n` +
-        supporterHpBlock +
-        `${resonanceLine}` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `<a:giftg1:1543150714732412948> **KHO BÁU VẬT ĐÃ SỞ HỮU:**\n` +
-        `<a:linhtocg:1563399670351536310> **Supporter Đã Ký Khế Ước (${ownedSupporters.length}):**\n` +
-        `${ownedSupportersLines}\n\n` +
-        `<a:trangtrig36:1563065680922808340> **Thần Binh Vũ Khí Sở Hữu (${ownedWeapons.length}):**\n` +
-        `${ownedWeaponsLines}\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `${decor21Emoji} **Tiến trình đột phá bậc kế tiếp:**\n` +
-        `${progress.progressBar}\n` +
-        `${progressText}`
-      )
+      .setDescription(description)
       .setFooter({ text: 'Witch Hunter Profile' })
       .setTimestamp();
   }
