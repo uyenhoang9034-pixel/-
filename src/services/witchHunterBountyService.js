@@ -120,7 +120,10 @@ class WitchHunterBountyService {
   async findBountyMessageInChannel(channel, clientUserId) {
     try {
       // 1. Kiểm tra danh sách tin nhắn ghim
-      const pinned = await channel.messages.fetchPinned().catch(() => null);
+      const fetchPinsFn = channel.messages.fetchPins
+        ? () => channel.messages.fetchPins()
+        : () => channel.messages.fetchPinned();
+      const pinned = await fetchPinsFn().catch(() => null);
       if (pinned && pinned.size > 0) {
         for (const [, msg] of pinned) {
           if (
