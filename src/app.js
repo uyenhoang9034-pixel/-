@@ -155,6 +155,13 @@ class TitanBot extends Client {
       } catch (sErr) {
         logger.warn('⚠️ [WitchHunterSummon] Không thể nạp dữ liệu triệu hồi từ PostgreSQL:', sErr.message);
       }
+
+      try {
+        const { witchHunterBountyService } = await import('./services/witchHunterBountyService.js');
+        await witchHunterBountyService.syncWithPersistentDb();
+      } catch (bErr) {
+        logger.warn('⚠️ [WitchHunterBounty] Không thể nạp dữ liệu bounty từ PostgreSQL:', bErr.message);
+      }
       
       startupLog('Starting web server...');
       this.startWebServer();
