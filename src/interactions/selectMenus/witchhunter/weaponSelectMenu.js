@@ -42,7 +42,7 @@ export default {
           });
         }
         displayFaction = weapon.faction || factionArg;
-        embed = WitchHunterService.buildWeaponDetailEmbed(weapon);
+        embed = WitchHunterService.buildWeaponDetailEmbed(weapon, authorId || interaction.user.id);
       }
 
       // Tái tạo ActionRow với option đang chọn để hiển thị trạng thái chuẩn

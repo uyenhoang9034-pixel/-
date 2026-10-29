@@ -42,7 +42,7 @@ export default {
           });
         }
         displayFaction = supporter.faction || factionArg;
-        embed = WitchHunterService.buildSupporterDetailEmbed(supporter);
+        embed = WitchHunterService.buildSupporterDetailEmbed(supporter, authorId || interaction.user.id);
       }
 
       // Tái tạo ActionRow với option đang chọn để hiển thị trạng thái chuẩn

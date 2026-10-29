@@ -2118,12 +2118,17 @@ export class WitchHunterService {
   /**
    * Tạo Embed chi tiết từng Supporter khi chọn từ menu
    */
-  static buildSupporterDetailEmbed(supporter) {
+  static buildSupporterDetailEmbed(supporter, userId = null) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
     const cat = WITCH_HUNTER_CONFIG.supporters.categories[supporter.categoryKey];
     const catEmoji = cat?.emoji || emojis.sparkles;
     const isWitch = supporter.faction === 'witch';
     const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
+
+    const isOwned = userId ? this.isSupporterOwned(userId, supporter.id) : false;
+    const ownedNotice = isOwned
+      ? `\n\n*Lữ khách đã sở hữu supporter này rồi ạ, quá bá khí luôn!*`
+      : '';
 
     const summonNotice = supporter.isBlackMarket
       ? `\n\n<a:trangtrig46:1547240249761996812> **VẬT PHẨM ĐỘC QUYỀN CHỢ ĐEN:**\n> *Đây là Supporter độc quyền từ Chợ Đen Hư Không, dùng Mảnh Vỡ Ký Ức để trao đổi!*`
@@ -2145,6 +2150,7 @@ export class WitchHunterService {
         `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **NGUỒN GỐC & KHẾ ƯỚC CHIẾN ĐẤU:**\n` +
         `${supporter.lore}` +
         summonNotice +
+        ownedNotice +
         `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn Supporter khác từ menu bên dưới để tiếp tục tra cứu khế ước nha lữ khách!`
       )
@@ -2677,10 +2683,15 @@ export class WitchHunterService {
   /**
    * Tạo Embed chi tiết từng Thần Binh Vũ Khí khi chọn từ menu
    */
-  static buildWeaponDetailEmbed(weapon) {
+  static buildWeaponDetailEmbed(weapon, userId = null) {
     const { emojis, colors } = WITCH_HUNTER_CONFIG;
     const isWitch = weapon.faction === 'witch';
     const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
+
+    const isOwned = userId ? this.isWeaponOwned(userId, weapon.id) : false;
+    const ownedNotice = isOwned
+      ? `\n\n*Lữ khách đã sở hữu vũ khí này rồi ạ, quá bá khí luôn!*`
+      : '';
 
     const milestoneText = weapon.isSummon
       ? (weapon.activationMilestone || 'Bể Triệu Hồi Huyết Nguyệt')
@@ -2711,6 +2722,7 @@ export class WitchHunterService {
         `${emojis.decor17 || '<a:trangtrig17:1546048098415939655>'} **CỤ THỂ SỨC MẠNH:**\n` +
         `${weapon.powerDetail}` +
         summonNotice +
+        ownedNotice +
         `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `${emojis.heart || '<a:heartg1:1545307544808071258>'} Hãy chọn Vũ Khí khác từ menu bên dưới để tiếp tục tra cứu sức mạnh nha lữ khách!`
       )
@@ -3089,6 +3101,24 @@ export class WitchHunterService {
     });
 
     return Array.from(map.values());
+  }
+
+  /**
+   * Kiểm tra xem thành viên đã sở hữu Supporter cụ thể hay chưa
+   */
+  static isSupporterOwned(userId, supporterId) {
+    if (!userId || !supporterId) return false;
+    const owned = this.getOwnedSupporters(userId);
+    return owned.some((s) => s.id === supporterId);
+  }
+
+  /**
+   * Kiểm tra xem thành viên đã sở hữu Thần Binh Vũ Khí cụ thể hay chưa
+   */
+  static isWeaponOwned(userId, weaponId) {
+    if (!userId || !weaponId) return false;
+    const owned = this.getOwnedWeapons(userId);
+    return owned.some((w) => w.id === weaponId);
   }
 
   /**
