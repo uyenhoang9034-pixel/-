@@ -558,14 +558,14 @@ export default {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         const { witchHunterWorldBossService } = await import('../../services/witchHunterWorldBossService.js');
 
-        if (!witchHunterWorldBossService.isBossActive()) {
+        const reason = interaction.options.getString('ly_do') || 'timeout';
+        const endResult = await witchHunterWorldBossService.forceEndBoss(interaction.client, { reason });
+
+        if (!endResult.success) {
           return interaction.editReply({
-            content: '❌ Hiện không có chiến dịch Bách Quỷ Dạ Hành nào đang diễn ra để kết thúc!',
+            content: endResult.message || '❌ Hiện không có chiến dịch Bách Quỷ Dạ Hành nào đang diễn ra để kết thúc!',
           });
         }
-
-        const reason = interaction.options.getString('ly_do') || 'timeout';
-        await witchHunterWorldBossService.endWorldBoss(interaction.client, { reason });
 
         return interaction.editReply({
           content: `✅ Đã kết thúc chiến dịch World Boss (${reason === 'defeated' ? 'Boss bị tiêu diệt' : 'Hết giờ'}) và chốt trao thưởng thành công rồi nè vợ của Kim Nong ơi! 💕`,

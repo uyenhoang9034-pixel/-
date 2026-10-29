@@ -177,6 +177,14 @@ class TitanBot extends Client {
       // Tiên Tôn already follows this lifecycle; without it Ma Tôn can play through
       // Lavalink but Riffy track events (including trackStart/dashboard) are unreliable.
       initRiffyAfterReady(this);
+
+      // Khởi tạo vòng đời World Boss và kích hoạt Watchdog kiểm tra hết giờ tự động
+      try {
+        const { witchHunterWorldBossService } = await import('./services/witchHunterWorldBossService.js');
+        await witchHunterWorldBossService.initClient(this);
+      } catch (wbErr) {
+        logger.warn('⚠️ [WorldBoss] Lỗi khởi tạo World Boss Service cùng Client:', wbErr.message);
+      }
       
       startupLog('Registering slash commands globally...');
       await this.registerCommands();
@@ -359,6 +367,15 @@ class TitanBot extends Client {
     cron.schedule('0 0 * * *', runSafeTask('birthday_check', () => checkBirthdays(this)), { timezone: 'Asia/Ho_Chi_Minh' });
     cron.schedule('0 0 * * *', runSafeTask('pumpkin_daily_flush', () => pumpkinGrowthTracker.flushDailyReport(this)), { timezone: 'Asia/Ho_Chi_Minh' });
     cron.schedule('* * * * *', runSafeTask('giveaway_check', () => checkGiveaways(this)));
+    // Cron job kiểm tra an toàn World Boss hết hạn (mỗi 1 phút) - tự động chốt kết thúc và phát thưởng
+    cron.schedule('* * * * *', runSafeTask('witch_hunter_world_boss_check', async () => {
+      try {
+        const { witchHunterWorldBossService } = await import('./services/witchHunterWorldBossService.js');
+        await witchHunterWorldBossService.checkExpiredBoss(this);
+      } catch (err) {
+        logger.error('❌ [WorldBoss] Lỗi cron kiểm tra World Boss hết hạn:', err);
+      }
+    }));
     cron.schedule('*/15 * * * *', runSafeTask('counter_update', () => this.updateAllCounters()));
     // Tối ưu RAM định kỳ mỗi 30 phút: dọn dẹp cache hết hạn & thu hồi rác GC
     cron.schedule('*/30 * * * *', runSafeTask('memory_cleanup', () => this.cleanupMemory()));

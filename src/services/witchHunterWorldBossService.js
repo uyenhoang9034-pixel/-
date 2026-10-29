@@ -63,6 +63,8 @@ class WitchHunterWorldBossService {
     this.activeBoss = null;
     this.batchTimer = null;
     this.endTimer = null;
+    this.watchdogTimer = null;
+    this.client = null;
     this.init();
   }
 
@@ -80,7 +82,7 @@ class WitchHunterWorldBossService {
         } catch {}
       }
 
-      if (data && data.status === 'active' && data.endTime > Date.now()) {
+      if (data && data.status === 'active') {
         const participantsMap = new Map();
         if (Array.isArray(data.participants)) {
           for (const p of data.participants) {
@@ -91,10 +93,95 @@ class WitchHunterWorldBossService {
           ...data,
           participants: participantsMap,
         };
-        logger.info(`👹 [WorldBoss] Đã nạp lại sự kiện World Boss đang mở: ${this.activeBoss.bossConfig?.title}`);
+        logger.info(`👹 [WorldBoss] Đã nạp dữ liệu World Boss từ bộ nhớ: ${this.activeBoss.bossConfig?.title} (Hết hạn: ${new Date(this.activeBoss.endTime).toLocaleTimeString('vi-VN')})`);
       }
     } catch (err) {
       logger.error('❌ [WorldBoss] Lỗi nạp dữ liệu World Boss:', err);
+    }
+  }
+
+  /**
+   * Khởi tạo đồng bộ cùng Discord Client khi Bot online
+   */
+  async initClient(client) {
+    this.client = client;
+    this.startWatchdog(client);
+
+    try {
+      if (!this.activeBoss) {
+        let data = await getFromDb('temp:witch_hunter:world_boss_active').catch(() => null);
+        if (!data && fs.existsSync(WORLD_BOSS_JSON_PATH)) {
+          try {
+            const raw = fs.readFileSync(WORLD_BOSS_JSON_PATH, 'utf-8');
+            data = JSON.parse(raw);
+          } catch {}
+        }
+
+        if (data && data.status === 'active') {
+          const participantsMap = new Map();
+          if (Array.isArray(data.participants)) {
+            for (const p of data.participants) {
+              participantsMap.set(p.userId, p);
+            }
+          }
+          this.activeBoss = {
+            ...data,
+            participants: participantsMap,
+          };
+        }
+      }
+
+      if (this.isBossActive()) {
+        const now = Date.now();
+        if (now >= this.activeBoss.endTime) {
+          logger.info(`👹 [WorldBoss] Phát hiện sự kiện ${this.activeBoss.bossConfig?.title} đã hết giờ trong lúc bot offline/restart. Tự động chốt kết thúc và phát thưởng ngay!`);
+          await this.endWorldBoss(client, { reason: 'timeout' });
+        } else {
+          const remainMs = this.activeBoss.endTime - now;
+          if (this.endTimer) clearTimeout(this.endTimer);
+          this.endTimer = setTimeout(() => {
+            this.endWorldBoss(client, { reason: 'timeout' });
+          }, remainMs);
+
+          if (this.batchTimer) clearInterval(this.batchTimer);
+          this.batchTimer = setInterval(() => {
+            this.flushBatchUpdate(client);
+          }, 120000);
+
+          logger.info(`👹 [WorldBoss] Đã kích hoạt lại đếm ngược kết thúc sự kiện World Boss (${Math.round(remainMs / 60000)} phút còn lại).`);
+        }
+      }
+    } catch (err) {
+      logger.error('❌ [WorldBoss] Lỗi initClient:', err);
+    }
+  }
+
+  /**
+   * Watchdog định kỳ 30 giây rà soát boss hết giờ
+   */
+  startWatchdog(client) {
+    if (this.watchdogTimer) clearInterval(this.watchdogTimer);
+    this.watchdogTimer = setInterval(async () => {
+      try {
+        const botClient = client || this.client;
+        if (this.isBossActive() && this.activeBoss.endTime && Date.now() >= this.activeBoss.endTime) {
+          logger.info('👹 [WorldBoss] Watchdog: Boss đã hết giờ, tự động kết thúc sự kiện và trao thưởng...');
+          await this.endWorldBoss(botClient, { reason: 'timeout' });
+        }
+      } catch (err) {
+        logger.error('❌ [WorldBoss] Lỗi watchdog kiểm tra hết giờ:', err);
+      }
+    }, 30000);
+  }
+
+  /**
+   * Cron check mỗi phút từ app.js
+   */
+  async checkExpiredBoss(client) {
+    const botClient = client || this.client;
+    if (this.isBossActive() && this.activeBoss.endTime && Date.now() >= this.activeBoss.endTime) {
+      logger.info('👹 [WorldBoss] Cron check: Boss đã hết giờ, tự động kết thúc sự kiện và trao thưởng...');
+      await this.endWorldBoss(botClient, { reason: 'timeout' });
     }
   }
 
@@ -117,14 +204,62 @@ class WitchHunterWorldBossService {
   }
 
   /**
+   * Cưỡng chế kết thúc World Boss và trao thưởng (dù boss ở RAM hay kẹt trong DB)
+   */
+  async forceEndBoss(client, { reason = 'timeout' } = {}) {
+    const botClient = client || this.client;
+
+    if (this.isBossActive()) {
+      await this.endWorldBoss(botClient, { reason });
+      return { success: true };
+    }
+
+    // Nếu không có trong RAM, kiểm tra DB/JSON
+    let data = await getFromDb('temp:witch_hunter:world_boss_active').catch(() => null);
+    if (!data && fs.existsSync(WORLD_BOSS_JSON_PATH)) {
+      try {
+        const raw = fs.readFileSync(WORLD_BOSS_JSON_PATH, 'utf-8');
+        data = JSON.parse(raw);
+      } catch {}
+    }
+
+    if (data && data.status === 'active') {
+      const participantsMap = new Map();
+      if (Array.isArray(data.participants)) {
+        for (const p of data.participants) {
+          participantsMap.set(p.userId, p);
+        }
+      }
+      this.activeBoss = {
+        ...data,
+        participants: participantsMap,
+      };
+      await this.endWorldBoss(botClient, { reason });
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      message: '❌ Hiện không có chiến dịch Bách Quỷ Dạ Hành nào đang diễn ra (hoặc sự kiện đã được kết thúc trước đó)!',
+    };
+  }
+
+  /**
    * Khởi tạo World Boss
    */
   async startWorldBoss({ interaction, bossType = 'avalonia', durationMinutes = 60, channel = null }) {
+    this.client = interaction.client;
+
     if (this.isBossActive()) {
-      return {
-        success: false,
-        message: '<a:bang2:1546891483250954290> Hiện đang có chiến dịch Bách Quỷ Dạ Hành đang diễn ra rồi!',
-      };
+      if (this.activeBoss.endTime && Date.now() >= this.activeBoss.endTime) {
+        logger.info('👹 [WorldBoss] Boss cũ đã hết giờ, tự động kết thúc phát thưởng trước khi mở boss mới.');
+        await this.endWorldBoss(interaction.client, { reason: 'timeout' });
+      } else {
+        return {
+          success: false,
+          message: '<a:bang2:1546891483250954290> Hiện đang có chiến dịch Bách Quỷ Dạ Hành đang diễn ra rồi!',
+        };
+      }
     }
 
     const bossConfig = WORLD_BOSS_CONFIGS[bossType] || WORLD_BOSS_CONFIGS.avalonia;
@@ -340,11 +475,20 @@ class WitchHunterWorldBossService {
   async flushBatchUpdate(client) {
     if (!this.isBossActive()) return;
 
+    const botClient = client || this.client;
+    const state = this.activeBoss;
+
+    // Kiểm tra nếu đã hết giờ trong lúc đợi flush batch -> lập tức chốt kết thúc
+    if (state && state.endTime && Date.now() >= state.endTime) {
+      logger.info('👹 [WorldBoss] Flush batch phát hiện boss đã hết giờ, tiến hành kết thúc và phát thưởng ngay.');
+      await this.endWorldBoss(botClient, { reason: 'timeout' });
+      return;
+    }
+
     try {
-      const state = this.activeBoss;
       const channel =
-        client.channels.cache.get(state.channelId) ||
-        (await client.channels.fetch(state.channelId).catch(() => null));
+        botClient?.channels?.cache?.get(state.channelId) ||
+        (await botClient?.channels?.fetch(state.channelId).catch(() => null));
       if (!channel) return;
 
       const msg = await channel.messages.fetch(state.messageId).catch(() => null);
@@ -377,6 +521,19 @@ class WitchHunterWorldBossService {
       });
     }
 
+    const state = this.activeBoss;
+
+    // Kiểm tra nếu thời gian đã hết -> lập tức kích hoạt kết thúc và phát thưởng
+    if (state && state.endTime && Date.now() >= state.endTime) {
+      await this.endWorldBoss(interaction.client || this.client, { reason: 'timeout' });
+      return interaction.reply({
+        content:
+          `<a:bang2:1546891483250954290> **CHIẾN DỊCH ĐÃ HẾT GIỜ!**\n` +
+          `Thời gian công phá kết giới Bách Quỷ Dạ Hành đã kết thúc. Hệ thống đang tiến hành tổng kết sát thương và trao thưởng! 💕`,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
+
     const userId = interaction.user.id;
     const userData = WitchHunterService.getUserProfile(userId);
 
@@ -390,7 +547,6 @@ class WitchHunterWorldBossService {
       });
     }
 
-    const state = this.activeBoss;
     let participant = state.participants.get(userId);
     if (!participant) {
       participant = {
@@ -732,11 +888,22 @@ class WitchHunterWorldBossService {
     const state = this.activeBoss;
     state.status = reason;
 
+    const botClient = client || this.client;
+    if (!botClient) {
+      logger.warn('⚠️ [WorldBoss] endWorldBoss được kích hoạt nhưng chưa có đối tượng Discord Client!');
+    }
+
     try {
       const channel =
-        client.channels.cache.get(state.channelId) ||
-        (await client.channels.fetch(state.channelId).catch(() => null));
-      const guild = channel?.guild || client.guilds.cache.get(state.guildId);
+        botClient?.channels?.cache?.get(state.channelId) ||
+        (await botClient?.channels?.fetch(state.channelId).catch(() => null));
+      let guild = channel?.guild || botClient?.guilds?.cache?.get(state.guildId);
+      if (!guild && botClient && state.guildId) {
+        guild = await botClient.guilds.fetch(state.guildId).catch(() => null);
+      }
+      if (!guild && botClient?.guilds?.cache?.size > 0) {
+        guild = botClient.guilds.cache.first();
+      }
 
       const hunterDmg = state.factionDamage.hunter || 0;
       const witchDmg = state.factionDamage.witch || 0;
@@ -776,7 +943,7 @@ class WitchHunterWorldBossService {
           winFaction,
           5,
           `Ban Phước Tối Cao từ Đại Chiến Bách Quỷ Dạ Hành (+5% HP Trụ Tổng ${winFactionName})`
-        );
+        ).catch((e) => logger.error('❌ [WorldBoss] Lỗi healTowerHp:', e));
       }
 
       // 2. PHÂN PHÁT PHẦN THƯỞNG CÁ NHÂN
@@ -788,12 +955,20 @@ class WitchHunterWorldBossService {
       for (let i = 0; i < Math.min(5, sorted.length); i++) {
         const p = sorted[i];
         try {
-          const uData = witchHunterStorage.getUser(p.userId);
-          if (uData) {
-            uData.free_summons = (Number(uData.free_summons) || 0) + 1;
-            uData.updated_at = Date.now();
-            witchHunterStorage.saveUser(uData, true);
+          let uData = witchHunterStorage.getUser(p.userId);
+          if (!uData) {
+            uData = {
+              user_id: p.userId,
+              faction: p.faction,
+              current_rank: 1,
+              pumpkins: 0,
+              free_summons: 0,
+            };
           }
+          uData.free_summons = (Number(uData.free_summons) || 0) + 1;
+          uData.updated_at = Date.now();
+          witchHunterStorage.saveUser(uData, true);
+          logger.info(`🎁 [WorldBoss] Đã trao 1 Vé Tế Đàn cho Top ${i + 1} (${p.displayName || p.userId}).`);
         } catch (ticketErr) {
           logger.error(`❌ [WorldBoss] Lỗi trao vé tế đàn cho user ${p.userId}:`, ticketErr);
         }
@@ -808,7 +983,7 @@ class WitchHunterWorldBossService {
               reason: 'Phần thưởng tham chiến diệt Boss Bách Quỷ Dạ Hành',
               notifyDM: false,
               notifyAdminLog: false,
-            }).catch(() => null);
+            }).catch((e) => logger.error(`❌ [WorldBoss] Lỗi phát bí ngô diệt boss cho ${p.userId}:`, e));
           }
         }
       }
@@ -833,7 +1008,8 @@ class WitchHunterWorldBossService {
               reason: `Top ${rank} DPS Bách Quỷ Dạ Hành (${reason === 'defeated' ? 'Tiêu diệt Boss' : 'Boss rút lui'})`,
               notifyDM: false,
               notifyAdminLog: false,
-            }).catch(() => null);
+            }).catch((e) => logger.error(`❌ [WorldBoss] Lỗi phát bí ngô Top ${rank} cho ${p.userId}:`, e));
+            logger.info(`🎁 [WorldBoss] Đã trao +${addPumpkins} Bí Ngô cho Top ${rank} (${p.displayName || p.userId}).`);
           }
         }
       }
@@ -847,9 +1023,9 @@ class WitchHunterWorldBossService {
         endEmbed
           .setTitle(`${emojis.titleLeft} CHIẾN DỊCH HUYẾT NGUYỆT TOÀN THẮNG: THỰC THỂ BỊ TIÊU DIỆT! ${emojis.titleRight}`)
           .setDescription(
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `━━━━━━━━━━━━━\n` +
             `**${state.bossConfig.title}** đã bị phong ấn hoàn toàn trước thời hạn!\n\n` +
-            `<a:trangtrig15:1546047955696488489> **TỔNG KẾT TRANH ĐOẠT PHE PHÁI:**\n` +
+            `<a:trangtrig15:1546047955696488489> **TỔNG KẾT TRANH ĐOẠT PHE PHÁI:**\n\n` +
             `${winFactionEmoji} **${winFactionName}:** ${winFactionPct}% Tổng Kháng Cự\n` +
             `<a:trangtrig20:1546092997299667055> **CHIẾN THẮNG ÁP ĐẢO!**\n` +
             `${loseFactionEmoji} **${loseFactionName}:** ${loseFactionPct}% Tổng Kháng Cự\n\n` +
@@ -857,21 +1033,23 @@ class WitchHunterWorldBossService {
             `> Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n` +
             `> Trụ Tổng Phe **${loseFactionName}** bảo toàn nguyên vẹn, không bị khấu trừ.\n\n` +
             `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG CHIẾN DỊCH (BOSS BỊ TIÊU DIỆT):**\n` +
-            `- **Tất cả Thần Khí Sĩ và Cổ Thuật Sĩ** tham gia đánh ít nhất 1 đòn: Nhận ngay **+1 <a:bingo:1563061901800243253>**.\n` +
-            `- **Thưởng BXH Top 1 – 12 DPS:**\n` +
-            `  > • **Top 1:** +20 <a:bingo:1563061901800243253> | **Top 2:** +15 <a:bingo:1563061901800243253> | **Top 3:** +12 <a:bingo:1563061901800243253>\n` +
-            `  > • **Top 4 – 5:** +10 <a:bingo:1563061901800243253> | **Top 6 – 7:** +8 <a:bingo:1563061901800243253>\n` +
-            `  > • **Top 8 – 9:** +6 <a:bingo:1563061901800243253> | **Top 10 – 12:** +4 <a:bingo:1563061901800243253>\n` +
-            `- **Top 1 – 5 DPS:** Nhận thêm **1 Vé Quay Tế Đàn Miễn Phí** (Triệu Hồi Supporter/Thần Khí A-SS).`
+            `> • **Tất cả người tham chiến:** Đánh ít nhất 1 đòn nhận ngay **+1 <a:bingo:1563061901800243253>**.\n` +
+            `> • **Top 1:** +20 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 2:** +15 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 3:** +12 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 4 – 5:** +10 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • **Top 6 – 7:** +8 <a:bingo:1563061901800243253>\n` +
+            `> • **Top 8 – 9:** +6 <a:bingo:1563061901800243253>\n` +
+            `> • **Top 10 – 12:** +4 <a:bingo:1563061901800243253>`
           );
       } else {
         endEmbed
           .setTitle(`${emojis.titleLeft} THỜI GIAN ĐÃ HẾT: BOSS ĐÃ RÚT LUI VÀO HƯ KHÔNG! ${emojis.titleRight}`)
           .setDescription(
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `━━━━━━━━━━━━━\n` +
             `Hết thời gian chiến dịch! Thực thể **${state.bossConfig.title}** đã ẩn thân vào bóng tối.\n` +
             `> *Kết giới chưa bị phá hủy hoàn toàn (còn ${state.resistance}% Kháng Cự), không kích hoạt +1 Bí Ngô toàn server.*\n\n` +
-            `<a:trangtrig15:1546047955696488489> **KẾT QUẢ TÍCH LŨY SÁT THƯƠNG PHE PHÁI:**\n` +
+            `<a:trangtrig15:1546047955696488489> **KẾT QUẢ TÍCH LŨY SÁT THƯƠNG PHE PHÁI:**\n\n` +
             `${winFactionEmoji} **${winFactionName}:** ${winFactionPct}% Tổng Kháng Cự\n` +
             `<a:trangtrig20:1546092997299667055> **CHIẾN THẮNG ÁP ĐẢO!**\n` +
             `${loseFactionEmoji} **${loseFactionName}:** ${loseFactionPct}% Tổng Kháng Cự\n\n` +
@@ -892,6 +1070,7 @@ class WitchHunterWorldBossService {
         .setFooter({ text: 'Sự kiện Bách Quỷ Dạ Hành đã khép lại • Witch Hunter World Boss' })
         .setTimestamp();
 
+      // Cập nhật disable nút trên message dashboard cũ
       if (channel && state.messageId) {
         const msg = await channel.messages.fetch(state.messageId).catch(() => null);
         if (msg) {
@@ -903,8 +1082,19 @@ class WitchHunterWorldBossService {
         }
       }
 
+      // Gửi thông báo kết thúc mới kèm tag role vào kênh
+      if (channel) {
+        await channel.send({
+          content: '<@&1563426234787041331>',
+          embeds: [endEmbed],
+        }).catch(() => null);
+      }
+
+      state.status = reason;
+      state.isDirty = false;
       await this.saveState();
-      logger.info(`👹 [WorldBoss] Sự kiện World Boss đã kết thúc (${reason}).`);
+      this.activeBoss = null;
+      logger.info(`👹 [WorldBoss] Sự kiện World Boss đã kết thúc thành công (${reason}).`);
     } catch (err) {
       logger.error('❌ [WorldBoss] Lỗi endWorldBoss:', err);
     }
