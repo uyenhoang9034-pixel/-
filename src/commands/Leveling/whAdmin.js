@@ -92,6 +92,30 @@ export default {
     )
     .addSubcommand((sub) =>
       sub
+        .setName('phat-manh-vo-ky-uc')
+        .setDescription('Ban thưởng Mảnh Vỡ Ký Ức Chợ Đen Hư Không cho thành viên (Chỉ Admin)')
+        .addUserOption((opt) =>
+          opt
+            .setName('nguoi-nhan')
+            .setDescription('Thành viên nhận Mảnh Vỡ Ký Ức')
+            .setRequired(true)
+        )
+        .addIntegerOption((opt) =>
+          opt
+            .setName('so-luong')
+            .setDescription('Số lượng Mảnh Vỡ Ký Ức')
+            .setMinValue(1)
+            .setRequired(true)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName('ly-do')
+            .setDescription('Lý do ban thưởng')
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
         .setName('setup-monolith')
         .setDescription('Khởi tạo bảng Embed Trụ Tổng Pháo Đài cố định tại kênh #✦・🏰・thành-trì-huyết-thệ')
         .addChannelOption((opt) =>
@@ -381,6 +405,63 @@ export default {
         return interaction.reply({
           content: `✅ Em bot Usagi múp rụp đã thiết lập bảng **Chợ Đen Hư Không: Thương Đài Trao Đổi Ký Ức** tại kênh <#${targetChannel.id}> thành công và bảo toàn 100% dữ liệu rồi nè vợ của Kim Nong ơi! 💕`,
           flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // PHÁT MẢNH VỠ KÝ ỨC (ADMIN)
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'phat-manh-vo-ky-uc') {
+        const targetUser = interaction.options.getUser('nguoi-nhan', true);
+        const amount = interaction.options.getInteger('so-luong', true);
+        const reason = interaction.options.getString('ly-do') || 'Admin ban thưởng trực tiếp';
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        const result = await WitchHunterBlackMarketService.awardMemoryShards(
+          interaction.guild,
+          targetUser.id,
+          amount,
+          {
+            reason,
+            executor: interaction.user,
+            source: 'Lệnh /wh-admin phat-manh-vo-ky-uc',
+            notifyDM: true,
+            notifyAdminLog: true,
+          }
+        );
+
+        if (!result.success) {
+          return interaction.editReply({
+            content: `❌ Không thể phát Mảnh Vỡ Ký Ức: ${result.message || 'Lỗi không xác định'}`,
+          });
+        }
+
+        const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
+        const isWitch = result.faction === 'witch';
+        const isHunter = result.faction === 'hunter';
+        let factionDisplay = '*Chưa ký khế ước (Đã tích lũy sẵn vào hồ sơ)*';
+        if (isWitch) factionDisplay = `${emojis.witchBadge} **Hội Phù Thủy (Witches)**`;
+        if (isHunter) factionDisplay = `${emojis.hunterBadge} **Hiệp Hội Thợ Săn (W.H. Association)**`;
+
+        const replyEmbed = new EmbedBuilder()
+          .setColor(colors.pastelPurple)
+          .setTitle(`${emojis.titleLeft} **PHÁT MẢNH VỠ KÝ ỨC THÀNH CÔNG** ${emojis.titleRight}`)
+          .setDescription(
+            `Vợ của Kim Nong ơi, em bot Usagi múp rụp đã phát Mảnh Vỡ Ký Ức thành công rồi nè! 💕\n\n` +
+            `👤 **Người nhận:** <@${targetUser.id}> (\`${targetUser.tag}\` | ID: \`${targetUser.id}\`)\n` +
+            `👑 **Người ban thưởng:** <@${interaction.user.id}>\n` +
+            `<a:trangtrig46:1547240249761996812> **Số lượng phát:** **+${amount.toLocaleString('vi-VN')}** <a:trangtrig46:1547240249761996812> Mảnh Vỡ Ký Ức\n` +
+            `📊 **Số dư Mảnh Vỡ:** ${result.oldShards.toLocaleString('vi-VN')} ➡️ **${result.newShards.toLocaleString('vi-VN')}** Mảnh\n` +
+            `⚔️ **Phe phái:** ${factionDisplay}\n` +
+            `\n📝 **Lý do:** ${reason}\n\n` +
+            `*✨ Hệ thống đã gửi tin nhắn riêng (DM) tới người nhận và lưu nhật ký vào kênh Admin <#${channels.adminLogChannelId}>.*`
+          )
+          .setFooter({ text: 'Witch Hunter System • Chợ Đen Hư Không' })
+          .setTimestamp();
+
+        return interaction.editReply({
+          embeds: [replyEmbed],
         });
       }
 

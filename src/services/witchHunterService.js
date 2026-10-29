@@ -2587,7 +2587,10 @@ export class WitchHunterService {
 
     const parseEmoji = (emojiStr) => {
       if (!emojiStr) return undefined;
-      const match = emojiStr.match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
+      if (typeof emojiStr === 'string' && !emojiStr.startsWith('<')) {
+        return { name: emojiStr };
+      }
+      const match = String(emojiStr).match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
       if (match && match.groups) {
         return {
           id: match.groups.id,
@@ -2595,7 +2598,7 @@ export class WitchHunterService {
           animated: Boolean(match.groups.animated),
         };
       }
-      return emojiStr;
+      return undefined;
     };
 
     const factionSupporters = supporters.list.filter((s) => s.faction === currentFaction);
@@ -2718,7 +2721,10 @@ export class WitchHunterService {
 
     const parseEmoji = (emojiStr) => {
       if (!emojiStr) return undefined;
-      const match = emojiStr.match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
+      if (typeof emojiStr === 'string' && !emojiStr.startsWith('<')) {
+        return { name: emojiStr };
+      }
+      const match = String(emojiStr).match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
       if (match && match.groups) {
         return {
           id: match.groups.id,
@@ -2726,7 +2732,7 @@ export class WitchHunterService {
           animated: Boolean(match.groups.animated),
         };
       }
-      return emojiStr;
+      return undefined;
     };
 
     const factionWeapons = weapons.list.filter((w) => w.faction === currentFaction);
@@ -3468,7 +3474,10 @@ export class WitchHunterService {
 
     const parseEmoji = (emojiStr) => {
       if (!emojiStr) return undefined;
-      const match = emojiStr.match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
+      if (typeof emojiStr === 'string' && !emojiStr.startsWith('<')) {
+        return { name: emojiStr };
+      }
+      const match = String(emojiStr).match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
       if (match && match.groups) {
         return {
           id: match.groups.id,
@@ -3476,7 +3485,7 @@ export class WitchHunterService {
           animated: Boolean(match.groups.animated),
         };
       }
-      return emojiStr;
+      return undefined;
     };
 
     const currentRank = userData.current_rank || 1;
@@ -3579,7 +3588,7 @@ export class WitchHunterService {
             description: `${tInfo.nameEn} • ${tInfo.slogan}`.slice(0, 100),
             value: tKey,
             default: Boolean(isEquipped),
-            emoji: parseEmoji('<a:trangtrig14:1546047912969113622>'),
+            emoji: parseEmoji('👑'),
           };
         }).filter(Boolean),
       ];

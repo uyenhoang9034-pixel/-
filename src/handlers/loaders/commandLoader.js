@@ -86,6 +86,14 @@ export async function loadCommands(client) {
                 
                 client.commands.set(primaryCommandName, command);
             }
+
+            if (Array.isArray(command.aliases)) {
+                for (const alias of command.aliases) {
+                    if (!client.commands.has(alias)) {
+                        client.commands.set(alias, command);
+                    }
+                }
+            }
             
             const subcommands = getSubcommandInfo(command.data.toJSON());
             

@@ -1503,7 +1503,7 @@ export const WITCH_HUNTER_CONFIG = {
         nameVi: 'Kẻ Thao Túng Vực Thẳm',
         nameEn: 'Abyssal Manipulator',
         slogan: 'Kẻ lặn sâu vào vực thẳm và trở về với đôi mắt rực cháy bóng đêm.',
-        roleId: process.env.ROLE_TITLE_ABYSSAL_MANIPULATOR || '1564147000000000001',
+        roleId: process.env.ROLE_TITLE_ABYSSAL_MANIPULATOR || '1565307336229388328',
         price: 200,
       },
       title_void_phantom: {
@@ -1511,7 +1511,7 @@ export const WITCH_HUNTER_CONFIG = {
         nameVi: 'Bóng Ma Hư Không',
         nameEn: 'Void Phantom',
         slogan: 'Thân xác là hư ảnh, linh hồn đã hòa tan vào dòng chảy hư vô.',
-        roleId: process.env.ROLE_TITLE_VOID_PHANTOM || '1564147000000000002',
+        roleId: process.env.ROLE_TITLE_VOID_PHANTOM || '1565307854485725244',
         price: 200,
       },
       title_dark_remnant: {
@@ -1519,7 +1519,7 @@ export const WITCH_HUNTER_CONFIG = {
         nameVi: 'Tàn Niệm Hắc Ám',
         nameEn: 'Dark Remnant',
         slogan: 'Chứng nhân cuối cùng của kỷ nguyên ma thuật hắc ám bị lãng quên.',
-        roleId: process.env.ROLE_TITLE_DARK_REMNANT || '1564147000000000003',
+        roleId: process.env.ROLE_TITLE_DARK_REMNANT || '1565307945695191180',
         price: 200,
       },
       title_fate_inverter: {
@@ -1527,7 +1527,7 @@ export const WITCH_HUNTER_CONFIG = {
         nameVi: 'Kẻ Nghịch Đảo Định Mệnh',
         nameEn: 'Fate Inverter',
         slogan: 'Không quỳ gối trước số phận, kẻ bẻ gãy bánh xe luân hồi của các vị thần.',
-        roleId: process.env.ROLE_TITLE_FATE_INVERTER || '1564147000000000004',
+        roleId: process.env.ROLE_TITLE_FATE_INVERTER || '1565307993736609953',
         price: 200,
       },
     },

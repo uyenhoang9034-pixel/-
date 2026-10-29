@@ -57,6 +57,7 @@ export default {
     ),
 
   category: 'Leveling',
+  aliases: ['phatbingo'],
 
   async execute(interaction) {
     try {

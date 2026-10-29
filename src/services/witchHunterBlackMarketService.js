@@ -16,7 +16,10 @@ import { logger } from '../utils/logger.js';
 
 function parseEmoji(emojiStr) {
   if (!emojiStr) return undefined;
-  const match = emojiStr.match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
+  if (typeof emojiStr === 'string' && !emojiStr.startsWith('<')) {
+    return { name: emojiStr };
+  }
+  const match = String(emojiStr).match(/<(?<animated>a)?:(?<name>[a-zA-Z0-9_]+):(?<id>\d+)>/);
   if (match && match.groups) {
     return {
       id: match.groups.id,
@@ -24,7 +27,7 @@ function parseEmoji(emojiStr) {
       animated: Boolean(match.groups.animated),
     };
   }
-  return emojiStr;
+  return undefined;
 }
 
 export class WitchHunterBlackMarketService {
@@ -110,19 +113,19 @@ export class WitchHunterBlackMarketService {
           label: 'Vé Triệu Gọi Tế Đàn Miễn Phí',
           description: '100 Mảnh Vỡ Ký Ức / vé ──── Dùng quay Tế Đàn A-SS',
           value: 'ticket',
-          emoji: parseEmoji('<a:linhtocg:1563399670351536310>'),
+          emoji: parseEmoji('🎫'),
         },
         {
           label: 'Danh Hiệu Hắc Ám & Cấp Role',
           description: '200 Mảnh Vỡ Ký Ức ──── Mở Khóa Danh Hiệu & Role Tương Ứng',
           value: 'title',
-          emoji: parseEmoji('<a:trangtrig14:1546047912969113622>'),
+          emoji: parseEmoji('👑'),
         },
         {
           label: 'Kiểm Tra Số Dư Mảnh Vỡ',
           description: 'Xem số lượng Mảnh Vỡ Ký Ức hiện có trong túi đồ',
           value: 'balance',
-          emoji: parseEmoji('<a:trangtrig46:1547240249761996812>'),
+          emoji: parseEmoji('💰'),
         },
       ]);
 
@@ -206,7 +209,7 @@ export class WitchHunterBlackMarketService {
           label: `${s.name}`.slice(0, 100),
           description: `${s.passiveName} (${cat?.shortName || ''} | ${rank}-Rank)`.slice(0, 100),
           value: s.id,
-          emoji: parseEmoji(cat?.emoji || '<a:linhtocg:1563399670351536310>'),
+          emoji: parseEmoji(cat?.emoji) || parseEmoji('🔮'),
         };
       });
 
@@ -247,7 +250,7 @@ export class WitchHunterBlackMarketService {
         label: `${w.shortName || w.name}`.slice(0, 100),
         description: `${w.viName} • ${w.energyAttribute} (${rank}-Rank)`.slice(0, 100),
         value: w.id,
-        emoji: parseEmoji(w.energyEmoji || '<a:nguyentheg:1563399515732443177>'),
+        emoji: parseEmoji(w.energyEmoji) || parseEmoji('⚔️'),
       }));
 
       const selectMenu = new StringSelectMenuBuilder()
@@ -283,7 +286,7 @@ export class WitchHunterBlackMarketService {
         label: `｢ ${t.nameVi} ｣ ── ${t.nameEn}`.slice(0, 100),
         description: `Chi phí: ${price} Mảnh • ${t.slogan}`.slice(0, 100),
         value: t.id,
-        emoji: parseEmoji('<a:trangtrig14:1546047912969113622>'),
+        emoji: parseEmoji('👑'),
       }));
 
       const selectMenu = new StringSelectMenuBuilder()
@@ -319,25 +322,25 @@ export class WitchHunterBlackMarketService {
           label: 'Đổi x1 Vé Tế Đàn',
           description: '100 Mảnh Vỡ Ký Ức ──── Nhận 1 Vé Quay Tế Đàn Free',
           value: '1',
-          emoji: parseEmoji('<a:giftg1:1543150714732412948>'),
+          emoji: parseEmoji('🎫'),
         },
         {
           label: 'Đổi x3 Vé Tế Đàn',
           description: '300 Mảnh Vỡ Ký Ức ──── Nhận 3 Vé Quay Tế Đàn Free',
           value: '3',
-          emoji: parseEmoji('<a:giftg1:1543150714732412948>'),
+          emoji: parseEmoji('🎫'),
         },
         {
           label: 'Đổi x5 Vé Tế Đàn',
           description: '500 Mảnh Vỡ Ký Ức ──── Nhận 5 Vé Quay Tế Đàn Free',
           value: '5',
-          emoji: parseEmoji('<a:giftg1:1543150714732412948>'),
+          emoji: parseEmoji('🎫'),
         },
         {
           label: 'Đổi x10 Vé Tế Đàn',
           description: '1,000 Mảnh Vỡ Ký Ức ──── Nhận 10 Vé Quay Tế Đàn Free',
           value: '10',
-          emoji: parseEmoji('<a:giftg1:1543150714732412948>'),
+          emoji: parseEmoji('🎫'),
         },
       ];
 
@@ -395,13 +398,13 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:supporter:${supporter.id}`)
         .setLabel('KÝ KẾT KHẾ ƯỚC')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('<a:trangtrig46:1547240249761996812>'));
+        .setEmoji(parseEmoji('🔮'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
+        .setEmoji(parseEmoji('✖️'));
 
       return {
         embed,
@@ -441,13 +444,13 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:weapon:${weapon.id}`)
         .setLabel('MỞ KHÍ TÀI')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('<a:trangtrig36:1563065680922808340>'));
+        .setEmoji(parseEmoji('⚔️'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
+        .setEmoji(parseEmoji('✖️'));
 
       return {
         embed,
@@ -485,13 +488,13 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:title:${title.id}`)
         .setLabel('KHẮC ẤN DANH HIỆU')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('<a:trangtrig14:1546047912969113622>'));
+        .setEmoji(parseEmoji('👑'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
+        .setEmoji(parseEmoji('✖️'));
 
       return {
         embed,
@@ -527,13 +530,13 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:ticket:${count}`)
         .setLabel('XÁC NHẬN ĐỔI VÉ')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('<a:giftg1:1543150714732412948>'));
+        .setEmoji(parseEmoji('🎫'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
+        .setEmoji(parseEmoji('✖️'));
 
       return {
         embed,
@@ -694,22 +697,7 @@ export class WitchHunterBlackMarketService {
 
       // Cấp Role Discord & gỡ các role danh hiệu cũ
       if (guild) {
-        try {
-          const member = await guild.members.fetch(userId).catch(() => null);
-          if (member) {
-            const allTitles = Object.values(WITCH_HUNTER_CONFIG.darkTitles.list);
-            for (const t of allTitles) {
-              if (t.roleId && t.roleId !== title.roleId && member.roles.cache.has(t.roleId)) {
-                await member.roles.remove(t.roleId).catch(() => null);
-              }
-            }
-            if (title.roleId && !member.roles.cache.has(title.roleId)) {
-              await member.roles.add(title.roleId).catch(() => null);
-            }
-          }
-        } catch (err) {
-          logger.warn(`⚠️ [WitchHunterBlackMarket] Không thể cấp role ${title.roleId} cho user ${userId}:`, err.message);
-        }
+        await WitchHunterBlackMarketService.syncDarkTitleRole(guild, userId, title.id);
       }
 
     } else if (type === 'ticket') {
@@ -814,6 +802,146 @@ export class WitchHunterBlackMarketService {
     return {
       success: true,
       embed: successEmbed,
+    };
+  }
+
+  /**
+   * Tự động đồng bộ gắn role danh hiệu được chọn và gỡ toàn bộ các role danh hiệu hắc ám khác
+   * @param {import('discord.js').Guild} guild
+   * @param {string} userId
+   * @param {string|null} targetTitleKey
+   */
+  static async syncDarkTitleRole(guild, userId, targetTitleKey = null) {
+    if (!guild || !userId) return;
+    try {
+      const member = await guild.members.fetch(userId).catch(() => null);
+      if (!member) return;
+
+      const titlesList = WITCH_HUNTER_CONFIG.darkTitles?.list || {};
+      const allTitleRoleIds = Object.values(titlesList).map((t) => t.roleId).filter(Boolean);
+
+      let activeKey = targetTitleKey;
+      if (activeKey === null) {
+        const userData = witchHunterStorage.getUser(userId);
+        activeKey = userData?.dark_title || null;
+      }
+
+      const activeTitleInfo = activeKey && activeKey !== 'none' ? titlesList[activeKey] : null;
+      const targetRoleId = activeTitleInfo?.roleId || null;
+
+      // 1. Gỡ tất cả các role danh hiệu hắc ám khác đang có trên thành viên
+      for (const rId of allTitleRoleIds) {
+        if (rId !== targetRoleId && member.roles.cache.has(rId)) {
+          await member.roles.remove(rId).catch((err) => {
+            logger.warn(`⚠️ [WitchHunterTitle] Không thể gỡ role danh hiệu ${rId} của user ${userId}:`, err.message);
+          });
+        }
+      }
+
+      // 2. Gắn role danh hiệu mới nếu chưa có
+      if (targetRoleId && !member.roles.cache.has(targetRoleId)) {
+        await member.roles.add(targetRoleId).catch((err) => {
+          logger.warn(`⚠️ [WitchHunterTitle] Không thể gắn role danh hiệu ${targetRoleId} cho user ${userId}:`, err.message);
+        });
+      }
+    } catch (err) {
+      logger.warn(`⚠️ [WitchHunterTitle] Lỗi khi đồng bộ role danh hiệu cho user ${userId}:`, err.message);
+    }
+  }
+
+  /**
+   * Ban thưởng Mảnh Vỡ Ký Ức (memory_shards) cho thành viên (Dành cho Admin)
+   */
+  static async awardMemoryShards(
+    guild,
+    memberOrId,
+    amount,
+    { reason = '', executor = null, source = 'Lệnh /phat-manh-vo-ky-uc', notifyDM = true, notifyAdminLog = true } = {}
+  ) {
+    const numAmount = parseInt(amount, 10);
+    if (!Number.isFinite(numAmount) || numAmount <= 0) {
+      return { success: false, message: 'Số lượng Mảnh Vỡ Ký Ức phải là số nguyên dương lớn hơn 0!' };
+    }
+
+    const userId = typeof memberOrId === 'string' ? memberOrId : memberOrId.id;
+    let userData = witchHunterStorage.getUser(userId);
+    if (!userData) {
+      userData = witchHunterStorage.createUser(userId);
+    }
+
+    const oldShards = userData.memory_shards || 0;
+    const newShards = oldShards + numAmount;
+    userData.memory_shards = newShards;
+    witchHunterStorage.saveUser(userData, true);
+
+    // Đồng bộ Pity Tracker trong witchHunterSummonStorage
+    try {
+      const tracker = witchHunterSummonStorage.getPityTracker(userId);
+      if (tracker) {
+        tracker.memory_shards = (tracker.memory_shards || 0) + numAmount;
+        witchHunterSummonStorage.savePityTracker(tracker);
+      }
+    } catch {}
+
+    const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
+
+    // Gửi DM thông báo cho người nhận
+    if (notifyDM && guild?.client) {
+      try {
+        const userObj = await guild.client.users.fetch(userId).catch(() => null);
+        if (userObj) {
+          const dmEmbed = new EmbedBuilder()
+            .setColor(colors.pastelPurple)
+            .setTitle(`${emojis.titleLeft} **BAN THƯỞNG MẢNH VỠ KÝ ỨC** ${emojis.titleRight}`)
+            .setDescription(
+              `Chào **Lữ Khách** thân mến! Em phù thủy nóng bỏng Usagi múp rụp mang tin vui tới cho lữ khách nè! 💕\n\n` +
+              `Lữ khách vừa nhận được **+${numAmount.toLocaleString('vi-VN')} Mảnh Vỡ Ký Ức** <a:trangtrig46:1547240249761996812> từ ${executor ? `<@${executor.id}>` : 'Ban Quản Trị'}!\n` +
+              (reason ? `> 📝 **Lý do:** ${reason}\n\n` : '\n') +
+              `<a:trangtrig46:1547240249761996812> **Số dư Mảnh Vỡ Ký Ức hiện tại:** **${newShards.toLocaleString('vi-VN')}** Mảnh\n` +
+              `> Ghé ngay qua **Chợ Đen Hư Không** để đổi Supporter độc quyền, Vũ Khí Cấm Thuật và Danh Hiệu Hắc Ám nha! 💕`
+            )
+            .setFooter({ text: 'Witch Hunter System • Chợ Đen Hư Không' })
+            .setTimestamp();
+          await userObj.send({ embeds: [dmEmbed] }).catch(() => null);
+        }
+      } catch {}
+    }
+
+    // Gửi Admin Log
+    if (notifyAdminLog && guild) {
+      try {
+        const adminLogChannelId = channels.adminLogChannelId;
+        const channel =
+          guild.channels?.cache?.get(adminLogChannelId) ||
+          (await guild.channels?.fetch?.(adminLogChannelId).catch(() => null));
+        if (channel && channel.isTextBased()) {
+          const logEmbed = new EmbedBuilder()
+            .setColor(colors.pastelPurple)
+            .setTitle(`${emojis.titleLeft} **NHẬT KÝ ADMIN: PHÁT MẢNH VỠ KÝ ỨC** ${emojis.titleRight}`)
+            .setDescription(
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+              `Ban Quản Trị vừa ban thưởng Mảnh Vỡ Ký Ức cho thành viên!\n\n` +
+              `👤 **Người Nhận:** <@${userId}> (ID: \`${userId}\`)\n` +
+              `👑 **Người Ban Thưởng:** ${executor ? `<@${executor.id}>` : 'Hệ Thống'}\n` +
+              `<a:trangtrig46:1547240249761996812> **Số Lượng Phát:** **+${numAmount.toLocaleString('vi-VN')}** Mảnh Vỡ Ký Ức\n` +
+              `📊 **Biến Động Số Dư:** ${oldShards.toLocaleString('vi-VN')} ➡️ **${newShards.toLocaleString('vi-VN')}** Mảnh\n` +
+              `📝 **Lý Do:** ${reason || 'Admin ban thưởng trực tiếp'}\n` +
+              `📍 **Nguồn:** ${source}`
+            )
+            .setFooter({ text: 'Witch Hunter System' })
+            .setTimestamp();
+          await channel.send({ embeds: [logEmbed] }).catch(() => null);
+        }
+      } catch {}
+    }
+
+    return {
+      success: true,
+      userId,
+      amount: numAmount,
+      oldShards,
+      newShards,
+      faction: userData.faction,
     };
   }
 }

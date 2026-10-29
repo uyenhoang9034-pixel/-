@@ -26,6 +26,31 @@ function sanitizeEditReplyOptions(options = {}) {
     return rest;
 }
 
+function stripInvalidComponentEmojis(options) {
+    if (!options || typeof options !== 'object') return options;
+    if (!options.components || !Array.isArray(options.components)) return options;
+
+    const clonedComponents = options.components.map((row) => {
+        const rowData = row?.toJSON ? row.toJSON() : JSON.parse(JSON.stringify(row));
+        if (Array.isArray(rowData.components)) {
+            for (const comp of rowData.components) {
+                if (Array.isArray(comp.options)) {
+                    for (const opt of comp.options) {
+                        delete opt.emoji;
+                    }
+                }
+                delete comp.emoji;
+            }
+        }
+        return rowData;
+    });
+
+    return {
+        ...options,
+        components: clonedComponents,
+    };
+}
+
 export class InteractionHelper {
     static getCoordinator(interaction) {
         return interaction?._responseCoordinator || null;
@@ -39,10 +64,24 @@ export class InteractionHelper {
         const originalReply = interaction.reply?.bind(interaction);
         const originalEditReply = interaction.editReply?.bind(interaction);
         const originalFollowUp = interaction.followUp?.bind(interaction);
+        const originalUpdate = interaction.update?.bind(interaction);
 
         if (!originalReply || !originalEditReply || !originalFollowUp) {
             return;
         }
+
+        const safeExecuteWithEmojiFallback = async (fn, payload) => {
+            try {
+                return await fn(payload);
+            } catch (error) {
+                if (error?.code === 50035 && error?.message?.includes('COMPONENT_INVALID_EMOJI')) {
+                    logger.warn(`⚠️ [InteractionHelper] Tự động giải phóng emoji lỗi để phản hồi thành công: ${error.message}`);
+                    const cleanPayload = stripInvalidComponentEmojis(payload);
+                    return await fn(cleanPayload);
+                }
+                throw error;
+            }
+        };
 
         interaction.reply = async (options) => {
             const coordinator = InteractionHelper.getCoordinator(interaction);
@@ -54,21 +93,27 @@ export class InteractionHelper {
                 if (coordinator && interaction._isPrefixCommand) {
                     return coordinator.respond(options);
                 }
-                return await originalReply(options);
+                return await safeExecuteWithEmojiFallback(originalReply, options);
             }
 
             if (interaction.deferred && !interaction.replied) {
                 if (coordinator && interaction._isPrefixCommand) {
                     return coordinator.edit(sanitizeEditReplyOptions(options));
                 }
-                return await originalEditReply(sanitizeEditReplyOptions(options));
+                return await safeExecuteWithEmojiFallback(originalEditReply, sanitizeEditReplyOptions(options));
             }
 
             if (coordinator && interaction._isPrefixCommand) {
                 return coordinator.followUp(options);
             }
-            return await originalFollowUp(options);
+            return await safeExecuteWithEmojiFallback(originalFollowUp, options);
         };
+
+        if (originalUpdate) {
+            interaction.update = async (options) => {
+                return await safeExecuteWithEmojiFallback(originalUpdate, options);
+            };
+        }
 
         interaction.__titanResponsePatched = true;
     }
