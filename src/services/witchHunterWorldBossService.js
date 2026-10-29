@@ -1019,6 +1019,32 @@ class WitchHunterWorldBossService {
       const endEmbed = new EmbedBuilder()
         .setColor(colors.pastelPurple); // TUYỆT ĐỐI GIỮ NGUYÊN MÀU TÍM PASTEL, KHÔNG ĐỔI MÀU KHÁC
 
+      const getMentions = (startIdx, endIdx) => {
+        const mentions = [];
+        for (let i = startIdx; i <= endIdx; i++) {
+          if (sorted[i]) {
+            mentions.push(`<@${sorted[i].userId}>`);
+          }
+        }
+        return mentions.join(', ');
+      };
+
+      const top1User = getMentions(0, 0);
+      const top2User = getMentions(1, 1);
+      const top3User = getMentions(2, 2);
+      const top4_5Users = getMentions(3, 4);
+      const top6_7Users = getMentions(5, 6);
+      const top8_9Users = getMentions(7, 8);
+      const top10_12Users = getMentions(9, 11);
+
+      const top1Label = top1User ? `**Top 1** ${top1User}:` : `**Top 1:**`;
+      const top2Label = top2User ? `**Top 2** ${top2User}:` : `**Top 2:**`;
+      const top3Label = top3User ? `**Top 3** ${top3User}:` : `**Top 3:**`;
+      const top4_5Label = top4_5Users ? `**Top 4 – 5** ${top4_5Users}:` : `**Top 4 – 5:**`;
+      const top6_7Label = top6_7Users ? `**Top 6 – 7** ${top6_7Users}:` : `**Top 6 – 7:**`;
+      const top8_9Label = top8_9Users ? `**Top 8 – 9** ${top8_9Users}:` : `**Top 8 – 9:**`;
+      const top10_12Label = top10_12Users ? `**Top 10 – 12** ${top10_12Users}:` : `**Top 10 – 12:**`;
+
       if (reason === 'defeated') {
         endEmbed
           .setTitle(`${emojis.titleLeft} CHIẾN DỊCH HUYẾT NGUYỆT TOÀN THẮNG: THỰC THỂ BỊ TIÊU DIỆT! ${emojis.titleRight}`)
@@ -1034,13 +1060,13 @@ class WitchHunterWorldBossService {
             `> Trụ Tổng Phe **${loseFactionName}** bảo toàn nguyên vẹn, không bị khấu trừ.\n\n` +
             `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG CHIẾN DỊCH (BOSS BỊ TIÊU DIỆT):**\n` +
             `> • **Tất cả người tham chiến:** Đánh ít nhất 1 đòn nhận ngay **+1 <a:bingo:1563061901800243253>**.\n` +
-            `> • **Top 1:** +20 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 2:** +15 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 3:** +12 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 4 – 5:** +10 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 6 – 7:** +8 <a:bingo:1563061901800243253>\n` +
-            `> • **Top 8 – 9:** +6 <a:bingo:1563061901800243253>\n` +
-            `> • **Top 10 – 12:** +4 <a:bingo:1563061901800243253>`
+            `> • ${top1Label} +20 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top2Label} +15 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top3Label} +12 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top4_5Label} +10 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top6_7Label} +8 <a:bingo:1563061901800243253>\n` +
+            `> • ${top8_9Label} +6 <a:bingo:1563061901800243253>\n` +
+            `> • ${top10_12Label} +4 <a:bingo:1563061901800243253>`
           );
       } else {
         endEmbed
@@ -1055,14 +1081,14 @@ class WitchHunterWorldBossService {
             `${loseFactionEmoji} **${loseFactionName}:** ${loseFactionPct}% Tổng Kháng Cự\n\n` +
             `<a:trangtrig41:1547238037832863744> **BAN PHƯỚC TỐI CAO:**\n` +
             `> Trụ Tổng Phe **${winFactionName}** được hồi phục ngay lập tức **+5% HP**!\n\n` +
-            `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG XẾP HẠNG CÁ NHÂN (DÙ BOSS KHÔNG CHẾT):**\n` +
-            `> • **Top 1:** +20 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 2:** +15 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 3:** +12 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 4 – 5:** +10 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
-            `> • **Top 6 – 7:** +8 <a:bingo:1563061901800243253>\n` +
-            `> • **Top 8 – 9:** +6 <a:bingo:1563061901800243253>\n` +
-            `> • **Top 10 – 12:** +4 <a:bingo:1563061901800243253>`
+            `<a:giftg1:1543150714732412948> **PHẦN THƯỞNG XẾP HẠNG CÁ NHÂN:**\n` +
+            `> • ${top1Label} +20 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top2Label} +15 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top3Label} +12 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top4_5Label} +10 <a:bingo:1563061901800243253> + 1 Vé Tế Đàn\n` +
+            `> • ${top6_7Label} +8 <a:bingo:1563061901800243253>\n` +
+            `> • ${top8_9Label} +6 <a:bingo:1563061901800243253>\n` +
+            `> • ${top10_12Label} +4 <a:bingo:1563061901800243253>`
           );
       }
 
@@ -1070,24 +1096,19 @@ class WitchHunterWorldBossService {
         .setFooter({ text: 'Sự kiện Bách Quỷ Dạ Hành đã khép lại • Witch Hunter World Boss' })
         .setTimestamp();
 
-      // Cập nhật disable nút trên message dashboard cũ
-      if (channel && state.messageId) {
-        const msg = await channel.messages.fetch(state.messageId).catch(() => null);
-        if (msg) {
-          const disabledComponents = this.buildDashboardComponents(true);
-          await msg.edit({
-            embeds: [endEmbed],
-            components: disabledComponents,
-          }).catch(() => null);
-        }
-      }
-
-      // Gửi thông báo kết thúc mới kèm tag role vào kênh
+      // 1. Gửi thông báo kết thúc mới vào kênh (không kèm tag role)
       if (channel) {
         await channel.send({
-          content: '<@&1563426234787041331>',
           embeds: [endEmbed],
-        }).catch(() => null);
+        }).catch((e) => logger.error('❌ [WorldBoss] Lỗi gửi thông báo end boss:', e));
+      }
+
+      // 2. Sau khi gửi thông báo end boss, tự động xóa giao diện mở boss (start bot) cũ để gọn kênh chat
+      if (channel && state.messageId) {
+        const oldMsg = await channel.messages.fetch(state.messageId).catch(() => null);
+        if (oldMsg) {
+          await oldMsg.delete().catch((e) => logger.warn('⚠️ [WorldBoss] Không thể xóa message start boss cũ:', e));
+        }
       }
 
       state.status = reason;
