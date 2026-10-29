@@ -69,8 +69,6 @@ class WitchHunterBountyService {
         if (parsed && typeof parsed === 'object') {
           this.data = { ...this.data, ...parsed };
         }
-      } else {
-        this.saveData();
       }
     } catch (err) {
       logger.error('❌ [WitchHunterBounty] Lỗi đọc dữ liệu witch_hunter_bounty.json:', err);
@@ -92,7 +90,18 @@ class WitchHunterBountyService {
       const { getFromDb, setInDb } = await import('../utils/database.js');
       const pgData = await getFromDb('temp:witch_hunter:bounty_data');
       if (pgData && typeof pgData === 'object') {
-        this.data = { ...this.data, ...pgData };
+        this.data = {
+          ...this.data,
+          ...pgData,
+          targets: {
+            hunter_board: pgData.targets?.hunter_board || this.data.targets?.hunter_board || null,
+            witch_board: pgData.targets?.witch_board || this.data.targets?.witch_board || null,
+          },
+          hunted_users: {
+            ...(this.data.hunted_users || {}),
+            ...(pgData.hunted_users || {}),
+          },
+        };
         try {
           fs.writeFileSync(BOUNTY_FILE_PATH, JSON.stringify(this.data, null, 2), 'utf-8');
         } catch {}
@@ -233,7 +242,14 @@ class WitchHunterBountyService {
           } else {
             // Kênh CHƯA CÓ tin nhắn nào:
             // Nếu mục tiêu hôm nay đã bị tiêu diệt rồi -> Giữ nguyên không gửi lại, chờ 00:00!
-            if (board && board.is_defeated && (board.date_assigned === today || this.data.last_reset_date === today)) {
+            const isAlreadyDefeatedToday = Boolean(
+              board && board.is_defeated && (
+                board.date_defeated === today ||
+                board.date_assigned === today ||
+                this.data.last_reset_date === today
+              )
+            );
+            if (isAlreadyDefeatedToday) {
               logger.info(`🎯 [WitchHunterBounty] Mục tiêu ${pair.key} hôm nay đã bị tiêu diệt trước đó. Chờ 00:00 reset, không gửi lại!`);
               continue;
             }
@@ -393,7 +409,14 @@ class WitchHunterBountyService {
           logger.info(`🎯 [WitchHunterBounty] Kênh <#${channelId}> đã có sẵn Bảng Truy Nã (${existing.id}). Giữ nguyên, không gửi lặp!`);
           return;
         }
-        if (board && board.is_defeated && (board.date_assigned === today || this.data.last_reset_date === today)) {
+        const isAlreadyDefeatedToday = Boolean(
+          board && board.is_defeated && (
+            board.date_defeated === today ||
+            board.date_assigned === today ||
+            this.data.last_reset_date === today
+          )
+        );
+        if (isAlreadyDefeatedToday) {
           logger.info(`🎯 [WitchHunterBounty] Mục tiêu ${boardKey} hôm nay đã bị tiêu diệt trước đó. Giữ nguyên không gửi lại!`);
           return;
         }
@@ -642,22 +665,56 @@ class WitchHunterBountyService {
   /**
    * Kiểm tra người dùng đã tham gia săn hôm nay chưa
    */
-  hasHuntedToday(userId, dateStr) {
-    const list = this.data.hunted_users[dateStr] || [];
-    return list.includes(userId);
+  hasHuntedToday(userId, dateStr = getVietnamDate()) {
+    // 1. Kiểm tra trong user profile (lưu cố định trong SQLite / members_data, không bao giờ bị mất khi restart/update)
+    const userRecord = witchHunterStorage.getUser(userId);
+    if (userRecord && userRecord.last_bounty_date === dateStr) {
+      return true;
+    }
+    // 2. Kiểm tra trong danh sách hunted_users của service
+    const list = this.data.hunted_users?.[dateStr] || [];
+    if (list.includes(userId)) {
+      return true;
+    }
+    return false;
   }
 
   /**
    * Đánh dấu người dùng đã săn trong ngày
    */
-  markUserHunted(userId, dateStr) {
+  markUserHunted(userId, dateStr = getVietnamDate()) {
+    // 1. Ghi nhận vĩnh viễn vào user profile trong WitchHunterStorage (SQLite + JSON + PostgreSQL)
+    let userRecord = witchHunterStorage.getUser(userId);
+    if (!userRecord) {
+      userRecord = {
+        user_id: userId,
+        faction: null,
+        current_rank: 1,
+        pumpkins: 0,
+        unlocked_supporters: [],
+      };
+    }
+    userRecord.last_bounty_date = dateStr;
+    userRecord.last_bounty_time = Date.now();
+    witchHunterStorage.saveUser(userRecord, true);
+
+    // 2. Ghi nhận vào bộ nhớ danh sách ngày của service
     if (!this.data.hunted_users[dateStr]) {
       this.data.hunted_users[dateStr] = [];
     }
     if (!this.data.hunted_users[dateStr].includes(userId)) {
       this.data.hunted_users[dateStr].push(userId);
-      this.saveData();
     }
+    this.saveData();
+
+    // 3. Sao lưu trực tiếp key PostgreSQL độc lập
+    import('../utils/database.js').then(({ setInDb }) => {
+      setInDb(`temp:witch_hunter:bounty_hunt:${dateStr}:${userId}`, {
+        userId,
+        dateStr,
+        timestamp: Date.now(),
+      }).catch(() => null);
+    }).catch(() => null);
   }
 
   /**
@@ -762,6 +819,8 @@ class WitchHunterBountyService {
       if (isWin) {
         board.is_defeated = true;
         board.defeated_by = user.id;
+        board.date_defeated = today;
+        board.date_assigned = today;
         this.saveData();
 
         // Trao trọn vẹn số Bí Ngô tiền thưởng cho kẻ săn

@@ -77,37 +77,37 @@ export class WitchHunterBlackMarketService {
           label: 'Hộp Khế Ước Supporter (A-Rank)',
           description: '1,000 Mảnh Vỡ Ký Ức ──── Supporter A-Rank Tự Chọn',
           value: 'supporter_A',
-          emoji: parseEmoji('<a:linhtocg:1563399670351536310>'),
+          emoji: parseEmoji('🔮'),
         },
         {
           label: 'Hộp Khí Tài Vũ Khí (A-Rank)',
           description: '1,000 Mảnh Vỡ Ký Ức ──── Khí Tài Vũ Khí A-Rank Tự Chọn',
           value: 'weapon_A',
-          emoji: parseEmoji('<a:nguyentheg:1563399515732443177>'),
+          emoji: parseEmoji('⚔️'),
         },
         {
           label: 'Hộp Khế Ước Supporter (S-Rank)',
           description: '2,000 Mảnh Vỡ Ký Ức ──── Supporter S-Rank Tự Chọn',
           value: 'supporter_S',
-          emoji: parseEmoji('<a:linhtocg:1563399670351536310>'),
+          emoji: parseEmoji('🔮'),
         },
         {
           label: 'Hộp Khí Tài Vũ Khí (S-Rank)',
           description: '2,000 Mảnh Vỡ Ký Ức ──── Khí Tài Vũ Khí S-Rank Tự Chọn',
           value: 'weapon_S',
-          emoji: parseEmoji('<a:nguyentheg:1563399515732443177>'),
+          emoji: parseEmoji('⚔️'),
         },
         {
           label: 'Hộp Khế Ước Supporter (SS-Rank)',
           description: '9,000 Mảnh Vỡ Ký Ức ──── Supporter SS-Rank Tự Chọn',
           value: 'supporter_SS',
-          emoji: parseEmoji('<a:linhtocg:1563399670351536310>'),
+          emoji: parseEmoji('🔮'),
         },
         {
           label: 'Hộp Khí Tài Vũ Khí (SS-Rank)',
           description: '9,000 Mảnh Vỡ Ký Ức ──── Khí Tài Vũ Khí SS-Rank Tự Chọn',
           value: 'weapon_SS',
-          emoji: parseEmoji('<a:nguyentheg:1563399515732443177>'),
+          emoji: parseEmoji('⚔️'),
         },
         {
           label: 'Vé Triệu Gọi Tế Đàn Miễn Phí',
@@ -209,7 +209,7 @@ export class WitchHunterBlackMarketService {
           label: `${s.name}`.slice(0, 100),
           description: `${s.passiveName} (${cat?.shortName || ''} | ${rank}-Rank)`.slice(0, 100),
           value: s.id,
-          emoji: parseEmoji(cat?.emoji) || parseEmoji('🔮'),
+          emoji: parseEmoji('🔮'),
         };
       });
 
@@ -250,7 +250,7 @@ export class WitchHunterBlackMarketService {
         label: `${w.shortName || w.name}`.slice(0, 100),
         description: `${w.viName} • ${w.energyAttribute} (${rank}-Rank)`.slice(0, 100),
         value: w.id,
-        emoji: parseEmoji(w.energyEmoji) || parseEmoji('⚔️'),
+        emoji: parseEmoji('⚔️'),
       }));
 
       const selectMenu = new StringSelectMenuBuilder()

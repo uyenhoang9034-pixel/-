@@ -116,6 +116,9 @@ class WitchHunterStorage {
               try {
                 this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN unlocked_weapons TEXT;');
               } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN last_bounty_date TEXT;');
+              } catch {}
               this.isSqlite = true;
               logger.info('🔮 [WitchHunter] Storage Engine: SQLite (Native Node:sqlite) đã sẵn sàng.');
             }
@@ -246,6 +249,7 @@ class WitchHunterStorage {
             is_resonance: Number(row.is_resonance) || 0,
             last_puzzle_session: row.last_puzzle_session || null,
             last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
+            last_bounty_date: row.last_bounty_date || null,
             supporter_hp: supporterHp,
             last_hp_update: row.last_hp_update ? Number(row.last_hp_update) : null,
             active_expedition: activeExpedition,
@@ -297,6 +301,7 @@ class WitchHunterStorage {
             unlocked_weapons: unlockedWeapons,
             last_puzzle_session: row.last_puzzle_session || null,
             last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
+            last_bounty_date: row.last_bounty_date || null,
             supporter_hp: supporterHp,
             last_hp_update: row.last_hp_update ? Number(row.last_hp_update) : null,
             active_expedition: activeExpedition,
@@ -328,8 +333,8 @@ class WitchHunterStorage {
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare(`
-          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon, is_resonance, supporter_hp, last_hp_update, active_expedition, memory_shards, dark_title, unlocked_titles, unlocked_weapons)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon, is_resonance, supporter_hp, last_hp_update, active_expedition, memory_shards, dark_title, unlocked_titles, unlocked_weapons, last_bounty_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id) DO UPDATE SET
             faction = excluded.faction,
             current_rank = excluded.current_rank,
@@ -346,7 +351,8 @@ class WitchHunterStorage {
             memory_shards = excluded.memory_shards,
             dark_title = excluded.dark_title,
             unlocked_titles = excluded.unlocked_titles,
-            unlocked_weapons = excluded.unlocked_weapons
+            unlocked_weapons = excluded.unlocked_weapons,
+            last_bounty_date = excluded.last_bounty_date
         `);
         stmt.run(
           userObj.user_id,
@@ -365,7 +371,8 @@ class WitchHunterStorage {
           userObj.memory_shards || 0,
           userObj.dark_title || null,
           JSON.stringify(userObj.unlocked_titles),
-          JSON.stringify(userObj.unlocked_weapons)
+          JSON.stringify(userObj.unlocked_weapons),
+          userObj.last_bounty_date || null
         );
       } catch (err) {
         logger.error('❌ [WitchHunter] SQLite saveUser error:', err);
@@ -3588,7 +3595,7 @@ export class WitchHunterService {
             description: `${tInfo.nameEn} • ${tInfo.slogan}`.slice(0, 100),
             value: tKey,
             default: Boolean(isEquipped),
-            emoji: parseEmoji('👑'),
+            emoji: parseEmoji('<a:trangtrig14:1546047912969113622>'),
           };
         }).filter(Boolean),
       ];
