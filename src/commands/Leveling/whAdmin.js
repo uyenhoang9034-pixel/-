@@ -10,6 +10,7 @@ import {
 import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
 import { WitchHunterSummonService } from '../../services/witchHunterSummonService.js';
 import { WitchHunterExpeditionService } from '../../services/witchHunterExpeditionService.js';
+import { WitchHunterBlackMarketService } from '../../services/witchHunterBlackMarketService.js';
 import { logger } from '../../utils/logger.js';
 
 function isWitchHunterAdmin(interaction) {
@@ -73,6 +74,18 @@ export default {
           opt
             .setName('kenh')
             .setDescription('Kênh gửi bảng viễn chinh (mặc định kênh hiện tại hoặc #vien-chinh)')
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('setup-black-market')
+        .setDescription('Tạo bảng cố định Chợ Đen Hư Không: Thương Đài Trao Đổi Ký Ức')
+        .addChannelOption((opt) =>
+          opt
+            .setName('kenh')
+            .setDescription('Kênh gửi bảng Chợ Đen (mặc định kênh hiện tại hoặc #cho-den)')
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(false)
         )
@@ -336,6 +349,37 @@ export default {
 
         return interaction.reply({
           content: `✅ Đã thiết lập bảng **Viễn Chinh: Ranh Giới Hắc Ám** tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // SETUP CHỢ ĐEN HƯ KHÔNG
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'setup-black-market') {
+        const chosenChannel = interaction.options.getChannel('kenh');
+        let targetChannel = chosenChannel;
+
+        if (!targetChannel) {
+          targetChannel =
+            interaction.guild.channels.cache.find(
+              (c) =>
+                c.name === 'cho-den' ||
+                c.name === 'black-market' ||
+                c.name === 'trading-post'
+            ) || interaction.channel;
+        }
+
+        const embed = WitchHunterBlackMarketService.buildMainMarketEmbed();
+        const components = WitchHunterBlackMarketService.createMainMarketComponents();
+
+        await targetChannel.send({
+          embeds: [embed],
+          components,
+        });
+
+        return interaction.reply({
+          content: `✅ Em bot Usagi múp rụp đã thiết lập bảng **Chợ Đen Hư Không: Thương Đài Trao Đổi Ký Ức** tại kênh <#${targetChannel.id}> thành công và bảo toàn 100% dữ liệu rồi nè vợ của Kim Nong ơi! 💕`,
           flags: MessageFlags.Ephemeral,
         });
       }

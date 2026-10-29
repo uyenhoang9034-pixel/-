@@ -107,6 +107,15 @@ class WitchHunterStorage {
               try {
                 this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN memory_shards INTEGER DEFAULT 0;');
               } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN dark_title TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN unlocked_titles TEXT;');
+              } catch {}
+              try {
+                this.sqliteDb.exec('ALTER TABLE witch_hunter_members ADD COLUMN unlocked_weapons TEXT;');
+              } catch {}
               this.isSqlite = true;
               logger.info('🔮 [WitchHunter] Storage Engine: SQLite (Native Node:sqlite) đã sẵn sàng.');
             }
@@ -207,6 +216,14 @@ class WitchHunterStorage {
           try {
             unlockedSupporters = row.unlocked_supporters ? JSON.parse(row.unlocked_supporters) : [];
           } catch {}
+          let unlockedTitles = [];
+          try {
+            unlockedTitles = row.unlocked_titles ? (typeof row.unlocked_titles === 'string' ? JSON.parse(row.unlocked_titles) : row.unlocked_titles) : [];
+          } catch {}
+          let unlockedWeapons = [];
+          try {
+            unlockedWeapons = row.unlocked_weapons ? (typeof row.unlocked_weapons === 'string' ? JSON.parse(row.unlocked_weapons) : row.unlocked_weapons) : [];
+          } catch {}
           let supporterHp = {};
           try {
             supporterHp = row.supporter_hp ? (typeof row.supporter_hp === 'string' ? JSON.parse(row.supporter_hp) : row.supporter_hp) : {};
@@ -221,6 +238,9 @@ class WitchHunterStorage {
             current_rank: Number(row.current_rank) || 1,
             pumpkins: Number(row.pumpkins) || 0,
             unlocked_supporters: Array.isArray(unlockedSupporters) ? unlockedSupporters : [],
+            unlocked_weapons: Array.isArray(unlockedWeapons) ? unlockedWeapons : [],
+            unlocked_titles: Array.isArray(unlockedTitles) ? unlockedTitles : [],
+            dark_title: row.dark_title || null,
             equipped_supporter: row.equipped_supporter || null,
             equipped_weapon: row.equipped_weapon || null,
             is_resonance: Number(row.is_resonance) || 0,
@@ -256,6 +276,14 @@ class WitchHunterStorage {
           try {
             activeExpedition = row.active_expedition ? (typeof row.active_expedition === 'string' ? JSON.parse(row.active_expedition) : row.active_expedition) : null;
           } catch {}
+          let unlockedTitles = [];
+          try {
+            unlockedTitles = row.unlocked_titles ? (typeof row.unlocked_titles === 'string' ? JSON.parse(row.unlocked_titles) : row.unlocked_titles) : [];
+          } catch {}
+          let unlockedWeapons = [];
+          try {
+            unlockedWeapons = row.unlocked_weapons ? (typeof row.unlocked_weapons === 'string' ? JSON.parse(row.unlocked_weapons) : row.unlocked_weapons) : [];
+          } catch {}
           return {
             user_id: row.user_id,
             faction: row.faction,
@@ -264,6 +292,9 @@ class WitchHunterStorage {
             equipped_supporter: row.equipped_supporter || null,
             equipped_weapon: row.equipped_weapon || null,
             is_resonance: Number(row.is_resonance) || 0,
+            dark_title: row.dark_title || null,
+            unlocked_titles: unlockedTitles,
+            unlocked_weapons: unlockedWeapons,
             last_puzzle_session: row.last_puzzle_session || null,
             last_puzzle_week: row.last_puzzle_week || row.last_puzzle_session || null,
             supporter_hp: supporterHp,
@@ -284,6 +315,8 @@ class WitchHunterStorage {
   saveUser(userObj, immediate = false) {
     userObj.updated_at = Date.now();
     userObj.unlocked_supporters = Array.isArray(userObj.unlocked_supporters) ? userObj.unlocked_supporters : [];
+    userObj.unlocked_weapons = Array.isArray(userObj.unlocked_weapons) ? userObj.unlocked_weapons : [];
+    userObj.unlocked_titles = Array.isArray(userObj.unlocked_titles) ? userObj.unlocked_titles : [];
     if (!userObj.supporter_hp || typeof userObj.supporter_hp !== 'object') {
       userObj.supporter_hp = {};
     }
@@ -295,8 +328,8 @@ class WitchHunterStorage {
     if (this.isSqlite && this.sqliteDb) {
       try {
         const stmt = this.sqliteDb.prepare(`
-          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon, is_resonance, supporter_hp, last_hp_update, active_expedition, memory_shards)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO witch_hunter_members (user_id, faction, current_rank, pumpkins, updated_at, last_puzzle_session, last_puzzle_week, equipped_supporter, equipped_weapon, is_resonance, supporter_hp, last_hp_update, active_expedition, memory_shards, dark_title, unlocked_titles, unlocked_weapons)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(user_id) DO UPDATE SET
             faction = excluded.faction,
             current_rank = excluded.current_rank,
@@ -310,7 +343,10 @@ class WitchHunterStorage {
             supporter_hp = excluded.supporter_hp,
             last_hp_update = excluded.last_hp_update,
             active_expedition = excluded.active_expedition,
-            memory_shards = excluded.memory_shards
+            memory_shards = excluded.memory_shards,
+            dark_title = excluded.dark_title,
+            unlocked_titles = excluded.unlocked_titles,
+            unlocked_weapons = excluded.unlocked_weapons
         `);
         stmt.run(
           userObj.user_id,
@@ -326,7 +362,10 @@ class WitchHunterStorage {
           userObj.supporter_hp ? JSON.stringify(userObj.supporter_hp) : null,
           userObj.last_hp_update || null,
           userObj.active_expedition ? JSON.stringify(userObj.active_expedition) : null,
-          userObj.memory_shards || 0
+          userObj.memory_shards || 0,
+          userObj.dark_title || null,
+          JSON.stringify(userObj.unlocked_titles),
+          JSON.stringify(userObj.unlocked_weapons)
         );
       } catch (err) {
         logger.error('❌ [WitchHunter] SQLite saveUser error:', err);
@@ -2079,8 +2118,10 @@ export class WitchHunterService {
     const isWitch = supporter.faction === 'witch';
     const factionBadge = isWitch ? emojis.witchBadge : emojis.hunterBadge;
 
-    const summonNotice = supporter.isSummon
-      ? `\n\n<a:trangtrig41:1547238037832863744> **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Supporter từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
+    const summonNotice = supporter.isBlackMarket
+      ? `\n\n<a:trangtrig46:1547240249761996812> **VẬT PHẨM ĐỘC QUYỀN CHỢ ĐEN:**\n> *Đây là Supporter độc quyền từ Chợ Đen Hư Không, dùng Mảnh Vỡ Ký Ức để trao đổi!*`
+      : supporter.isSummon
+      ? `\n\n<a:trangtrig41:1547240249761996812> **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Supporter từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
       : '';
 
     return new EmbedBuilder()
@@ -2574,7 +2615,7 @@ export class WitchHunterService {
       },
       ...factionSupporters.map((s) => {
         const cat = supporters.categories[s.categoryKey];
-        const prefix = s.isSummon ? `[${s.rank}-Rank Banner]` : `[Bậc ${s.rank}]`;
+        const prefix = s.isBlackMarket ? `[${s.rank}-Rank Chợ Đen]` : s.isSummon ? `[${s.rank}-Rank Banner]` : `[Bậc ${s.rank}]`;
         return {
           label: `${prefix} ${s.name}`.slice(0, 100),
           description: `${s.rankName} • ${cat?.shortName || ''}`.slice(0, 100),
@@ -2639,7 +2680,9 @@ export class WitchHunterService {
       ? `10.000 ${emojis.pumpkin} (Tối thượng)`
       : `${weapon.minPumpkins?.toLocaleString('vi-VN') || 0} ${emojis.pumpkin}`;
 
-    const summonNotice = weapon.isSummon
+    const summonNotice = weapon.isBlackMarket
+      ? `\n\n<a:trangtrig46:1547240249761996812> **VẬT PHẨM ĐỘC QUYỀN CHỢ ĐEN:**\n> *Đây là Khí Tài Cấm Thuật độc quyền từ Chợ Đen Hư Không, dùng Mảnh Vỡ Ký Ức để trao đổi!*`
+      : weapon.isSummon
       ? `\n\n<a:trangtrig41:1547238037832863744> **THÔNG BÁO TRIỆU HỒI KHẾ ƯỚC:**\n> *Đây là Vũ Khí từ bể triệu gọi khế ước, hãy summon ngay để sở hữu!*`
       : '';
 
@@ -2702,7 +2745,7 @@ export class WitchHunterService {
         emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
       },
       ...factionWeapons.map((w) => {
-        const prefix = w.isSummon ? `[${w.rank}-Rank Banner]` : `[Bậc ${w.rank}]`;
+        const prefix = w.isBlackMarket ? `[${w.rank}-Rank Chợ Đen]` : w.isSummon ? `[${w.rank}-Rank Banner]` : `[Bậc ${w.rank}]`;
         return {
           label: `${prefix} ${w.shortName}`.slice(0, 100),
           description: `${w.rankName} • ${w.activationMilestone || ''}`.slice(0, 100),
@@ -2973,25 +3016,25 @@ export class WitchHunterService {
 
     // 1. Tiến trình: Bậc 1 đến currentRank hoặc có trong unlocked_supporters
     const progressionSupporters = WITCH_HUNTER_CONFIG.supporters.list.filter((s) => {
-      if (s.isSummon || s.faction !== faction) return false;
+      if (s.isSummon || s.isBlackMarket || s.faction !== faction) return false;
       const r = Number(s.rank);
       return r <= currentRank || unlockedKeys.includes(`${faction}:${r}`) || unlockedKeys.includes(s.id);
     });
 
-    // 2. Summoned supporters từ kho đồ hoặc unlocked_supporters
+    // 2. Summoned / Black Market supporters từ kho đồ hoặc unlocked_supporters
     let invIds = new Set();
     try {
       const invItems = witchHunterSummonStorage.getUserInventory(userId).filter((i) => i.item_type === 'supporter');
       invIds = new Set(invItems.map((i) => i.item_id));
     } catch {}
 
-    const summonSupporters = WITCH_HUNTER_CONFIG.supporters.list.filter((s) => {
-      if (!s.isSummon || s.faction !== faction) return false;
+    const specialSupporters = WITCH_HUNTER_CONFIG.supporters.list.filter((s) => {
+      if ((!s.isSummon && !s.isBlackMarket) || s.faction !== faction) return false;
       return invIds.has(s.id) || unlockedKeys.includes(s.id);
     });
 
     const map = new Map();
-    [...progressionSupporters, ...summonSupporters].forEach((s) => {
+    [...progressionSupporters, ...specialSupporters].forEach((s) => {
       if (!map.has(s.id)) map.set(s.id, s);
     });
 
@@ -3007,27 +3050,28 @@ export class WitchHunterService {
 
     const faction = userData.faction;
     const currentRank = userData.current_rank || 1;
+    const unlockedWeapons = Array.isArray(userData.unlocked_weapons) ? userData.unlocked_weapons : [];
 
     // 1. Tiến trình: Bậc 1 đến currentRank
     const progressionWeapons = WITCH_HUNTER_CONFIG.weapons.list.filter((w) => {
-      if (w.isSummon || w.faction !== faction) return false;
+      if (w.isSummon || w.isBlackMarket || w.faction !== faction) return false;
       return Number(w.rank) <= currentRank;
     });
 
-    // 2. Summoned weapons từ kho đồ
+    // 2. Summoned / Black Market weapons từ kho đồ hoặc unlocked_weapons
     let invIds = new Set();
     try {
       const invItems = witchHunterSummonStorage.getUserInventory(userId).filter((i) => i.item_type === 'weapon');
       invIds = new Set(invItems.map((i) => i.item_id));
     } catch {}
 
-    const summonWeapons = WITCH_HUNTER_CONFIG.weapons.list.filter((w) => {
-      if (!w.isSummon || w.faction !== faction) return false;
-      return invIds.has(w.id);
+    const specialWeapons = WITCH_HUNTER_CONFIG.weapons.list.filter((w) => {
+      if ((!w.isSummon && !w.isBlackMarket) || w.faction !== faction) return false;
+      return invIds.has(w.id) || unlockedWeapons.includes(w.id);
     });
 
     const map = new Map();
-    [...progressionWeapons, ...summonWeapons].forEach((w) => {
+    [...progressionWeapons, ...specialWeapons].forEach((w) => {
       if (!map.has(w.id)) map.set(w.id, w);
     });
 
@@ -3048,7 +3092,7 @@ export class WitchHunterService {
       const s = getSupporterById(userData.equipped_supporter);
       if (s && s.faction === userData.faction) {
         const tier = this.rankToTier(s.rank);
-        if (tier <= maxAllowedTier) {
+        if (s.isBlackMarket || tier <= maxAllowedTier) {
           return s;
         }
       }
@@ -3071,7 +3115,7 @@ export class WitchHunterService {
       const w = getWeaponById(userData.equipped_weapon);
       if (w && w.faction === userData.faction) {
         const tier = this.rankToTier(w.rank);
-        if (tier <= maxAllowedTier) {
+        if (w.isBlackMarket || tier <= maxAllowedTier) {
           return w;
         }
       }
@@ -3177,7 +3221,7 @@ export class WitchHunterService {
     }
 
     const itemTier = this.rankToTier(targetSupporter.rank);
-    if (itemTier > maxAllowedTier) {
+    if (!targetSupporter.isBlackMarket && itemTier > maxAllowedTier) {
       const maxLetter = this.tierToLetter(maxAllowedTier);
       const userLetter = this.tierToLetter(userTier);
       const requiredRankTier = itemTier - 1;
@@ -3224,7 +3268,7 @@ export class WitchHunterService {
     }
 
     const itemTier = this.rankToTier(targetWeapon.rank);
-    if (itemTier > maxAllowedTier) {
+    if (!targetWeapon.isBlackMarket && itemTier > maxAllowedTier) {
       const maxLetter = this.tierToLetter(maxAllowedTier);
       const userLetter = this.tierToLetter(userTier);
       const requiredRankTier = itemTier - 1;
@@ -3374,6 +3418,12 @@ export class WitchHunterService {
       ? `${progress.formattedStatus}`
       : `> ${progress.formattedStatus}`;
 
+    let darkTitleSection = '';
+    if (userData?.dark_title && WITCH_HUNTER_CONFIG.darkTitles?.list?.[userData.dark_title]) {
+      const dt = WITCH_HUNTER_CONFIG.darkTitles.list[userData.dark_title];
+      darkTitleSection = `<a:animeg2:1546040159886114846> Danh Hiệu Hắc Ám: ｢ ${dt.nameVi} ｣ - ${dt.nameEn}\n*"${dt.slogan}"*\n\n`;
+    }
+
     return new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **HỒ SƠ MA THUẬT: ${targetUser.username.toUpperCase()}** ${emojis.titleRight}`)
@@ -3381,7 +3431,9 @@ export class WitchHunterService {
       .setDescription(
         `Chiến binh huyền thoại của thế giới ma thuật **Witch Hunter**:\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        darkTitleSection +
         `${emojis.pumpkin} **Bí Ngô sở hữu:** **${pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}\n` +
+        (userData?.memory_shards > 0 ? `<a:trangtrig46:1547240249761996812> **Mảnh Vỡ Ký Ức:** **${(userData.memory_shards || 0).toLocaleString('vi-VN')}**\n` : '') +
         (userData?.free_summons > 0 ? `<a:linhtocg:1563399670351536310> **Vé Tế Đàn Free:** **${userData.free_summons}** lượt khả dụng\n` : '') +
         `${factionDisplay}\n` +
         `${decor45Emoji} **Cấp bậc:** **${rankInfo.name}** *(${rankInfo.title})*\n` +
@@ -3448,7 +3500,7 @@ export class WitchHunterService {
       ...ownedSupporters.slice(0, 24).map((s) => {
         const itemTier = this.rankToTier(s.rank);
         const rankLetter = this.formatRankLetter(s.rank);
-        const isLocked = itemTier > maxAllowedTier;
+        const isLocked = !s.isBlackMarket && itemTier > maxAllowedTier;
         const isEquipped = equippedSupporter && s.id === equippedSupporter.id;
         const cat = WITCH_HUNTER_CONFIG.supporters.categories[s.categoryKey];
         const prefix = isLocked ? `🔒 [Khóa Bậc ${rankLetter}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${rankLetter}-Rank] `;
@@ -3476,7 +3528,7 @@ export class WitchHunterService {
       ...ownedWeapons.slice(0, 24).map((w) => {
         const itemTier = this.rankToTier(w.rank);
         const rankLetter = this.formatRankLetter(w.rank);
-        const isLocked = itemTier > maxAllowedTier;
+        const isLocked = !w.isBlackMarket && itemTier > maxAllowedTier;
         const isEquipped = equippedWeapon && w.id === equippedWeapon.id;
         const prefix = isLocked ? `🔒 [Khóa Bậc ${rankLetter}] ` : isEquipped ? `⚔️ [Đang Dùng] ` : `[${rankLetter}-Rank] `;
         return {
@@ -3501,10 +3553,116 @@ export class WitchHunterService {
       .setPlaceholder(`⚔️ Chọn Vũ Khí xuất trận (Tối đa Bậc ${this.tierToLetter(maxAllowedTier)})...`)
       .addOptions(weaponOptions);
 
-    return [
+    const rows = [
       new ActionRowBuilder().addComponents(supporterSelect),
       new ActionRowBuilder().addComponents(weaponSelect),
     ];
+
+    // 3. Menu chọn Danh Hiệu Hắc Ám (nếu có sở hữu)
+    const unlockedTitles = Array.isArray(userData.unlocked_titles) ? userData.unlocked_titles : [];
+    if (unlockedTitles.length > 0) {
+      const titlesList = WITCH_HUNTER_CONFIG.darkTitles?.list || {};
+      const titleOptions = [
+        {
+          label: '↺ Không Sử Dụng Danh Hiệu',
+          description: 'Gỡ danh hiệu hắc ám khỏi hồ sơ cá nhân',
+          value: 'none',
+          default: !userData.dark_title,
+          emoji: parseEmoji(WITCH_HUNTER_CONFIG.emojis.decor18 || '<a:trangtrig18:1546068102817775626>'),
+        },
+        ...unlockedTitles.map((tKey) => {
+          const tInfo = titlesList[tKey];
+          if (!tInfo) return null;
+          const isEquipped = userData.dark_title === tKey;
+          return {
+            label: `${isEquipped ? '👑 [Đang Dùng] ' : ''}｢ ${tInfo.nameVi} ｣`.slice(0, 100),
+            description: `${tInfo.nameEn} • ${tInfo.slogan}`.slice(0, 100),
+            value: tKey,
+            default: Boolean(isEquipped),
+            emoji: parseEmoji('<a:trangtrig14:1546047912969113622>'),
+          };
+        }).filter(Boolean),
+      ];
+
+      const titleSelect = new StringSelectMenuBuilder()
+        .setCustomId(`profile_equip_dark_title:${userId}`)
+        .setPlaceholder('👑 Chọn Danh Hiệu Hắc Ám muốn hiển thị...')
+        .addOptions(titleOptions);
+
+      rows.push(new ActionRowBuilder().addComponents(titleSelect));
+    }
+
+    return rows;
+  }
+
+  /**
+   * Thay đổi hoặc gỡ Danh Hiệu Hắc Ám cho thành viên
+   * @param {string} userId
+   * @param {string} titleKey 'none' hoặc ID danh hiệu
+   * @param {Guild} guild
+   */
+  static async equipDarkTitle(userId, titleKey, guild = null) {
+    let userData = witchHunterStorage.getUser(userId);
+    if (!userData || !userData.faction) {
+      return { success: false, message: 'Lữ khách chưa ký khế ước gia nhập phe!' };
+    }
+
+    const unlockedTitles = Array.isArray(userData.unlocked_titles) ? userData.unlocked_titles : [];
+    const titlesList = WITCH_HUNTER_CONFIG.darkTitles?.list || {};
+
+    if (titleKey === 'none') {
+      userData.dark_title = null;
+      witchHunterStorage.saveUser(userData, true);
+
+      // Gỡ toàn bộ role danh hiệu trên Discord
+      if (guild) {
+        try {
+          const member = await guild.members.fetch(userId).catch(() => null);
+          if (member) {
+            const roleIdsToRemove = Object.values(titlesList).map((t) => t.roleId).filter(Boolean);
+            for (const rId of roleIdsToRemove) {
+              if (member.roles.cache.has(rId)) {
+                await member.roles.remove(rId).catch(() => null);
+              }
+            }
+          }
+        } catch {}
+      }
+
+      return { success: true, isNone: true };
+    }
+
+    if (!unlockedTitles.includes(titleKey)) {
+      return { success: false, message: '❌ Lữ khách chưa sở hữu Danh Hiệu Hắc Ám này!' };
+    }
+
+    const titleInfo = titlesList[titleKey];
+    if (!titleInfo) {
+      return { success: false, message: '❌ Danh hiệu không tồn tại trong hệ thống!' };
+    }
+
+    userData.dark_title = titleKey;
+    witchHunterStorage.saveUser(userData, true);
+
+    // Đồng bộ role Discord
+    if (guild) {
+      try {
+        const member = await guild.members.fetch(userId).catch(() => null);
+        if (member) {
+          const allTitleRoleIds = Object.values(titlesList).map((t) => t.roleId).filter(Boolean);
+          for (const rId of allTitleRoleIds) {
+            if (rId !== titleInfo.roleId && member.roles.cache.has(rId)) {
+              await member.roles.remove(rId).catch(() => null);
+            }
+          }
+          if (titleInfo.roleId && !member.roles.cache.has(titleInfo.roleId)) {
+            await member.roles.add(titleInfo.roleId).catch(() => null);
+          }
+        }
+      } catch {}
+    }
+
+    return { success: true, title: titleInfo };
   }
 }
 
