@@ -149,3 +149,4 @@ data/*.tmp
 data/witch_hunter.json
 data/*.jsonl
 
+data/witch_hunter_bounty.json

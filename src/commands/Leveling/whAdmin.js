@@ -209,6 +209,11 @@ export default {
       sub
         .setName('sync-ranks')
         .setDescription('Rà soát và đồng bộ lại Role & Cấp bậc cho toàn bộ thành viên theo mốc Bí Ngô mới')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('bounty-refresh')
+        .setDescription('Làm mới và ghim Bảng Truy Nã Chiến Trường cho cả 2 phe ngay lập tức (Chỉ Admin)')
     ),
 
   category: 'Leveling',
@@ -587,6 +592,19 @@ export default {
             `• Số lượt giáng cấp: **${res.demotedCount}** (đã gửi thông báo & cập nhật role)\n` +
             `• Số lượt thăng cấp: **${res.promotedCount}** (đã gửi thông báo & cập nhật role)\n` +
             `• Số role lệch được sửa chuẩn: **${res.roleFixedCount}**`,
+        });
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // BOUNTY REFRESH
+      // ────────────────────────────────────────────────────────────
+      if (subcommand === 'bounty-refresh') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const { witchHunterBountyService } = await import('../../services/witchHunterBountyService.js');
+        await witchHunterBountyService.ensureBountyBoards(interaction.guild, false);
+
+        return interaction.editReply({
+          content: `✅ Em bot Usagi múp rụp đã làm mới và ghim Bảng Truy Nã Tội Phạm Chiến Trường cho cả 2 phe thành công rồi nè vợ của Kim Nong ơi! 💕`,
         });
       }
     } catch (error) {

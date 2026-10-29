@@ -185,6 +185,14 @@ class TitanBot extends Client {
       } catch (wbErr) {
         logger.warn('⚠️ [WorldBoss] Lỗi khởi tạo World Boss Service cùng Client:', wbErr.message);
       }
+
+      // Khởi tạo hệ thống Bảng Truy Nã Tội Phạm Chiến Trường (Bounty Board)
+      try {
+        const { witchHunterBountyService } = await import('./services/witchHunterBountyService.js');
+        await witchHunterBountyService.initClient(this);
+      } catch (bountyErr) {
+        logger.warn('⚠️ [BountyBoard] Lỗi khởi tạo Bounty Board Service cùng Client:', bountyErr.message);
+      }
       
       startupLog('Registering slash commands globally...');
       await this.registerCommands();
@@ -366,6 +374,15 @@ class TitanBot extends Client {
   setupCronJobs() {
     cron.schedule('0 0 * * *', runSafeTask('birthday_check', () => checkBirthdays(this)), { timezone: 'Asia/Ho_Chi_Minh' });
     cron.schedule('0 0 * * *', runSafeTask('pumpkin_daily_flush', () => pumpkinGrowthTracker.flushDailyReport(this)), { timezone: 'Asia/Ho_Chi_Minh' });
+    // Cron job reset Bảng Truy Nã Chiến Trường (00:00 hằng ngày)
+    cron.schedule('0 0 * * *', runSafeTask('witch_hunter_bounty_daily', async () => {
+      try {
+        const { witchHunterBountyService } = await import('./services/witchHunterBountyService.js');
+        await witchHunterBountyService.processDailyReset(this);
+      } catch (err) {
+        logger.error('❌ [BountyBoard] Lỗi cron reset 00:00 hằng ngày:', err);
+      }
+    }), { timezone: 'Asia/Ho_Chi_Minh' });
     cron.schedule('* * * * *', runSafeTask('giveaway_check', () => checkGiveaways(this)));
     // Cron job kiểm tra an toàn World Boss hết hạn (mỗi 1 phút) - tự động chốt kết thúc và phát thưởng
     cron.schedule('* * * * *', runSafeTask('witch_hunter_world_boss_check', async () => {
