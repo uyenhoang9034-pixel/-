@@ -444,7 +444,7 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:weapon:${weapon.id}`)
         .setLabel('MỞ KHÍ TÀI')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('⚔️'));
+        .setEmoji(parseEmoji('<a:knifeg1:1546058092016312381>'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
@@ -488,7 +488,7 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:title:${title.id}`)
         .setLabel('KHẮC ẤN DANH HIỆU')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('👑'));
+        .setEmoji(parseEmoji('<a:trangtrig14:1546047912969113622>'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
@@ -530,7 +530,7 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:ticket:${count}`)
         .setLabel('XÁC NHẬN ĐỔI VÉ')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('🎫'));
+        .setEmoji(parseEmoji('<a:giftg1:1543150714732412948>'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
