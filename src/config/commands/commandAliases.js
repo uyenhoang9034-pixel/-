@@ -72,9 +72,7 @@ export const commandAliases = {
     'np': 'nowplaying',
     'now': 'nowplaying',
 
-    'bocque': 'boc-que',
-    'xinnghi': 'xin-nghi',
-    'dotvia': 'dot-via',
+
 };
 
 export const subcommandAliases = {

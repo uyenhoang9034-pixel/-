@@ -75,9 +75,7 @@ import {
   buildDiscordMessagePayload,
 } from '../services/autoresponder/responseBuilder.js';
 
-import {
-  handleQuoteTrigger,
-} from '../services/quotes/quoteService.js';
+
 
 import {
   WORD_CHAIN_CHANNELS,
@@ -105,9 +103,7 @@ import {
   handleEastMention,
 } from '../services/eastMentionService.js';
 
-import {
-  handleThanVanTuBan,
-} from '../services/thanVanTuBanService.js';
+
 
 import { pumpkinGrowthTracker } from '../services/pumpkinGrowthTracker.js';
 
@@ -168,11 +164,7 @@ export default {
 
       await handleEastMention(message);
 
-      const thanVanProcessed = await handleThanVanTuBan(message);
-      if (thanVanProcessed) {
-        await handleLeveling(message, client);
-        return;
-      }
+
 
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
@@ -184,20 +176,13 @@ export default {
       );
 
       if (!wordChainProcessed) {
-        const quoteProcessed = await handleQuoteTrigger(
+        const autoresponderProcessed = await handleAutoresponder(
           message,
           client,
         );
 
-        if (!quoteProcessed) {
-          const autoresponderProcessed = await handleAutoresponder(
-            message,
-            client,
-          );
-
-          if (!autoresponderProcessed) {
-            await handlePrefixCommand(message, client);
-          }
+        if (!autoresponderProcessed) {
+          await handlePrefixCommand(message, client);
         }
 
         await handleLeveling(message, client);
