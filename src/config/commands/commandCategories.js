@@ -10,7 +10,6 @@ export const CATEGORY_ICONS = {
   Giveaway: '🎉',
   JoinToCreate: '🔌',
   Leveling: '📊',
-  Logging: '📝',
   Moderation: '🛡️',
   Music: '🎵',
   Reaction_roles: '🎭',
@@ -22,7 +21,7 @@ export const CATEGORY_ICONS = {
 };
 
 /** Commands that always stay available so admins can recover access. */
-export const PROTECTED_COMMANDS = new Set(['commands', 'configwizard']);
+export const PROTECTED_COMMANDS = new Set(['commands']);
 
 export function normalizeCategoryKey(category) {
   return String(category || '')
