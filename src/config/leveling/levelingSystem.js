@@ -67,6 +67,9 @@ export const LEVEL_EMOJIS = {
 
 export const LEVEL_IMAGES = {
     early: {
+        path:
+            'assets/level/lv1-70.webp',
+
         url:
             'https://files.catbox.moe/w764yl.webp',
 
@@ -75,6 +78,9 @@ export const LEVEL_IMAGES = {
     },
 
     level100: {
+        path:
+            'assets/level/lv100-300.webp',
+
         url:
             'https://files.catbox.moe/q8kbl6.webp',
 
@@ -83,6 +89,9 @@ export const LEVEL_IMAGES = {
     },
 
     level500: {
+        path:
+            'assets/level/lv500.webp',
+
         url:
             'https://files.catbox.moe/kxnca8.webp',
 
@@ -91,6 +100,9 @@ export const LEVEL_IMAGES = {
     },
 
     level999: {
+        path:
+            'assets/level/lv999.webp',
+
         url:
             'https://files.catbox.moe/vhsky9.webp',
 
@@ -99,6 +111,9 @@ export const LEVEL_IMAGES = {
     },
 
     level1999: {
+        path:
+            'assets/level/lv1999.png',
+
         url:
             'https://files.catbox.moe/e84z5r.png',
 
@@ -107,6 +122,9 @@ export const LEVEL_IMAGES = {
     },
 
     level3999: {
+        path:
+            'assets/level/lv3999.png',
+
         url:
             'https://files.catbox.moe/tajj5l.png',
 
@@ -115,6 +133,9 @@ export const LEVEL_IMAGES = {
     },
 
     level6999: {
+        path:
+            'assets/level/lv6999.png',
+
         url:
             'https://files.catbox.moe/7sv9ge.png',
 
@@ -123,6 +144,9 @@ export const LEVEL_IMAGES = {
     },
 
     level9999: {
+        path:
+            'assets/level/lv9999.gif',
+
         url:
             'https://files.catbox.moe/ynhifg.gif',
 

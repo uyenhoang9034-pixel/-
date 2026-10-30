@@ -535,6 +535,7 @@ class PumpkinGiveawayService {
     const components = this.buildGiveawayComponents(giveawayData, false);
 
     const sentMsg = await targetChannel.send({
+      content: '<@&1563426234787041331>',
       embeds: [embed],
       components,
     });

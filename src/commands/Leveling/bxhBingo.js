@@ -84,7 +84,7 @@ export default {
           const endRank = i + chunk.length;
           const fieldName = i === 0
             ? `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP ${topMembers.length} THÀNH VIÊN XUẤT SẮC NHẤT:**`
-            : `🏆 **HẠNG ${startRank} - ${endRank}:**`;
+            : `${emojis.heart || '<a:heartg1:1545307544808071258>'} **HẠNG ${startRank} - ${endRank}:**`;
 
           embed.addFields({
             name: fieldName,

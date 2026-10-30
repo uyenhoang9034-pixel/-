@@ -39,37 +39,56 @@ async function createLevelImageAttachment(
 ) {
     if (
         !image ||
-        !image.path ||
         !image.name
     ) {
         return null;
     }
 
-    const imagePath =
-        path.resolve(
-            process.cwd(),
-            image.path,
-        );
+    if (
+        image.path
+    ) {
+        const imagePath =
+            path.resolve(
+                process.cwd(),
+                image.path,
+            );
 
-    try {
-        await fs.access(
-            imagePath,
-        );
+        try {
+            await fs.access(
+                imagePath,
+            );
 
-        return new AttachmentBuilder(
-            imagePath,
-            {
-                name:
-                    image.name,
-            },
-        );
-    } catch {
-        logger.warn(
-            `[LEVEL] Image not found: ${imagePath}`,
-        );
-
-        return null;
+            return new AttachmentBuilder(
+                imagePath,
+                {
+                    name:
+                        image.name,
+                },
+            );
+        } catch {
+            logger.warn(
+                `[LEVEL] Image not found on disk: ${imagePath}`,
+            );
+        }
     }
+
+    if (
+        image.url
+    ) {
+        try {
+            return new AttachmentBuilder(
+                image.url,
+                {
+                    name:
+                        image.name,
+                },
+            );
+        } catch {
+            return null;
+        }
+    }
+
+    return null;
 }
 
 /**
@@ -335,21 +354,21 @@ export function buildMilestoneLevelEmbed(
             );
 
     /**
-     * Ưu tiên URL từ CDN (Catbox) để triệt tiêu Egress.
-     * Fallback sang attachment cục bộ nếu có.
+     * Gán hình ảnh cho milestone embed.
+     * Ưu tiên tên attachment nếu có file đính kèm, fallback sang URL.
      */
 
     if (
-        milestone.image?.url
-    ) {
-        embed.setImage(
-            milestone.image.url,
-        );
-    } else if (
         milestone.image?.name
     ) {
         embed.setImage(
             `attachment://${milestone.image.name}`,
+        );
+    } else if (
+        milestone.image?.url
+    ) {
+        embed.setImage(
+            milestone.image.url,
         );
     }
 
@@ -630,19 +649,8 @@ export async function sendLevelAnnouncement({
 
         const files = [];
 
-        /**
-         * Nếu ảnh là remote URL (CDN), embed đã tự trỏ link trực tiếp nên không cần attach file.
-         * Chỉ attach file nếu có đường dẫn cục bộ (path).
-         */
-
         if (
-            milestone?.image?.url
-        ) {
-            embed.setImage(
-                milestone.image.url,
-            );
-        } else if (
-            milestone?.image?.path
+            milestone?.image
         ) {
             const attachment =
                 await createLevelImageAttachment(
@@ -659,13 +667,19 @@ export async function sendLevelAnnouncement({
                 embed.setImage(
                     `attachment://${milestone.image.name}`,
                 );
+            } else if (
+                milestone.image?.url
+            ) {
+                embed.setImage(
+                    milestone.image.url,
+                );
             } else {
                 embed.setImage(
                     null,
                 );
 
                 logger.warn(
-                    `[LEVEL] Milestone local image unavailable for Lv.${level}`,
+                    `[LEVEL] Milestone image unavailable for Lv.${level}`,
                 );
             }
         }
@@ -681,9 +695,15 @@ export async function sendLevelAnnouncement({
         } catch (sendError) {
             if (files.length > 0) {
                 logger.warn(
-                    '[LEVEL] Failed sending announcement with files, retrying without files:',
+                    '[LEVEL] Failed sending announcement with files, retrying with direct URL or no files:',
                     sendError,
                 );
+
+                if (milestone?.image?.url) {
+                    embed.setImage(milestone.image.url);
+                } else {
+                    embed.setImage(null);
+                }
 
                 await channel.send({
                     embeds: [

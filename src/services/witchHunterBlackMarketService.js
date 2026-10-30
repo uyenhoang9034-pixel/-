@@ -398,13 +398,13 @@ export class WitchHunterBlackMarketService {
         .setCustomId(`black_market_confirm:supporter:${supporter.id}`)
         .setLabel('KÝ KẾT KHẾ ƯỚC')
         .setStyle(ButtonStyle.Primary)
-        .setEmoji(parseEmoji('🔮'));
+        .setEmoji(parseEmoji('<a:linhtocg:1563399670351536310>'));
 
       const cancelButton = new ButtonBuilder()
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('✖️'));
+        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
 
       return {
         embed,
@@ -450,7 +450,7 @@ export class WitchHunterBlackMarketService {
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('✖️'));
+        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
 
       return {
         embed,
@@ -494,7 +494,7 @@ export class WitchHunterBlackMarketService {
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('✖️'));
+        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
 
       return {
         embed,
@@ -536,7 +536,7 @@ export class WitchHunterBlackMarketService {
         .setCustomId('black_market_cancel')
         .setLabel('HỦY BỎ')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji(parseEmoji('✖️'));
+        .setEmoji(parseEmoji('<a:bang2:1546891483250954290>'));
 
       return {
         embed,
