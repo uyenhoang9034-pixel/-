@@ -76,10 +76,6 @@ export function getReactionRolesPrefix(guildId) {
     return `guild:${guildId}:reaction_roles:`;
 }
 
-export function getServerCountersKey(guildId) {
-    return `guild:${guildId}:counters`;
-}
-
 export function getAutorespondersKey(guildId) {
     return `guild:${guildId}:autoresponders`;
 }
@@ -117,10 +113,6 @@ export const LEGACY_KEY_RESOLVERS = [
     {
         pattern: /^reaction_roles:([^:]+):([^:]+)$/,
         toCanonical: ([, guildId, messageId]) => getReactionRoleKey(guildId, messageId),
-    },
-    {
-        pattern: /^counters:([^:]+)$/,
-        toCanonical: ([, guildId]) => getServerCountersKey(guildId),
     },
     {
         pattern: /^bday-role-tracking-([^:]+)$/,

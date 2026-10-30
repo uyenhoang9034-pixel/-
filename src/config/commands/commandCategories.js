@@ -15,7 +15,6 @@ export const CATEGORY_ICONS = {
   Music: '🎵',
   Reaction_roles: '🎭',
   Search: '🔍',
-  ServerStats: '📈',
   Ticket: '🎫',
   Tools: '🛠️',
   Utility: '🔧',

@@ -30,7 +30,6 @@ const COMMAND_ERROR_SUBTYPES = {
   unban: 'unban_failed',
   warnings: 'warnings_view_failed',
   ticket: 'ticket_failed',
-  serverstats: 'serverstats_failed',
   gcreate: 'giveaway_failed',
   gend: 'giveaway_failed',
   gdelete: 'giveaway_failed',

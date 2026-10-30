@@ -63,10 +63,6 @@ export const commandAliases = {
     'whois': 'userinfo',
     'ui': 'userinfo',
 
-    'serverstats': 'serverstats',
-    'ss': 'serverstats',
-    'sstats': 'serverstats',
-
     'rr': 'reactroles',
     'reactionroles': 'reactroles',
 

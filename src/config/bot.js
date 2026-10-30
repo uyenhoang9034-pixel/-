@@ -347,7 +347,6 @@ const COMMAND_CATEGORY_FEATURE_MAP = {
   music: "music",
   reaction_roles: "reactionRoles",
   search: "search",
-  serverstats: "counter",
   ticket: "tickets",
   tools: "tools",
   utility: "utility",

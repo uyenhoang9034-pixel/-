@@ -34,7 +34,6 @@ export {
     getWarningsPrefix,
     getReactionRoleKey,
     getReactionRolesPrefix,
-    getServerCountersKey,
     getGiveawayEntryKey,
     getGiveawayLockKey,
     canonicalizeKey,
