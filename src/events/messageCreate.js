@@ -1,4 +1,4 @@
-import { Events, MessageType } from 'discord.js';
+import { Events, MessageType, MessageFlags } from 'discord.js';
 
 import { logger } from '../utils/logger.js';
 import { handleBoostStarted } from '../services/boost/boostService.js';
