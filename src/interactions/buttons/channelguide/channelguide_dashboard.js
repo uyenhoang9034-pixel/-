@@ -148,14 +148,14 @@ function buildGuideModal(
                 'guide_channels',
             )
             .setLabel(
-                'Channel IDs, cách nhau bằng dấu phẩy',
+                'Channel IDs (phân cách bằng dấu phẩy)',
             )
             .setStyle(
                 TextInputStyle.Paragraph,
             )
             .setRequired(false)
             .setPlaceholder(
-                '123456789, 987654321',
+                'Dán ID kênh: 123..., 456...',
             )
             .setValue(
                 (guide?.channels || [])
