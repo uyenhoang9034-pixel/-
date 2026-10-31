@@ -208,8 +208,9 @@ export default [
                                     'button_label',
                                 )
                                 .setLabel(
-                                    'Button label',
+                                    'Tên nút (Label)',
                                 )
+                                .setPlaceholder('Ví dụ: Feedback')
                                 .setRequired(true)
                                 .setMaxLength(
                                     80,
@@ -224,8 +225,9 @@ export default [
                                     'button_style',
                                 )
                                 .setLabel(
-                                    'Style: primary / secondary / success / danger / link',
+                                    'Kiểu nút (Style)',
                                 )
+                                .setPlaceholder('primary, secondary, success, danger, link')
                                 .setRequired(true)
                                 .setStyle(
                                     TextInputStyle.Short,
@@ -237,8 +239,9 @@ export default [
                                     'button_url',
                                 )
                                 .setLabel(
-                                    'URL nếu là link',
+                                    'URL (nếu kiểu nút là link)',
                                 )
+                                .setPlaceholder('https://...')
                                 .setRequired(false)
                                 .setStyle(
                                     TextInputStyle.Short,
@@ -537,6 +540,143 @@ export default [
             ),
     ),
 );
+
+            await interaction.showModal(
+                modal,
+            );
+        },
+    },
+
+    {
+        name: 'autoresponder_options',
+
+        async execute(
+            interaction,
+            client,
+            args,
+        ) {
+            const [
+                sessionId,
+            ] = args;
+
+            const session =
+                getBuilderSession(
+                    sessionId,
+                );
+
+            if (
+                !session ||
+                session.userId !==
+                    interaction.user.id
+            ) {
+                return;
+            }
+
+            const modal =
+                new ModalBuilder()
+                    .setCustomId(
+                        `autoresponder_options:${sessionId}`,
+                    )
+                    .setTitle(
+                        '🔧 Tùy Chọn Autoresponder',
+                    )
+                    .addComponents(
+                        new ActionRowBuilder().addComponents(
+                            new TextInputBuilder()
+                                .setCustomId(
+                                    'option_delete_trigger',
+                                )
+                                .setLabel(
+                                    'Xóa tin nhắn lệnh? (yes/no)',
+                                )
+                                .setPlaceholder(
+                                    'yes: Xóa tin nhắn kích hoạt (ví dụ xóa lvup1)',
+                                )
+                                .setStyle(
+                                    TextInputStyle.Short,
+                                )
+                                .setRequired(false)
+                                .setValue(
+                                    session.response
+                                        ?.deleteTrigger
+                                        ? 'yes'
+                                        : 'no',
+                                )
+                                .setMaxLength(3),
+                        ),
+                        new ActionRowBuilder().addComponents(
+                            new TextInputBuilder()
+                                .setCustomId(
+                                    'option_mention_target',
+                                )
+                                .setLabel(
+                                    'Tag người được chỉ định? (yes/no)',
+                                )
+                                .setPlaceholder(
+                                    'yes: Tag user được gõ sau keyword (@User)',
+                                )
+                                .setStyle(
+                                    TextInputStyle.Short,
+                                )
+                                .setRequired(false)
+                                .setValue(
+                                    session.response
+                                        ?.mentionTarget !==
+                                        false
+                                        ? 'yes'
+                                        : 'no',
+                                )
+                                .setMaxLength(3),
+                        ),
+                        new ActionRowBuilder().addComponents(
+                            new TextInputBuilder()
+                                .setCustomId(
+                                    'option_mention_author',
+                                )
+                                .setLabel(
+                                    'Tag người gửi tin nhắn? (yes/no)',
+                                )
+                                .setPlaceholder(
+                                    'yes: Tag người gửi keyword',
+                                )
+                                .setStyle(
+                                    TextInputStyle.Short,
+                                )
+                                .setRequired(false)
+                                .setValue(
+                                    session.response
+                                        ?.reply
+                                        ?.mentionAuthor
+                                        ? 'yes'
+                                        : 'no',
+                                )
+                                .setMaxLength(3),
+                        ),
+                        new ActionRowBuilder().addComponents(
+                            new TextInputBuilder()
+                                .setCustomId(
+                                    'option_reply_enabled',
+                                )
+                                .setLabel(
+                                    'Reply trích dẫn tin nhắn? (yes/no)',
+                                )
+                                .setPlaceholder(
+                                    'yes: Bật reply trích dẫn (xóa lệnh sẽ tắt)',
+                                )
+                                .setStyle(
+                                    TextInputStyle.Short,
+                                )
+                                .setRequired(false)
+                                .setValue(
+                                    session.response
+                                        ?.reply
+                                        ?.enabled
+                                        ? 'yes'
+                                        : 'no',
+                                )
+                                .setMaxLength(3),
+                        ),
+                    );
 
             await interaction.showModal(
                 modal,

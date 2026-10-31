@@ -839,11 +839,43 @@ async function handleAutoresponder(message, client) {
       return false;
     }
 
+    // Kiểm tra và lấy danh sách người dùng được tag chỉ định
+    const shouldMentionTarget = responder.response?.mentionTarget !== false;
+    let targetMentionText = '';
+    const targetUsers = message.mentions.users.filter(u => u.id !== client.user.id);
+    if (shouldMentionTarget && targetUsers.size > 0) {
+      targetMentionText = targetUsers.map(u => `<@${u.id}>`).join(' ');
+    }
+
+    // Tùy chọn xóa tin nhắn kích hoạt (ví dụ xóa lệnh lvup1)
+    const shouldDeleteTrigger = responder.response?.deleteTrigger === true;
+    if (shouldDeleteTrigger) {
+      await message.delete().catch(err => {
+        logger.debug('Failed to delete autoresponder trigger message:', err);
+      });
+    }
+
     const payload = buildDiscordMessagePayload(
       responder.response,
     );
 
-    if (responder.response?.reply?.enabled) {
+    // Đưa mention người được chỉ định vào đầu phản hồi
+    if (targetMentionText) {
+      if (payload.content) {
+        payload.content = `${targetMentionText}\n${payload.content}`;
+      } else {
+        payload.content = targetMentionText;
+      }
+
+      payload.allowedMentions = {
+        ...payload.allowedMentions,
+        users: Array.from(targetUsers.keys()),
+        parse: ['users'],
+      };
+    }
+
+    // Chỉ reply nếu tin nhắn lệnh KHÔNG bị xóa
+    if (!shouldDeleteTrigger && responder.response?.reply?.enabled) {
       payload.reply = {
         messageReference: message.id,
         failIfNotExists: false,

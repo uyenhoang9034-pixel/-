@@ -68,6 +68,9 @@ buttons:
                     enabled: false,
                     mentionAuthor: false,
                 },
+
+        deleteTrigger: response.deleteTrigger === true,
+        mentionTarget: response.mentionTarget !== false,
     };
 }
 

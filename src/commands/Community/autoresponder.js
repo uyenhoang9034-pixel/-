@@ -79,6 +79,22 @@ export default {
                             'Optional image',
                         )
                         .setRequired(false),
+                )
+                .addBooleanOption(option =>
+                    option
+                        .setName('delete_trigger')
+                        .setDescription(
+                            'Tự động xóa tin nhắn lệnh khi kích hoạt (ví dụ xóa tin nhắn lvup1)',
+                        )
+                        .setRequired(false),
+                )
+                .addBooleanOption(option =>
+                    option
+                        .setName('mention_target')
+                        .setDescription(
+                            'Tag người dùng được chỉ định (ví dụ: lvup1 @User sẽ tag @User)',
+                        )
+                        .setRequired(false),
                 ),
         )
 
@@ -233,6 +249,12 @@ export default {
                         'image',
                     );
 
+                const deleteTriggerOption =
+                    interaction.options.getBoolean('delete_trigger');
+
+                const mentionTargetOption =
+                    interaction.options.getBoolean('mention_target');
+
                 const response = {
                     content: '',
                     embeds: [],
@@ -248,8 +270,10 @@ export default {
                         ]
                         : [],
                     buttons: [],
+                    deleteTrigger: deleteTriggerOption ?? false,
+                    mentionTarget: mentionTargetOption ?? true,
                     allowedMentions: {
-                        parse: [],
+                        parse: ['users'],
                     },
                     reply: {
                         enabled: false,

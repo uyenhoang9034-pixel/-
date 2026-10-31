@@ -327,13 +327,16 @@ updateBuilderSession(
                     )
                     .trim();
 
-            const style =
+            const rawStyle =
                 interaction.fields
                     .getTextInputValue(
                         'button_style',
                     )
                     .trim()
                     .toLowerCase();
+
+            const validStyles = ['primary', 'secondary', 'success', 'danger', 'link'];
+            const style = validStyles.includes(rawStyle) ? rawStyle : 'secondary';
 
             const url =
                 interaction.fields
@@ -356,20 +359,20 @@ updateBuilderSession(
 
             session.response.buttons.push(
                 {
-    label,
-    style,
-    customId:
-    style === 'link'
-                ? undefined
-                : `autoresponder_action:${Date.now()}_${Math.random()
-                    .toString(36)
-                    .slice(2, 8)}`,
-    url:
-        style === 'link'
-            ? url
-            : undefined,
-  },
-);
+                    label,
+                    style,
+                    customId:
+                        style === 'link'
+                            ? undefined
+                            : `autoresponder_action:${Date.now()}_${Math.random()
+                                .toString(36)
+                                .slice(2, 8)}`,
+                    url:
+                        style === 'link'
+                            ? url
+                            : undefined,
+                },
+            );
 
             updateBuilderSession(
                 sessionId,
@@ -531,6 +534,205 @@ updateBuilderSession(
         );
     },
 },
+{
+    name: 'autoresponder_options',
+
+    async execute(
+        interaction,
+        client,
+        args,
+    ) {
+        const [
+            sessionId,
+        ] = args;
+
+        const session =
+            getBuilderSession(
+                sessionId,
+            );
+
+        if (
+            !session ||
+            session.userId !==
+                interaction.user.id
+        ) {
+            return;
+        }
+
+        const deleteTrigger =
+            interaction.fields
+                .getTextInputValue(
+                    'option_delete_trigger',
+                )
+                ?.trim()
+                .toLowerCase() === 'yes';
+
+        const mentionTarget =
+            interaction.fields
+                .getTextInputValue(
+                    'option_mention_target',
+                )
+                ?.trim()
+                .toLowerCase() !== 'no';
+
+        const mentionAuthor =
+            interaction.fields
+                .getTextInputValue(
+                    'option_mention_author',
+                )
+                ?.trim()
+                .toLowerCase() === 'yes';
+
+        const replyEnabled =
+            interaction.fields
+                .getTextInputValue(
+                    'option_reply_enabled',
+                )
+                ?.trim()
+                .toLowerCase() === 'yes';
+
+        session.response.deleteTrigger =
+            deleteTrigger;
+
+        session.response.mentionTarget =
+            mentionTarget;
+
+        session.response.reply = {
+            enabled:
+                replyEnabled &&
+                !deleteTrigger,
+            mentionAuthor:
+                mentionAuthor,
+        };
+
+        updateBuilderSession(
+            sessionId,
+            {
+                response:
+                    session.response,
+            },
+        );
+
+        await sendBuilder(
+            interaction,
+            session,
+        );
+    },
+},
+
+{
+    name: 'autoresponder_feedback_modal',
+
+    async execute(
+        interaction,
+        client,
+        args,
+    ) {
+        const comment =
+            interaction.fields
+                .getTextInputValue(
+                    'feedback_comment',
+                )
+                ?.trim() || '';
+
+        const attachment =
+            interaction.fields
+                .getTextInputValue(
+                    'feedback_attachment',
+                )
+                ?.trim() || '';
+
+        const rating =
+            interaction.fields
+                .getTextInputValue(
+                    'feedback_rating',
+                )
+                ?.trim() || '5';
+
+        try {
+            const { getGuildConfig } = await import(
+                '../../../services/config/guildConfig.js'
+            );
+            const config =
+                await getGuildConfig(
+                    client,
+                    interaction.guildId,
+                );
+
+            const logChannelId =
+                config?.ticketFeedbackChannel ||
+                config?.ticketLogsChannel;
+
+            if (logChannelId) {
+                const logChannel =
+                    interaction.guild?.channels?.cache?.get(
+                        logChannelId,
+                    ) ||
+                    (await interaction.guild?.channels?.fetch(
+                        logChannelId,
+                    ).catch(() => null));
+
+                if (
+                    logChannel &&
+                    logChannel.isTextBased()
+                ) {
+                    const embed =
+                        new EmbedBuilder()
+                            .setTitle(
+                                '⭐ Phản Hồi / Feedback Mới',
+                            )
+                            .setColor(
+                                0xffb6d9,
+                            )
+                            .setDescription(
+                                comment,
+                            )
+                            .addFields(
+                                {
+                                    name: '👤 Người gửi',
+                                    value: `<@${interaction.user.id}> (${interaction.user.tag})`,
+                                    inline: true,
+                                },
+                                {
+                                    name: '⭐ Đánh giá',
+                                    value: `${rating}/5`,
+                                    inline: true,
+                                },
+                            )
+                            .setTimestamp();
+
+                    if (
+                        attachment &&
+                        (attachment.startsWith(
+                            'http://',
+                        ) ||
+                            attachment.startsWith(
+                                'https://',
+                            ))
+                    ) {
+                        embed.setImage(
+                            attachment,
+                        );
+                    }
+
+                    await logChannel
+                        .send({
+                            embeds: [
+                                embed,
+                            ],
+                        })
+                        .catch(() => {});
+                }
+            }
+        } catch (_) {}
+
+        await interaction.reply({
+            content:
+                '💖 Cảm ơn bạn đã gửi feedback! Em bot Usagi đã ghi nhận đánh giá của bạn rồi nha~ 🌸',
+            flags: MessageFlags.Ephemeral,
+        });
+    },
+},
 ];
 
 export async function sendBuilder(
@@ -541,6 +743,16 @@ export async function sendBuilder(
     const content = session.response?.embeds?.[0]?.description || session.response?.content || '';
     const imagesCount = session.response?.images?.length || 0;
     const buttonsCount = session.response?.buttons?.length || 0;
+    const isDelete = session.response?.deleteTrigger === true;
+    const isMentionTarget = session.response?.mentionTarget !== false;
+    const isReply = session.response?.reply?.enabled === true;
+    const isMentionAuthor = session.response?.reply?.mentionAuthor === true;
+
+    const optionsText = [
+        `🗑️ **Xóa tin nhắn lệnh:** ${isDelete ? '`Bật (Có xóa)`' : '`Tắt`'}`,
+        `👤 **Tag người chỉ định (@User):** ${isMentionTarget ? '`Bật`' : '`Tắt`'}`,
+        isReply ? `💬 **Reply trích dẫn:** \`Bật\`${isMentionAuthor ? ' (có tag author)' : ''}` : '',
+    ].filter(Boolean).join('\n');
 
     const container = new ContainerBuilder()
         .addTextDisplayComponents(
@@ -559,6 +771,8 @@ export async function sendBuilder(
                     `📝 **Nội dung (Content):**\n${content ? (content.length > 500 ? content.slice(0, 500) + '...' : content) : '*(Trống - bấm nút Sửa Nội Dung để nhập)*'}`,
                     imagesCount > 0 ? `🖼️ **Hình ảnh:** ${imagesCount} ảnh` : '',
                     buttonsCount > 0 ? `🔘 **Buttons:** ${buttonsCount} nút` : '',
+                    '',
+                    `⚙️ **Tùy chọn:**\n${optionsText}`,
                 ]
                     .filter(Boolean)
                     .join('\n')
@@ -593,6 +807,11 @@ export async function sendBuilder(
             .setCustomId(`autoresponder_settings:${session.sessionId}`)
             .setLabel('Cài Đặt')
             .setEmoji('⚙️')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_options:${session.sessionId}`)
+            .setLabel('Tùy Chọn')
+            .setEmoji('🔧')
             .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId(`autoresponder_save:${session.sessionId}`)
