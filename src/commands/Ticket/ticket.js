@@ -19,6 +19,7 @@ import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/
 import ticketConfig, {
     buildPanelEmbed,
     buildPanelButtonRow,
+    buildPanelContainer,
     getPanelFiles,
     DEFAULT_TICKET_PANEL_MESSAGE,
     DEFAULT_TICKET_PANEL_COLOR,
@@ -191,22 +192,15 @@ export default {
                 rulesChannelId: existingConfig?.rulesChannelId || DEFAULT_RULES_CHANNEL_ID,
             };
 
-            const setupEmbed = buildPanelEmbed(currentConfig);
-            const ticketFiles = getPanelFiles(currentConfig);
-            const ticketButton = buildPanelButtonRow(currentConfig, interaction.guildId);
+            const container = buildPanelContainer(currentConfig, interaction.guildId);
 
             try {
                 const sentPanel =
                     await panelChannel.send({
-                        embeds: [
-                            setupEmbed,
-                        ],
-
-                        files: ticketFiles,
-
                         components: [
-                            ticketButton,
+                            container,
                         ],
+                        flags: MessageFlags.IsComponentsV2,
                     });
 
                 currentConfig.ticketPanelMessageId = sentPanel?.id || null;

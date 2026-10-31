@@ -15,6 +15,12 @@ import {
     MessageFlags,
     ComponentType,
     EmbedBuilder,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { successEmbed, infoEmbed } from '../../../utils/embeds.js';
@@ -33,9 +39,8 @@ import { getTicketImageAttachment, TICKET_IMAGE_URL } from '../../../services/ti
 
 export const DEFAULT_TICKET_PANEL_COLOR = '#2B2D31';
 export const DEFAULT_RULES_CHANNEL_ID = '1541283961957912620';
-export const DEFAULT_TICKET_PANEL_MESSAGE = [
-    '# <a:trangtrig2:1546040703375904801>  𝓣𝓲𝓬𝓴𝓮𝓽 𝓗𝓸̂̃ 𝓣𝓻𝓸̛̣ <a:trangtrig3:1546040818261954610>',
-    '',
+export const DEFAULT_TICKET_PANEL_TITLE = '# <a:trangtrig2:1546040703375904801>  𝓣𝓲𝓬𝓴𝓮𝓽 𝓗𝓸̂̃ 𝓣𝓻𝓸̛̣ <a:trangtrig3:1546040818261954610>';
+export const DEFAULT_TICKET_PANEL_BODY = [
     '<a:bang2:1546891483250954290>  Ticket hỗ trợ:',
     '<a:1_:1563484001765949550> Nhận quà giveaway / level up',
     '<a:2_:1563484061111156828>  Đóng góp ý kiến',
@@ -45,6 +50,7 @@ export const DEFAULT_TICKET_PANEL_MESSAGE = [
     '- Mỗi người chỉ mở 1 ticket / lần.',
     '- Sau khi gửi ticket, vui lòng chờ đợi <@&1545295139390619768> phản hồi. Xin cảm ơn!',
 ].join('\n');
+export const DEFAULT_TICKET_PANEL_MESSAGE = `${DEFAULT_TICKET_PANEL_TITLE}\n\n${DEFAULT_TICKET_PANEL_BODY}`;
 
 export function getPanelFiles(config) {
     if (config?.ticketImage && config.ticketImage.startsWith('attachment://')) {
@@ -161,6 +167,52 @@ export function buildPanelButtonRow(config, guildId) {
     return new ActionRowBuilder().addComponents(openTicketBtn, rulesBtn);
 }
 
+export function buildPanelContainer(config, guildId) {
+    let title = DEFAULT_TICKET_PANEL_TITLE;
+    let body = DEFAULT_TICKET_PANEL_BODY;
+
+    if (config?.ticketPanelMessage) {
+        if (config.ticketPanelMessage.startsWith('# ')) {
+            const lines = config.ticketPanelMessage.split('\n');
+            title = lines[0];
+            body = lines.slice(1).join('\n').trim() || DEFAULT_TICKET_PANEL_BODY;
+        } else {
+            body = config.ticketPanelMessage;
+            if (config.ticketPanelTitle && config.ticketPanelTitle !== 'Support Tickets') {
+                title = config.ticketPanelTitle.startsWith('#')
+                    ? config.ticketPanelTitle
+                    : `# ${config.ticketPanelTitle}`;
+            }
+        }
+    } else if (config?.ticketPanelTitle && config.ticketPanelTitle !== 'Support Tickets') {
+        title = config.ticketPanelTitle.startsWith('#')
+            ? config.ticketPanelTitle
+            : `# ${config.ticketPanelTitle}`;
+    }
+
+    const container = new ContainerBuilder()
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(title))
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(body));
+
+    if (
+        config?.ticketImage &&
+        config.ticketImage !== TICKET_IMAGE_URL &&
+        config.ticketImage !== 'attachment://ticket.png'
+    ) {
+        container.addMediaGalleryComponents(
+            new MediaGalleryBuilder().addItems(
+                new MediaGalleryItemBuilder().setURL(config.ticketImage)
+            )
+        );
+    }
+
+    const buttonRow = buildPanelButtonRow(config, guildId);
+    container.addActionRowComponents(buttonRow);
+
+    return container;
+}
+
 async function repostTicketPanel(client, guild, guildConfig, guildId) {
     const channel = await guild.channels.fetch(guildConfig.ticketPanelChannelId).catch(() => null);
     if (!channel) {
@@ -171,23 +223,11 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
         );
     }
 
-    const sentPanel =
-        await channel.send({
-            embeds: [
-                buildPanelEmbed(
-                    guildConfig,
-                ),
-            ],
-
-            files: getPanelFiles(guildConfig),
-
-            components: [
-                buildPanelButtonRow(
-                    guildConfig,
-                    guildId || guild.id,
-                ),
-            ],
-        });
+    const container = buildPanelContainer(guildConfig, guildId || guild.id);
+    const sentPanel = await channel.send({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+    });
 
     await persistPanelMessageId(client, guildId, guildConfig, sentPanel.id);
     return sentPanel;
@@ -363,29 +403,28 @@ async function updateLivePanel(client, guild, config, guildId) {
         }
         if (!panelStatus.exists || !panelStatus.message) return false;
 
-        const panelFiles = getPanelFiles(config);
-        const editPayload = {
-            embeds: [
-                buildPanelEmbed(
-                    config,
-                ),
-            ],
+        const container = buildPanelContainer(config, guildId || guild.id);
 
-            components: [
-                buildPanelButtonRow(
-                    config,
-                    guildId || guild.id,
-                ),
-            ],
-        };
-        if (panelFiles.length > 0) {
-            editPayload.files = panelFiles;
-        } else {
-            editPayload.files = [];
-            editPayload.attachments = [];
+        try {
+            await panelStatus.message.edit({
+                content: null,
+                embeds: [],
+                files: [],
+                attachments: [],
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } catch (editError) {
+            logger.warn('Failed to edit live panel to Components V2, reposting fresh panel:', editError.message);
+            await panelStatus.message.delete().catch(() => {});
+            const channel = panelStatus.message.channel;
+            const sent = await channel.send({
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
+            });
+            await persistPanelMessageId(client, guildId, config, sent.id);
         }
 
-        await panelStatus.message.edit(editPayload);
         return true;
     } catch (error) {
         logger.warn('Failed to update live ticket panel:', error.message);
@@ -1763,14 +1802,10 @@ async function handlePanelChannel(
         guildConfig.ticketPanelMessageId = null;
 
         // Tạo panel mới
+        const container = buildPanelContainer(guildConfig, guildId || rootInteraction.guildId);
         const sentPanel = await newChannel.send({
-            embeds: [
-                buildPanelEmbed(guildConfig)
-            ],
-            files: getPanelFiles(guildConfig),
-            components: [
-                buildPanelButtonRow(guildConfig, guildId || rootInteraction.guildId)
-            ],
+            components: [container],
+            flags: MessageFlags.IsComponentsV2,
         });
 
         guildConfig.ticketPanelMessageId =
