@@ -38,6 +38,7 @@ function buildGuideDetailComponents(guide, guild) {
 
     const containers = [];
     let container = new ContainerBuilder()
+        .setAccentColor(0xf6b6d6)
         .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 title.startsWith('#') ? title : `# ${title}`,
@@ -61,7 +62,7 @@ function buildGuideDetailComponents(guide, guild) {
     for (const channelEntry of channels) {
         if (sectionsInContainer >= 7) {
             containers.push(container);
-            container = new ContainerBuilder();
+            container = new ContainerBuilder().setAccentColor(0xf6b6d6);
             sectionsInContainer = 0;
         }
 
