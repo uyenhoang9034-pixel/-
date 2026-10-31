@@ -162,6 +162,10 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
     }
 
     return {
+        // Clear the legacy embed when converting an already-published panel
+        // to Components V2. The panel is then rendered only from components.
+        content: null,
+        embeds: [],
         components,
         flags: MessageFlags.IsComponentsV2,
     };
