@@ -31,10 +31,27 @@ import {
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
 import { getTicketImageAttachment, TICKET_IMAGE_URL } from '../../../services/ticket.js';
 
-function getPanelFiles(config) {
-    if (config?.ticketImage) return [];
-    const att = getTicketImageAttachment();
-    return att ? [att] : [];
+export const DEFAULT_TICKET_PANEL_COLOR = '#2B2D31';
+export const DEFAULT_RULES_CHANNEL_ID = '1541283961957912620';
+export const DEFAULT_TICKET_PANEL_MESSAGE = [
+    '# <a:trangtrig2:1546040703375904801>  𝓣𝓲𝓬𝓴𝓮𝓽 𝓗𝓸̂̃ 𝓣𝓻𝓸̛̣ <a:trangtrig3:1546040818261954610>',
+    '',
+    '<a:bang2:1546891483250954290>  Ticket hỗ trợ:',
+    '<a:1_:1563484001765949550> Nhận quà giveaway / level up',
+    '<a:2_:1563484061111156828>  Đóng góp ý kiến',
+    '<a:3_:1563484342779388045> Các vấn đề khác',
+    '',
+    '<a:bang2:1546891483250954290> Lưu ý:',
+    '- Mỗi người chỉ mở 1 ticket / lần.',
+    '- Sau khi gửi ticket, vui lòng chờ đợi <@&1545295139390619768> phản hồi. Xin cảm ơn!',
+].join('\n');
+
+export function getPanelFiles(config) {
+    if (config?.ticketImage && config.ticketImage.startsWith('attachment://')) {
+        const att = getTicketImageAttachment();
+        return att ? [att] : [];
+    }
+    return [];
 }
 
 function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = null) {
@@ -86,52 +103,62 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
     }
 }
 
-function buildPanelEmbed(config) {
+export function buildPanelEmbed(config) {
+    const rawMsg = config?.ticketPanelMessage;
+    const description = (rawMsg && rawMsg !== 'Click the button below to create a support ticket.')
+        ? rawMsg
+        : DEFAULT_TICKET_PANEL_MESSAGE;
+
     const embed = new EmbedBuilder()
-        .setTitle(
-            config.ticketPanelTitle ||
-            'Support Tickets',
-        )
-        .setDescription(
-            config.ticketPanelMessage ||
-            'Click the button below to create a support ticket.',
-        )
+        .setDescription(description)
         .setColor(
-            config.ticketPanelColor ||
-            getColor('info'),
+            config?.ticketPanelColor || DEFAULT_TICKET_PANEL_COLOR,
         );
 
-    if (config?.ticketImage) {
+    if (config?.ticketPanelTitle && config.ticketPanelTitle !== 'Support Tickets') {
+        embed.setTitle(config.ticketPanelTitle);
+    }
+
+    if (
+        config?.ticketImage &&
+        config.ticketImage !== TICKET_IMAGE_URL &&
+        config.ticketImage !== 'attachment://ticket.png'
+    ) {
         embed.setImage(config.ticketImage);
-    } else {
-        const att = getTicketImageAttachment();
-        if (att) {
-            embed.setImage('attachment://ticket.png');
-        } else if (TICKET_IMAGE_URL) {
-            embed.setImage(TICKET_IMAGE_URL);
-        }
     }
 
     return embed;
 }
 
-function buildPanelButtonRow(config) {
-    const button = new ButtonBuilder()
-        .setCustomId('create_ticket')
-        .setLabel(config.ticketButtonLabel || 'Create Ticket')
-        .setStyle(ButtonStyle.Success);
+export function buildPanelButtonRow(config, guildId) {
+    const label =
+        config?.ticketButtonLabel && config.ticketButtonLabel !== 'Create Ticket'
+            ? config.ticketButtonLabel
+            : 'Mở Ticket';
 
-    if (config.ticketButtonEmoji?.id) {
-        button.setEmoji({
+    const openTicketBtn = new ButtonBuilder()
+        .setCustomId('create_ticket')
+        .setLabel(label)
+        .setStyle(ButtonStyle.Secondary);
+
+    if (config?.ticketButtonEmoji?.id) {
+        openTicketBtn.setEmoji({
             id: config.ticketButtonEmoji.id,
             name: config.ticketButtonEmoji.name || undefined,
             animated: config.ticketButtonEmoji.animated === true,
         });
-    } else {
-        button.setEmoji('📩');
     }
 
-    return new ActionRowBuilder().addComponents(button);
+    const targetGuildId = guildId || config?.guildId || '@me';
+    const rulesChannelId = config?.rulesChannelId || DEFAULT_RULES_CHANNEL_ID;
+    const rulesUrl = `https://discord.com/channels/${targetGuildId}/${rulesChannelId}`;
+
+    const rulesBtn = new ButtonBuilder()
+        .setLabel('Nội Quy Server')
+        .setStyle(ButtonStyle.Link)
+        .setURL(rulesUrl);
+
+    return new ActionRowBuilder().addComponents(openTicketBtn, rulesBtn);
 }
 
 async function repostTicketPanel(client, guild, guildConfig, guildId) {
@@ -157,6 +184,7 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
             components: [
                 buildPanelButtonRow(
                     guildConfig,
+                    guildId || guild.id,
                 ),
             ],
         });
@@ -178,6 +206,7 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
     const staffRole = config.ticketStaffRoleId ? `<@&${config.ticketStaffRoleId}>` : '`Not set`';
     const ticketLogsChannel = config.ticketLogsChannelId ? `<#${config.ticketLogsChannelId}>` : '`Not set`';
     const transcriptChannel = config.ticketTranscriptChannelId ? `<#${config.ticketTranscriptChannelId}>` : '`Not set`';
+    const rulesChannel = config.rulesChannelId ? `<#${config.rulesChannelId}>` : `<#${DEFAULT_RULES_CHANNEL_ID}>`;
 
     const openCategoryChannel = config.ticketCategoryId ? guild.channels.cache.get(config.ticketCategoryId) : null;
     const openCategory = openCategoryChannel ? openCategoryChannel.toString() : '`Not set`';
@@ -185,9 +214,9 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
     const closedCategoryChannel = config.ticketClosedCategoryId ? guild.channels.cache.get(config.ticketClosedCategoryId) : null;
     const closedCategory = closedCategoryChannel ? closedCategoryChannel.toString() : '`Not set`';
 
-    const rawMsg = config.ticketPanelMessage || 'Click the button below to create a support ticket.';
+    const rawMsg = config.ticketPanelMessage || DEFAULT_TICKET_PANEL_MESSAGE;
     const panelMsg = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
-    const btnLabel = `\`${config.ticketButtonLabel || 'Create Ticket'}\``;
+    const btnLabel = `\`${(config.ticketButtonLabel && config.ticketButtonLabel !== 'Create Ticket') ? config.ticketButtonLabel : 'Mở Ticket'}\``;
     const panelImage = config.ticketImage
     ? '🖼️ Set'
     : '`Not set`';
@@ -221,6 +250,8 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
 },
             { name: 'Max Tickets/User', value: String(config.maxTicketsPerUser || 3), inline: true },
             { name: 'DM on Close', value: config.dmOnClose !== false ? 'Enabled' : 'Disabled', inline: true },
+            { name: 'Rules Channel', value: rulesChannel, inline: true },
+            { name: '\u200B', value: '\u200B', inline: true },
             { name: 'Ticket Logs Channel', value: ticketLogsChannel, inline: true },
             { name: 'Transcript Channel', value: transcriptChannel, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
@@ -261,12 +292,17 @@ function buildSelectMenu(guildId) {
     .setLabel('Edit Panel Title')
     .setDescription('Change the title displayed on the ticket panel')
     .setValue('panel_title')
-    .setEmoji('✨'),
+    .setEmoji('✏️'),
             new StringSelectMenuOptionBuilder()
     .setLabel('Change Panel Color')
     .setDescription('Change the color of the ticket panel')
     .setValue('panel_color')
     .setEmoji('🎨'),
+            new StringSelectMenuOptionBuilder()
+    .setLabel('Change Rules Channel')
+    .setDescription('Change the channel linked by the Nội Quy Server button')
+    .setValue('rules_channel')
+    .setEmoji('📜'),
             new StringSelectMenuOptionBuilder()
     .setLabel('Change Button Emoji')
     .setDescription('Choose a custom server emoji for the ticket button')
@@ -338,11 +374,15 @@ async function updateLivePanel(client, guild, config, guildId) {
             components: [
                 buildPanelButtonRow(
                     config,
+                    guildId || guild.id,
                 ),
             ],
         };
         if (panelFiles.length > 0) {
             editPayload.files = panelFiles;
+        } else {
+            editPayload.files = [];
+            editPayload.attachments = [];
         }
 
         await panelStatus.message.edit(editPayload);
@@ -462,6 +502,9 @@ case 'panel_channel':
                         case 'transcript_channel':
                             await handleTranscriptChannel(selectInteraction, interaction, guildConfig, guildId, client);
                             break;
+                        case 'rules_channel':
+                            await handleRulesChannel(selectInteraction, interaction, guildConfig, guildId, client);
+                            break;
                     }
                 },
                 onButton: async (btnInteraction) => {
@@ -500,12 +543,12 @@ async function handlePanelMessage(selectInteraction, rootInteraction, guildConfi
                     .setStyle(TextInputStyle.Paragraph)
                     .setValue(
                         guildConfig.ticketPanelMessage ||
-                            'Click the button below to create a support ticket.',
+                            DEFAULT_TICKET_PANEL_MESSAGE,
                     )
                     .setMaxLength(2000)
                     .setMinLength(1)
                     .setRequired(true)
-                    .setPlaceholder('Click the button below to create a support ticket.'),
+                    .setPlaceholder('Ticket panel message...'),
             ),
         );
 
@@ -554,11 +597,11 @@ async function handleButtonLabel(selectInteraction, rootInteraction, guildConfig
                     .setCustomId('btn_label_input')
                     .setLabel('Button Label (max 80 characters)')
                     .setStyle(TextInputStyle.Short)
-                    .setValue(guildConfig.ticketButtonLabel || 'Create Ticket')
+                    .setValue((guildConfig.ticketButtonLabel && guildConfig.ticketButtonLabel !== 'Create Ticket') ? guildConfig.ticketButtonLabel : 'Mở Ticket')
                     .setMaxLength(80)
                     .setMinLength(1)
                     .setRequired(true)
-                    .setPlaceholder('Create Ticket'),
+                    .setPlaceholder('Mở Ticket'),
             ),
         );
 
@@ -954,6 +997,72 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
     });
 }
 
+async function handleRulesChannel(selectInteraction, rootInteraction, guildConfig, guildId, client) {
+    await selectInteraction.deferUpdate();
+
+    const channelSelect = new ChannelSelectMenuBuilder()
+        .setCustomId('ticket_cfg_rules_channel')
+        .setPlaceholder('Select rules channel...')
+        .addChannelTypes(ChannelType.GuildText)
+        .setMaxValues(1);
+
+    await selectInteraction.followUp({
+        embeds: [
+            new EmbedBuilder()
+                .setTitle('📜 Select Rules Channel')
+                .setDescription('Choose the channel linked to the "Nội Quy Server" button on the ticket panel.')
+                .setColor(getColor('info'))
+        ],
+        components: [new ActionRowBuilder().addComponents(channelSelect)],
+        flags: MessageFlags.Ephemeral
+    });
+
+    const collector = rootInteraction.channel.createMessageComponentCollector({
+        componentType: ComponentType.ChannelSelect,
+        filter: i => i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_rules_channel',
+        time: 60_000,
+        max: 1
+    });
+
+    collector.on('collect', async channelInteraction => {
+        await channelInteraction.deferUpdate();
+        const channel = channelInteraction.channels.first();
+
+        guildConfig.rulesChannelId = channel.id;
+        await setGuildConfig(client, guildId, guildConfig);
+
+        const panelUpdated = await updateLivePanel(
+            client,
+            rootInteraction.guild,
+            guildConfig,
+            guildId
+        );
+
+        await channelInteraction.followUp({
+            embeds: [
+                successEmbed(
+                    'Rules Channel Updated',
+                    `The "Nội Quy Server" button now links to ${channel}.${
+                        panelUpdated ? '\n\nThe live ticket panel has also been updated.' : ''
+                    }`
+                )
+            ],
+            flags: MessageFlags.Ephemeral
+        });
+
+        await refreshDashboard(rootInteraction, guildConfig, guildId, client);
+    });
+
+    collector.on('end', (collected, reason) => {
+        if (reason === 'time' && collected.size === 0) {
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No channel selected. No changes were made.',
+            }).catch(() => {});
+        }
+    });
+}
+
 async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, guildId, client) {
     await selectInteraction.deferUpdate();
 
@@ -1104,6 +1213,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
 'ticketLogsChannelId',
 'ticketTranscriptChannelId',
         'ticketButtonLabel',
+        'rulesChannelId',
         'maxTicketsPerUser',
         'dmOnClose',
     ];
@@ -1463,18 +1573,25 @@ async function handleButtonEmoji(
         return;
     }
 
-    const options = emojis
-        .first(25)
-        .map(emoji =>
-            new StringSelectMenuOptionBuilder()
-                .setLabel(emoji.name || 'Emoji')
-                .setValue(emoji.id)
-                .setEmoji({
-                    id: emoji.id,
-                    name: emoji.name || undefined,
-                    animated: emoji.animated,
-                })
-        );
+    const options = [
+        new StringSelectMenuOptionBuilder()
+            .setLabel('None (No Emoji)')
+            .setValue('none')
+            .setDescription('Remove emoji from the ticket button')
+            .setEmoji('❌'),
+        ...emojis
+            .first(24)
+            .map(emoji =>
+                new StringSelectMenuOptionBuilder()
+                    .setLabel(emoji.name || 'Emoji')
+                    .setValue(emoji.id)
+                    .setEmoji({
+                        id: emoji.id,
+                        name: emoji.name || undefined,
+                        animated: emoji.animated,
+                    })
+            ),
+    ];
 
     const menu = new StringSelectMenuBuilder()
         .setCustomId('ticket_cfg_button_emoji')
@@ -1508,17 +1625,24 @@ async function handleButtonEmoji(
 
     collector.on('collect', async emojiInteraction => {
         const emojiId = emojiInteraction.values[0];
-        const emoji = rootInteraction.guild.emojis.cache.get(emojiId);
+        let emojiDisplay = 'None (No Emoji)';
 
-        if (!emoji) {
-            return;
+        if (emojiId === 'none') {
+            guildConfig.ticketButtonEmoji = null;
+        } else {
+            const emoji = rootInteraction.guild.emojis.cache.get(emojiId);
+
+            if (!emoji) {
+                return;
+            }
+
+            guildConfig.ticketButtonEmoji = {
+                id: emoji.id,
+                name: emoji.name,
+                animated: emoji.animated,
+            };
+            emojiDisplay = `${emoji}`;
         }
-
-        guildConfig.ticketButtonEmoji = {
-            id: emoji.id,
-            name: emoji.name,
-            animated: emoji.animated,
-        };
 
         await setGuildConfig(
             client,
@@ -1537,7 +1661,7 @@ async function handleButtonEmoji(
             embeds: [
                 successEmbed(
                     'Button Emoji Updated',
-                    `The ticket button emoji has been changed to ${emoji}.${
+                    `The ticket button emoji has been changed to ${emojiDisplay}.${
                         panelUpdated
                             ? '\nThe live ticket panel has also been updated.'
                             : ''
@@ -1645,7 +1769,7 @@ async function handlePanelChannel(
             ],
             files: getPanelFiles(guildConfig),
             components: [
-                buildPanelButtonRow(guildConfig)
+                buildPanelButtonRow(guildConfig, guildId || rootInteraction.guildId)
             ],
         });
 

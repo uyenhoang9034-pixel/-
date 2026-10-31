@@ -15,9 +15,15 @@ import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfi
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
-import { getTicketImageAttachment, TICKET_IMAGE_URL } from '../../services/ticket.js';
 
-import ticketConfig from './modules/ticket_dashboard.js';
+import ticketConfig, {
+    buildPanelEmbed,
+    buildPanelButtonRow,
+    getPanelFiles,
+    DEFAULT_TICKET_PANEL_MESSAGE,
+    DEFAULT_TICKET_PANEL_COLOR,
+    DEFAULT_RULES_CHANNEL_ID,
+} from './modules/ticket_dashboard.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -44,33 +50,33 @@ export default {
                     option
                         .setName("panel_message")
                         .setDescription(
-                            "The main message/description for the ticket panel.",
+                            "The main message/description for the ticket panel (optional).",
                         )
-                        .setRequired(true),
+                        .setRequired(false),
                 )
             .addStringOption((option) =>
     option
         .setName("panel_title")
-        .setDescription("The title displayed on the ticket panel.")
+        .setDescription("The title displayed on the ticket panel (optional).")
         .setRequired(false),
 )
             .addStringOption((option) =>
     option
         .setName("panel_color")
-        .setDescription("HEX color for the ticket panel, e.g. #FFB6C1")
+        .setDescription("HEX color for the ticket panel (default: #2B2D31)")
         .setRequired(false),
 )
                 .addAttachmentOption((option) =>
                     option
                         .setName("image")
-                        .setDescription("An image to display on the ticket panel.")
+                        .setDescription("An image to display on the ticket panel (optional).")
                         .setRequired(false),
 )
                 .addStringOption((option) =>
                     option
                         .setName("button_label")
                         .setDescription(
-                            "The label for the ticket creation button (default: Create Ticket)",
+                            "The label for the ticket creation button (default: Mở Ticket)",
                         )
                         .setRequired(false),
                 )
@@ -158,70 +164,54 @@ export default {
             const categoryChannel = interaction.options.getChannel("category");
             const closedCategoryChannel = interaction.options.getChannel("closed_category");
             const staffRole = interaction.options.getRole("staff_role");
-const panelMessage = interaction.options.getString("panel_message") || "Click the button below to create a support ticket.";
+            const panelMessage = interaction.options.getString("panel_message") || DEFAULT_TICKET_PANEL_MESSAGE;
             const panelTitle =
-    interaction.options.getString("panel_title") ||
-    "Support Tickets";
-const panelColor =
-    interaction.options.getString("panel_color") ||
-    getColor('info');
+                interaction.options.getString("panel_title") || null;
+            const panelColor =
+                interaction.options.getString("panel_color") || DEFAULT_TICKET_PANEL_COLOR;
             const image = interaction.options.getAttachment("image");
             const buttonLabel =
-                interaction.options.getString("button_label") ||
-"Create Ticket";
+                interaction.options.getString("button_label") || "Mở Ticket";
             const maxTicketsPerUser = interaction.options.getInteger("max_tickets_per_user") || 3;
-const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
+            const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 
-           const setupEmbed = createEmbed({
-    title: panelTitle,
-    description: panelMessage,
-    color: panelColor
-});
+            const currentConfig = {
+                ...existingConfig,
+                ticketCategoryId: categoryChannel ? categoryChannel.id : null,
+                ticketClosedCategoryId: closedCategoryChannel ? closedCategoryChannel.id : null,
+                ticketStaffRoleId: staffRole ? staffRole.id : null,
+                ticketPanelChannelId: panelChannel.id,
+                ticketPanelMessage: panelMessage,
+                ticketPanelTitle: panelTitle,
+                ticketPanelColor: panelColor,
+                ticketImage: image?.url || null,
+                ticketButtonLabel: buttonLabel,
+                maxTicketsPerUser: maxTicketsPerUser,
+                dmOnClose: dmOnClose,
+                rulesChannelId: existingConfig?.rulesChannelId || DEFAULT_RULES_CHANNEL_ID,
+            };
 
-const ticketAttachment = getTicketImageAttachment();
-const ticketFiles = ticketAttachment ? [ticketAttachment] : [];
-setupEmbed.setImage(
-    ticketAttachment ? 'attachment://ticket.png' : TICKET_IMAGE_URL,
-);
-
-            const ticketButton = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId("create_ticket")
-.setLabel(buttonLabel)
-                    .setStyle(ButtonStyle.Success)
-                    .setEmoji("📩"),
-            );
+            const setupEmbed = buildPanelEmbed(currentConfig);
+            const ticketFiles = getPanelFiles(currentConfig);
+            const ticketButton = buildPanelButtonRow(currentConfig, interaction.guildId);
 
             try {
-               const sentPanel =
-    await panelChannel.send({
-        embeds: [
-            setupEmbed,
-        ],
+                const sentPanel =
+                    await panelChannel.send({
+                        embeds: [
+                            setupEmbed,
+                        ],
 
-        files: ticketFiles,
+                        files: ticketFiles,
 
-        components: [
-            ticketButton,
-        ],
-    });
+                        components: [
+                            ticketButton,
+                        ],
+                    });
+
+                currentConfig.ticketPanelMessageId = sentPanel?.id || null;
 
                 if (client.db && interaction.guildId) {
-                    const currentConfig = existingConfig;
-                    currentConfig.ticketCategoryId = categoryChannel ? categoryChannel.id : null;
-                    currentConfig.ticketClosedCategoryId = closedCategoryChannel ? closedCategoryChannel.id : null;
-                    currentConfig.ticketStaffRoleId = staffRole ? staffRole.id : null;
-                    currentConfig.ticketPanelChannelId = panelChannel.id;
-                    currentConfig.ticketPanelMessageId = sentPanel?.id || null;
-                    currentConfig.ticketPanelMessage = panelMessage;
-                    currentConfig.ticketPanelTitle = panelTitle;
-                    currentConfig.ticketPanelColor = panelColor;
-                    currentConfig.ticketImage =
-    TICKET_IMAGE_URL;
-                    currentConfig.ticketButtonLabel = buttonLabel;
-                    currentConfig.maxTicketsPerUser = maxTicketsPerUser;
-                    currentConfig.dmOnClose = dmOnClose;
-
                     await setGuildConfig(client, interaction.guildId, currentConfig);
                     logger.info('Ticket configuration saved', {
                         guildId: interaction.guildId,

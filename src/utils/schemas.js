@@ -47,6 +47,7 @@ export const GuildConfigSchema = z
     ticketImage: z.string().nullable().optional(),
 
     ticketButtonLabel: z.string().max(80).optional(),
+    rulesChannelId: z.string().nullable().optional(),
 
     ticketButtonEmoji: z
       .object({

@@ -13,12 +13,13 @@ export const DEFAULT_GUILD_CONFIG = {
     ticketPanelChannelId: null,
     ticketPanelMessageId: null,
     ticketPanelMessage: null,
-    ticketPanelTitle: 'Support Tickets',
-    ticketPanelColor: null,
+    ticketPanelTitle: null,
+    ticketPanelColor: '#2B2D31',
     ticketImage: null,
 
-    ticketButtonLabel: 'Create Ticket',
+    ticketButtonLabel: 'Mở Ticket',
     ticketButtonEmoji: null,
+    rulesChannelId: '1541283961957912620',
 
     ticketCategoryId: null,
     ticketClosedCategoryId: null,
