@@ -7,6 +7,10 @@ import {
     TextInputBuilder,
     TextInputStyle,
     MessageFlags,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
 } from 'discord.js';
 
 import {
@@ -25,6 +29,19 @@ function errorMessage(
         content,
         ephemeral: true,
     };
+}
+
+async function safeAcknowledgeModal(interaction) {
+    if (interaction.replied || interaction.deferred) return;
+    try {
+        await interaction.deferUpdate();
+    } catch (_) {
+        try {
+            await interaction.deferReply({
+                flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+            });
+        } catch (__) {}
+    }
 }
 
 export default [
@@ -59,6 +76,11 @@ export default [
                 );
             }
 
+            let title = '';
+            try {
+                title = interaction.fields.getTextInputValue('response_title')?.trim() || '';
+            } catch (_) {}
+
             const content =
                 interaction.fields
                     .getTextInputValue(
@@ -66,8 +88,13 @@ export default [
                     )
                     ?.trim() || '';
 
-            session.response.content =
-                content;
+            session.response.content = content;
+            if (!session.response.embeds?.length) {
+                session.response.embeds = [{}];
+            }
+            session.response.embeds[0].title = title;
+            session.response.embeds[0].description = content;
+            session.response.title = title;
 
             updateBuilderSession(
                 sessionId,
@@ -77,16 +104,53 @@ export default [
                 },
             );
 
-            await interaction.reply({
-                content:
-                    '🌸 Đã lưu nội dung. Builder đang được mở...',
-                ephemeral: true,
-            });
-
+            await safeAcknowledgeModal(interaction);
             await sendBuilder(
                 interaction,
                 session,
             );
+        },
+    },
+
+    {
+        name: 'autoresponder_edit_title',
+        async execute(interaction, client, args) {
+            const [sessionId] = args;
+            const session = getBuilderSession(sessionId);
+            if (!session || session.userId !== interaction.user.id) return;
+
+            const newTitle = interaction.fields.getTextInputValue('title_input')?.trim() || '';
+            if (!session.response.embeds?.length) {
+                session.response.embeds = [{}];
+            }
+            session.response.embeds[0].title = newTitle;
+            session.response.title = newTitle;
+
+            updateBuilderSession(sessionId, { response: session.response });
+
+            await safeAcknowledgeModal(interaction);
+            await sendBuilder(interaction, session);
+        },
+    },
+
+    {
+        name: 'autoresponder_edit_content',
+        async execute(interaction, client, args) {
+            const [sessionId] = args;
+            const session = getBuilderSession(sessionId);
+            if (!session || session.userId !== interaction.user.id) return;
+
+            const newContent = interaction.fields.getTextInputValue('content_input')?.trim() || '';
+            if (!session.response.embeds?.length) {
+                session.response.embeds = [{}];
+            }
+            session.response.embeds[0].description = newContent;
+            session.response.content = newContent;
+
+            updateBuilderSession(sessionId, { response: session.response });
+
+            await safeAcknowledgeModal(interaction);
+            await sendBuilder(interaction, session);
         },
     },
 
@@ -155,6 +219,8 @@ export default [
 
             session.response.embeds =
                 [embed];
+            if (embed.title) session.response.title = embed.title;
+            if (embed.description) session.response.content = embed.description;
 
             updateBuilderSession(
                 sessionId,
@@ -164,11 +230,11 @@ export default [
                 },
             );
 
-            await interaction.reply({
-                content:
-                    '🎨 Embed đã được lưu.',
-                ephemeral: true,
-            });
+            await safeAcknowledgeModal(interaction);
+            await sendBuilder(
+                interaction,
+                session,
+            );
         },
     },
 {
@@ -239,13 +305,7 @@ updateBuilderSession(
             session.response,
     },
 );
-        await interaction.reply({
-            content:
-                `🖼️ Đã lưu ${images.length} hình ảnh.`,
-            flags:
-                MessageFlags.Ephemeral,
-        });
-
+        await safeAcknowledgeModal(interaction);
         await sendBuilder(
             interaction,
             session,
@@ -337,11 +397,11 @@ updateBuilderSession(
                 },
             );
 
-            await interaction.reply({
-                content:
-                    '🔘 Button đã được thêm.',
-                ephemeral: true,
-            });
+            await safeAcknowledgeModal(interaction);
+            await sendBuilder(
+                interaction,
+                session,
+            );
         },
     },
     {
@@ -484,13 +544,7 @@ updateBuilderSession(
     },
 );
 
-await interaction.reply({
-    content:
-        '💬 Đã cập nhật Keyword / Type / Footer / Reply / Mention.',
-    flags:
-        MessageFlags.Ephemeral,
-});
-
+        await safeAcknowledgeModal(interaction);
         await sendBuilder(
             interaction,
             session,
@@ -503,114 +557,95 @@ export async function sendBuilder(
     interaction,
     session,
 ) {
-    const embed =
-        new EmbedBuilder()
-            .setColor('#FFB6D9')
-            .setTitle(
-                '🌸 Autoresponder Builder',
-            )
-            .setDescription(
+    const title = session.response?.embeds?.[0]?.title || session.response?.title || '';
+    const content = session.response?.embeds?.[0]?.description || session.response?.content || '';
+    const imagesCount = session.response?.images?.length || 0;
+    const buttonsCount = session.response?.buttons?.length || 0;
+
+    const container = new ContainerBuilder()
+        .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent('# Autoresponder Builder')
+        )
+        .addSeparatorComponents(
+            new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
                 [
-                    `🔑 **Keyword:** ${session.keyword || '(chưa có)'}`,
-                    `🎀 **Type:** ${session.type || 'everyone'}`,
+                    `🔑 **Từ khóa (Keyword):** \`${session.keyword || '(chưa có)'}\``,
+                    `🏷️ **Phạm vi (Type):** \`${session.type || 'everyone'}\``,
                     '',
-                    'Chọn một mục bên dưới để chỉnh response.',
-                    '',
-                    '🎨 **Edit Embed** — chỉnh Embed.',
-                    '🔘 **Add Button** — thêm button.',
-                    '💬 **Reply / Settings** — chỉnh reply và mention.',
-                    '💾 **Save** — lưu autoresponder.',
-                    '🌷 **Cancel** — hủy thao tác.',
-                ].join('\n'),
-            );
-
-const row =
-    new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(
-                    `autoresponder_embed:${session.sessionId}`,
-                )
-                .setLabel('Edit Embed')
-                .setEmoji('🎨')
-                .setStyle(
-                    ButtonStyle.Primary,
-                ),
-
-            new ButtonBuilder()
-                .setCustomId(
-                    `autoresponder_add_button:${session.sessionId}`,
-                )
-                .setLabel('Add Button')
-                .setEmoji('🔘')
-                .setStyle(
-                    ButtonStyle.Secondary,
-                ),
-
-            new ButtonBuilder()
-                .setCustomId(
-                    `autoresponder_images:${session.sessionId}`,
-                )
-                .setLabel('Add Images')
-                .setEmoji('🖼️')
-                .setStyle(
-                    ButtonStyle.Secondary,
-                ),
-
-            new ButtonBuilder()
-                .setCustomId(
-                    `autoresponder_settings:${session.sessionId}`,
-                )
-                .setLabel('Settings')
-                .setEmoji('💬')
-                .setStyle(
-                    ButtonStyle.Secondary,
-                ),
+                    `📌 **Tiêu đề (Title):** ${title ? title : '*(Chưa đặt - bấm nút Sửa Title để thêm)*'}`,
+                    `📝 **Nội dung (Content):**\n${content ? (content.length > 500 ? content.slice(0, 500) + '...' : content) : '*(Trống - bấm nút Sửa Nội Dung để nhập)*'}`,
+                    imagesCount > 0 ? `🖼️ **Hình ảnh:** ${imagesCount} ảnh` : '',
+                    buttonsCount > 0 ? `🔘 **Buttons:** ${buttonsCount} nút` : '',
+                ]
+                    .filter(Boolean)
+                    .join('\n')
+            )
         );
 
-const actionRow =
-    new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(
-                    `autoresponder_save:${session.sessionId}`,
-                )
-                .setLabel('Save')
-                .setEmoji('💾')
-                .setStyle(
-                    ButtonStyle.Success,
-                ),
+    const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_edit_title:${session.sessionId}`)
+            .setLabel('Sửa Title')
+            .setEmoji('✏️')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_edit_content:${session.sessionId}`)
+            .setLabel('Sửa Nội Dung')
+            .setEmoji('📝')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_add_button:${session.sessionId}`)
+            .setLabel('Thêm Nút')
+            .setEmoji('🔘')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_images:${session.sessionId}`)
+            .setLabel('Thêm Ảnh')
+            .setEmoji('🖼️')
+            .setStyle(ButtonStyle.Secondary),
+    );
 
-            new ButtonBuilder()
-                .setCustomId(
-                    `autoresponder_cancel:${session.sessionId}`,
-                )
-                .setLabel('Cancel')
-                .setEmoji('🌷')
-                .setStyle(
-                    ButtonStyle.Danger,
-                ),
-        );
-const payload = {
-    embeds: [embed],
-    components: [
-        row,
-        actionRow,
-    ],
-};
+    const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_settings:${session.sessionId}`)
+            .setLabel('Cài Đặt')
+            .setEmoji('⚙️')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_save:${session.sessionId}`)
+            .setLabel('Lưu')
+            .setEmoji('💾')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`autoresponder_cancel:${session.sessionId}`)
+            .setLabel('Hủy')
+            .setEmoji('✖️')
+            .setStyle(ButtonStyle.Secondary),
+    );
+
+    container.addActionRowComponents(row1, row2);
+
+    const payload = {
+        content: null,
+        embeds: [],
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+    };
 
     if (
         interaction.replied ||
         interaction.deferred
     ) {
-        return interaction.editReply(
-            payload,
-        );
+        return interaction.editReply(payload);
     }
 
     return interaction.reply({
         ...payload,
         flags:
-            MessageFlags.Ephemeral,
+            MessageFlags.Ephemeral |
+            MessageFlags.IsComponentsV2,
     });
 }

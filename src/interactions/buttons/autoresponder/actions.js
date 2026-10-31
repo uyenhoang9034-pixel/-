@@ -21,7 +21,7 @@ export default [
 
             await interaction.reply({
                 content:
-                    '🌸 Button này chưa được cấu hình hành động.',
+                    'Button này chưa được cấu hình hành động.',
                 flags:
                     MessageFlags.Ephemeral,
             });

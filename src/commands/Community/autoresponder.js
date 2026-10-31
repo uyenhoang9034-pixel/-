@@ -208,7 +208,7 @@ export default {
                     interaction,
                     {
                         content:
-                            `🌷 Manager Role đã được đặt thành ${role}.`,
+                            `✅ Manager Role đã được đặt thành ${role}.`,
                         flags:
                             MessageFlags.Ephemeral,
                     },
@@ -291,7 +291,7 @@ export default {
                         interaction,
                         {
                             content:
-                                '🌷 Server chưa có autoresponder nào.',
+                                'Server chưa có autoresponder nào.',
                             flags:
                                 MessageFlags.Ephemeral,
                         },
@@ -308,7 +308,7 @@ export default {
                     interaction,
                     {
                         content:
-                            `🌸 **Autoresponders**\n\n${lines.join('\n')}`,
+                            `📋 **Danh sách Autoresponder**\n\n${lines.join('\n')}`,
                         flags:
                             MessageFlags.Ephemeral,
                     },
@@ -389,11 +389,10 @@ export default {
                 responder.response,
         });
 
-    await interaction.reply({
-        content:
-            '🌸 Đang mở Autoresponder Builder...',
+    await interaction.deferReply({
         flags:
-            MessageFlags.Ephemeral,
+            MessageFlags.Ephemeral |
+            MessageFlags.IsComponentsV2,
     });
 
     const {
@@ -460,15 +459,31 @@ function buildInitialModal(
     sessionId,
     keyword,
 ) {
-
     return new ModalBuilder()
         .setCustomId(
             `autoresponder_initial:${sessionId}`,
         )
         .setTitle(
-            '🌸 Autoresponder',
+            'Autoresponder',
         )
         .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId(
+                        'response_title',
+                    )
+                    .setLabel(
+                        'Tiêu đề (Title - có thể để trống)',
+                    )
+                    .setStyle(
+                        TextInputStyle.Short,
+                    )
+                    .setRequired(false)
+                    .setPlaceholder(
+                        'Nhập tiêu đề phản hồi (tùy chọn)...',
+                    )
+                    .setMaxLength(256),
+            ),
             new ActionRowBuilder().addComponents(
                 new TextInputBuilder()
                     .setCustomId(
@@ -480,11 +495,11 @@ function buildInitialModal(
                     .setStyle(
                         TextInputStyle.Paragraph,
                     )
-                    .setRequired(false)
+                    .setRequired(true)
                     .setPlaceholder(
                         'Nhập nội dung bot sẽ trả lời...',
                     )
-                    .setMaxLength(2000),
+                    .setMaxLength(4000),
             ),
         );
 }

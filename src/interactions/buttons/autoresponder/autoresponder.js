@@ -19,6 +19,66 @@ import {
 
 export default [
     {
+        name: 'autoresponder_edit_title',
+        async execute(interaction, client, args) {
+            const [sessionId] = args;
+            const session = getBuilderSession(sessionId);
+            if (!session || session.userId !== interaction.user.id) return;
+
+            const current = session.response.embeds?.[0] || {};
+            const titleValue = current.title || session.response.title || '';
+
+            const modal = new ModalBuilder()
+                .setCustomId(`autoresponder_edit_title:${sessionId}`)
+                .setTitle('Sửa Tiêu Đề')
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('title_input')
+                            .setLabel('Tiêu đề (Title)')
+                            .setStyle(TextInputStyle.Short)
+                            .setPlaceholder('Nhập tiêu đề autoresponder (hoặc để trống)...')
+                            .setValue(titleValue.substring(0, 256))
+                            .setRequired(false)
+                            .setMaxLength(256),
+                    ),
+                );
+
+            await interaction.showModal(modal);
+        },
+    },
+
+    {
+        name: 'autoresponder_edit_content',
+        async execute(interaction, client, args) {
+            const [sessionId] = args;
+            const session = getBuilderSession(sessionId);
+            if (!session || session.userId !== interaction.user.id) return;
+
+            const current = session.response.embeds?.[0] || {};
+            const contentValue = current.description || session.response.content || '';
+
+            const modal = new ModalBuilder()
+                .setCustomId(`autoresponder_edit_content:${sessionId}`)
+                .setTitle('Sửa Nội Dung')
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('content_input')
+                            .setLabel('Nội dung phản hồi (Description)')
+                            .setStyle(TextInputStyle.Paragraph)
+                            .setPlaceholder('Nhập nội dung bot sẽ trả lời...')
+                            .setValue(contentValue.substring(0, 4000))
+                            .setRequired(true)
+                            .setMaxLength(4000),
+                    ),
+                );
+
+            await interaction.showModal(modal);
+        },
+    },
+
+    {
         name:
             'autoresponder_embed',
 
@@ -336,7 +396,7 @@ export default [
 
             await interaction.reply({
                 content:
-                    `🌸 Đã lưu autoresponder **${result.responder.displayKeyword}** thành công!`,
+                    `✅ Đã lưu autoresponder **${result.responder.displayKeyword}** thành công!`,
                 flags:
                     MessageFlags.Ephemeral,
             });
@@ -503,7 +563,7 @@ export default [
 
             await interaction.reply({
                 content:
-                    '🌷 Đã hủy Builder.',
+                    'Đã hủy Builder.',
                 flags:
                     MessageFlags.Ephemeral,
             });

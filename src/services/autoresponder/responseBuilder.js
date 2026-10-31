@@ -3,12 +3,25 @@ import {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+    MessageFlags,
 } from 'discord.js';
 
 import {
     normalizeAutoresponderResponse,
     validateAutoresponderResponse,
 } from './responseValidator.js';
+
+function isFlowerDecorOnly(text) {
+    if (!text) return true;
+    const stripped = text.replace(/[⋆.˚𝜗𝜚🌸🌷🎀✨ \t\r\n]/gu, '');
+    return stripped.length === 0;
+}
 
 function buildEmbed(data) {
     const embed =
@@ -205,53 +218,75 @@ export function buildDiscordMessagePayload(
             response.allowedMentions,
     };
 
-    if (response.content) {
-        payload.content =
-            response.content;
+    // Extract Title
+    const rawTitle =
+        response.title ||
+        response.embeds?.[0]?.title ||
+        '';
+
+    // Extract Content / Description
+    let rawContent = response.content || '';
+    let rawDesc =
+        response.embeds?.[0]?.description || '';
+
+    if (isFlowerDecorOnly(rawContent)) {
+        rawContent = '';
+    }
+    if (isFlowerDecorOnly(rawDesc)) {
+        rawDesc = '';
     }
 
-const embeds = [
-    ...response.embeds,
-];
+    let finalTitle = rawTitle.trim();
+    let finalDesc =
+        rawDesc.trim() || rawContent.trim();
 
-if (
-    Array.isArray(
-        response.images,
-    )
-) {
-    for (
-        const image of
-        response.images
-    ) {
-        if (
-            embeds.length >= 10
-        ) {
-            break;
-        }
-
-        if (
-            typeof image !==
-                'string' ||
-            !image
-        ) {
-            continue;
-        }
-
-        embeds.push({
-            image,
-        });
+    // If title is not set explicitly, but content starts with # header
+    if (!finalTitle && finalDesc.startsWith('# ')) {
+        const lines = finalDesc.split('\n');
+        finalTitle = lines[0];
+        finalDesc = lines
+            .slice(1)
+            .join('\n')
+            .trim();
     }
-}
 
-if (embeds.length) {
-    payload.embeds =
-        embeds
-            .slice(0, 10)
-            .map(
-                buildEmbed,
-            );
-}
+    // Extract Images
+    const images = [];
     if (
+        Array.isArray(
+            response.images,
+        )
+    ) {
+        for (
+            const img of response.images
+        ) {
+            if (
+                typeof img ===
+                    'string' &&
+                img.trim()
+            ) {
+                images.push(
+                    img.trim(),
+                );
+            }
+        }
+    }
+    const embedImg =
+        response.embeds?.[0]?.image;
+    const embedImgUrl =
+        typeof embedImg === 'string'
+            ? embedImg
+            : embedImg?.url;
+    if (
+        embedImgUrl &&
+        !images.includes(embedImgUrl)
+    ) {
+        images.push(embedImgUrl);
+    }
+
+    // Extract Files
+    if (
+        response.files &&
         response.files.length
     ) {
         payload.files =
@@ -267,14 +302,112 @@ if (embeds.length) {
             );
     }
 
-    const components =
-        buildComponents(
-            response.buttons,
-        );
+    const hasContainerContent =
+        finalTitle ||
+        finalDesc ||
+        images.length > 0 ||
+        (response.buttons &&
+            response.buttons.length > 0);
 
-    if (components.length) {
-        payload.components =
-            components;
+    if (hasContainerContent) {
+        const container =
+            new ContainerBuilder();
+
+        // 1. Header Title
+        if (finalTitle) {
+            const formattedTitle =
+                finalTitle.startsWith(
+                    '#',
+                )
+                    ? finalTitle
+                    : `# ${finalTitle}`;
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    formattedTitle,
+                ),
+            );
+
+            // Native horizontal divider line right below Title
+            container.addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setDivider(
+                        true,
+                    )
+                    .setSpacing(
+                        SeparatorSpacingSize.Small,
+                    ),
+            );
+        }
+
+        // 2. Body Description
+        if (finalDesc) {
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    finalDesc,
+                ),
+            );
+        }
+
+        // 3. Media Gallery (Images)
+        if (images.length > 0) {
+            const gallery =
+                new MediaGalleryBuilder();
+            for (
+                const imgUrl of images.slice(
+                    0,
+                    4,
+                )
+            ) {
+                gallery.addItems(
+                    new MediaGalleryItemBuilder().setURL(
+                        imgUrl,
+                    ),
+                );
+            }
+            container.addMediaGalleryComponents(
+                gallery,
+            );
+        }
+
+        // 4. Buttons (Action Rows)
+        const buttonRows =
+            buildComponents(
+                response.buttons,
+            );
+        for (
+            const row of buttonRows
+        ) {
+            container.addActionRowComponents(
+                row,
+            );
+        }
+
+        payload.components = [
+            container,
+        ];
+        payload.flags =
+            MessageFlags.IsComponentsV2;
+
+        // If there are mention tags outside container
+        if (
+            rawContent &&
+            rawDesc &&
+            rawContent !== rawDesc &&
+            (rawContent.includes(
+                '<@',
+            ) ||
+                rawContent.includes(
+                    '@everyone',
+                ) ||
+                rawContent.includes(
+                    '@here',
+                ))
+        ) {
+            payload.content =
+                rawContent;
+        }
+    } else if (rawContent) {
+        payload.content = rawContent;
     }
 
     return payload;

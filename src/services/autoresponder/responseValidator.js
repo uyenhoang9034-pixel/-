@@ -6,6 +6,13 @@ const MAX_IMAGES = 10;
 
 export function normalizeAutoresponderResponse(response = {}) {
     return {
+        title:
+            typeof response.title === 'string'
+                ? response.title
+                : typeof response.embeds?.[0]?.title === 'string'
+                    ? response.embeds[0].title
+                    : '',
+
         content:
             typeof response.content === 'string'
                 ? response.content
