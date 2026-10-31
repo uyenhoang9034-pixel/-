@@ -32,7 +32,7 @@ function resolveButtonEmoji(value) {
     }
 
     const customEmoji = value.match(
-        /^<(?<animated>a)?:(?<name>[^:>]+):(?<id>\\d+)>$/,
+        /^<(?<animated>a)?:(?<name>[^:>]+):(?<id>\d+)>$/,
     );
 
     if (customEmoji) {
