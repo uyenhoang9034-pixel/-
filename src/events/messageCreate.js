@@ -857,15 +857,12 @@ async function handleAutoresponder(message, client) {
 
     const payload = buildDiscordMessagePayload(
       responder.response,
+      { targetMentionText },
     );
 
-    // Đưa mention người được chỉ định vào đầu phản hồi
-    if (targetMentionText) {
-      if (payload.content) {
-        payload.content = `${targetMentionText}\n${payload.content}`;
-      } else {
-        payload.content = targetMentionText;
-      }
+    // Đảm bảo không tồn tại trường content nếu dùng MessageFlags.IsComponentsV2 (tránh lỗi MESSAGE_CANNOT_USE_LEGACY_FIELDS_WITH_COMPONENTS_V2)
+    if (payload.flags && (payload.flags & MessageFlags.IsComponentsV2)) {
+      delete payload.content;
     }
 
     // Đảm bảo allowedMentions hợp lệ với Discord API (parse: ['users'] và users: [...] không được đi cùng nhau)

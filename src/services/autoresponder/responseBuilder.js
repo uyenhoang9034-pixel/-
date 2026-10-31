@@ -196,7 +196,11 @@ function buildComponents(
 
 export function buildDiscordMessagePayload(
     rawResponse,
+    options = {},
 ) {
+    const targetMentionText =
+        options.targetMentionText || '';
+
     const response =
         normalizeAutoresponderResponse(
             rawResponse,
@@ -313,6 +317,15 @@ export function buildDiscordMessagePayload(
         const container =
             new ContainerBuilder();
 
+        // 0. Target Mention Text (Tag người được chỉ định)
+        if (targetMentionText) {
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    targetMentionText,
+                ),
+            );
+        }
+
         // 1. Header Title
         if (finalTitle) {
             const formattedTitle =
@@ -387,27 +400,16 @@ export function buildDiscordMessagePayload(
         ];
         payload.flags =
             MessageFlags.IsComponentsV2;
+    } else {
+        const contentParts = [
+            targetMentionText,
+            rawContent,
+        ].filter(Boolean);
 
-        // If there are mention tags outside container
-        if (
-            rawContent &&
-            rawDesc &&
-            rawContent !== rawDesc &&
-            (rawContent.includes(
-                '<@',
-            ) ||
-                rawContent.includes(
-                    '@everyone',
-                ) ||
-                rawContent.includes(
-                    '@here',
-                ))
-        ) {
+        if (contentParts.length > 0) {
             payload.content =
-                rawContent;
+                contentParts.join('\n');
         }
-    } else if (rawContent) {
-        payload.content = rawContent;
     }
 
     return payload;
