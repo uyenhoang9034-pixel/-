@@ -121,9 +121,7 @@ function buildDashboardEmbed(config, session) {
             {
                 name: '🔗 Linked Channels',
                 value:
-                    String(
-                        selected.channels?.length || 0,
-                    ),
+                    `${selected.channels?.length || 0} kênh đã liên kết\\nMở Edit Guide để thêm hoặc thay Channel IDs.`,
                 inline: true,
             },
         );
@@ -142,7 +140,7 @@ function buildDashboardEmbed(config, session) {
             '🌸 Channel Guide Dashboard',
         )
         .setDescription(
-            'Quản lý toàn bộ các hướng dẫn của Serendipity tại đây.',
+            'Quản lý các danh mục Channel Guide. Muốn gắn kênh: chọn danh mục → Edit Guide → nhập Channel IDs (các ID cách nhau bằng dấu phẩy) → Save.',
         )
         .addFields(fields)
         .setFooter({
