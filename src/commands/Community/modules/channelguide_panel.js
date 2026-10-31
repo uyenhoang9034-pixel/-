@@ -16,14 +16,7 @@ import {
 const PAGE_SIZE = 20;
 
 const BUTTON_STYLES = [
-    ButtonStyle.Primary,
-    ButtonStyle.Success,
     ButtonStyle.Secondary,
-    ButtonStyle.Primary,
-    ButtonStyle.Danger,
-    ButtonStyle.Success,
-    ButtonStyle.Secondary,
-    ButtonStyle.Primary,
 ];
 
 function resolveButtonEmoji(value) {
@@ -71,8 +64,7 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
         size: 128,
     }) || null;
 
-    const container = new ContainerBuilder()
-        .setAccentColor(0xf6b6d6);
+    const container = new ContainerBuilder();
 
     const heading = new SectionBuilder()
         .addTextDisplayComponents(
