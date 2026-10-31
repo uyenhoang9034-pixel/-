@@ -31,19 +31,6 @@ function errorMessage(
     };
 }
 
-async function safeAcknowledgeModal(interaction) {
-    if (interaction.replied || interaction.deferred) return;
-    try {
-        await interaction.deferUpdate();
-    } catch (_) {
-        try {
-            await interaction.deferReply({
-                flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
-            });
-        } catch (__) {}
-    }
-}
-
 export default [
     {
         name:
@@ -104,7 +91,6 @@ export default [
                 },
             );
 
-            await safeAcknowledgeModal(interaction);
             await sendBuilder(
                 interaction,
                 session,
@@ -128,7 +114,6 @@ export default [
 
             updateBuilderSession(sessionId, { response: session.response });
 
-            await safeAcknowledgeModal(interaction);
             await sendBuilder(interaction, session);
         },
     },
@@ -149,7 +134,6 @@ export default [
 
             updateBuilderSession(sessionId, { response: session.response });
 
-            await safeAcknowledgeModal(interaction);
             await sendBuilder(interaction, session);
         },
     },
@@ -230,7 +214,6 @@ export default [
                 },
             );
 
-            await safeAcknowledgeModal(interaction);
             await sendBuilder(
                 interaction,
                 session,
@@ -305,7 +288,6 @@ updateBuilderSession(
             session.response,
     },
 );
-        await safeAcknowledgeModal(interaction);
         await sendBuilder(
             interaction,
             session,
@@ -397,7 +379,6 @@ updateBuilderSession(
                 },
             );
 
-            await safeAcknowledgeModal(interaction);
             await sendBuilder(
                 interaction,
                 session,
@@ -544,7 +525,6 @@ updateBuilderSession(
     },
 );
 
-        await safeAcknowledgeModal(interaction);
         await sendBuilder(
             interaction,
             session,
@@ -635,14 +615,32 @@ export async function sendBuilder(
         flags: MessageFlags.IsComponentsV2,
     };
 
-    if (
-        interaction.replied ||
-        interaction.deferred
-    ) {
-        return interaction.editReply(payload);
+    if (interaction.deferred) {
+        try {
+            return await interaction.editReply(payload);
+        } catch (err) {
+            if (err.code === 10008 || err.message?.includes('Unknown Message')) {
+                return await interaction.followUp({
+                    ...payload,
+                    flags:
+                        MessageFlags.Ephemeral |
+                        MessageFlags.IsComponentsV2,
+                }).catch(() => {});
+            }
+            throw err;
+        }
     }
 
-    return interaction.reply({
+    if (interaction.replied) {
+        return await interaction.followUp({
+            ...payload,
+            flags:
+                MessageFlags.Ephemeral |
+                MessageFlags.IsComponentsV2,
+        }).catch(() => {});
+    }
+
+    return await interaction.reply({
         ...payload,
         flags:
             MessageFlags.Ephemeral |
