@@ -121,7 +121,7 @@ function buildDashboardEmbed(config, session) {
             {
                 name: '🔗 Linked Channels',
                 value:
-                    `${selected.channels?.length || 0} kênh đã liên kết\\nMở Edit Guide để thêm hoặc thay Channel IDs.`,
+                    `${selected.channels?.length || 0} kênh đã liên kết\nMở Edit Guide để thêm hoặc thay Channel IDs.`,
                 inline: true,
             },
         );
