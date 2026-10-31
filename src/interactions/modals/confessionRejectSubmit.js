@@ -1,6 +1,5 @@
 import { MessageFlags,EmbedBuilder } from 'discord.js';
-import { CONFESSION,getConfession,saveConfession,infoEmbed } from '../../services/confessionService.js';
-const CFS_IMAGE='https://files.catbox.moe/wlet8p.png';
+import { CONFESSION,getConfession,saveConfession,infoEmbed,applyConfessionImage } from '../../services/confessionService.js';
 export default {name:'confession_reject_submit',async execute(interaction,client,args){
  if(!interaction.member?.roles?.cache?.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Bạn không có role duyệt confession.',flags:MessageFlags.Ephemeral});
  const d=await getConfession(client,args[0]);if(!d||d.status!=='pending')return interaction.reply({content:'ℹ️ Confession này đã được xử lý hoặc không tồn tại.',flags:MessageFlags.Ephemeral});
@@ -13,8 +12,9 @@ export default {name:'confession_reject_submit',async execute(interaction,client
    `Confession #${d.number} đã bị từ chối.\n\n`+
    `**Lý do:**\n*${reason}*\n\n`+
    `*Bạn có thể chỉnh lại nội dung và gửi confession mới.*`
-  ).setImage(CFS_IMAGE);
-  await u.send({embeds:[dmEmbed]});
+  );
+  const files=applyConfessionImage(dmEmbed);
+  await u.send({embeds:[dmEmbed],files});
  }catch{}
  await interaction.reply({content:`${CONFESSION.emojiReject} Đã từ chối Confession #${d.number}.`,flags:MessageFlags.Ephemeral});
 }};

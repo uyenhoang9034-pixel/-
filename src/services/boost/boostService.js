@@ -1,9 +1,11 @@
 import {
+    AttachmentBuilder,
     EmbedBuilder,
     PermissionFlagsBits,
 } from 'discord.js';
 
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
 import { logger } from '../../utils/logger.js';
 
@@ -24,11 +26,29 @@ const DATA_FILE = path.join(
 
 
 // ============================================================
-// BOOST CDN IMAGE (Catbox)
+// BOOST CDN IMAGE (Catbox & Local Asset)
 // ============================================================
+
+export const BOOST_IMAGE_PATH = path.resolve(
+    process.cwd(),
+    'assets',
+    'boost',
+    'boost.webp',
+);
 
 export const BOOST_IMAGE_URL =
     'https://files.catbox.moe/i0bq7c.webp';
+
+export function getBoostImageAttachment() {
+    try {
+        if (fsSync.existsSync(BOOST_IMAGE_PATH)) {
+            return new AttachmentBuilder(BOOST_IMAGE_PATH, { name: 'boost.webp' });
+        }
+    } catch (err) {
+        logger.warn('Failed to read boost image asset from disk:', err);
+    }
+    return null;
+}
 
 
 // ============================================================
@@ -456,7 +476,9 @@ export function buildBoostEmbed(
                 ),
             )
             .setImage(
-                BOOST_IMAGE_URL,
+                fsSync.existsSync(BOOST_IMAGE_PATH)
+                    ? 'attachment://boost.webp'
+                    : BOOST_IMAGE_URL,
             );
 
 
@@ -817,24 +839,41 @@ export async function sendBoostNotification(
         );
 
 
+    const attachment = getBoostImageAttachment();
+    const files = attachment ? [attachment] : [];
+
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
+            files,
         });
-
 
         return {
             success: true,
         };
     } catch (error) {
+        if (files.length > 0) {
+            try {
+                embed.setImage(BOOST_IMAGE_URL);
+                await channel.send({
+                    embeds: [embed],
+                });
+                return {
+                    success: true,
+                };
+            } catch (fallbackError) {
+                return {
+                    success: false,
+                    reason: 'SEND_FAILED',
+                    error: fallbackError,
+                };
+            }
+        }
         return {
             success: false,
-
-            reason:
-                'SEND_FAILED',
-
+            reason: 'SEND_FAILED',
             error,
         };
     }
@@ -1054,24 +1093,41 @@ export async function sendTestBoost(
         );
 
 
+    const attachment = getBoostImageAttachment();
+    const files = attachment ? [attachment] : [];
+
     try {
         await channel.send({
             embeds: [
                 embed,
             ],
+            files,
         });
-
 
         return {
             success: true,
         };
     } catch (error) {
+        if (files.length > 0) {
+            try {
+                embed.setImage(BOOST_IMAGE_URL);
+                await channel.send({
+                    embeds: [embed],
+                });
+                return {
+                    success: true,
+                };
+            } catch (fallbackError) {
+                return {
+                    success: false,
+                    reason: 'SEND_FAILED',
+                    error: fallbackError,
+                };
+            }
+        }
         return {
             success: false,
-
-            reason:
-                'SEND_FAILED',
-
+            reason: 'SEND_FAILED',
             error,
         };
     }

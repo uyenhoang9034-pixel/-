@@ -3,7 +3,11 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'fs';
+import path from 'path';
 
 import {
   getJoinToCreateConfig,
@@ -20,6 +24,9 @@ import {
  * PANEL IMAGE
  * =========================================================
  */
+
+export const JTC_PANEL_IMAGE_PATH =
+  path.resolve(process.cwd(), 'assets/jointocreate/jointocreate.png');
 
 export const JTC_PANEL_IMAGE_URL =
   'https://files.catbox.moe/ob4lqy.png';
@@ -180,14 +187,18 @@ export function buildJoinToCreateControlPanel() {
         ),
       )
 
-      .setImage(
-        JTC_PANEL_IMAGE_URL,
-      )
+  const attachment = fs.existsSync(JTC_PANEL_IMAGE_PATH)
+    ? new AttachmentBuilder(JTC_PANEL_IMAGE_PATH, { name: 'jointocreate.png' })
+    : null;
 
-      .setFooter({
-        text:
-          'Usagi TempVoice • Phòng sẽ tự xóa khi không còn người',
-      });
+  embed
+    .setImage(
+      attachment ? 'attachment://jointocreate.png' : JTC_PANEL_IMAGE_URL,
+    )
+    .setFooter({
+      text:
+        'Usagi TempVoice • Phòng sẽ tự xóa khi không còn người',
+    });
 
 
   /**
@@ -470,6 +481,8 @@ export function buildJoinToCreateControlPanel() {
     embeds: [
       embed,
     ],
+
+    files: attachment ? [attachment] : [],
 
     components: [
       row1,

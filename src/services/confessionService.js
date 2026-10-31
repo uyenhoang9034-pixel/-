@@ -1,4 +1,28 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, AttachmentBuilder } from 'discord.js';
+
+export const CFS_IMAGE_PATH = path.resolve(process.cwd(), 'assets/confessions/cfs.png');
+export const CFS_IMAGE_URL = 'https://files.catbox.moe/wlet8p.png';
+
+export function getConfessionImageAttachment() {
+  try {
+    if (fs.existsSync(CFS_IMAGE_PATH)) {
+      return new AttachmentBuilder(CFS_IMAGE_PATH, { name: 'cfs.png' });
+    }
+  } catch {}
+  return null;
+}
+
+export function applyConfessionImage(embed) {
+  const att = getConfessionImageAttachment();
+  if (att) {
+    embed.setImage('attachment://cfs.png');
+    return [att];
+  }
+  embed.setImage(CFS_IMAGE_URL);
+  return [];
+}
 
 export const CONFESSION = {
   publicForumId: '1551813977502130216',

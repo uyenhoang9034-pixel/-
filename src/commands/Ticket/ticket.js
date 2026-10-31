@@ -15,17 +15,10 @@ import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfi
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+import { getTicketImageAttachment, TICKET_IMAGE_URL } from '../../services/ticket.js';
 
 import ticketConfig from './modules/ticket_dashboard.js';
 
-/**
- * =========================================================
- * TICKET IMAGE
- * =========================================================
- */
-
-const TICKET_IMAGE_URL =
-    'https://files.catbox.moe/xdd9hc.png';
 export default {
     data: new SlashCommandBuilder()
         .setName("ticket")
@@ -185,8 +178,10 @@ const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
     color: panelColor
 });
 
+const ticketAttachment = getTicketImageAttachment();
+const ticketFiles = ticketAttachment ? [ticketAttachment] : [];
 setupEmbed.setImage(
-    TICKET_IMAGE_URL,
+    ticketAttachment ? 'attachment://ticket.png' : TICKET_IMAGE_URL,
 );
 
             const ticketButton = new ActionRowBuilder().addComponents(
@@ -203,6 +198,8 @@ setupEmbed.setImage(
         embeds: [
             setupEmbed,
         ],
+
+        files: ticketFiles,
 
         components: [
             ticketButton,

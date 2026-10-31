@@ -1,5 +1,8 @@
 // ticket.js
 
+import fs from 'fs';
+import path from 'path';
+
 import {
   ChannelType,
   ActionRowBuilder,
@@ -70,8 +73,22 @@ const TICKET_SERVICE =
  * =========================================================
  */
 
+export const TICKET_IMAGE_PATH =
+  path.resolve(process.cwd(), 'assets/ticket/ticket.png');
+
 export const TICKET_IMAGE_URL =
   'https://files.catbox.moe/xdd9hc.png';
+
+export function getTicketImageAttachment() {
+  try {
+    if (fs.existsSync(TICKET_IMAGE_PATH)) {
+      return new AttachmentBuilder(TICKET_IMAGE_PATH, { name: 'ticket.png' });
+    }
+  } catch (err) {
+    logger.warn('Failed to read ticket asset from disk:', err);
+  }
+  return null;
+}
 
 
 /**
@@ -558,6 +575,9 @@ export async function createTicket(
 
 
 
+    const ticketAttachment = getTicketImageAttachment();
+    const ticketFiles = ticketAttachment ? [ticketAttachment] : [];
+
     const embed =
       createEmbed(
         {
@@ -573,7 +593,7 @@ export async function createTicket(
 
           image: {
             url:
-              TICKET_IMAGE_URL,
+              ticketAttachment ? 'attachment://ticket.png' : TICKET_IMAGE_URL,
           },
 
           fields: [
@@ -649,6 +669,8 @@ export async function createTicket(
           embeds: [
             embed,
           ],
+
+          files: ticketFiles,
 
           components: [
             row,
@@ -926,6 +948,9 @@ export async function closeTicket(
           ticketCreator
         ) {
           try {
+            const feedbackAttachment = getTicketImageAttachment();
+            const feedbackFiles = feedbackAttachment ? [feedbackAttachment] : [];
+
             const feedbackEmbed =
               createEmbed(
                 {
@@ -943,7 +968,7 @@ export async function closeTicket(
 
                   image: {
                     url:
-                      TICKET_IMAGE_URL,
+                      feedbackAttachment ? 'attachment://ticket.png' : TICKET_IMAGE_URL,
                   },
 
                   footer: {
@@ -1052,6 +1077,8 @@ export async function closeTicket(
                 embeds: [
                   feedbackEmbed,
                 ],
+
+                files: feedbackFiles,
 
                 components: [
                   starsRow,

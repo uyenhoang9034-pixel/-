@@ -2,7 +2,11 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   MessageFlags,
+  AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'fs';
+import path from 'path';
 
 import {
   createEmbed,
@@ -47,6 +51,12 @@ import {
  * IMAGE CONFIG
  * =========================================================
  */
+
+const WORD_CHAIN_SETUP_IMAGE_PATH =
+  path.resolve(process.cwd(), 'assets/noitu/noitu.webp');
+
+const WORD_CHAIN_LEADERBOARD_IMAGE_PATH =
+  path.resolve(process.cwd(), 'assets/noitu/noituleaderboard.webp');
 
 const WORD_CHAIN_SETUP_IMAGE_URL =
   'https://files.catbox.moe/5zr3vm.webp';
@@ -598,8 +608,12 @@ export default {
               WORD_CHAIN_SETUP_COLOR,
           });
 
+        const pvpAttachment = fs.existsSync(WORD_CHAIN_SETUP_IMAGE_PATH)
+          ? new AttachmentBuilder(WORD_CHAIN_SETUP_IMAGE_PATH, { name: 'noitu.webp' })
+          : null;
+
         pvpEmbed.setImage(
-          WORD_CHAIN_SETUP_IMAGE_URL,
+          pvpAttachment ? 'attachment://noitu.webp' : WORD_CHAIN_SETUP_IMAGE_URL,
         );
 
         await pvpChannel
@@ -607,6 +621,7 @@ export default {
             embeds: [
               pvpEmbed,
             ],
+            files: pvpAttachment ? [pvpAttachment] : [],
           })
           .catch(
             error => {
@@ -638,8 +653,12 @@ export default {
               WORD_CHAIN_SETUP_COLOR,
           });
 
+        const botAttachment = fs.existsSync(WORD_CHAIN_SETUP_IMAGE_PATH)
+          ? new AttachmentBuilder(WORD_CHAIN_SETUP_IMAGE_PATH, { name: 'noitu.webp' })
+          : null;
+
         botEmbed.setImage(
-          WORD_CHAIN_SETUP_IMAGE_URL,
+          botAttachment ? 'attachment://noitu.webp' : WORD_CHAIN_SETUP_IMAGE_URL,
         );
 
         await botChannel
@@ -647,6 +666,7 @@ export default {
             embeds: [
               botEmbed,
             ],
+            files: botAttachment ? [botAttachment] : [],
           })
           .catch(
             error => {
@@ -1260,8 +1280,12 @@ export default {
               WORD_CHAIN_COLOR,
           });
 
+        const lbAttachment = fs.existsSync(WORD_CHAIN_LEADERBOARD_IMAGE_PATH)
+          ? new AttachmentBuilder(WORD_CHAIN_LEADERBOARD_IMAGE_PATH, { name: 'noituleaderboard.webp' })
+          : null;
+
         embed.setImage(
-          WORD_CHAIN_LEADERBOARD_IMAGE_URL,
+          lbAttachment ? 'attachment://noituleaderboard.webp' : WORD_CHAIN_LEADERBOARD_IMAGE_URL,
         );
 
         return await InteractionHelper.safeEditReply(
@@ -1270,6 +1294,7 @@ export default {
             embeds: [
               embed,
             ],
+            files: lbAttachment ? [lbAttachment] : [],
           },
         );
       }

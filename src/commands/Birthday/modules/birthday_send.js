@@ -1,6 +1,7 @@
 import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
 import { getGuildBirthdays } from '../../../utils/database.js';
+import { getBirthdayImageAttachment, BIRTHDAY_FALLBACK_URL } from '../../../services/birthdayService.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -17,7 +18,7 @@ function getVietnamToday() {
     };
 }
 
-function buildBirthdayEmbed(member, birthday) {
+function buildBirthdayEmbed(member, birthday, hasAttachment = false) {
     const footerTime = new Date().toLocaleString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh'
     });
@@ -33,7 +34,7 @@ function buildBirthdayEmbed(member, birthday) {
             `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
             'Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!'
         )
-        .setImage('https://files.catbox.moe/ltt5jf.jpg')
+        .setImage(hasAttachment ? 'attachment://birthday.jpg' : BIRTHDAY_FALLBACK_URL)
         .setFooter({ text: `Birthday Bot • ${footerTime}` });
 }
 
@@ -104,9 +105,25 @@ export default {
                 const member = await interaction.guild.members.fetch(userId).catch(() => null);
                 if (!member) continue;
 
-                await channel.send({
-                    embeds: [buildBirthdayEmbed(member, birthdays[userId])]
-                });
+                const attachment = getBirthdayImageAttachment();
+                const files = attachment ? [attachment] : [];
+                const embed = buildBirthdayEmbed(member, birthdays[userId], Boolean(attachment));
+
+                try {
+                    await channel.send({
+                        embeds: [embed],
+                        files
+                    });
+                } catch (sendError) {
+                    if (files.length > 0) {
+                        logger.warn('Failed sending manual birthday announcement with files, retrying without files:', sendError);
+                        await channel.send({
+                            embeds: [buildBirthdayEmbed(member, birthdays[userId], false)]
+                        });
+                    } else {
+                        throw sendError;
+                    }
+                }
                 sent++;
             }
 

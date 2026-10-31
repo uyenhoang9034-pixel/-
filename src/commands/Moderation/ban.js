@@ -2,7 +2,11 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     EmbedBuilder,
+    AttachmentBuilder,
 } from 'discord.js';
+
+import fs from 'fs';
+import path from 'path';
 
 import {
     successEmbed,
@@ -31,6 +35,9 @@ const MODERATION_CHANNEL_ID =
  * MODERATION IMAGE
  * =========================================================
  */
+
+const MODERATION_IMAGE_PATH =
+    path.resolve(process.cwd(), 'assets/moderation/ban.webp');
 
 const MODERATION_IMAGE_URL =
     'https://files.catbox.moe/6mx2kd.webp';
@@ -120,17 +127,35 @@ async function sendUsagiBanLog({
                     '\n',
                 ),
             )
-            .setImage(
-                MODERATION_IMAGE_URL,
-            )
             .setTimestamp();
 
+    const files = [];
+    if (fs.existsSync(MODERATION_IMAGE_PATH)) {
+        files.push(new AttachmentBuilder(MODERATION_IMAGE_PATH, { name: 'ban.webp' }));
+        embed.setImage('attachment://ban.webp');
+    } else {
+        embed.setImage(MODERATION_IMAGE_URL);
+    }
 
-    await channel.send({
-        embeds: [
-            embed,
-        ],
-    });
+    try {
+        await channel.send({
+            embeds: [
+                embed,
+            ],
+            files,
+        });
+    } catch (sendError) {
+        if (files.length > 0) {
+            embed.setImage(MODERATION_IMAGE_URL);
+            await channel.send({
+                embeds: [
+                    embed,
+                ],
+            });
+        } else {
+            throw sendError;
+        }
+    }
 }
 
 

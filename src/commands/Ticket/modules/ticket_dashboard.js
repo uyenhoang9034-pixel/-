@@ -29,15 +29,13 @@ import {
     formatPanelStatusField,
 } from '../../../utils/panelStatus.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
+import { getTicketImageAttachment, TICKET_IMAGE_URL } from '../../../services/ticket.js';
 
-/**
- * =========================================================
- * TICKET IMAGE
- * =========================================================
- */
-
-const TICKET_IMAGE_URL =
-    'https://files.catbox.moe/xdd9hc.png';
+function getPanelFiles(config) {
+    if (config?.ticketImage) return [];
+    const att = getTicketImageAttachment();
+    return att ? [att] : [];
+}
 
 function buildButtonRow(guildConfig, guildId, disabled = false, panelStatus = null) {
     const dmEnabled = guildConfig.dmOnClose !== false;
@@ -103,9 +101,15 @@ function buildPanelEmbed(config) {
             getColor('info'),
         );
 
-    const imageUrl = config.ticketImage || TICKET_IMAGE_URL;
-    if (imageUrl) {
-        embed.setImage(imageUrl);
+    if (config?.ticketImage) {
+        embed.setImage(config.ticketImage);
+    } else {
+        const att = getTicketImageAttachment();
+        if (att) {
+            embed.setImage('attachment://ticket.png');
+        } else if (TICKET_IMAGE_URL) {
+            embed.setImage(TICKET_IMAGE_URL);
+        }
     }
 
     return embed;
@@ -147,6 +151,8 @@ async function repostTicketPanel(client, guild, guildConfig, guildId) {
                     guildConfig,
                 ),
             ],
+
+            files: getPanelFiles(guildConfig),
 
             components: [
                 buildPanelButtonRow(
@@ -321,7 +327,8 @@ async function updateLivePanel(client, guild, config, guildId) {
         }
         if (!panelStatus.exists || !panelStatus.message) return false;
 
-        await panelStatus.message.edit({
+        const panelFiles = getPanelFiles(config);
+        const editPayload = {
             embeds: [
                 buildPanelEmbed(
                     config,
@@ -333,10 +340,12 @@ async function updateLivePanel(client, guild, config, guildId) {
                     config,
                 ),
             ],
+        };
+        if (panelFiles.length > 0) {
+            editPayload.files = panelFiles;
+        }
 
-            attachments:
-                [],
-        });
+        await panelStatus.message.edit(editPayload);
         return true;
     } catch (error) {
         logger.warn('Failed to update live ticket panel:', error.message);
@@ -1634,6 +1643,7 @@ async function handlePanelChannel(
             embeds: [
                 buildPanelEmbed(guildConfig)
             ],
+            files: getPanelFiles(guildConfig),
             components: [
                 buildPanelButtonRow(guildConfig)
             ],

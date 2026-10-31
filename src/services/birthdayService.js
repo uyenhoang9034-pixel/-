@@ -1,10 +1,26 @@
 // birthdayService.js
 
-
+import fs from 'fs';
+import path from 'path';
+import { AttachmentBuilder } from 'discord.js';
 import { getGuildConfig } from './config/guildConfig.js';
 import { getGuildBirthdays, setBirthday as dbSetBirthday, deleteBirthday as dbDeleteBirthday, getMonthName, getBirthdayTrackingKey } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
+
+export const BIRTHDAY_IMAGE_PATH = path.resolve(process.cwd(), 'assets/birthday/birthday.jpg');
+export const BIRTHDAY_FALLBACK_URL = 'https://files.catbox.moe/ltt5jf.jpg';
+
+export function getBirthdayImageAttachment() {
+  try {
+    if (fs.existsSync(BIRTHDAY_IMAGE_PATH)) {
+      return new AttachmentBuilder(BIRTHDAY_IMAGE_PATH, { name: 'birthday.jpg' });
+    }
+  } catch (err) {
+    logger.warn('Failed to read birthday asset from disk:', err);
+  }
+  return null;
+}
 
 export function validateBirthday(month, day) {
   
@@ -357,25 +373,44 @@ export async function checkBirthdays(client) {
             timeZone: 'Asia/Ho_Chi_Minh'
           });
 
-          await channel.send({
-            embeds: [{
-              description:
-                `## <a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 <a:trangtrig3:1546040818261954610>\n\n` +
-                `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
-                `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
-                `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
-                `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
-                `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
-                `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`,
-              color: 0xFCEEC9,
-              image: {
-                url: 'https://files.catbox.moe/ltt5jf.jpg'
-              },
-              footer: {
-                text: `Birthday Bot • ${footerTime}`
-              }
-            }]
-          });
+          const attachment = getBirthdayImageAttachment();
+          const files = attachment ? [attachment] : [];
+          const imageUrl = attachment ? 'attachment://birthday.jpg' : BIRTHDAY_FALLBACK_URL;
+
+          const embed = {
+            description:
+              `## <a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 <a:trangtrig3:1546040818261954610>\n\n` +
+              `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
+              `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
+              `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
+              `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
+              `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
+              `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`,
+            color: 0xFCEEC9,
+            image: {
+              url: imageUrl
+            },
+            footer: {
+              text: `Birthday Bot • ${footerTime}`
+            }
+          };
+
+          try {
+            await channel.send({
+              embeds: [embed],
+              files
+            });
+          } catch (sendError) {
+            if (files.length > 0) {
+              logger.warn('Failed sending birthday announcement with files, retrying without files:', sendError);
+              embed.image.url = BIRTHDAY_FALLBACK_URL;
+              await channel.send({
+                embeds: [embed]
+              });
+            } else {
+              throw sendError;
+            }
+          }
         }
       }
     } catch (error) {
