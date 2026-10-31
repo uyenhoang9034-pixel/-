@@ -76,7 +76,7 @@ function buildGuideDetailComponents(guide, guild) {
 
         const sectionText =
             channelDescription
-                ? `<a:heartg1:1545307544808071258> **${channelLabel}**\\n${channelDescription}`
+                ? `<a:heartg1:1545307544808071258> **${channelLabel}**\n${channelDescription}`
                 : `<a:heartg1:1545307544808071258> **${channelLabel}**`;
 
         const jumpButton =
