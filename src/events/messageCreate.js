@@ -866,13 +866,18 @@ async function handleAutoresponder(message, client) {
       } else {
         payload.content = targetMentionText;
       }
-
-      payload.allowedMentions = {
-        ...payload.allowedMentions,
-        users: Array.from(targetUsers.keys()),
-        parse: ['users'],
-      };
     }
+
+    // Đảm bảo allowedMentions hợp lệ với Discord API (parse: ['users'] và users: [...] không được đi cùng nhau)
+    const existingParse = Array.isArray(payload.allowedMentions?.parse)
+      ? payload.allowedMentions.parse
+      : [];
+
+    payload.allowedMentions = {
+      ...payload.allowedMentions,
+      parse: Array.from(new Set([...existingParse, 'users'])),
+    };
+    delete payload.allowedMentions.users;
 
     // Chỉ reply nếu tin nhắn lệnh KHÔNG bị xóa
     if (!shouldDeleteTrigger && responder.response?.reply?.enabled) {
