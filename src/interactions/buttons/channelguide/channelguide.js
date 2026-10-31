@@ -70,13 +70,14 @@ function buildGuideDetailComponents(guide, guild) {
         const channelLabel = `<#${channelId}>`;
 
         const channelDescription =
-            typeof channelEntry.description === 'string' &&
-            channelEntry.description.trim()
+            typeof channelEntry.description === 'string'
                 ? channelEntry.description.trim()
-                : 'Chưa có mô tả riêng cho kênh này.';
+                : '';
 
         const sectionText =
-            `✨ **${channelLabel}**\n${channelDescription}`;
+            channelDescription
+                ? `<a:heartg1:1545307544808071258> **${channelLabel}**\\n${channelDescription}`
+                : `<a:heartg1:1545307544808071258> **${channelLabel}**`;
 
         const jumpButton =
             new ButtonBuilder()
