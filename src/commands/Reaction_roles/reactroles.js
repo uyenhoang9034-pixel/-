@@ -1,10 +1,16 @@
 import {
     AttachmentBuilder,
     ChannelType,
+    ContainerBuilder,
     EmbedBuilder,
     MessageFlags,
     PermissionFlagsBits,
     SlashCommandBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
 } from 'discord.js';
 
 import fs from 'fs';
@@ -63,11 +69,7 @@ const GET_ROLE_IMAGE_URL =
  */
 
 const PANEL_TITLE =
-    '<a:trangtrig2:1546040703375904801> 𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮 ˋ°•*⁀➷ <a:trangtrig3:1546040818261954610>';
-
-
-const DIVIDER =
-    '‿̩͙⊱༒︎༻♱༺༒︎⊰‿̩͙';
+    '<a:trangtrig2:1546040703375904801> **GÓC LẤY ROLE** <a:trangtrig3:1546040818261954610>';
 
 
 /**
@@ -116,28 +118,14 @@ function buildPanelDescription() {
 
     return [
         '<a:trangtrig30:1546905942476464178> Hãy chắc chắn bạn đã đọc kĩ rules trước khi lấy role.',
-
-        '<a:trangtrig30:1546905942476464178> Ấn emoji để chọn game, chơi nhiều game chọn nhiều emoji, không chơi game nào thì chọn "không thích chơi game".',
-
-        '<a:trangtrig30:1546905942476464178> Nếu không pick role sẽ không xem được kênh nào vì toàn bộ đều là kênh ẩn và cũng không chat được đâu ạ!',
-
         '',
-
-        DIVIDER,
-
+        '<a:trangtrig30:1546905942476464178>  Ấn emoji để chọn game, chơi nhiều game chọn nhiều emoji, không chơi game nào thì chọn "không thích chơi game".',
         '',
-
+        '<a:bang2:1546891483250954290> Nếu không pick role sẽ không xem được kênh nào vì toàn bộ đều là kênh ẩn!',
+        '',
         roleList,
-
         '',
-
-        DIVIDER,
-
-        '',
-
-        '<a:bang2:1546891483250954290> Đừng quên ghé <#1541364885789745213> để lại thông tin và nhận biệt danh siêu cấp vip pro nhé!',
-
-        '<a:bang2:1546891483250954290> Enjoy! <a:heartg6:1546906117551030382>',
+        '<a:bang2:1546891483250954290> Đừng quên ghé kênh <#1541364885789745213> để lại thông tin và nhận biệt danh siêu cấp vip pro nhé! Xin cảm ơn! <a:heartg1:1545307544808071258>',
     ]
         .join('\n');
 }
@@ -615,22 +603,34 @@ export default {
 
             /**
              * =============================================
-             * EMBED
+             * CONTAINER (DISCORD COMPONENTS V2)
              * =============================================
              */
 
-            const embed =
-                new EmbedBuilder()
-                    .setTitle(
-                        PANEL_TITLE,
-                    )
-                    .setDescription(
-                        buildPanelDescription(),
-                    )
-                    .setColor(
-                        GAME_ROLE_EMBED_COLOR,
-                    );
+            const container = new ContainerBuilder();
 
+            // 1. Tiêu đề chính
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    `# ${PANEL_TITLE}`,
+                ),
+            );
+
+            // 2. Thanh phân cách ngang
+            container.addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setDivider(true)
+                    .setSpacing(SeparatorSpacingSize.Small),
+            );
+
+            // 3. Nội dung mô tả và danh sách role
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    buildPanelDescription(),
+                ),
+            );
+
+            // 4. Ảnh banner getrole.png dạng Media Gallery bên dưới văn bản
             const roleAssetDir =
                 path.resolve(
                     __dirname,
@@ -644,6 +644,7 @@ export default {
                 );
 
             const files = [];
+            let imageUrl = null;
 
             if (
                 fs.existsSync(
@@ -660,14 +661,22 @@ export default {
                     ),
                 );
 
-                embed.setImage(
-                    'attachment://getrole.png',
-                );
+                imageUrl =
+                    'attachment://getrole.png';
             } else if (
                 GET_ROLE_IMAGE_URL
             ) {
-                embed.setImage(
-                    GET_ROLE_IMAGE_URL,
+                imageUrl =
+                    GET_ROLE_IMAGE_URL;
+            }
+
+            if (imageUrl) {
+                container.addMediaGalleryComponents(
+                    new MediaGalleryBuilder().addItems(
+                        new MediaGalleryItemBuilder()
+                            .setURL(imageUrl)
+                            .setDescription('Get Roles'),
+                    ),
                 );
             }
 
@@ -680,12 +689,14 @@ export default {
 
             const message =
                 await channel.send({
-                    embeds: [
-                        embed,
+                    content: null,
+                    embeds: [],
+                    components: [
+                        container,
                     ],
-
                     files,
-
+                    flags:
+                        MessageFlags.IsComponentsV2,
                     allowedMentions: {
                         parse: [],
                     },
