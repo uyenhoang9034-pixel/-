@@ -1,6 +1,18 @@
 // giveawayService.js
 
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
+import {
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    MessageFlags,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+} from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { botConfig } from '../config/bot.js';
@@ -334,6 +346,112 @@ export function createGiveawayButtons(ended = false) {
     }
 }
 
+export function createGiveawayContainer(giveaway, status = 'active', winners = []) {
+    try {
+        const isEnded = status === 'ended' || status === 'reroll';
+        const container = new ContainerBuilder();
+
+        const defaultTitle = '<a:trangtrig2:1546040703375904801> **GIVEAWAY** <a:trangtrig3:1546040818261954610>';
+        const titleText = status === 'ended'
+            ? '<a:chiikawag7:1541427343216738414> **𝓔𝓷𝓭** <a:chiikawag7:1541427343216738414>'
+            : status === 'reroll'
+                ? '<a:chiikawag7:1541427343216738414> **𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭** <a:chiikawag7:1541427343216738414>'
+                : (giveaway.title || defaultTitle);
+
+        const formattedTitle = titleText.startsWith('#')
+            ? titleText
+            : `# ${titleText}`;
+
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(formattedTitle)
+        );
+
+        container.addSeparatorComponents(
+            new SeparatorBuilder()
+                .setDivider(true)
+                .setSpacing(SeparatorSpacingSize.Small)
+        );
+
+        const defaultDescription = [
+            '<a:trangtrig33:1546908181060526130> Giveaway đợt: XX',
+            '',
+            '<a:trangtrig33:1546908181060526130> Nhà tài trợ: XX',
+            '',
+            '<a:giftg1:1543150714732412948> Phần thưởng: XX',
+            '',
+            '<a:bang2:1546891483250954290> **Lưu ý**',
+            '> - Ấn vào emoji bên dưới để tham gia!',
+            '> - Sau khi trúng thưởng không tạo ticket trong thời gian chỉ định sẽ hủy bỏ kết quả và reroll người thắng.',
+        ].join('\n');
+
+        const description = status === 'pending'
+            ? '🎊 Giveaway đã kết thúc! Kết quả sẽ được công bố sau.'
+            : status === 'ended'
+            ? '🎊 Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
+            : status === 'reroll'
+                ? '✨ Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia'
+                : (giveaway.description || defaultDescription);
+
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(description)
+        );
+
+        container.addSeparatorComponents(
+            new SeparatorBuilder()
+                .setDivider(true)
+                .setSpacing(SeparatorSpacingSize.Small)
+        );
+
+        const sponsorRaw = giveaway.sponsorId || giveaway.sponsor;
+        const sponsorText = sponsorRaw
+            ? (String(sponsorRaw).match(/^\d{17,20}$/) ? `<@${sponsorRaw}>` : String(sponsorRaw))
+            : `<@${giveaway.hostId}>`;
+
+        const infoLines = [
+            `<a:heartg1:1545307544808071258> **Nhà tài trợ:** ${sponsorText}`,
+            `<a:heartg1:1545307544808071258> **Số người thắng:** ${giveaway.winnerCount || 1}`,
+            `<a:heartg1:1545307544808071258> **Lượt tham gia:** ${giveaway.participants?.length || 0}`,
+        ];
+
+        if (isEnded) {
+            const winnerDisplay = winners.length > 0
+                ? winners.map(id => `<@${id}>`).join(', ')
+                : 'Không có người thắng hợp lệ';
+            infoLines.push(`<a:heartg1:1545307544808071258> **Người thắng:** ${winnerDisplay}`);
+        } else {
+            const endTime = giveaway.endsAt || giveaway.endTime;
+            if (endTime) {
+                infoLines.push(`<a:heartg1:1545307544808071258> **Thời gian kết thúc:** <t:${Math.floor(Number(endTime) / 1000)}:R>`);
+            }
+        }
+
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(infoLines.join('\n'))
+        );
+
+        if (giveaway.imageUrl && typeof giveaway.imageUrl === 'string') {
+            container.addMediaGalleryComponents(
+                new MediaGalleryBuilder().addItems(
+                    new MediaGalleryItemBuilder().setURL(giveaway.imageUrl)
+                )
+            );
+        }
+
+        const buttonRow = createGiveawayButtons(isEnded);
+        container.addActionRowComponents(buttonRow);
+
+        return container;
+    } catch (error) {
+        logger.error('Error creating giveaway container:', error);
+        throw new TitanBotError(
+            'Failed to create giveaway container',
+            ErrorTypes.UNKNOWN,
+            'An internal error occurred while formatting the giveaway container.',
+            { error: error.message }
+        );
+    }
+}
+
 export function selectWinners(participants, winnerCount, excludedUserIds = []) {
     if (!Array.isArray(participants) || participants.length === 0) {
         return [];
@@ -496,13 +614,23 @@ export async function checkGiveaways(client) {
           ? winners.map(id => `<@${id}>`).join(', ')
           : 'No valid entries!';
 
-        const endedEmbed = createGiveawayEmbed(giveaway, giveaway.delayAnnouncement ? 'pending' : 'ended', winners);
-
-        await message.edit({
-            content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
-          embeds: [endedEmbed],
-          components: [createGiveawayButtons(true)]
-        });
+        const isV2 = message.flags?.has(MessageFlags.IsComponentsV2) || (!message.embeds?.length && message.components?.length > 0);
+        if (isV2) {
+            const container = createGiveawayContainer(giveaway, giveaway.delayAnnouncement ? 'pending' : 'ended', winners);
+            await message.edit({
+                content: null,
+                embeds: [],
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } else {
+            const endedEmbed = createGiveawayEmbed(giveaway, giveaway.delayAnnouncement ? 'pending' : 'ended', winners);
+            await message.edit({
+                content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
+                embeds: [endedEmbed],
+                components: [createGiveawayButtons(true)]
+            });
+        }
           if (!giveaway.delayAnnouncement && winners.length > 0) {
     await channel.send({
         content:

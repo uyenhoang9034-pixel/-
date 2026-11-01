@@ -6,7 +6,8 @@ import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
 import { 
     endGiveaway as endGiveawayService,
     createGiveawayEmbed, 
-    createGiveawayButtons 
+    createGiveawayButtons,
+    createGiveawayContainer,
 } from '../../services/giveawayService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -117,14 +118,24 @@ export default {
             updatedGiveaway,
         );
 
-        const newEmbed = createGiveawayEmbed(updatedGiveaway, updatedGiveaway.announcementPending ? "pending" : "ended", winners);
-        const newRow = createGiveawayButtons(true);
-
-        await message.edit({
-            content: "<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭𝓮𝓭 <a:chiikawag7:1541427343216738414>",
-            embeds: [newEmbed],
-            components: [newRow],
-        });
+        const isV2 = message.flags?.has(MessageFlags.IsComponentsV2) || (!message.embeds?.length && message.components?.length > 0);
+        if (isV2) {
+            const container = createGiveawayContainer(updatedGiveaway, updatedGiveaway.announcementPending ? "pending" : "ended", winners);
+            await message.edit({
+                content: null,
+                embeds: [],
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } else {
+            const newEmbed = createGiveawayEmbed(updatedGiveaway, updatedGiveaway.announcementPending ? "pending" : "ended", winners);
+            const newRow = createGiveawayButtons(true);
+            await message.edit({
+                content: "<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭𝓮𝓭 <a:chiikawag7:1541427343216738414>",
+                embeds: [newEmbed],
+                components: [newRow],
+            });
+        }
 
         if (updatedGiveaway.announcementPending) {
             logger.info(`Giveaway ended with announcement delayed: ${messageId}`);

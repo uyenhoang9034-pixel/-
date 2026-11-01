@@ -11,6 +11,7 @@ import { Mutex } from '../../utils/mutex.js';
 import {
     createGiveawayEmbed,
     createGiveawayButtons,
+    createGiveawayContainer,
 } from '../../services/giveawayService.js';
 
 const GIVEAWAY_ADMIN_ROLE_ID = '1541303749916754001';
@@ -184,15 +185,29 @@ export default {
                                     ? 'ended'
                                     : 'active';
                             const winners = giveaway.winnerIds || giveaway.winners || [];
-                            const updatedEmbed = createGiveawayEmbed(giveaway, status, winners);
-                            const updatedRow = createGiveawayButtons(isEnded);
+                            const isV2 = giveawayMessage.flags?.has(MessageFlags.IsComponentsV2) || (!giveawayMessage.embeds?.length && giveawayMessage.components?.length > 0);
 
-                            await giveawayMessage.edit({
-                                embeds: [updatedEmbed],
-                                components: [updatedRow],
-                            }).catch((err) => {
-                                logger.warn(`Could not update giveaway embed after removing participant ${messageId}:`, err.message);
-                            });
+                            if (isV2) {
+                                const container = createGiveawayContainer(giveaway, status, winners);
+                                await giveawayMessage.edit({
+                                    content: null,
+                                    embeds: [],
+                                    components: [container],
+                                    flags: MessageFlags.IsComponentsV2,
+                                }).catch((err) => {
+                                    logger.warn(`Could not update giveaway container after removing participant ${messageId}:`, err.message);
+                                });
+                            } else {
+                                const updatedEmbed = createGiveawayEmbed(giveaway, status, winners);
+                                const updatedRow = createGiveawayButtons(isEnded);
+
+                                await giveawayMessage.edit({
+                                    embeds: [updatedEmbed],
+                                    components: [updatedRow],
+                                }).catch((err) => {
+                                    logger.warn(`Could not update giveaway embed after removing participant ${messageId}:`, err.message);
+                                });
+                            }
                         }
                     }
                 } catch (err) {

@@ -8,7 +8,8 @@ import {
     validatePrize, 
     validateWinnerCount,
     createGiveawayEmbed, 
-    createGiveawayButtons 
+    createGiveawayButtons,
+    createGiveawayContainer,
 } from '../../services/giveawayService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -112,13 +113,13 @@ export default {
             createdAt: new Date().toISOString()
         };
 
-        const embed = createGiveawayEmbed(initialGiveawayData, "active");
-        const row = createGiveawayButtons(false);
+        const container = createGiveawayContainer(initialGiveawayData, "active");
 
         const giveawayMessage = await targetChannel.send({
             content: null,
-            embeds: [embed],
-            components: [row],
+            embeds: [],
+            components: [container],
+            flags: MessageFlags.IsComponentsV2,
         });
 
         initialGiveawayData.messageId = giveawayMessage.id;

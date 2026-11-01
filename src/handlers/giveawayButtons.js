@@ -14,7 +14,8 @@ import {
     isUserRateLimited,
     recordUserInteraction,
     createGiveawayEmbed,
-    createGiveawayButtons
+    createGiveawayButtons,
+    createGiveawayContainer,
 } from '../services/giveawayService.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 
@@ -72,13 +73,23 @@ export const giveawayJoinHandler = {
 
                 logger.debug(`User ${interaction.user.tag} joined giveaway ${interaction.message.id}`);
 
-                const updatedEmbed = createGiveawayEmbed(giveaway, 'active');
-                const updatedRow = createGiveawayButtons(false);
-
-                await interaction.message.edit({
-                    embeds: [updatedEmbed],
-                    components: [updatedRow]
-                });
+                const isV2 = interaction.message.flags?.has(MessageFlags.IsComponentsV2) || (!interaction.message.embeds?.length && interaction.message.components?.length > 0);
+                if (isV2) {
+                    const container = createGiveawayContainer(giveaway, 'active');
+                    await interaction.message.edit({
+                        content: null,
+                        embeds: [],
+                        components: [container],
+                        flags: MessageFlags.IsComponentsV2,
+                    });
+                } else {
+                    const updatedEmbed = createGiveawayEmbed(giveaway, 'active');
+                    const updatedRow = createGiveawayButtons(false);
+                    await interaction.message.edit({
+                        embeds: [updatedEmbed],
+                        components: [updatedRow]
+                    });
+                }
 
                 await interaction.reply({
                     embeds: [
@@ -156,14 +167,24 @@ export const giveawayEndHandler = {
 
             logger.info(`Giveaway ended via button by ${interaction.user.tag}: ${interaction.message.id}`);
 
-            const updatedEmbed = createGiveawayEmbed(giveaway, announcementPending ? 'pending' : 'ended', winners);
-            const updatedRow = createGiveawayButtons(true);
-
-            await interaction.message.edit({
-                content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
-                embeds: [updatedEmbed],
-                components: [updatedRow]
-            });
+            const isV2 = interaction.message.flags?.has(MessageFlags.IsComponentsV2) || (!interaction.message.embeds?.length && interaction.message.components?.length > 0);
+            if (isV2) {
+                const container = createGiveawayContainer(giveaway, announcementPending ? 'pending' : 'ended', winners);
+                await interaction.message.edit({
+                    content: null,
+                    embeds: [],
+                    components: [container],
+                    flags: MessageFlags.IsComponentsV2,
+                });
+            } else {
+                const updatedEmbed = createGiveawayEmbed(giveaway, announcementPending ? 'pending' : 'ended', winners);
+                const updatedRow = createGiveawayButtons(true);
+                await interaction.message.edit({
+                    content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
+                    embeds: [updatedEmbed],
+                    components: [updatedRow]
+                });
+            }
 
             // Match the scheduled end and /gend behavior: post a public result
             // message when an admin ends the giveaway early via the End button.
@@ -303,14 +324,24 @@ export const giveawayRerollHandler = {
 
             logger.info(`Giveaway rerolled via button by ${interaction.user.tag}: ${interaction.message.id}`);
 
-            const updatedEmbed = createGiveawayEmbed(giveaway, 'reroll', newWinners);
-            const updatedRow = createGiveawayButtons(true);
-
-            await interaction.message.edit({
-                content: '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>',
-                embeds: [updatedEmbed],
-                components: [updatedRow]
-            });
+            const isV2 = interaction.message.flags?.has(MessageFlags.IsComponentsV2) || (!interaction.message.embeds?.length && interaction.message.components?.length > 0);
+            if (isV2) {
+                const container = createGiveawayContainer(giveaway, 'reroll', newWinners);
+                await interaction.message.edit({
+                    content: null,
+                    embeds: [],
+                    components: [container],
+                    flags: MessageFlags.IsComponentsV2,
+                });
+            } else {
+                const updatedEmbed = createGiveawayEmbed(giveaway, 'reroll', newWinners);
+                const updatedRow = createGiveawayButtons(true);
+                await interaction.message.edit({
+                    content: '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>',
+                    embeds: [updatedEmbed],
+                    components: [updatedRow]
+                });
+            }
             const winnerMentions = newWinners.length > 0
     ? newWinners.map(id => `<@${id}>`).join(', ')
     : 'Không có người thắng hợp lệ.';

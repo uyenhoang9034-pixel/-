@@ -2,7 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.
 import { successEmbed } from '../../utils/embeds.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
-import { createGiveawayEmbed, createGiveawayButtons } from '../../services/giveawayService.js';
+import { createGiveawayEmbed, createGiveawayButtons, createGiveawayContainer } from '../../services/giveawayService.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
@@ -71,11 +71,22 @@ export default {
         giveaway.announcementPending = false;
         await saveGiveaway(interaction.client, interaction.guildId, giveaway);
 
-        await giveawayMessage.edit({
-            content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
-            embeds: [createGiveawayEmbed(giveaway, 'ended', winners)],
-            components: [createGiveawayButtons(true)]
-        });
+        const isV2 = giveawayMessage.flags?.has(MessageFlags.IsComponentsV2) || (!giveawayMessage.embeds?.length && giveawayMessage.components?.length > 0);
+        if (isV2) {
+            const container = createGiveawayContainer(giveaway, 'ended', winners);
+            await giveawayMessage.edit({
+                content: null,
+                embeds: [],
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } else {
+            await giveawayMessage.edit({
+                content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
+                embeds: [createGiveawayEmbed(giveaway, 'ended', winners)],
+                components: [createGiveawayButtons(true)]
+            });
+        }
 
         const winnerMentions = winners.map(id => `<@${id}>`).join(', ');
         const resultMessage = await channel.send({

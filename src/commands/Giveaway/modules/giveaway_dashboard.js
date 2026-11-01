@@ -18,6 +18,7 @@ import {
     validateWinnerCount,
     createGiveawayEmbed,
     createGiveawayButtons,
+    createGiveawayContainer,
 } from '../../../services/giveawayService.js';
 
 import { saveGiveaway } from '../../../utils/giveaways.js';
@@ -748,22 +749,18 @@ async function createGiveaway(interaction) {
                 new Date().toISOString(),
         };
 
-        const embed =
-            createGiveawayEmbed(
+        const container =
+            createGiveawayContainer(
                 giveawayData,
                 'active',
             );
 
-        const buttons =
-            createGiveawayButtons(false);
-
         const message =
             await targetChannel.send({
                 content: null,
-
-                embeds: [embed],
-
-                components: [buttons],
+                embeds: [],
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
             });
 
         giveawayData.messageId =

@@ -6,7 +6,8 @@ import { getGuildGiveaways, saveGiveaway, getEffectiveExcludedWinners } from '..
 import { 
     selectWinners,
     createGiveawayEmbed, 
-    createGiveawayButtons 
+    createGiveawayButtons,
+    createGiveawayContainer,
 } from '../../services/giveawayService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -229,14 +230,25 @@ export default {
             updatedGiveaway,
         );
 
-        const newEmbed = createGiveawayEmbed(updatedGiveaway, "reroll", newWinners);
-        const newRow = createGiveawayButtons(true);
+        const isV2 = message.flags?.has(MessageFlags.IsComponentsV2) || (!message.embeds?.length && message.components?.length > 0);
+        if (isV2) {
+            const container = createGiveawayContainer(updatedGiveaway, "reroll", newWinners);
+            await message.edit({
+                content: null,
+                embeds: [],
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } else {
+            const newEmbed = createGiveawayEmbed(updatedGiveaway, "reroll", newWinners);
+            const newRow = createGiveawayButtons(true);
 
-        await message.edit({
-            content: "🔄 **GIVEAWAY REROLLED** 🔄",
-            embeds: [newEmbed],
-            components: [newRow],
-        });
+            await message.edit({
+                content: "🔄 **GIVEAWAY REROLLED** 🔄",
+                embeds: [newEmbed],
+                components: [newRow],
+            });
+        }
 
         const winnerMentions = newWinners
             .map((id) => `<@${id}>`)
