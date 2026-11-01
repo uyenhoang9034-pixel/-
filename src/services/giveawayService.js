@@ -167,6 +167,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                 )
                 : defaultColor;
 
+        const defaultTitle = '<a:trangtrig2:1546040703375904801> **GIVEAWAY** <a:trangtrig3:1546040818261954610>';
         const title =
              status === 'ended'
         ? '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>'
@@ -174,7 +175,19 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             ? '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>'
             : (
             giveaway.title ||
-            `${statusEmoji} ${giveaway.prize}`);
+            defaultTitle);
+
+        const defaultDescription = [
+            '<a:trangtrig33:1546908181060526130> Giveaway đợt: XX',
+            '',
+            '<a:trangtrig33:1546908181060526130> Nhà tài trợ: XX',
+            '',
+            '<a:giftg1:1543150714732412948> Phần thưởng: XX',
+            '',
+            '<a:bang2:1546891483250954290> **Lưu ý**',
+            '> - Ấn vào emoji bên dưới để tham gia!',
+            '> - Sau khi trúng thưởng không tạo ticket trong thời gian chỉ định sẽ hủy bỏ kết quả và reroll người thắng.',
+        ].join('\n');
 
         const description =
             status === 'pending'
@@ -185,7 +198,12 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             ? '✨ Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia'
             : (
             giveaway.description ||
-            'React with the button below to enter!');
+            defaultDescription);
+
+        const sponsorRaw = giveaway.sponsorId || giveaway.sponsor;
+        const sponsorText = sponsorRaw
+            ? (String(sponsorRaw).match(/^\d{17,20}$/) ? `<@${sponsorRaw}>` : String(sponsorRaw))
+            : `<@${giveaway.hostId}>`;
 
         const embed = new EmbedBuilder()
             .setTitle(title)
@@ -193,23 +211,23 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             .setColor(customColor)
             .addFields(
                 {
-                    name: '<a:cinnamorollg2:1541437285390884954> Người tổ chức',
-                    value: `<@${giveaway.hostId}>`,
-                    inline: true,
+                    name: '<a:heartg1:1545307544808071258> Nhà tài trợ',
+                    value: sponsorText,
+                    inline: false,
                 },
                 {
-                    name: '<a:cinnamorollg2:1541437285390884954> Số người thắng',
+                    name: '<a:heartg1:1545307544808071258> Số người thắng',
                     value: String(
                         giveaway.winnerCount || 1,
                     ),
-                    inline: true,
+                    inline: false,
                 },
                 {
-                    name: '<a:cinnamorollg2:1541437285390884954> Lượt tham gia',
+                    name: '<a:heartg1:1545307544808071258> Lượt tham gia',
                     value: String(
                         giveaway.participants?.length || 0,
                     ),
-                    inline: true,
+                    inline: false,
                 },
             );
 
@@ -226,10 +244,10 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                     ? winners
                         .map((id) => `<@${id}>`)
                         .join(', ')
-                    : 'No valid entries';
+                    : 'Không có người thắng hợp lệ';
 
             embed.addFields({
-                name: '<a:cinnamorollg2:1541437285390884954> Người thắng',
+                name: '<a:heartg1:1545307544808071258> Người thắng',
                 value: winnerDisplay,
                 inline: false,
             });
@@ -240,7 +258,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
 
             if (endTime) {
                 embed.addFields({
-                    name: '<a:cinnamorollg2:1541437285390884954> Thời gian kết thúc',
+                    name: '<a:heartg1:1545307544808071258> Thời gian kết thúc',
                     value: `<t:${Math.floor(
                         Number(endTime) / 1000,
                     )}:R>`,

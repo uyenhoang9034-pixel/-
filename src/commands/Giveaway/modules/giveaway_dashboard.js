@@ -24,14 +24,25 @@ import { saveGiveaway } from '../../../utils/giveaways.js';
 import { logger } from '../../../utils/logger.js';
 
 const DEFAULTS = {
-    title: '🎉 Giveaway',
-    description: 'React with the button below to enter!',
+    title: '<a:trangtrig2:1546040703375904801> **GIVEAWAY** <a:trangtrig3:1546040818261954610>',
+    description: [
+        '<a:trangtrig33:1546908181060526130> Giveaway đợt: XX',
+        '',
+        '<a:trangtrig33:1546908181060526130> Nhà tài trợ: XX',
+        '',
+        '<a:giftg1:1543150714732412948> Phần thưởng: XX',
+        '',
+        '<a:bang2:1546891483250954290> **Lưu ý**',
+        '> - Ấn vào emoji bên dưới để tham gia!',
+        '> - Sau khi trúng thưởng không tạo ticket trong thời gian chỉ định sẽ hủy bỏ kết quả và reroll người thắng.',
+    ].join('\n'),
     color: '#5865F2',
     imageUrl: '',
     prize: '',
     duration: '1h',
     winners: 1,
     channelId: null,
+    sponsor: '',
 };
 
 const sessions = new Map();
@@ -93,6 +104,10 @@ function buildDashboardEmbed(interaction, session) {
         ? `<#${session.channelId}>`
         : 'Current channel';
 
+    const sponsorDisplay = session.sponsor
+        ? (session.sponsor.match(/^\d{17,20}$/) ? `<@${session.sponsor}>` : session.sponsor)
+        : 'Chưa đặt';
+
     return new EmbedBuilder()
         .setColor(normalizeHexColor(session.color))
         .setTitle('🎁 Giveaway Dashboard')
@@ -104,6 +119,11 @@ function buildDashboardEmbed(interaction, session) {
                 name: '🎁 Prize',
                 value: (session.prize || 'Not set').substring(0, 1024),
                 inline: false,
+            },
+            {
+                name: '🤝 Nhà tài trợ (Sponsor)',
+                value: sponsorDisplay,
+                inline: true,
             },
             {
                 name: '✨ Title',
@@ -156,6 +176,12 @@ function buildSelectMenu() {
                 description: 'Set the giveaway prize.',
                 value: 'prize',
                 emoji: '🎁',
+            },
+            {
+                label: 'Nhà tài trợ (Sponsor)',
+                description: 'Thêm ID nhà tài trợ (hiển thị @User).',
+                value: 'sponsor',
+                emoji: '🤝',
             },
             {
                 label: 'Duration',
@@ -215,6 +241,12 @@ function buildDashboardComponents() {
         ),
 
         new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('giveaway_dashboard_sponsor')
+                .setLabel('Nhà tài trợ')
+                .setEmoji('🤝')
+                .setStyle(ButtonStyle.Primary),
+
             new ButtonBuilder()
                 .setCustomId('giveaway_dashboard_create')
                 .setLabel('Create Giveaway')
@@ -362,6 +394,24 @@ function buildModal(type, session) {
                             .setValue(session.imageUrl || '')
                             .setRequired(false)
                             .setMaxLength(1000),
+                    ),
+                );
+            break;
+
+        case 'sponsor':
+            modal
+                .setCustomId('giveaway_modal_sponsor')
+                .setTitle('Cài Đặt Nhà Tài Trợ')
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId('sponsor')
+                            .setLabel('ID Nhà Tài Trợ (hoặc @User)')
+                            .setStyle(TextInputStyle.Short)
+                            .setPlaceholder('Ví dụ: 1541303749916754001 hoặc @East')
+                            .setValue(session.sponsor || '')
+                            .setRequired(false)
+                            .setMaxLength(64),
                     ),
                 );
             break;
@@ -585,6 +635,15 @@ async function handleModal(interaction) {
         session.imageUrl = imageUrl;
     }
 
+    else if (customId === 'giveaway_modal_sponsor') {
+        const raw = interaction.fields
+            .getTextInputValue('sponsor')
+            .trim();
+
+        const match = raw.match(/\d{17,20}/);
+        session.sponsor = match ? match[0] : raw;
+    }
+
     await interaction.update({
         embeds: [
             buildDashboardEmbed(
@@ -666,6 +725,12 @@ async function createGiveaway(interaction) {
             hostId:
                 interaction.user.id,
 
+            sponsor:
+                session.sponsor || null,
+
+            sponsorId:
+                session.sponsor || null,
+
             endTime,
 
             endsAt: endTime,
@@ -694,8 +759,7 @@ async function createGiveaway(interaction) {
 
         const message =
             await targetChannel.send({
-                content:
-                    '<a:chiikawag7:1541427343216738414> 𝓖𝓲𝓿𝓮𝓪𝔀𝓪𝔂 <a:chiikawag7:1541427343216738414>',
+                content: null,
 
                 embeds: [embed],
 
@@ -837,6 +901,19 @@ async function handleInteraction(interaction) {
             return await handleModal(
                 interaction,
             );
+        }
+
+        if (
+            customId ===
+            'giveaway_dashboard_sponsor'
+        ) {
+            await interaction.showModal(
+                buildModal(
+                    'sponsor',
+                    getSession(interaction),
+                ),
+            );
+            return true;
         }
 
         if (
