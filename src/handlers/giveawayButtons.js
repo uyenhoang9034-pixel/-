@@ -180,7 +180,7 @@ export const giveawayEndHandler = {
                 const updatedEmbed = createGiveawayEmbed(giveaway, announcementPending ? 'pending' : 'ended', winners);
                 const updatedRow = createGiveawayButtons(true);
                 await interaction.message.edit({
-                    content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
+                    content: null,
                     embeds: [updatedEmbed],
                     components: [updatedRow]
                 });
@@ -337,7 +337,7 @@ export const giveawayRerollHandler = {
                 const updatedEmbed = createGiveawayEmbed(giveaway, 'reroll', newWinners);
                 const updatedRow = createGiveawayButtons(true);
                 await interaction.message.edit({
-                    content: '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>',
+                    content: null,
                     embeds: [updatedEmbed],
                     components: [updatedRow]
                 });

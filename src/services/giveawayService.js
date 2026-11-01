@@ -180,14 +180,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
                 : defaultColor;
 
         const defaultTitle = '<a:trangtrig2:1546040703375904801> **GIVEAWAY** <a:trangtrig3:1546040818261954610>';
-        const title =
-             status === 'ended'
-        ? '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>'
-        : status === 'reroll'
-            ? '<a:chiikawag7:1541427343216738414> 𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭 <a:chiikawag7:1541427343216738414>'
-            : (
-            giveaway.title ||
-            defaultTitle);
+        const title = giveaway.title || defaultTitle;
 
         const defaultDescription = [
             '<a:trangtrig33:1546908181060526130> Giveaway đợt: XX',
@@ -203,11 +196,11 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
 
         const description =
             status === 'pending'
-        ? '🎊 Giveaway đã kết thúc! Kết quả sẽ được công bố sau.'
+        ? '<a:heartg1:1545307544808071258> Giveaway đã kết thúc! Kết quả sẽ được công bố sau.'
         : status === 'ended'
-        ? '🎊 Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
+        ? '<a:heartg1:1545307544808071258> Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
         : status === 'reroll'
-            ? '✨ Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia'
+            ? '<a:heartg1:1545307544808071258> Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
             : (
             giveaway.description ||
             defaultDescription);
@@ -309,12 +302,6 @@ export function createGiveawayButtons(ended = false) {
                     .setLabel('Reroll')
                     .setEmoji('<a:cinnamorollg4:1541437801973817414>')
                     .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(false),
-                new ButtonBuilder()
-                    .setCustomId('giveaway_view')
-                    .setLabel('View Winners')
-                    .setEmoji('<a:cinnamorollg4:1541437801973817414>')
-                    .setStyle(ButtonStyle.Primary)
                     .setDisabled(false)
             );
         } else {
@@ -323,13 +310,13 @@ export function createGiveawayButtons(ended = false) {
                     .setCustomId('giveaway_join')
                     .setLabel('𝓙𝓸𝓲𝓷')
                     .setEmoji('<a:cinnamorollg4:1541437801973817414>')
-                    .setStyle(ButtonStyle.Primary)
+                    .setStyle(ButtonStyle.Secondary)
                     .setDisabled(false),
                 new ButtonBuilder()
                     .setCustomId('giveaway_end')
                     .setLabel('𝓔𝓷𝓭')
                     .setEmoji('<a:momongag3:1541427248132006009>')
-                    .setStyle(ButtonStyle.Danger)
+                    .setStyle(ButtonStyle.Secondary)
                     .setDisabled(false)
             );
         }
@@ -352,11 +339,7 @@ export function createGiveawayContainer(giveaway, status = 'active', winners = [
         const container = new ContainerBuilder();
 
         const defaultTitle = '<a:trangtrig2:1546040703375904801> **GIVEAWAY** <a:trangtrig3:1546040818261954610>';
-        const titleText = status === 'ended'
-            ? '<a:chiikawag7:1541427343216738414> **𝓔𝓷𝓭** <a:chiikawag7:1541427343216738414>'
-            : status === 'reroll'
-                ? '<a:chiikawag7:1541427343216738414> **𝓡𝓮𝓻𝓸𝓵𝓵𝓮𝓭** <a:chiikawag7:1541427343216738414>'
-                : (giveaway.title || defaultTitle);
+        const titleText = giveaway.title || defaultTitle;
 
         const formattedTitle = titleText.startsWith('#')
             ? titleText
@@ -385,11 +368,11 @@ export function createGiveawayContainer(giveaway, status = 'active', winners = [
         ].join('\n');
 
         const description = status === 'pending'
-            ? '🎊 Giveaway đã kết thúc! Kết quả sẽ được công bố sau.'
+            ? '<a:heartg1:1545307544808071258> Giveaway đã kết thúc! Kết quả sẽ được công bố sau.'
             : status === 'ended'
-            ? '🎊 Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
+            ? '<a:heartg1:1545307544808071258> Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
             : status === 'reroll'
-                ? '✨ Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia'
+                ? '<a:heartg1:1545307544808071258> Đã chọn lại người thắng cuộc! Giveaway đã kết thúc! Cảm ơn mọi người đã tham gia.'
                 : (giveaway.description || defaultDescription);
 
         container.addTextDisplayComponents(
@@ -626,7 +609,7 @@ export async function checkGiveaways(client) {
         } else {
             const endedEmbed = createGiveawayEmbed(giveaway, giveaway.delayAnnouncement ? 'pending' : 'ended', winners);
             await message.edit({
-                content: '<a:chiikawag7:1541427343216738414> 𝓔𝓷𝓭 <a:chiikawag7:1541427343216738414>',
+                content: null,
                 embeds: [endedEmbed],
                 components: [createGiveawayButtons(true)]
             });
