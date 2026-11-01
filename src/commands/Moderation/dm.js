@@ -4,6 +4,12 @@ import {
     EmbedBuilder,
     MessageFlags,
     AttachmentBuilder,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
 } from 'discord.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
@@ -22,6 +28,75 @@ const EMOJIS = {
     warning: '<a:bang2:1546891483250954290>',
     catSad: '<a:catg11:1546058047393239151>',
 };
+
+export function createDmContainer({
+    dmTitle,
+    targetUser,
+    senderDisplayName,
+    formattedMessage,
+    guildName,
+    authorName,
+    attachment,
+}) {
+    const container = new ContainerBuilder();
+
+    if (authorName) {
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`**${authorName}**`),
+        );
+    }
+
+    const formattedTitle = dmTitle.startsWith('#')
+        ? dmTitle
+        : `# ${dmTitle}`;
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(formattedTitle),
+    );
+
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small),
+    );
+
+    const greetingAndBody = [
+        `Chào <@${targetUser.id}> ${EMOJIS.bunny}, bạn có một lời nhắn từ ${senderDisplayName}:`,
+        '',
+        formattedMessage,
+    ].join('\n');
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(greetingAndBody),
+    );
+
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small),
+    );
+
+    const footerText = [
+        `${EMOJIS.heart} **Máy chủ gửi:** ${guildName}`,
+        `${EMOJIS.bullet} **Thời gian:** <t:${Math.floor(Date.now() / 1000)}:F>`,
+        '',
+        '-# Tin nhắn từ Usagi • Không thể phản hồi trực tiếp tin nhắn này',
+    ].join('\n');
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(footerText),
+    );
+
+    if (attachment && attachment.contentType?.startsWith('image/')) {
+        container.addMediaGalleryComponents(
+            new MediaGalleryBuilder().addItems(
+                new MediaGalleryItemBuilder().setURL(attachment.url),
+            ),
+        );
+    }
+
+    return container;
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -122,32 +197,37 @@ export default {
             const sanitized = sanitizeMarkdown(unescapedMessage);
 
             const dmTitle = customTitle
-                ? `${EMOJIS.titleLeft} ${customTitle} ${EMOJIS.titleRight}`
-                : `${EMOJIS.titleLeft} 𝓤𝓼𝓪𝓰𝓲 · 𝓣𝓱𝓸̂𝓷𝓰 𝓑𝓪́𝓸 ${EMOJIS.titleRight}`;
+                ? `${EMOJIS.titleLeft} **${customTitle}** ${EMOJIS.titleRight}`
+                : '<a:trangtrig2:1546040703375904801> **USAGI THÔNG BÁO** <a:trangtrig3:1546040818261954610>';
 
             const senderDisplayName = anonymous
                 ? '**Ban Quản Trị**'
                 : `<@${interaction.user.id}> (\`${interaction.user.tag}\`)`;
 
+            const formattedMessage = sanitized
+                .split('\n')
+                .map((line) => (line.trim().length > 0 ? `**${line}**` : line))
+                .join('\n');
+
             const dmDescription = [
                 `Chào <@${targetUser.id}> ${EMOJIS.bunny}, bạn có một lời nhắn từ ${senderDisplayName}:`,
                 '',
-                '╭─────────────── ♡ ───────────────╮',
-                sanitized,
-                '╰─────────────── ♡ ───────────────╯',
+                formattedMessage,
                 '',
                 `${EMOJIS.heart} **Máy chủ gửi:** ${interaction.guild.name}`,
                 `${EMOJIS.bullet} **Thời gian:** <t:${Math.floor(Date.now() / 1000)}:F>`,
             ].join('\n');
+
+            const authorName = anonymous
+                ? `Ban Quản Trị • ${interaction.guild.name}`
+                : `${interaction.user.tag} • ${interaction.guild.name}`;
 
             const dmEmbed = new EmbedBuilder()
                 .setColor(USAGI_PINK)
                 .setTitle(dmTitle)
                 .setDescription(dmDescription)
                 .setAuthor({
-                    name: anonymous
-                        ? `Ban Quản Trị • ${interaction.guild.name}`
-                        : `${interaction.user.tag} • ${interaction.guild.name}`,
+                    name: authorName,
                     iconURL: anonymous
                         ? interaction.guild.iconURL({ dynamic: true }) || client.user.displayAvatarURL()
                         : interaction.user.displayAvatarURL({ dynamic: true }),
@@ -159,23 +239,45 @@ export default {
                 .setTimestamp();
 
             const dmFiles = [];
+            const dmNonImageFiles = [];
             if (attachment) {
                 if (attachment.contentType?.startsWith('image/')) {
                     dmEmbed.setImage(attachment.url);
                 } else {
-                    dmFiles.push(
-                        new AttachmentBuilder(attachment.url, {
-                            name: attachment.name,
-                        }),
-                    );
+                    const fileObj = new AttachmentBuilder(attachment.url, {
+                        name: attachment.name,
+                    });
+                    dmFiles.push(fileObj);
+                    dmNonImageFiles.push(fileObj);
                 }
             }
 
-            const dmChannel = await targetUser.createDM();
-            await dmChannel.send({
-                embeds: [dmEmbed],
-                files: dmFiles,
+            const container = createDmContainer({
+                dmTitle,
+                targetUser,
+                senderDisplayName,
+                formattedMessage,
+                guildName: interaction.guild.name,
+                authorName,
+                attachment,
             });
+
+            const dmChannel = await targetUser.createDM();
+            try {
+                await dmChannel.send({
+                    content: null,
+                    embeds: [],
+                    components: [container],
+                    flags: MessageFlags.IsComponentsV2,
+                    files: dmNonImageFiles,
+                });
+            } catch (v2Error) {
+                logger.warn('Failed to send DM with Components V2 container, falling back to Embed:', v2Error);
+                await dmChannel.send({
+                    embeds: [dmEmbed],
+                    files: dmFiles,
+                });
+            }
 
             await logEvent({
                 client: interaction.client,
