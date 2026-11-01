@@ -839,12 +839,19 @@ async function handleAutoresponder(message, client) {
       return false;
     }
 
-    // Kiểm tra và lấy danh sách người dùng được tag chỉ định
+    // Kiểm tra và lấy danh sách người dùng và vai trò (roles) được tag chỉ định
     const shouldMentionTarget = responder.response?.mentionTarget !== false;
     let targetMentionText = '';
-    const targetUsers = message.mentions.users.filter(u => u.id !== client.user.id);
-    if (shouldMentionTarget && targetUsers.size > 0) {
-      targetMentionText = targetUsers.map(u => `<@${u.id}>`).join(' ');
+    if (shouldMentionTarget) {
+      const mentions = [];
+      const targetUsers = message.mentions.users.filter(u => u.id !== client.user.id);
+      if (targetUsers.size > 0) {
+        mentions.push(...targetUsers.map(u => `<@${u.id}>`));
+      }
+      if (message.mentions.roles && message.mentions.roles.size > 0) {
+        mentions.push(...message.mentions.roles.map(r => `<@&${r.id}>`));
+      }
+      targetMentionText = mentions.join(' ');
     }
 
     // Tùy chọn xóa tin nhắn kích hoạt (ví dụ xóa lệnh lvup1)
@@ -865,16 +872,17 @@ async function handleAutoresponder(message, client) {
       delete payload.content;
     }
 
-    // Đảm bảo allowedMentions hợp lệ với Discord API (parse: ['users'] và users: [...] không được đi cùng nhau)
+    // Đảm bảo allowedMentions hợp lệ với Discord API (cho phép ping cả users và roles)
     const existingParse = Array.isArray(payload.allowedMentions?.parse)
       ? payload.allowedMentions.parse
       : [];
 
     payload.allowedMentions = {
       ...payload.allowedMentions,
-      parse: Array.from(new Set([...existingParse, 'users'])),
+      parse: Array.from(new Set([...existingParse, 'users', 'roles'])),
     };
     delete payload.allowedMentions.users;
+    delete payload.allowedMentions.roles;
 
     // Chỉ reply nếu tin nhắn lệnh KHÔNG bị xóa
     if (!shouldDeleteTrigger && responder.response?.reply?.enabled) {

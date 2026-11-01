@@ -610,10 +610,10 @@ export default [
                                     'option_mention_target',
                                 )
                                 .setLabel(
-                                    'Tag người được chỉ định? (yes/no)',
+                                    'Tag user/role chỉ định? (yes/no)',
                                 )
                                 .setPlaceholder(
-                                    'yes: Tag user được gõ sau keyword (@User)',
+                                    'yes: Tag user hoặc role (@User, @Role)',
                                 )
                                 .setStyle(
                                     TextInputStyle.Short,

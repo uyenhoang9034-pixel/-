@@ -92,7 +92,7 @@ export default {
                     option
                         .setName('mention_target')
                         .setDescription(
-                            'Tag người dùng được chỉ định (ví dụ: lvup1 @User sẽ tag @User)',
+                            'Tag người dùng/role được chỉ định (ví dụ: lvup1 @User hoặc @Role)',
                         )
                         .setRequired(false),
                 ),
@@ -273,7 +273,7 @@ export default {
                     deleteTrigger: deleteTriggerOption ?? false,
                     mentionTarget: mentionTargetOption ?? true,
                     allowedMentions: {
-                        parse: ['users'],
+                        parse: ['users', 'roles'],
                     },
                     reply: {
                         enabled: false,

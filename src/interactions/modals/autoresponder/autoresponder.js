@@ -750,7 +750,7 @@ export async function sendBuilder(
 
     const optionsText = [
         `🗑️ **Xóa tin nhắn lệnh:** ${isDelete ? '`Bật (Có xóa)`' : '`Tắt`'}`,
-        `👤 **Tag người chỉ định (@User):** ${isMentionTarget ? '`Bật`' : '`Tắt`'}`,
+        `👤 **Tag chỉ định (@User/@Role):** ${isMentionTarget ? '`Bật`' : '`Tắt`'}`,
         isReply ? `💬 **Reply trích dẫn:** \`Bật\`${isMentionAuthor ? ' (có tag author)' : ''}` : '',
     ].filter(Boolean).join('\n');
 
