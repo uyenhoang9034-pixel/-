@@ -4,6 +4,13 @@ import {
   ButtonStyle,
   EmbedBuilder,
   AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  MessageFlags,
 } from 'discord.js';
 
 import fs from 'fs';
@@ -155,6 +162,60 @@ const JTC_EMOJIS = {
  * BUILD USAGI CONTROL PANEL
  * =========================================================
  */
+
+export function buildJoinToCreateControlContainer(row1, row2, row3) {
+  const container = new ContainerBuilder();
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      '# <a:trangtrig2:1546040703375904801> **𝓤𝓼𝓪𝓰𝓲 𝓥𝓸𝓲𝓬𝓮 𝓡𝓸𝓸𝓶** <a:trangtrig3:1546040818261954610>'
+    )
+  );
+
+  container.addSeparatorComponents(
+    new SeparatorBuilder()
+      .setDivider(true)
+      .setSpacing(SeparatorSpacingSize.Small)
+  );
+
+  const description = [
+    'Cảm ơn và chào mừng bạn đã đến với bảng điều khiển voice room cá nhân! <a:heartg3:1546047728314884226>',
+    '',
+    '<a:trangtrig6:1546043036390260756> Bạn có thể quản lý **voice room** do chính mình tạo bằng các nút bên dưới. Chỉ có thể sử dụng bảng điều khiển sau khi tạo phòng!',
+    '',
+    '<a:trangtrig6:1546043036390260756> Chỉ **chủ phòng** mới có thể thay đổi cài đặt của phòng.',
+  ].join('\n');
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(description)
+  );
+
+  container.addSeparatorComponents(
+    new SeparatorBuilder()
+      .setDivider(true)
+      .setSpacing(SeparatorSpacingSize.Small)
+  );
+
+  container.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(JTC_PANEL_IMAGE_URL)
+    )
+  );
+
+  container.addSeparatorComponents(
+    new SeparatorBuilder()
+      .setDivider(true)
+      .setSpacing(SeparatorSpacingSize.Small)
+  );
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent('-# Usagi TempVoice • Phòng sẽ tự xóa khi không còn người')
+  );
+
+  container.addActionRowComponents(row1, row2, row3);
+
+  return container;
+}
 
 export function buildJoinToCreateControlPanel() {
   /**
@@ -472,12 +533,15 @@ export function buildJoinToCreateControlPanel() {
             JTC_EMOJIS.delete,
           )
           .setStyle(
-            ButtonStyle.Danger,
+            ButtonStyle.Secondary,
           ),
       );
 
+  const container = buildJoinToCreateControlContainer(row1, row2, row3);
 
   return {
+    container,
+
     embeds: [
       embed,
     ],
@@ -569,14 +633,26 @@ export async function createJoinToCreateControlPanel(
 
   /**
    * =======================================================
-   * SEND PANEL
+   * SEND PANEL (TRY V2 CONTAINER, FALLBACK TO EMBED)
    * =======================================================
    */
 
-  const panelMessage =
-    await channel.send({
-      ...payload,
+  let panelMessage;
+  try {
+    panelMessage = await channel.send({
+      content: null,
+      embeds: [],
+      components: [payload.container],
+      flags: MessageFlags.IsComponentsV2,
     });
+  } catch (error) {
+    logger.warn('Failed to send JoinToCreate panel with Components V2, falling back to embed:', error);
+    panelMessage = await channel.send({
+      embeds: payload.embeds,
+      files: payload.files,
+      components: payload.components,
+    });
+  }
 
 
   /**
@@ -610,6 +686,25 @@ export async function createJoinToCreateControlPanel(
 
 /**
  * =========================================================
+ * REFRESH EXISTING CONTROL PANEL
+ * =========================================================
+ */
+
+export async function refreshJoinToCreateControlPanel(client, guild) {
+  const config = await getJoinToCreateConfig(client, guild.id);
+  if (!config.controlChannelId) {
+    return null;
+  }
+  const channel = await guild.channels.fetch(config.controlChannelId).catch(() => null);
+  if (!channel || !channel.isTextBased()) {
+    return null;
+  }
+  return await createJoinToCreateControlPanel(client, guild, channel);
+}
+
+
+/**
+ * =========================================================
  * DEFAULT EXPORT
  * =========================================================
  */
@@ -617,5 +712,9 @@ export async function createJoinToCreateControlPanel(
 export default {
   buildJoinToCreateControlPanel,
 
+  buildJoinToCreateControlContainer,
+
   createJoinToCreateControlPanel,
+
+  refreshJoinToCreateControlPanel,
 };

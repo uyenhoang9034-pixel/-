@@ -72,6 +72,18 @@ export default {
                         .setRequired(true)
                         .addChannelTypes(ChannelType.GuildVoice)
                 )
+        )
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName("panel")
+                .setDescription("Cập nhật / gửi Bảng điều khiển voice room cá nhân (Giao diện Discord mới).")
+                .addChannelOption((option) =>
+                    option
+                        .setName("channel")
+                        .setDescription("Kênh text để đặt bảng điều khiển (mặc định kênh control hiện tại).")
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(false)
+                )
         ),
     category: "utility",
 
@@ -96,6 +108,9 @@ export default {
                 return;
             } else if (subcommand === "dashboard") {
                 await handleConfigSubcommand(interaction, client);
+                return;
+            } else if (subcommand === "panel") {
+                await handlePanelSubcommand(interaction, client);
                 return;
             }
 
@@ -317,7 +332,12 @@ async function handleConfigSubcommand(interaction, client) {
             .setLabel('🗑️ Remove Channel')
             .setStyle(ButtonStyle.Danger);
 
-        const row = new ActionRowBuilder().addComponents(nameButton, limitButton, bitrateButton, deleteButton);
+        const refreshPanelButton = new ButtonBuilder()
+            .setCustomId(`jtc_config_panel_${triggerChannel.id}`)
+            .setLabel('🔄 Panel V2')
+            .setStyle(ButtonStyle.Secondary);
+
+        const row = new ActionRowBuilder().addComponents(nameButton, limitButton, bitrateButton, refreshPanelButton, deleteButton);
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds: [configEmbed],
@@ -360,6 +380,23 @@ async function handleConfigSubcommand(interaction, client) {
                     await handleBitrateModal(buttonInteraction, triggerChannel, currentConfig, client);
                 } else if (customId.includes('jtc_config_delete_')) {
                     await handleChannelDeletion(buttonInteraction, triggerChannel, currentConfig, client);
+                } else if (customId.includes('jtc_config_panel_')) {
+                    const cfg = await getConfiguration(client, buttonInteraction.guildId);
+                    const ctrlChannel = cfg.controlChannelId
+                        ? await buttonInteraction.guild.channels.fetch(cfg.controlChannelId).catch(() => null)
+                        : null;
+                    if (!ctrlChannel) {
+                        await buttonInteraction.reply({
+                            content: '❌ Không tìm thấy kênh voice control để làm mới bảng điều khiển.',
+                            flags: MessageFlags.Ephemeral
+                        });
+                        return;
+                    }
+                    await createJoinToCreateControlPanel(client, buttonInteraction.guild, ctrlChannel);
+                    await buttonInteraction.reply({
+                        content: `✅ Đã làm mới Bảng điều khiển voice room sang giao diện Discord mới tại ${ctrlChannel}!`,
+                        flags: MessageFlags.Ephemeral
+                    });
                 }
             } catch (error) {
                 const userMessage = error instanceof TitanBotError
@@ -720,6 +757,52 @@ async function handleChannelDeletion(interaction, triggerChannel, currentConfig,
             `Deletion error: ${error.message}`,
             ErrorTypes.UNKNOWN,
             'An error occurred while removing the channel.'
+        );
+    }
+}
+
+async function handlePanelSubcommand(interaction, client) {
+    try {
+        const specifiedChannel = interaction.options.getChannel('channel');
+        const config = await getConfiguration(client, interaction.guild.id);
+        let targetChannel = specifiedChannel;
+
+        if (!targetChannel && config.controlChannelId) {
+            targetChannel = await interaction.guild.channels.fetch(config.controlChannelId).catch(() => null);
+        }
+
+        if (!targetChannel) {
+            targetChannel = interaction.channel;
+        }
+
+        if (!targetChannel || !targetChannel.isTextBased()) {
+            throw new TitanBotError(
+                'Target channel not found',
+                ErrorTypes.VALIDATION,
+                'Không tìm thấy kênh hợp lệ để gửi bảng điều khiển. Vui lòng chọn một kênh text.'
+            );
+        }
+
+        await createJoinToCreateControlPanel(client, interaction.guild, targetChannel);
+
+        const replyEmbed = successEmbed(
+            '✅ Cập nhật Bảng Điều Khiển Thành Công',
+            `Em đã gửi Bảng điều khiển voice room cá nhân giao diện mới tới kênh ${targetChannel} rồi nha vợ của Kim Nong ơi! 🐰💕`
+        );
+
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: [replyEmbed],
+            flags: MessageFlags.Ephemeral
+        });
+    } catch (error) {
+        if (error instanceof TitanBotError) {
+            throw error;
+        }
+        logger.error('Error handling panel subcommand:', error);
+        throw new TitanBotError(
+            'Panel update error',
+            ErrorTypes.UNKNOWN,
+            'Có lỗi xảy ra khi cập nhật bảng điều khiển voice room.'
         );
     }
 }
