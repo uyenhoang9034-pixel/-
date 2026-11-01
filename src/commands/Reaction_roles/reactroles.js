@@ -320,18 +320,17 @@ async function validateCustomEmojis(
             continue;
         }
 
-        const emoji =
+        let emoji =
             client.emojis.cache.get(
                 config.emoji.id,
-            ) ??
-            await client.emojis
-                .fetch(
-                    config.emoji.id,
-                )
-                .catch(
-                    () =>
-                        null,
-                );
+            );
+
+        if (!emoji) {
+            for (const guild of client.guilds.cache.values()) {
+                emoji = await guild.emojis.fetch(config.emoji.id).catch(() => null);
+                if (emoji) break;
+            }
+        }
 
         if (!emoji) {
             missing.push(
@@ -343,10 +342,9 @@ async function validateCustomEmojis(
     if (
         missing.length > 0
     ) {
-        throw new Error(
+        logger.warn(
             [
-                'Bot không truy cập được một số custom emoji:',
-                '',
+                'Một số custom emoji chưa tìm thấy trong cache của bot (sẽ thử phản ứng trực tiếp qua API):',
                 ...missing,
             ].join('\n'),
         );
