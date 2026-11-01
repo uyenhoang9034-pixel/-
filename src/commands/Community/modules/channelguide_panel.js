@@ -1,5 +1,6 @@
 import {
     ActionRowBuilder,
+    AttachmentBuilder,
     ButtonBuilder,
     ButtonStyle,
     ContainerBuilder,
@@ -7,11 +8,11 @@ import {
     TextDisplayBuilder,
     SeparatorBuilder,
     SeparatorSpacingSize,
-    SectionBuilder,
-    ThumbnailBuilder,
     MediaGalleryBuilder,
     MediaGalleryItemBuilder,
 } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
 
 const PAGE_SIZE = 20;
 
@@ -59,30 +60,15 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
         (safePage + 1) * PAGE_SIZE,
     );
 
-    const guildIcon = guild?.iconURL({
-        dynamic: true,
-        size: 128,
-    }) || null;
-
     const container = new ContainerBuilder();
 
-    const heading = new SectionBuilder()
+    // Tiêu đề chính (xóa thumbnail theo yêu cầu)
+    container
         .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
                 `# ${config.panelTitle || '🌸 Serendipity Channel Guide'}`,
             ),
-        );
-
-    if (guildIcon) {
-        heading.setThumbnailAccessory(
-            new ThumbnailBuilder()
-                .setURL(guildIcon)
-                .setDescription(guild?.name || 'Server icon'),
-        );
-    }
-
-    container
-        .addSectionComponents(heading)
+        )
         .addSeparatorComponents(
             new SeparatorBuilder()
                 .setDivider(true)
@@ -95,13 +81,25 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
             ),
         );
 
-    if (config.panelImage) {
+    // Ảnh bên dưới văn bản (sử dụng assets/channelguide/channelguide.png)
+    const channelGuideImgPath = path.resolve(process.cwd(), 'assets/channelguide/channelguide.png');
+    const hasLocalImage = fs.existsSync(channelGuideImgPath);
+    const imageUrl = hasLocalImage ? 'attachment://channelguide.png' : config.panelImage;
+
+    if (imageUrl) {
         container.addMediaGalleryComponents(
             new MediaGalleryBuilder().addItems(
                 new MediaGalleryItemBuilder()
-                    .setURL(config.panelImage)
+                    .setURL(imageUrl)
                     .setDescription('Channel Guide'),
             ),
+        );
+    }
+
+    const files = [];
+    if (imageUrl === 'attachment://channelguide.png' && hasLocalImage) {
+        files.push(
+            new AttachmentBuilder(channelGuideImgPath, { name: 'channelguide.png' }),
         );
     }
 
@@ -159,6 +157,7 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
         content: null,
         embeds: [],
         components,
+        files,
         flags: MessageFlags.IsComponentsV2,
     };
 }
