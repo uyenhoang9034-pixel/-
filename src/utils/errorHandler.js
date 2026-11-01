@@ -504,6 +504,16 @@ function buildErrorReference(resolvedErrorCode, traceId) {
 }
 
 export async function handleInteractionError(interaction, error, context = {}) {
+    const errorCode = error?.code || error?.rawError?.code;
+    if (errorCode === 10062 || errorCode === 40060) {
+        logger.warn('⚠️ Interaction đã hết hạn hoặc không còn tồn tại trên Discord (Unknown interaction / Already acknowledged), bỏ qua xử lý lỗi.', {
+            event: 'interaction.error.expired_skipped',
+            errorCode,
+            command: interaction?.commandName || interaction?.customId || context?.commandName,
+        });
+        return;
+    }
+
     const normalizedError = normalizeInteractionError(error, context);
     const errorType = categorizeError(normalizedError);
     const userMessage = getUserMessage(normalizedError, context);

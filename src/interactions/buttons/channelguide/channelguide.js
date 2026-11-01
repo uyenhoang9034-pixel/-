@@ -129,6 +129,11 @@ export default [
                 });
             }
 
+            // Defer ngay lập tức để tránh lỗi timeout 3s (DiscordAPIError 10062)
+            await interaction.deferReply({
+                flags: MessageFlags.Ephemeral,
+            }).catch(() => null);
+
             const config =
                 await getChannelGuideConfig(
                     client,
@@ -145,22 +150,18 @@ export default [
                 );
 
             if (!guide) {
-                return interaction.reply({
+                return interaction.editReply({
                     content:
                         '❌ Không tìm thấy hướng dẫn này.',
-                    flags:
-                        MessageFlags.Ephemeral,
                 });
             }
 
             if (
                 guide.enabled === false
             ) {
-                return interaction.reply({
+                return interaction.editReply({
                     content:
                         '❌ Hướng dẫn này hiện đang được tắt.',
-                    flags:
-                        MessageFlags.Ephemeral,
                 });
             }
 
@@ -170,10 +171,9 @@ export default [
                     interaction.guild,
                 );
 
-            return interaction.reply({
+            return interaction.editReply({
                 components,
                 flags:
-                    MessageFlags.Ephemeral |
                     MessageFlags.IsComponentsV2,
                 allowedMentions: {
                     parse: [],
@@ -194,6 +194,9 @@ export default [
             if (!interaction.guild) {
                 return;
             }
+
+            // Defer update ngay lập tức để tránh timeout 3s
+            await interaction.deferUpdate().catch(() => null);
 
             const config =
                 await getChannelGuideConfig(
@@ -218,7 +221,7 @@ export default [
                     interaction.guild,
                 );
 
-            return interaction.update(
+            return interaction.editReply(
                 payload,
             );
         },
