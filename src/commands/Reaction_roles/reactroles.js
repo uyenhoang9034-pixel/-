@@ -117,7 +117,7 @@ function buildPanelDescription() {
         buildRoleList();
 
     return [
-        '<a:trangtrig30:1546905942476464178> Hãy chắc chắn bạn đã đọc kĩ rules trước khi lấy role.',
+        '<a:trangtrig30:1546905942476464178>  Hãy chắc chắn bạn đã đọc kĩ rules trước khi lấy role.',
         '',
         '<a:trangtrig30:1546905942476464178>  Ấn emoji để chọn game, chơi nhiều game chọn nhiều emoji, không chơi game nào thì chọn "không thích chơi game".',
         '',
