@@ -8,6 +8,7 @@ import {
 } from '../config/gameRoles.js';
 
 import {
+    isGameRolePanel,
     sendGameRoleNotification,
 } from '../services/gameRoleService.js';
 
@@ -113,27 +114,13 @@ export default {
             // CHỈ NHẬN PANEL GET ROLE CỦA BOT
             // =================================================
 
-            const botId =
-                guild.members.me?.id;
+            const isPanel =
+                await isGameRolePanel(
+                    message,
+                    guild.client,
+                );
 
-            if (
-                !botId ||
-                message.author?.id !==
-                    botId
-            ) {
-                return;
-            }
-
-
-            const panelTitle =
-                message.embeds?.[0]?.title ??
-                '';
-
-            if (
-                !panelTitle.includes(
-                    '𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮',
-                )
-            ) {
+            if (!isPanel) {
                 return;
             }
 

@@ -262,39 +262,33 @@ export async function getGameRolePanel(
  *
  * 1. Check messageId trong DB.
  * 2. Nếu DB mất data sau restart:
- *    nhận diện bằng message của bot + title Get Role.
+ *    nhận diện bằng message của bot + title Get Role (hỗ trợ cả Embed và Components V2).
  * 3. Khôi phục panel vào DB.
  */
 
-export async function isGameRolePanelReaction(
-    reaction,
+export async function isGameRolePanel(
+    message,
     client,
 ) {
     try {
-        const message =
-            reaction?.message;
-
         if (
-            !message?.guildId ||
-            !message?.id
+            !message ||
+            !message.guildId ||
+            !message.id
         ) {
             return false;
         }
 
+        const botId =
+            client?.user?.id ??
+            message.guild?.members?.me?.id;
 
-        /**
-         * Emoji phải thuộc 11 Game Roles.
-         */
-
-        const gameRole =
-            getGameRoleByEmoji(
-                reaction?.emoji,
-            );
-
-        if (!gameRole) {
+        if (
+            !botId ||
+            message.author?.id !== botId
+        ) {
             return false;
         }
-
 
         /**
          * =============================================
@@ -311,13 +305,10 @@ export async function isGameRolePanelReaction(
         if (
             panel &&
             panel.messageId ===
-                message.id &&
-            panel.channelId ===
-                message.channelId
+                message.id
         ) {
             return true;
         }
-
 
         /**
          * =============================================
@@ -327,82 +318,139 @@ export async function isGameRolePanelReaction(
          * Panel vẫn còn trên Discord nhưng DB mất.
          */
 
-        if (
-            message.author?.id !==
-            client.user?.id
-        ) {
-            return false;
-        }
+        let isMatch = false;
 
-
+        // 1. Check Embed (dạng cũ)
         const embed =
             message.embeds?.[0];
 
-        if (!embed) {
-            return false;
-        }
+        if (embed) {
+            const title =
+                embed.title ??
+                '';
+            const desc =
+                embed.description ??
+                '';
 
-
-        const title =
-            embed.title ??
-            '';
-
-
-        if (
-            !title.includes(
-                '𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮',
-            )
-        ) {
-            return false;
-        }
-
-
-        logger.warn(
-            `Game Role panel ${message.id} detected through fallback.`,
-        );
-
-
-        /**
-         * Khôi phục panel vào DB.
-         */
-
-        try {
             if (
-                client?.db
+                title.includes('𝓖𝓸́𝓬 𝓵𝓪̂́𝔂 𝓻𝓸𝓵𝓮') ||
+                title.toUpperCase().includes('GÓC LẤY ROLE') ||
+                desc.includes('rules trước khi lấy role')
             ) {
-                await saveGameRolePanel(
-                    client,
-                    message.guildId,
-                    {
-                        channelId:
-                            message.channelId,
+                isMatch = true;
+            }
+        }
 
-                        messageId:
-                            message.id,
+        // 2. Check Components V2 / Content (dạng mới)
+        if (!isMatch) {
+            let compsString = '';
+            try {
+                compsString = JSON.stringify(message.components ?? []);
+            } catch {
+                compsString = '';
+            }
 
-                        createdAt:
-                            new Date().toISOString(),
-                    },
-                );
+            const rawText = `${message.content ?? ''} ${compsString}`;
 
-                logger.info(
-                    `Recovered Game Role panel ${message.id} into database.`,
+            if (
+                rawText.includes('GÓC LẤY ROLE') ||
+                rawText.includes('rules trước khi lấy role') ||
+                rawText.includes('1546040703375904801') ||
+                rawText.includes('1546040818261954610') ||
+                rawText.includes('1541364885789745213') ||
+                rawText.includes('Ấn emoji để chọn game')
+            ) {
+                isMatch = true;
+            }
+        }
+
+        if (isMatch) {
+            logger.warn(
+                `Game Role panel ${message.id} detected through fallback.`,
+            );
+
+            /**
+             * Khôi phục panel vào DB.
+             */
+            try {
+                if (
+                    client?.db
+                ) {
+                    await saveGameRolePanel(
+                        client,
+                        message.guildId,
+                        {
+                            channelId:
+                                message.channelId,
+                            messageId:
+                                message.id,
+                            createdAt:
+                                new Date().toISOString(),
+                        },
+                    );
+
+                    logger.info(
+                        `Recovered Game Role panel ${message.id} into database.`,
+                    );
+                }
+            } catch (saveError) {
+                logger.warn(
+                    'Could not recover Game Role panel:',
+                    saveError,
                 );
             }
 
-        } catch (saveError) {
-            logger.warn(
-                'Could not recover Game Role panel:',
-                saveError,
-            );
+            return true;
         }
 
-
-        return true;
+        return false;
 
     } catch (error) {
         logger.error(
             'Failed to identify Game Role panel:',
+            error,
+        );
+
+        return false;
+    }
+}
+
+
+export async function isGameRolePanelReaction(
+    reaction,
+    client,
+) {
+    try {
+        const message =
+            reaction?.message;
+
+        if (
+            !message?.guildId ||
+            !message?.id
+        ) {
+            return false;
+        }
+
+        /**
+         * Emoji phải thuộc 11 Game Roles.
+         */
+        const gameRole =
+            getGameRoleByEmoji(
+                reaction?.emoji,
+            );
+
+        if (!gameRole) {
+            return false;
+        }
+
+        return await isGameRolePanel(
+            message,
+            client,
+        );
+
+    } catch (error) {
+        logger.error(
+            'Failed to identify Game Role reaction:',
             error,
         );
 
