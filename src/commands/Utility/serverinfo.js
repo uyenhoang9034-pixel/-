@@ -4,11 +4,23 @@ import {
     TextDisplayBuilder,
     SeparatorBuilder,
     SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+    AttachmentBuilder,
     MessageFlags,
     EmbedBuilder,
 } from 'discord.js';
+import path from 'node:path';
+import fsSync from 'node:fs';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+
+const SERVERINFO_IMAGE_PATH = path.resolve(
+    process.cwd(),
+    'assets',
+    'serverinfo',
+    'serverinfo.jpg',
+);
 
 export default {
     data: new SlashCommandBuilder()
@@ -44,8 +56,12 @@ export default {
             `<a:trangtrig8:1546047024334503997> Ngày thành lập: <t:${createdTimestamp}:R>`,
         ].join('\n');
 
+        const hasImage = fsSync.existsSync(SERVERINFO_IMAGE_PATH);
+        const files = hasImage
+            ? [new AttachmentBuilder(SERVERINFO_IMAGE_PATH, { name: 'serverinfo.jpg' })]
+            : [];
+
         const container = new ContainerBuilder()
-            .setAccentColor(0x2B8BE3)
             .addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`# ${titleText}`)
             )
@@ -58,23 +74,41 @@ export default {
                 new TextDisplayBuilder().setContent(bodyContent)
             );
 
+        if (hasImage) {
+            container.addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setDivider(true)
+                    .setSpacing(SeparatorSpacingSize.Small)
+            );
+            container.addMediaGalleryComponents(
+                new MediaGalleryBuilder().addItems(
+                    new MediaGalleryItemBuilder().setURL('attachment://serverinfo.jpg')
+                )
+            );
+        }
+
         try {
             await InteractionHelper.safeEditReply(interaction, {
                 content: null,
                 embeds: [],
                 components: [container],
                 flags: MessageFlags.IsComponentsV2,
+                files,
             });
         } catch (v2Error) {
             logger.warn('Failed to send ServerInfo with Components V2, falling back to Embed:', v2Error);
             const fallbackEmbed = new EmbedBuilder()
-                .setColor(0x2B8BE3)
                 .setTitle(`SERVER INFO: ${guild.name}`)
                 .setDescription(bodyContent);
+
+            if (hasImage) {
+                fallbackEmbed.setImage('attachment://serverinfo.jpg');
+            }
 
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [fallbackEmbed],
                 components: [],
+                files,
             });
         }
 
