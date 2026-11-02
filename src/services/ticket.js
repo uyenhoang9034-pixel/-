@@ -10,6 +10,13 @@ import {
   ButtonStyle,
   PermissionFlagsBits,
   AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  MessageFlags,
 } from 'discord.js';
 
 import {
@@ -174,6 +181,8 @@ function rethrowTicketError(
  * =========================================================
  */
 
+const TICKET_BTN_EMOJI = '<a:trangtrig33:1546908181060526130>';
+
 function buildTicketControlRow(
   {
     claimedBy = null,
@@ -181,56 +190,142 @@ function buildTicketControlRow(
 ) {
   return new ActionRowBuilder()
     .addComponents(
+      new ButtonBuilder()
+        .setCustomId('ticket_claim')
+        .setLabel(claimedBy ? 'Đã nhận' : 'Nhận ticket')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji(TICKET_BTN_EMOJI)
+        .setDisabled(!!claimedBy),
 
       new ButtonBuilder()
-        .setCustomId(
-          'ticket_claim',
-        )
-        .setLabel(
-          claimedBy
-            ? 'Đã nhận'
-            : 'Nhận ticket',
-        )
-        .setStyle(
-          claimedBy
-            ? ButtonStyle.Secondary
-            : ButtonStyle.Primary,
-        )
-        .setEmoji(
-          '<a:catg1:1541439053256462396>',
-        )
-        .setDisabled(
-          !!claimedBy,
-        ),
+        .setCustomId('ticket_pin')
+        .setLabel('Ghim')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji(TICKET_BTN_EMOJI),
 
       new ButtonBuilder()
-        .setCustomId(
-          'ticket_pin',
-        )
-        .setLabel(
-          'Ghim',
-        )
-        .setStyle(
-          ButtonStyle.Secondary,
-        )
-        .setEmoji(
-          '<a:catg1:1541439053256462396>',
-        ),
-
-      new ButtonBuilder()
-        .setCustomId(
-          'ticket_close',
-        )
-        .setLabel(
-          'Đóng',
-        )
-        .setStyle(
-          ButtonStyle.Danger,
-        )
-        .setEmoji(
-          '<a:catg1:1541439053256462396>',
-        ),
+        .setCustomId('ticket_close')
+        .setLabel('Đóng')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji(TICKET_BTN_EMOJI),
     );
+}
+
+export function buildTicketOpenPayload({
+  ticketNumber,
+  member,
+  reason,
+  status = 'Đang mở',
+  assignedStaff = null,
+  createdTimestamp = null,
+  claimedBy = null,
+  hasImage = false,
+  showButtons = true,
+}) {
+  const ts = createdTimestamp || Math.floor(Date.now() / 1000);
+  const userMention = member?.toString?.() || 'bạn';
+  const staffMention = assignedStaff
+    ? (typeof assignedStaff === 'string' ? assignedStaff : assignedStaff.toString())
+    : 'Chưa có';
+
+  const titleText = `<a:trangtrig2:1546040703375904801> **TICKET #${ticketNumber}** <a:trangtrig3:1546040818261954610>`;
+
+  const bodyLines = [
+    `Chào ${userMention}, cảm ơn bạn đã tạo ticket! <a:heartg1:1545307544808071258>`,
+    '',
+    `<a:1_:1563484001765949550> Lý do mở ticket: ${reason}`,
+    `<a:2_:1563484061111156828> Trạng thái: **${status}**`,
+    `<a:3_:1563484342779388045> Support: ${staffMention}`,
+    `<a:4_:1563484724725424209> Thời gian tạo ticket: <t:${ts}:F> (<t:${ts}:R>)`,
+  ].join('\n');
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`# ${titleText}`)
+    )
+    .addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(bodyLines)
+    );
+
+  if (hasImage) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL('attachment://ticket.png')
+      )
+    );
+  }
+
+  if (showButtons) {
+    const row = buildTicketControlRow({ claimedBy });
+    container.addActionRowComponents(row);
+  }
+
+  return {
+    components: [container],
+    flags: MessageFlags.IsComponentsV2,
+  };
+}
+
+export function buildTicketOpenFallbackEmbed({
+  ticketNumber,
+  member,
+  reason,
+  status = 'Đang mở',
+  assignedStaff = null,
+  createdTimestamp = null,
+  claimedBy = null,
+  hasImage = false,
+  showButtons = true,
+}) {
+  const ts = createdTimestamp || Math.floor(Date.now() / 1000);
+  const userMention = member?.toString?.() || 'bạn';
+  const staffMention = assignedStaff
+    ? (typeof assignedStaff === 'string' ? assignedStaff : assignedStaff.toString())
+    : 'Chưa có';
+
+  const bodyLines = [
+    `Chào ${userMention}, cảm ơn bạn đã tạo ticket! <a:heartg1:1545307544808071258>`,
+    '',
+    `<a:1_:1563484001765949550> Lý do mở ticket: ${reason}`,
+    `<a:2_:1563484061111156828> Trạng thái: **${status}**`,
+    `<a:3_:1563484342779388045> Support: ${staffMention}`,
+    `<a:4_:1563484724725424209> Thời gian tạo ticket: <t:${ts}:F> (<t:${ts}:R>)`,
+  ].join('\n');
+
+  const embed = createEmbed({
+    title: `TICKET #${ticketNumber}`,
+    description: bodyLines,
+    color: '#FFB6C9',
+  });
+
+  if (hasImage) {
+    embed.setImage('attachment://ticket.png');
+  }
+
+  const components = showButtons ? [buildTicketControlRow({ claimedBy })] : [];
+
+  return {
+    embeds: [embed],
+    components,
+  };
+}
+
+  const row = buildTicketControlRow({ claimedBy });
+
+  return {
+    embeds: [embed],
+    components: [row],
+  };
 }
 
 
@@ -571,8 +666,8 @@ export async function createTicket(
 
 
       reason,
+      number: ticketNumber,
     };
-
 
     await saveTicketData(
       guild.id,
@@ -580,81 +675,8 @@ export async function createTicket(
       ticketData,
     );
 
-
-
-
     const ticketAttachment = getTicketImageAttachment();
     const ticketFiles = ticketAttachment ? [ticketAttachment] : [];
-
-    const embed =
-      createEmbed(
-        {
-          title:
-            `🎫 Ticket #${ticketNumber}`,
-
-          description:
-            `${member.toString()}, cảm ơn bạn đã tạo ticket! 💗\n\n` +
-            `📝 **Lý do:** ${reason}`,
-
-          color:
-            '#FFB6C9',
-
-          image: {
-            url:
-              ticketAttachment ? 'attachment://ticket.png' : TICKET_IMAGE_URL,
-          },
-
-          fields: [
-            {
-              name:
-                '<a:cinnamorollg3:1541437319188578434> Trạng thái',
-
-              value:
-                '🟢 Đang mở',
-
-              inline:
-                true,
-            },
-
-            {
-              name:
-                '<a:cinnamorollg3:1541437319188578434> Người nhận',
-
-              value:
-                assignedStaff
-                  ? assignedStaff.toString()
-                  : 'Chưa có',
-
-              inline:
-                true,
-            },
-
-            {
-              name:
-                '<a:cinnamorollg3:1541437319188578434> Đã tạo',
-
-              value:
-                `<t:${Math.floor(Date.now() / 1000)}:R>`,
-
-              inline:
-                true,
-            },
-          ],
-        },
-      );
-
-
-    const row =
-      buildTicketControlRow(
-        {
-          claimedBy:
-            assignedStaff?.id ??
-            null,
-        },
-      );
-
-
-
 
     const staffMention =
       assignedStaff
@@ -663,29 +685,47 @@ export async function createTicket(
           ? ` <@&${config.ticketStaffRoleId}>`
           : '';
 
-
     const messageContent =
       `${member.toString()}${staffMention}`;
 
+    const createdTs = Math.floor(Date.now() / 1000);
 
-    const ticketMessage =
-      await channel.send(
-        {
-          content:
-            messageContent,
+    let ticketMessage;
+    try {
+      const v2Payload = buildTicketOpenPayload({
+        ticketNumber,
+        member,
+        reason,
+        status: 'Đang mở',
+        assignedStaff,
+        createdTimestamp: createdTs,
+        claimedBy: assignedStaff?.id ?? null,
+        hasImage: Boolean(ticketAttachment),
+      });
 
-          embeds: [
-            embed,
-          ],
-
-          files: ticketFiles,
-
-          components: [
-            row,
-          ],
-        },
-      );
-
+      ticketMessage = await channel.send({
+        content: messageContent,
+        ...v2Payload,
+        files: ticketFiles,
+      });
+    } catch (v2Error) {
+      logger.warn('[Ticket] Failed to send V2 container for open ticket, falling back to embed:', v2Error);
+      const fallbackPayload = buildTicketOpenFallbackEmbed({
+        ticketNumber,
+        member,
+        reason,
+        status: 'Đang mở',
+        assignedStaff,
+        createdTimestamp: createdTs,
+        claimedBy: assignedStaff?.id ?? null,
+        hasImage: Boolean(ticketAttachment),
+      });
+      ticketMessage = await channel.send({
+        content: messageContent,
+        ...fallbackPayload,
+        files: ticketFiles,
+      });
+    }
 
     ticketData.messageId = ticketMessage.id;
     await saveTicketData(
@@ -1214,63 +1254,32 @@ export async function closeTicket(
     if (
       ticketMessage
     ) {
-      const embed =
-        ticketMessage.embeds[0];
+      try {
+        const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
+        const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
+        const staff = ticketData.claimedBy ? `<@${ticketData.claimedBy}>` : null;
+        const ticketAttachment = getTicketImageAttachment();
+        const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
+        const v2Payload = buildTicketOpenPayload({
+          ticketNumber: num,
+          member: creator,
+          reason: ticketData.reason || 'No reason provided',
+          status: 'Đã đóng',
+          assignedStaff: staff,
+          createdTimestamp: createdAt,
+          claimedBy: ticketData.claimedBy,
+          hasImage: Boolean(ticketAttachment),
+          showButtons: false,
+        });
 
-
-      const statusField =
-        embed.fields?.find(
-          field =>
-            field.name ===
-              'Status' ||
-            field.name?.includes(
-              'Trạng thái',
-            ),
-        );
-
-
-      if (
-        statusField
-      ) {
-        statusField.value =
-          '🔴 Closed';
+        await ticketMessage.edit({
+          embeds: [],
+          ...v2Payload,
+        });
+      } catch (closeEditError) {
+        logger.warn('Failed to update ticketMessage on close as V2:', closeEditError);
+        await ticketMessage.edit({ components: [] }).catch(() => {});
       }
-
-
-      const updatedEmbed =
-        createEmbed(
-          {
-            title:
-              embed.title ||
-              'Ticket',
-
-            description:
-              embed.description ||
-              'Ticket discussion',
-
-            color:
-              '#e74c3c',
-
-            fields:
-              embed.fields ||
-              [],
-
-            footer:
-              embed.footer,
-          },
-        );
-
-
-      await ticketMessage.edit(
-        {
-          embeds: [
-            updatedEmbed,
-          ],
-
-          components:
-            [],
-        },
-      );
     }
 
 
@@ -1489,46 +1498,37 @@ export async function claimTicket(
     if (
       ticketMessage
     ) {
-      const embed =
-        ticketMessage.embeds[0];
+      try {
+        const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
+        const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
+        const ticketAttachment = getTicketImageAttachment();
+        const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
+        const v2Payload = buildTicketOpenPayload({
+          ticketNumber: num,
+          member: creator,
+          reason: ticketData.reason || 'No reason provided',
+          status: 'Đang mở',
+          assignedStaff: claimer,
+          createdTimestamp: createdAt,
+          claimedBy: claimer.id,
+          hasImage: Boolean(ticketAttachment),
+          showButtons: true,
+        });
 
-
-      const claimedField =
-        embed.fields?.find(
-          field =>
-            field.name ===
-            'Claimed By',
-        );
-
-
-      if (
-        claimedField
-      ) {
-        claimedField.value =
-          claimer.toString();
+        await ticketMessage.edit({
+          embeds: [],
+          ...v2Payload,
+        });
+      } catch (editError) {
+        logger.warn('Failed to edit ticketMessage as V2 container on claim, trying fallback:', editError);
+        const row = buildTicketControlRow({ claimedBy: claimer.id });
+        if (ticketMessage.embeds?.length > 0) {
+          const embed = ticketMessage.embeds[0];
+          await ticketMessage.edit({ embeds: [embed], components: [row] });
+        } else {
+          await ticketMessage.edit({ components: [row] });
+        }
       }
-
-
-      const row =
-        buildTicketControlRow(
-          {
-            claimedBy:
-              claimer.id,
-          },
-        );
-
-
-      await ticketMessage.edit(
-        {
-          embeds: [
-            embed,
-          ],
-
-          components: [
-            row,
-          ],
-        },
-      );
     }
 
 
@@ -2795,41 +2795,37 @@ export async function unclaimTicket(
     if (
       ticketMessage
     ) {
-      const embed =
-        ticketMessage.embeds[0];
+      try {
+        const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
+        const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
+        const ticketAttachment = getTicketImageAttachment();
+        const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
+        const v2Payload = buildTicketOpenPayload({
+          ticketNumber: num,
+          member: creator,
+          reason: ticketData.reason || 'No reason provided',
+          status: 'Đang mở',
+          assignedStaff: null,
+          createdTimestamp: createdAt,
+          claimedBy: null,
+          hasImage: Boolean(ticketAttachment),
+          showButtons: true,
+        });
 
-
-      const claimedField =
-        embed.fields?.find(
-          field =>
-            field.name ===
-            'Claimed By',
-        );
-
-
-      if (
-        claimedField
-      ) {
-        claimedField.value =
-          'Not claimed';
+        await ticketMessage.edit({
+          embeds: [],
+          ...v2Payload,
+        });
+      } catch (editError) {
+        logger.warn('Failed to edit ticketMessage as V2 container on unclaim, trying fallback:', editError);
+        const row = buildTicketControlRow();
+        if (ticketMessage.embeds?.length > 0) {
+          const embed = ticketMessage.embeds[0];
+          await ticketMessage.edit({ embeds: [embed], components: [row] });
+        } else {
+          await ticketMessage.edit({ components: [row] });
+        }
       }
-
-
-      const row =
-        buildTicketControlRow();
-
-
-      await ticketMessage.edit(
-        {
-          embeds: [
-            embed,
-          ],
-
-          components: [
-            row,
-          ],
-        },
-      );
     }
 
 

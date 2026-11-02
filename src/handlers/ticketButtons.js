@@ -66,13 +66,11 @@ async function assertTicketPermission(interaction, client, actionLabel, options 
 
   const allowed = allowTicketCreator ? context.canCloseTicket : context.canManageTicket;
   if (!allowed) {
-    const permissionMessage = allowTicketCreator
-      ? 'You must have **Manage Channels**, the configured **Ticket Staff Role**, or be the **ticket creator**.'
-      : 'You must have **Manage Channels** or the configured **Ticket Staff Role**.';
+    const permissionMessage = 'Chỉ có Support Ticket hoặc Ban Quản Trị mới có thể bấm nút này.';
     throw createError(
       'Ticket permission denied',
       ErrorTypes.PERMISSION,
-      `${permissionMessage}\n\nYou cannot ${actionLabel}.`
+      permissionMessage
     );
   }
 
@@ -91,11 +89,8 @@ async function ensureTicketPermission(interaction, client, actionLabel, options 
 
   const allowed = allowTicketCreator ? context.canCloseTicket : context.canManageTicket;
   if (!allowed) {
-    const permissionMessage = allowTicketCreator
-      ? 'You must have **Manage Channels**, the configured **Ticket Staff Role**, or be the **ticket creator**.'
-      : 'You must have **Manage Channels** or the configured **Ticket Staff Role**.';
-
-    await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: `${permissionMessage}\n\nYou cannot ${actionLabel}.` });
+    const permissionMessage = 'Chỉ có Support Ticket hoặc Ban Quản Trị mới có thể bấm nút này.';
+    await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionMessage });
     return null;
   }
 
@@ -197,10 +192,8 @@ const createTicketModalHandler = {
         reason
       );
       await interaction.editReply({
-        embeds: [successEmbed(
-          'Ticket Created',
-          `Your ticket has been created in ${channel}!`
-        )]
+        content: `<a:heartg1:1545307544808071258> Ticket của bạn đã được tạo, vui lòng xem ở ${channel}.`,
+        embeds: [],
       });
     } catch (error) {
       await handleInteractionError(interaction, error, { type: 'button', handler: 'ticket', customId: interaction.customId });
@@ -214,7 +207,9 @@ const closeTicketHandler = {
     try {
       if (!(await ensureGuildContext(interaction))) return;
 
-     
+      const context = await ensureTicketPermission(interaction, client, 'đóng ticket', { allowTicketCreator: false });
+      if (!context) return;
+
       const modal = new ModalBuilder()
         .setCustomId('ticket_close_modal')
         .setTitle('Close Ticket'); 
@@ -247,7 +242,7 @@ const closeTicketModalHandler = {
     try {
       if (!(await ensureGuildContext(interaction))) return;
  const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
-      await assertTicketPermission(interaction, client, 'close this ticket', { allowTicketCreator: true }, 2000);
+      await assertTicketPermission(interaction, client, 'đóng ticket', { allowTicketCreator: false }, 2000);
 
       if (!deferSuccess) return;
 
