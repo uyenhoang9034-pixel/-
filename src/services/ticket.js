@@ -678,7 +678,15 @@ export async function createTicket(
           : '';
 
     const messageContent =
-      `${member.toString()}${staffMention}`;
+      `${member.toString()}${staffMention}`.trim();
+
+    if (messageContent) {
+      await channel.send({
+        content: messageContent,
+      }).catch(err => {
+        logger.warn('[Ticket] Failed to send ticket ping message:', err);
+      });
+    }
 
     const createdTs = Math.floor(Date.now() / 1000);
 
@@ -696,7 +704,6 @@ export async function createTicket(
       });
 
       ticketMessage = await channel.send({
-        content: messageContent,
         ...v2Payload,
         files: ticketFiles,
       });
@@ -713,7 +720,6 @@ export async function createTicket(
         hasImage: Boolean(ticketAttachment),
       });
       ticketMessage = await channel.send({
-        content: messageContent,
         ...fallbackPayload,
         files: ticketFiles,
       });
@@ -1218,31 +1224,57 @@ export async function closeTicket(
     if (
       ticketMessage
     ) {
-      try {
-        const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
-        const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
-        const staff = ticketData.claimedBy ? `<@${ticketData.claimedBy}>` : null;
-        const ticketAttachment = getTicketImageAttachment();
-        const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
-        const v2Payload = buildTicketOpenPayload({
-          ticketNumber: num,
-          member: creator,
-          reason: ticketData.reason || 'No reason provided',
-          status: 'Đã đóng',
-          assignedStaff: staff,
-          createdTimestamp: createdAt,
-          claimedBy: ticketData.claimedBy,
-          hasImage: Boolean(ticketAttachment),
-          showButtons: false,
-        });
+      const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
+      const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
+      const staff = ticketData.claimedBy ? `<@${ticketData.claimedBy}>` : null;
+      const ticketAttachment = getTicketImageAttachment();
+      const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
+      const isV2 = ticketMessage.flags?.has(MessageFlags.IsComponentsV2) || (!ticketMessage.embeds?.length && ticketMessage.components?.length > 0);
 
-        await ticketMessage.edit({
-          embeds: [],
-          ...v2Payload,
-        });
-      } catch (closeEditError) {
-        logger.warn('Failed to update ticketMessage on close as V2:', closeEditError);
-        await ticketMessage.edit({ components: [] }).catch(() => {});
+      if (isV2) {
+        try {
+          const v2Payload = buildTicketOpenPayload({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đã đóng',
+            assignedStaff: staff,
+            createdTimestamp: createdAt,
+            claimedBy: ticketData.claimedBy,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: false,
+          });
+
+          await ticketMessage.edit({
+            embeds: [],
+            ...v2Payload,
+          });
+        } catch (closeEditError) {
+          logger.warn('Failed to update ticketMessage on close as V2:', closeEditError);
+          await ticketMessage.edit({ components: [] }).catch(() => {});
+        }
+      } else {
+        try {
+          const fallbackPayload = buildTicketOpenFallbackEmbed({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đã đóng',
+            assignedStaff: staff,
+            createdTimestamp: createdAt,
+            claimedBy: ticketData.claimedBy,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: false,
+          });
+
+          await ticketMessage.edit({
+            ...fallbackPayload,
+            components: [],
+          });
+        } catch (closeEditError) {
+          logger.warn('Failed to update ticketMessage on close as fallback embed:', closeEditError);
+          await ticketMessage.edit({ components: [] }).catch(() => {});
+        }
       }
     }
 
@@ -1451,35 +1483,54 @@ export async function claimTicket(
     if (
       ticketMessage
     ) {
-      try {
-        const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
-        const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
-        const ticketAttachment = getTicketImageAttachment();
-        const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
-        const v2Payload = buildTicketOpenPayload({
-          ticketNumber: num,
-          member: creator,
-          reason: ticketData.reason || 'No reason provided',
-          status: 'Đang mở',
-          assignedStaff: claimer,
-          createdTimestamp: createdAt,
-          claimedBy: claimer.id,
-          hasImage: Boolean(ticketAttachment),
-          showButtons: true,
-        });
+      const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
+      const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
+      const ticketAttachment = getTicketImageAttachment();
+      const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
+      const isV2 = ticketMessage.flags?.has(MessageFlags.IsComponentsV2) || (!ticketMessage.embeds?.length && ticketMessage.components?.length > 0);
 
-        await ticketMessage.edit({
-          embeds: [],
-          ...v2Payload,
-        });
-      } catch (editError) {
-        logger.warn('Failed to edit ticketMessage as V2 container on claim, trying fallback:', editError);
-        const row = buildTicketControlRow({ claimedBy: claimer.id });
-        if (ticketMessage.embeds?.length > 0) {
-          const embed = ticketMessage.embeds[0];
-          await ticketMessage.edit({ embeds: [embed], components: [row] });
-        } else {
-          await ticketMessage.edit({ components: [row] });
+      if (isV2) {
+        try {
+          const v2Payload = buildTicketOpenPayload({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đang mở',
+            assignedStaff: claimer,
+            createdTimestamp: createdAt,
+            claimedBy: claimer.id,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: true,
+          });
+
+          await ticketMessage.edit({
+            embeds: [],
+            ...v2Payload,
+          });
+        } catch (editError) {
+          logger.warn('Failed to edit ticketMessage as V2 container on claim, trying fallback:', editError);
+          const row = buildTicketControlRow({ claimedBy: claimer.id });
+          await ticketMessage.edit({ components: [row] }).catch(() => {});
+        }
+      } else {
+        try {
+          const fallbackPayload = buildTicketOpenFallbackEmbed({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đang mở',
+            assignedStaff: claimer,
+            createdTimestamp: createdAt,
+            claimedBy: claimer.id,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: true,
+          });
+
+          await ticketMessage.edit(fallbackPayload);
+        } catch (editError) {
+          logger.warn('Failed to edit fallback embed on claim:', editError);
+          const row = buildTicketControlRow({ claimedBy: claimer.id });
+          await ticketMessage.edit({ components: [row] }).catch(() => {});
         }
       }
     }
@@ -1812,46 +1863,57 @@ export async function reopenTicket(
     if (
       ticketMessage
     ) {
-      const embed =
-        ticketMessage.embeds[0];
+      const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
+      const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
+      const staff = ticketData.claimedBy ? (channel.guild.members.cache.get(ticketData.claimedBy) || `<@${ticketData.claimedBy}>`) : null;
+      const ticketAttachment = getTicketImageAttachment();
+      const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
+      const isV2 = ticketMessage.flags?.has(MessageFlags.IsComponentsV2) || (!ticketMessage.embeds?.length && ticketMessage.components?.length > 0);
 
+      if (isV2) {
+        try {
+          const v2Payload = buildTicketOpenPayload({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đang mở',
+            assignedStaff: staff,
+            createdTimestamp: createdAt,
+            claimedBy: ticketData.claimedBy,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: true,
+          });
 
-      const statusField =
-        embed.fields?.find(
-          field =>
-            field.name ===
-            'Status',
-        );
+          await ticketMessage.edit({
+            embeds: [],
+            ...v2Payload,
+          });
+        } catch (editError) {
+          logger.warn('Failed to edit ticketMessage as V2 container on reopen, trying fallback:', editError);
+          const row = buildTicketControlRow({ claimedBy: ticketData.claimedBy });
+          await ticketMessage.edit({ components: [row] }).catch(() => {});
+        }
+      } else {
+        try {
+          const fallbackPayload = buildTicketOpenFallbackEmbed({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đang mở',
+            assignedStaff: staff,
+            createdTimestamp: createdAt,
+            claimedBy: ticketData.claimedBy,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: true,
+          });
 
-
-      if (
-        statusField
-      ) {
-        statusField.value =
-          '🟢 Open';
+          await ticketMessage.edit(fallbackPayload);
+        } catch (editError) {
+          logger.warn('Failed to edit fallback embed on reopen:', editError);
+          const row = buildTicketControlRow({ claimedBy: ticketData.claimedBy });
+          await ticketMessage.edit({ components: [row] }).catch(() => {});
+        }
       }
-
-
-      const row =
-        buildTicketControlRow(
-          {
-            claimedBy:
-              ticketData.claimedBy,
-          },
-        );
-
-
-      await ticketMessage.edit(
-        {
-          embeds: [
-            embed,
-          ],
-
-          components: [
-            row,
-          ],
-        },
-      );
     }
 
 
@@ -2762,35 +2824,54 @@ export async function unclaimTicket(
     if (
       ticketMessage
     ) {
-      try {
-        const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
-        const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
-        const ticketAttachment = getTicketImageAttachment();
-        const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
-        const v2Payload = buildTicketOpenPayload({
-          ticketNumber: num,
-          member: creator,
-          reason: ticketData.reason || 'No reason provided',
-          status: 'Đang mở',
-          assignedStaff: null,
-          createdTimestamp: createdAt,
-          claimedBy: null,
-          hasImage: Boolean(ticketAttachment),
-          showButtons: true,
-        });
+      const creator = channel.guild.members.cache.get(ticketData.userId) || `<@${ticketData.userId}>`;
+      const createdAt = ticketData.createdAt ? Math.floor(new Date(ticketData.createdAt).getTime() / 1000) : null;
+      const ticketAttachment = getTicketImageAttachment();
+      const num = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : '???');
+      const isV2 = ticketMessage.flags?.has(MessageFlags.IsComponentsV2) || (!ticketMessage.embeds?.length && ticketMessage.components?.length > 0);
 
-        await ticketMessage.edit({
-          embeds: [],
-          ...v2Payload,
-        });
-      } catch (editError) {
-        logger.warn('Failed to edit ticketMessage as V2 container on unclaim, trying fallback:', editError);
-        const row = buildTicketControlRow();
-        if (ticketMessage.embeds?.length > 0) {
-          const embed = ticketMessage.embeds[0];
-          await ticketMessage.edit({ embeds: [embed], components: [row] });
-        } else {
-          await ticketMessage.edit({ components: [row] });
+      if (isV2) {
+        try {
+          const v2Payload = buildTicketOpenPayload({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đang mở',
+            assignedStaff: null,
+            createdTimestamp: createdAt,
+            claimedBy: null,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: true,
+          });
+
+          await ticketMessage.edit({
+            embeds: [],
+            ...v2Payload,
+          });
+        } catch (editError) {
+          logger.warn('Failed to edit ticketMessage as V2 container on unclaim, trying fallback:', editError);
+          const row = buildTicketControlRow();
+          await ticketMessage.edit({ components: [row] }).catch(() => {});
+        }
+      } else {
+        try {
+          const fallbackPayload = buildTicketOpenFallbackEmbed({
+            ticketNumber: num,
+            member: creator,
+            reason: ticketData.reason || 'No reason provided',
+            status: 'Đang mở',
+            assignedStaff: null,
+            createdTimestamp: createdAt,
+            claimedBy: null,
+            hasImage: Boolean(ticketAttachment),
+            showButtons: true,
+          });
+
+          await ticketMessage.edit(fallbackPayload);
+        } catch (editError) {
+          logger.warn('Failed to edit fallback embed on unclaim:', editError);
+          const row = buildTicketControlRow();
+          await ticketMessage.edit({ components: [row] }).catch(() => {});
         }
       }
     }

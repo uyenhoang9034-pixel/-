@@ -22,6 +22,7 @@ function sanitizeEditReplyOptions(options = {}) {
 
     if (flags && (flags & MessageFlags.IsComponentsV2)) {
         rest.flags = MessageFlags.IsComponentsV2;
+        delete rest.content;
     }
     return rest;
 }
