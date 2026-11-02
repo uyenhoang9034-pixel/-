@@ -320,14 +320,6 @@ export function buildTicketOpenFallbackEmbed({
   };
 }
 
-  const row = buildTicketControlRow({ claimedBy });
-
-  return {
-    embeds: [embed],
-    components: [row],
-  };
-}
-
 
 /**
  * =========================================================
