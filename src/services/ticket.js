@@ -2265,7 +2265,7 @@ export async function deleteTicket(
                   const transcriptEmbed = createEmbed({
                     title: 'TICKET TRANSCRIPT',
                     description: transcriptLines,
-                    color: 0x3498db,
+                    color: 0xE9B5CE,
                   });
 
                   await transcriptChannel.send({
