@@ -2,7 +2,7 @@ import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { getWelcomeConfig } from '../utils/database.js';
-import { formatWelcomeMessage } from '../utils/welcome.js';
+import { formatWelcomeMessage, buildWelcomePayload, buildWelcomeFallbackEmbed } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
@@ -28,65 +28,17 @@ export default {
                 // Skip only the welcome message if permissions are missing; the rest of the
                 // join pipeline (auto-role, logging, counters) must still run.
                 if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                    const formatData = { user, guild, member };
-                    const welcomeMessage = formatWelcomeMessage(
-                        welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || botConfig.welcome?.defaultWelcomeMessage || 'Welcome {user} to {server}!',
-                        formatData
-                    );
-
-                    let messageContent = null;
-                    if (welcomeConfig.welcomePingMessage && welcomeConfig.welcomePingMessage.trim()) {
-                        messageContent = formatWelcomeMessage(welcomeConfig.welcomePingMessage, formatData);
-                    } else if (welcomeConfig.welcomePing) {
-                        messageContent = user.toString();
-                    }
-
-                    const embedTitle = formatWelcomeMessage(
-                        welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
-                        formatData
-                    );
-                    const rawFooter = typeof welcomeConfig.welcomeEmbed?.footer === 'object' && welcomeConfig.welcomeEmbed?.footer !== null
-                        ? welcomeConfig.welcomeEmbed.footer.text
-                        : welcomeConfig.welcomeEmbed?.footer;
-                    const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Welcome to {server_name}!`;
-                    const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
-
-                    const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-
-                    if (!canEmbed) {
-                        await channel.send({
-                            content: messageContent || welcomeMessage
-                        });
-                    } else {
-                        const embed = new EmbedBuilder()
-                            .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
-                            .setTitle(embedTitle)
-                            .setDescription(welcomeMessage)
-                            .setThumbnail(user.displayAvatarURL())
-                            .setTimestamp();
-
-                        if (embedFooter && embedFooter.trim()) {
-                            embed.setFooter({
-                                text: embedFooter.trim(),
-                                iconURL: guild.iconURL() || undefined
-                            });
+                    try {
+                        const payload = buildWelcomePayload({ member, user, guild, welcomeConfig });
+                        await channel.send(payload);
+                    } catch (v2Error) {
+                        logger.warn('[Welcome] Failed to send V2 welcome container, falling back to embed:', v2Error);
+                        try {
+                            const fallbackPayload = buildWelcomeFallbackEmbed({ member, user, guild, welcomeConfig });
+                            await channel.send(fallbackPayload);
+                        } catch (fallbackError) {
+                            logger.error('[Welcome] Failed to send fallback welcome embed:', fallbackError);
                         }
-
-                        if (welcomeConfig.welcomeEmbed?.author) {
-                            const embedAuthor = formatWelcomeMessage(welcomeConfig.welcomeEmbed.author, formatData);
-                            embed.setAuthor({ name: embedAuthor });
-                        }
-
-                        if (welcomeConfig.welcomeImage) {
-                            embed.setImage(welcomeConfig.welcomeImage);
-                        } else if (welcomeConfig.welcomeEmbed?.image?.url) {
-                            embed.setImage(welcomeConfig.welcomeEmbed.image.url);
-                        }
-
-                        await channel.send({
-                            content: messageContent,
-                            embeds: [embed]
-                        });
                     }
                 }
             }

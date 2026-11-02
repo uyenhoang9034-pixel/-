@@ -1,7 +1,7 @@
 import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getWelcomeConfig } from '../utils/database.js';
-import { formatWelcomeMessage } from '../utils/welcome.js';
+import { formatWelcomeMessage, buildGoodbyePayload, buildGoodbyeFallbackEmbed } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getGuildBirthdays, deleteBirthday } from '../utils/database.js';
 import { deleteUserLevelData } from '../services/leveling/leveling.js';
@@ -30,64 +30,17 @@ export default {
                     return;
                 }
 
-                const formatData = { user, guild, member };
-                const goodbyeMessage = formatWelcomeMessage(
-                    welcomeConfig.leaveMessage || welcomeConfig.leaveEmbed?.description || botConfig.welcome?.defaultGoodbyeMessage || '{user} has left the server.',
-                    formatData
-                );
-
-                let messageContent = null;
-                if (welcomeConfig.goodbyePingMessage && welcomeConfig.goodbyePingMessage.trim()) {
-                    messageContent = formatWelcomeMessage(welcomeConfig.goodbyePingMessage, formatData);
-                } else if (welcomeConfig.goodbyePing) {
-                    messageContent = user.toString();
-                }
-
-                const embedTitle = formatWelcomeMessage(
-                    welcomeConfig.leaveEmbed?.title || '👋 Goodbye',
-                    formatData
-                );
-                const rawFooter = typeof welcomeConfig.leaveEmbed?.footer === 'object' && welcomeConfig.leaveEmbed?.footer !== null
-                    ? welcomeConfig.leaveEmbed.footer.text
-                    : welcomeConfig.leaveEmbed?.footer;
-                const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Goodbye from {server_name}!`;
-                const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
-
-                const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-
-                if (!canEmbed) {
-                    await channel.send({
-                        content: messageContent || goodbyeMessage
-                    });
-                } else {
-                    const embed = new EmbedBuilder()
-                        .setTitle(embedTitle)
-                        .setDescription(goodbyeMessage)
-                        .setColor(welcomeConfig.leaveEmbed?.color || getColor('error'))
-                        .setThumbnail(user.displayAvatarURL())
-                        .setTimestamp();
-
-                    if (embedFooter && embedFooter.trim()) {
-                        embed.setFooter({
-                            text: embedFooter.trim(),
-                            iconURL: guild.iconURL() || undefined
-                        });
+                try {
+                    const payload = buildGoodbyePayload({ member, user, guild, welcomeConfig });
+                    await channel.send(payload);
+                } catch (v2Error) {
+                    logger.warn('[Goodbye] Failed to send V2 goodbye container, falling back to embed:', v2Error);
+                    try {
+                        const fallbackPayload = buildGoodbyeFallbackEmbed({ member, user, guild, welcomeConfig });
+                        await channel.send(fallbackPayload);
+                    } catch (fallbackError) {
+                        logger.error('[Goodbye] Failed to send fallback goodbye embed:', fallbackError);
                     }
-
-                    if (welcomeConfig.leaveEmbed?.author) {
-                        const embedAuthor = formatWelcomeMessage(welcomeConfig.leaveEmbed.author, formatData);
-                        embed.setAuthor({ name: embedAuthor });
-                    }
-
-                    const goodbyeImage = welcomeConfig.goodbyeImage || welcomeConfig.leaveImage || (typeof welcomeConfig.leaveEmbed?.image === 'string' ? welcomeConfig.leaveEmbed.image : welcomeConfig.leaveEmbed?.image?.url);
-                    if (goodbyeImage) {
-                        embed.setImage(goodbyeImage);
-                    }
-
-                    await channel.send({
-                        content: messageContent,
-                        embeds: [embed]
-                    });
                 }
             }
         }

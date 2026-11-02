@@ -1,7 +1,12 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
-import { formatWelcomeMessage, truncateForEmbedField } from '../../utils/welcome.js';
+import {
+    formatWelcomeMessage,
+    truncateForEmbedField,
+    buildWelcomePayload,
+    buildWelcomeFallbackEmbed,
+} from '../../utils/welcome.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
@@ -211,65 +216,23 @@ export default {
                     });
                 }
 
-                const formatData = { user: interaction.user, guild, member: interaction.member };
-                const welcomeMessage = formatWelcomeMessage(
-                    welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || 'Welcome {user} to {server}!',
-                    formatData
-                );
-
-                let messageContent = null;
-                if (welcomeConfig.welcomePingMessage && welcomeConfig.welcomePingMessage.trim()) {
-                    messageContent = formatWelcomeMessage(welcomeConfig.welcomePingMessage, formatData);
-                } else if (welcomeConfig.welcomePing) {
-                    messageContent = interaction.user.toString();
-                }
-
-                const embedTitle = formatWelcomeMessage(
-                    welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
-                    formatData
-                );
-                const rawFooter = typeof welcomeConfig.welcomeEmbed?.footer === 'object' && welcomeConfig.welcomeEmbed?.footer !== null
-                    ? welcomeConfig.welcomeEmbed.footer.text
-                    : welcomeConfig.welcomeEmbed?.footer;
-                const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Welcome to {server_name}!`;
-                const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
-
-                const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-
-                if (!canEmbed) {
-                    await channel.send({
-                        content: messageContent || welcomeMessage
+                try {
+                    const payload = buildWelcomePayload({
+                        member: interaction.member,
+                        user: interaction.user,
+                        guild,
+                        welcomeConfig,
                     });
-                } else {
-                    const embed = new EmbedBuilder()
-                        .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
-                        .setTitle(embedTitle)
-                        .setDescription(welcomeMessage)
-                        .setThumbnail(interaction.user.displayAvatarURL())
-                        .setTimestamp();
-
-                    if (embedFooter && embedFooter.trim()) {
-                        embed.setFooter({
-                            text: embedFooter.trim(),
-                            iconURL: guild.iconURL() || undefined
-                        });
-                    }
-
-                    if (welcomeConfig.welcomeEmbed?.author) {
-                        const embedAuthor = formatWelcomeMessage(welcomeConfig.welcomeEmbed.author, formatData);
-                        embed.setAuthor({ name: embedAuthor });
-                    }
-
-                    if (welcomeConfig.welcomeImage) {
-                        embed.setImage(welcomeConfig.welcomeImage);
-                    } else if (welcomeConfig.welcomeEmbed?.image?.url) {
-                        embed.setImage(welcomeConfig.welcomeEmbed.image.url);
-                    }
-
-                    await channel.send({
-                        content: messageContent,
-                        embeds: [embed]
+                    await channel.send(payload);
+                } catch (v2Error) {
+                    logger.warn('[Welcome Test] Failed to send V2 container, falling back to embed:', v2Error);
+                    const fallbackPayload = buildWelcomeFallbackEmbed({
+                        member: interaction.member,
+                        user: interaction.user,
+                        guild,
+                        welcomeConfig,
                     });
+                    await channel.send(fallbackPayload);
                 }
 
                 await InteractionHelper.safeEditReply(interaction, {

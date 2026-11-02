@@ -1,7 +1,12 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } from 'discord.js';
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
-import { formatWelcomeMessage, truncateForEmbedField } from '../../utils/welcome.js';
+import {
+    formatWelcomeMessage,
+    truncateForEmbedField,
+    buildGoodbyePayload,
+    buildGoodbyeFallbackEmbed,
+} from '../../utils/welcome.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
@@ -206,64 +211,23 @@ export default {
                     });
                 }
 
-                const formatData = { user: interaction.user, guild, member: interaction.member };
-                const goodbyeMessage = formatWelcomeMessage(
-                    welcomeConfig.leaveMessage || welcomeConfig.leaveEmbed?.description || '{user} has left the server.',
-                    formatData
-                );
-
-                let messageContent = null;
-                if (welcomeConfig.goodbyePingMessage && welcomeConfig.goodbyePingMessage.trim()) {
-                    messageContent = formatWelcomeMessage(welcomeConfig.goodbyePingMessage, formatData);
-                } else if (welcomeConfig.goodbyePing) {
-                    messageContent = interaction.user.toString();
-                }
-
-                const embedTitle = formatWelcomeMessage(
-                    welcomeConfig.leaveEmbed?.title || '👋 Goodbye',
-                    formatData
-                );
-                const rawFooter = typeof welcomeConfig.leaveEmbed?.footer === 'object' && welcomeConfig.leaveEmbed?.footer !== null
-                    ? welcomeConfig.leaveEmbed.footer.text
-                    : welcomeConfig.leaveEmbed?.footer;
-                const footerTemplate = (rawFooter && rawFooter.trim().length > 0) ? rawFooter : `Goodbye from {server_name}!`;
-                const embedFooter = formatWelcomeMessage(footerTemplate, formatData);
-
-                const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-
-                if (!canEmbed) {
-                    await channel.send({
-                        content: messageContent || goodbyeMessage
+                try {
+                    const payload = buildGoodbyePayload({
+                        member: interaction.member,
+                        user: interaction.user,
+                        guild,
+                        welcomeConfig,
                     });
-                } else {
-                    const embed = new EmbedBuilder()
-                        .setColor(welcomeConfig.leaveEmbed?.color || getColor('error'))
-                        .setTitle(embedTitle)
-                        .setDescription(goodbyeMessage)
-                        .setThumbnail(interaction.user.displayAvatarURL())
-                        .setTimestamp();
-
-                    if (embedFooter && embedFooter.trim()) {
-                        embed.setFooter({
-                            text: embedFooter.trim(),
-                            iconURL: guild.iconURL() || undefined
-                        });
-                    }
-
-                    if (welcomeConfig.leaveEmbed?.author) {
-                        const embedAuthor = formatWelcomeMessage(welcomeConfig.leaveEmbed.author, formatData);
-                        embed.setAuthor({ name: embedAuthor });
-                    }
-
-                    const goodbyeImage = welcomeConfig.goodbyeImage || welcomeConfig.leaveImage || (typeof welcomeConfig.leaveEmbed?.image === 'string' ? welcomeConfig.leaveEmbed.image : welcomeConfig.leaveEmbed?.image?.url);
-                    if (goodbyeImage) {
-                        embed.setImage(goodbyeImage);
-                    }
-
-                    await channel.send({
-                        content: messageContent,
-                        embeds: [embed]
+                    await channel.send(payload);
+                } catch (v2Error) {
+                    logger.warn('[Goodbye Test] Failed to send V2 container, falling back to embed:', v2Error);
+                    const fallbackPayload = buildGoodbyeFallbackEmbed({
+                        member: interaction.member,
+                        user: interaction.user,
+                        guild,
+                        welcomeConfig,
                     });
+                    await channel.send(fallbackPayload);
                 }
 
                 await InteractionHelper.safeEditReply(interaction, {
