@@ -10,10 +10,17 @@ const FONT_FAMILY = 'Usagi Noto Sans';
 
 function registerTranscriptFonts() {
   if (transcriptFontsRegistered) return;
-  const fontFiles = ['noto-sans-latin-400-normal.woff2', 'noto-sans-vietnamese-400-normal.woff2', 'noto-sans-latin-700-normal.woff2', 'noto-sans-vietnamese-700-normal.woff2'];
+  const fontFiles = ['noto-sans-latin-400-normal', 'noto-sans-vietnamese-400-normal', 'noto-sans-latin-700-normal', 'noto-sans-vietnamese-700-normal'];
   for (const file of fontFiles) {
-    const fontPath = require.resolve('@fontsource/noto-sans/files/' + file);
-    if (!GlobalFonts.registerFromPath(fontPath, FONT_FAMILY)) throw new Error('Unable to register transcript font: ' + file);
+    const candidates = ['.woff2', '.woff'];
+    let registered = false;
+    for (const extension of candidates) {
+      try {
+        const fontPath = require.resolve('@fontsource/noto-sans/files/' + file + extension);
+        if (GlobalFonts.registerFromPath(fontPath, FONT_FAMILY)) { registered = true; break; }
+      } catch {}
+    }
+    if (!registered) throw new Error('Unable to register transcript font subset: ' + file);
   }
   transcriptFontsRegistered = true;
 }
@@ -62,7 +69,7 @@ function plain(message) {
   const out = [];
   const body = readableDiscordText(message, message.cleanContent || message.content);
   if (body) out.push(body);
-  const componentBody = componentText(message.components);
+  const componentBody = readableDiscordText(message, componentText(message.components));
   if (componentBody) out.push(componentBody);
   for (const e of message.embeds || []) {
     if (e.title) out.push('[Embed] ' + readableDiscordText(message, e.title));
@@ -131,7 +138,7 @@ function page(channel, ticket, number) {
   ctx.fillStyle = P.panel; ctx.fillRect(0, 0, W, 165);
   ctx.fillStyle = P.accent; ctx.fillRect(0, 0, 8, H);
   ctx.fillStyle = '#A85F85'; ctx.font = 'bold 14px "Usagi Noto Sans"'; ctx.fillText('SERENDIPITY · TICKET ARCHIVE', M, 45);
-  ctx.fillStyle = P.text; ctx.font = 'bold 27px sans-serif'; ctx.fillText(('Transcript · #' + channel.name).slice(0, 44), M, 85);
+  ctx.fillStyle = P.text; ctx.font = 'bold 27px "Usagi Noto Sans"'; ctx.fillText(('Transcript · #' + channel.name).slice(0, 44), M, 85);
   ctx.fillStyle = P.muted; ctx.font = '13px "Usagi Noto Sans"'; ctx.fillText('Ticket #' + (ticket?.number || channel.name.match(/\d+/)?.[0] || channel.id) + ' · ' + time(Date.now()), M, 115);
   ctx.fillText('TRANG ' + number, W - M - 75, H - 22);
   ctx.fillText('Serendipity · Giờ Việt Nam (UTC+7)', M, H - 22);
