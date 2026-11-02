@@ -8,10 +8,23 @@ const P = { bg: '#FFF8FB', panel: '#FCEAF2', border: '#F1D5E2', text: '#493B48',
 const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 const time = v => v ? new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v)) : 'Không rõ';
 
+function componentText(components = []) {
+  const out = [];
+  for (const component of components) {
+    const data = component?.toJSON?.() || component?.data || component || {};
+    if (data.content) out.push(data.content);
+    if (Array.isArray(data.components)) out.push(componentText(data.components));
+    if (data.accessory?.description) out.push(data.accessory.description);
+  }
+  return out.filter(Boolean).join('\\n');
+}
+
 function plain(message) {
   const out = [];
   const body = message.cleanContent || message.content;
   if (body) out.push(body);
+  const componentBody = componentText(message.components);
+  if (componentBody) out.push(componentBody);
   for (const e of message.embeds || []) {
     if (e.title) out.push('[Embed] ' + e.title);
     if (e.description) out.push(e.description);
@@ -49,7 +62,7 @@ function htmlMessage(m) {
   }).join('');
   return '<article class="message"><img class="avatar" src="' + esc(avatar) + '" alt=""><div class="main"><div class="heading"><b>' + esc(name) + '</b>' +
     (m.author?.bot ? '<span class="bot">BOT</span>' : '') + '<time>' + esc(time(m.createdTimestamp)) + '</time></div>' +
-    (m.content ? '<div class="body">' + md(m.cleanContent || m.content) + '</div>' : '') + (files ? '<div class="files">' + files + '</div>' : '') + embeds + '</div></article>';
+    (m.content || componentText(m.components) ? '<div class="body">' + md(m.cleanContent || m.content || componentText(m.components)) + '</div>' : '') + (files ? '<div class="files">' + files + '</div>' : '') + embeds + '</div></article>';
 }
 
 function makeHtml(channel, messages, ticket) {
@@ -150,7 +163,13 @@ export async function generateTranscriptFiles(channel, ticket = {}) {
     const files = [new AttachmentBuilder(Buffer.from(makeHtml(channel, messages, ticket), 'utf8'), { name: 'ticket-' + channel.id + '.html' })];
     try {
       const pdf = await makePdf(channel, messages, ticket);
-      files.push(new AttachmentBuilder(pdf, { name: 'ticket-' + channel.id + '.pdf' }));
+      if (pdf.length <= 8 * 1024 * 1024) {
+        files.push(new AttachmentBuilder(pdf, { name: 'ticket-' + channel.id + '.pdf' }));
+      } else {
+        logger.warn('PDF transcript exceeded the safe attachment size; HTML transcript will still be delivered.', {
+          channelId: channel.id, pdfSize: pdf.length,
+        });
+      }
     } catch (error) {
       logger.error('PDF transcript generation failed; HTML will still be delivered.', { channelId: channel.id, errorMessage: error.message });
     }
