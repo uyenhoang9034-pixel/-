@@ -156,10 +156,10 @@ const feedbackHandler = {
         }
 
         const ts = Math.floor(Date.now() / 1000);
-        let thankTitle = `<a:trangtrig2:1546040703375904801> **THANKS YOUR FEEDBACK** <a:trangtrig3:1546040818261954610>`;
+        const thankTitle = `<a:trangtrig2:1546040703375904801> **THANKS YOUR FEEDBACK** <a:trangtrig3:1546040818261954610>`;
         let thankLines;
 
-        if (rating >= 4) {
+        if (rating >= 3) {
             thankLines = [
                 `Bạn đã đánh giá trải nghiệm hỗ trợ vừa rồi **(${ratingLabel})**.`,
                 `> Đánh giá của bạn đã được ghi lại vào hệ thống.`,
@@ -168,22 +168,14 @@ const feedbackHandler = {
                 '',
                 `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
             ].join('\n');
-        } else if (rating === 3) {
-            thankLines = [
-                `Bạn đã đánh giá trải nghiệm hỗ trợ vừa rồi **(${ratingLabel})**.`,
-                `> Đánh giá của bạn đã được ghi lại vào hệ thống.`,
-                '',
-                `Cảm ơn bạn đã phản hồi. Bọn mình sẽ tiếp tục cố gắng cải thiện chất lượng hỗ trợ tốt hơn! <a:heartg1:1545307544808071258>`,
-                '',
-                `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
-            ].join('\n');
         } else {
-            thankTitle = `<a:trangtrig2:1546040703375904801> **WE ARE SORRY** <a:trangtrig3:1546040818261954610>`;
             thankLines = [
                 `Bạn đã đánh giá trải nghiệm hỗ trợ vừa rồi **(${ratingLabel})**.`,
                 `> Đánh giá của bạn đã được ghi lại vào hệ thống.`,
                 '',
-                `Bọn mình rất tiếc vì trải nghiệm vừa rồi chưa làm bạn hài lòng. Bọn mình sẽ kiểm tra lại để khắc phục và nâng cao chất lượng hỗ trợ tốt hơn. <a:heartg3:1546047728314884226>`,
+                `Bọn mình thành thật xin lỗi vì trải nghiệm hỗ trợ vừa rồi chưa được trọn vẹn và làm bạn phiền lòng. Bọn mình sẽ ghi nhận để chấn chỉnh và cải thiện ngay lập tức! <a:heartg1:1545307544808071258>`,
+                '',
+                `Xin chân thành cảm ơn đánh giá của bạn. Chúc bạn một ngày tốt lành! <a:heartg1:1545307544808071258>`,
                 '',
                 `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
             ].join('\n');
@@ -276,9 +268,9 @@ const declineHandler = {
             const ts = Math.floor(Date.now() / 1000);
             const declineTitle = `<a:trangtrig2:1546040703375904801> **THANK YOU** <a:trangtrig3:1546040818261954610>`;
             const declineBody = [
-                `Không sao nè! Cảm ơn bạn đã ghé thăm và sử dụng hệ thống hỗ trợ của Serendipity. <a:heartg1:1545307544808071258>`,
+                `Không sao nè! Cảm ơn bạn đã hợp tác với bọn mình trong quá trình vừa rồi nhé! <a:heartg1:1545307544808071258>`,
                 '',
-                `Nếu bạn cần hỗ trợ thêm bất cứ lúc nào, bọn mình luôn sẵn sàng ở đây nhé. Chúc bạn một ngày tốt lành!`,
+                `Nếu bạn cần hỗ trợ thêm bất cứ lúc nào, bọn mình luôn sẵn sàng ở đây nhé. Chúc bạn một ngày thật vui vẻ và nhiều may mắn!`,
                 '',
                 `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
             ].join('\n');

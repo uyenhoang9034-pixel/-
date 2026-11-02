@@ -116,7 +116,7 @@ export default {
             `Cảm ơn bạn đã gửi nhận xét chi tiết về dịch vụ hỗ trợ!`,
             `> "${comment}"`,
             '',
-            `Ý kiến đóng góp quý báu của bạn đã được chuyển tới Ban Quản Trị để cải thiện và nâng cao chất lượng hỗ trợ. <a:heartg1:1545307544808071258>`,
+            `Ý kiến đóng góp quý báu của bạn đã được chuyển tới Ban Quản Trị để cải thiện và nâng cao chất lượng phục vụ. <a:heartg1:1545307544808071258>`,
             '',
             `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
         ].join('\n');
