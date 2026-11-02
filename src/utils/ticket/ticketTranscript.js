@@ -16,7 +16,7 @@ function componentText(components = []) {
     if (Array.isArray(data.components)) out.push(componentText(data.components));
     if (data.accessory?.description) out.push(data.accessory.description);
   }
-  return out.filter(Boolean).join('\\n');
+  return out.filter(Boolean).join('\n');
 }
 
 function plain(message) {
