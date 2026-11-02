@@ -2,6 +2,13 @@ import {
     AttachmentBuilder,
     EmbedBuilder,
     PermissionFlagsBits,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+    MessageFlags,
 } from 'discord.js';
 
 import fs from 'node:fs/promises';
@@ -55,15 +62,14 @@ export function getBoostImageAttachment() {
 // DEFAULT CONFIG
 // ============================================================
 
-const DEFAULT_TITLE =
-    '𝓝𝓰𝓾̛𝓸̛̀𝓲 𝓰𝓲𝓪̀𝓾 𝓽𝓸̛́𝓲 𝓬𝓱𝓸̛𝓲 ≽^- ˕ -^≼';
+export const DEFAULT_TITLE =
+    '<a:trangtrig2:1546040703375904801> **NGƯỜI GIÀU TỚI CHƠI** <a:trangtrig3:1546040818261954610>';
 
-const DEFAULT_DESCRIPTION =
-    '<a:trangtrig27:1546093546178748426> Xĩe xĩe đại gia {member} đã boost cho server!\n' +
-    '<a:trangtrig14:1546047912969113622> {member} trực tiếp thăng cấp lên role <@&1541305195512856627> của server và nhận được những đãi ngộ độc quyền!\n\n\n' +
-    '⋆.ೃ࿔🌸*:･\n' +
-    '<a:heartg2:1546031808364413019> **Boost hiện tại:** {boosts}\n' +
-    '<a:heartg2:1546031808364413019> **Boost Level:** {boostLevel}';
+export const DEFAULT_DESCRIPTION =
+    '<a:heartg2:1546031808364413019> Xĩe xĩe đại gia {member} đã boost cho server!\n\n' +
+    '<a:trangtrig14:1546047912969113622> {member} trực tiếp thăng cấp lên role <@&{roleId}> của server và nhận được những đãi ngộ độc quyền!\n\n' +
+    '<a:trangtrig8:1546047024334503997> Boost hiện tại: **{boosts}**\n' +
+    '<a:trangtrig8:1546047024334503997> Boost level: **{boostLevel}**';
 
 const DEFAULT_CONFIG = {
     enabled: true,
@@ -78,7 +84,7 @@ const DEFAULT_CONFIG = {
 
     color: '#F5A9C6',
 
-    thumbnail: 'member',
+    thumbnail: 'none',
 
     footer: '{server}',
 
@@ -353,6 +359,7 @@ function replacePlaceholders(
         guild,
         boostInfo,
         memberBoosts = null,
+        roleId = null,
     },
 ) {
     if (
@@ -370,7 +377,7 @@ function replacePlaceholders(
         )
         .replaceAll(
             '{username}',
-            member.user.username,
+            member.user?.username || member.displayName || '',
         )
         .replaceAll(
             '{server}',
@@ -392,34 +399,148 @@ function replacePlaceholders(
         .replaceAll(
             '{boosts}',
             String(
-                boostInfo.boostCount,
+                boostInfo?.boostCount ?? 0,
             ),
         )
         .replaceAll(
             '{boostLevel}',
             String(
-                boostInfo.currentLevel,
+                boostInfo?.currentLevel ?? 0,
             ),
         )
         .replaceAll(
             '{boostsNeeded}',
-            boostInfo.nextLevelBoosts === null
+            boostInfo?.nextLevelBoosts === null
                 ? 'MAX'
                 : String(
-                    boostInfo.nextLevelBoosts,
+                    boostInfo?.nextLevelBoosts ?? 0,
                 ),
         )
         .replaceAll(
             '{boostsToNextLevel}',
             String(
-                boostInfo.boostsToNextLevel,
+                boostInfo?.boostsToNextLevel ?? '',
             ),
+        )
+        .replaceAll(
+            '{roleId}',
+            roleId || '1541305195512856627',
         );
 }
 
 
 // ============================================================
-// BUILD BOOST EMBED
+// FOOTER TIMESTAMP HELPER
+// ============================================================
+
+function formatFooterTimestamp(date = new Date()) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const day = pad(date.getDate());
+    const month = pad(date.getMonth() + 1);
+    const year = String(date.getFullYear()).slice(-2);
+    return `${hours}:${minutes} ${day}/${month}/${year}`;
+}
+
+
+// ============================================================
+// BUILD BOOST CONTAINER (V2)
+// ============================================================
+
+export function buildBoostContainer(
+    config,
+    member,
+    overrides = {},
+) {
+    const guild = member.guild;
+
+    const boostInfo = getBoostLevelInfo(
+        guild,
+        {
+            boostCount: overrides.boostCount,
+            currentLevel: overrides.currentLevel,
+        },
+    );
+
+    const placeholderData = {
+        member,
+        guild,
+        boostInfo,
+        memberBoosts: overrides.memberBoosts,
+        roleId: config.tyPhuRoleId || '1541305195512856627',
+    };
+
+    const container = new ContainerBuilder()
+        .setAccentColor(resolveColor(config.color));
+
+    // 1. Header Title
+    const rawTitle = replacePlaceholders(
+        config.title || DEFAULT_TITLE,
+        placeholderData,
+    );
+    const headerTitle = rawTitle.startsWith('#') ? rawTitle : `# ${rawTitle}`;
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(headerTitle),
+    );
+
+    // 2. Separator
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small),
+    );
+
+    // 3. Message Body
+    const descriptionText = replacePlaceholders(
+        config.description || DEFAULT_DESCRIPTION,
+        placeholderData,
+    );
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(descriptionText),
+    );
+
+    // 4. Separator
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small),
+    );
+
+    // 5. Media Gallery (Banner ảnh Usagi trong assets)
+    const imageUrl = fsSync.existsSync(BOOST_IMAGE_PATH)
+        ? 'attachment://boost.webp'
+        : BOOST_IMAGE_URL;
+
+    container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder().setURL(imageUrl),
+        ),
+    );
+
+    // 6. Separator
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small),
+    );
+
+    // 7. Footer: tên server + ngày tháng như ảnh
+    const baseFooter = config.footer
+        ? replacePlaceholders(config.footer, placeholderData)
+        : guild.name;
+    const footerText = `-# ${baseFooter} • ${formatFooterTimestamp()}`;
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(footerText),
+    );
+
+    return container;
+}
+
+
+// ============================================================
+// BUILD BOOST EMBED (V1 FALLBACK)
 // ============================================================
 
 export function buildBoostEmbed(
@@ -453,6 +574,9 @@ export function buildBoostEmbed(
 
         memberBoosts:
             overrides.memberBoosts,
+
+        roleId:
+            config.tyPhuRoleId || '1541305195512856627',
     };
 
 
@@ -465,13 +589,13 @@ export function buildBoostEmbed(
             )
             .setTitle(
                 replacePlaceholders(
-                    config.title,
+                    config.title || DEFAULT_TITLE,
                     placeholderData,
                 ),
             )
             .setDescription(
                 replacePlaceholders(
-                    config.description,
+                    config.description || DEFAULT_DESCRIPTION,
                     placeholderData,
                 ),
             )
@@ -483,61 +607,24 @@ export function buildBoostEmbed(
 
 
     // ========================================================
-    // THUMBNAIL
+    // THUMBNAIL (Đã tinh giản, không sử dụng thumbnail theo yêu cầu)
     // ========================================================
 
-    if (
-        config.thumbnail ===
-        'member'
-    ) {
-        embed.setThumbnail(
-            member.user.displayAvatarURL({
-                extension:
-                    'png',
 
-                size:
-                    256,
-            }),
-        );
-    } else if (
-        typeof config.thumbnail ===
-            'string' &&
-        config.thumbnail.startsWith(
-            'http',
+    // ========================================================
+    // FOOTER (Tên server + ngày tháng như ảnh)
+    // ========================================================
+
+    const baseFooter = config.footer
+        ? replacePlaceholders(
+            config.footer,
+            placeholderData,
         )
-    ) {
-        embed.setThumbnail(
-            config.thumbnail,
-        );
-    }
+        : guild.name;
 
-
-    // ========================================================
-    // FOOTER
-    // ========================================================
-
-    if (
-        config.footer
-    ) {
-        embed.setFooter({
-            text:
-                replacePlaceholders(
-                    config.footer,
-                    placeholderData,
-                ),
-        });
-    }
-
-
-    // ========================================================
-    // TIMESTAMP
-    // ========================================================
-
-    if (
-        config.timestamp
-    ) {
-        embed.setTimestamp();
-    }
+    embed.setFooter({
+        text: `${baseFooter} • ${formatFooterTimestamp()}`,
+    });
 
 
     return embed;
@@ -832,50 +919,67 @@ export async function sendBoostNotification(
     }
 
 
-    const embed =
-        buildBoostEmbed(
-            config,
-            member,
-        );
-
-
     const attachment = getBoostImageAttachment();
     const files = attachment ? [attachment] : [];
+    const container = buildBoostContainer(
+        config,
+        member,
+    );
 
     try {
         await channel.send({
-            embeds: [
-                embed,
-            ],
+            content: null,
+            embeds: [],
+            components: [container],
+            flags: MessageFlags.IsComponentsV2,
             files,
         });
 
         return {
             success: true,
         };
-    } catch (error) {
-        if (files.length > 0) {
-            try {
-                embed.setImage(BOOST_IMAGE_URL);
-                await channel.send({
-                    embeds: [embed],
-                });
-                return {
-                    success: true,
-                };
-            } catch (fallbackError) {
-                return {
-                    success: false,
-                    reason: 'SEND_FAILED',
-                    error: fallbackError,
-                };
+    } catch (v2Error) {
+        logger.warn('[Boost] Failed to send V2 container, falling back to Embed:', v2Error);
+        const embed = buildBoostEmbed(
+            config,
+            member,
+        );
+
+        try {
+            await channel.send({
+                embeds: [
+                    embed,
+                ],
+                files,
+            });
+
+            return {
+                success: true,
+            };
+        } catch (error) {
+            if (files.length > 0) {
+                try {
+                    embed.setImage(BOOST_IMAGE_URL);
+                    await channel.send({
+                        embeds: [embed],
+                    });
+                    return {
+                        success: true,
+                    };
+                } catch (fallbackError) {
+                    return {
+                        success: false,
+                        reason: 'SEND_FAILED',
+                        error: fallbackError,
+                    };
+                }
             }
+            return {
+                success: false,
+                reason: 'SEND_FAILED',
+                error,
+            };
         }
-        return {
-            success: false,
-            reason: 'SEND_FAILED',
-            error,
-        };
     }
 }
 
@@ -1085,50 +1189,68 @@ export async function sendTestBoost(
     }
 
 
-    const embed =
-        buildBoostEmbed(
-            config,
-            member,
-            overrides,
-        );
-
-
     const attachment = getBoostImageAttachment();
     const files = attachment ? [attachment] : [];
+    const container = buildBoostContainer(
+        config,
+        member,
+        overrides,
+    );
 
     try {
         await channel.send({
-            embeds: [
-                embed,
-            ],
+            content: null,
+            embeds: [],
+            components: [container],
+            flags: MessageFlags.IsComponentsV2,
             files,
         });
 
         return {
             success: true,
         };
-    } catch (error) {
-        if (files.length > 0) {
-            try {
-                embed.setImage(BOOST_IMAGE_URL);
-                await channel.send({
-                    embeds: [embed],
-                });
-                return {
-                    success: true,
-                };
-            } catch (fallbackError) {
-                return {
-                    success: false,
-                    reason: 'SEND_FAILED',
-                    error: fallbackError,
-                };
+    } catch (v2Error) {
+        logger.warn('[Boost] Failed to send test boost with V2 container, falling back to Embed:', v2Error);
+        const embed = buildBoostEmbed(
+            config,
+            member,
+            overrides,
+        );
+
+        try {
+            await channel.send({
+                embeds: [
+                    embed,
+                ],
+                files,
+            });
+
+            return {
+                success: true,
+            };
+        } catch (error) {
+            if (files.length > 0) {
+                try {
+                    embed.setImage(BOOST_IMAGE_URL);
+                    await channel.send({
+                        embeds: [embed],
+                    });
+                    return {
+                        success: true,
+                    };
+                } catch (fallbackError) {
+                    return {
+                        success: false,
+                        reason: 'SEND_FAILED',
+                        error: fallbackError,
+                    };
+                }
             }
+            return {
+                success: false,
+                reason: 'SEND_FAILED',
+                error,
+            };
         }
-        return {
-            success: false,
-            reason: 'SEND_FAILED',
-            error,
-        };
     }
 }
