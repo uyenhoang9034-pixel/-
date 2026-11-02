@@ -1,6 +1,7 @@
 import { AttachmentBuilder } from 'discord.js';
-import { createCanvas } from '@napi-rs/canvas';
 import { logger } from '../logger.js';
+
+let createCanvas;
 
 const W = 794, H = 1123, M = 48, BOTTOM = 1060;
 const P = { bg: '#FFF8FB', panel: '#FCEAF2', border: '#F1D5E2', text: '#493B48', muted: '#907D8C', accent: '#C8759D', card: '#FFFFFF' };
@@ -100,6 +101,10 @@ function page(channel, ticket, number) {
 }
 
 async function makePdf(channel, messages, ticket) {
+  if (!createCanvas) {
+    const canvasModule = await import('@napi-rs/canvas');
+    createCanvas = canvasModule.createCanvas;
+  }
   const pages = [page(channel, ticket, 1)];
   let current = pages[0];
   for (const msg of messages) {
