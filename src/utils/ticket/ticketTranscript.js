@@ -1,7 +1,22 @@
 import { AttachmentBuilder } from 'discord.js';
+import { createRequire } from 'node:module';
 import { logger } from '../logger.js';
 
+const require = createRequire(import.meta.url);
 let createCanvas;
+let GlobalFonts;
+let transcriptFontsRegistered = false;
+const FONT_FAMILY = 'Usagi Noto Sans';
+
+function registerTranscriptFonts() {
+  if (transcriptFontsRegistered) return;
+  const fontFiles = ['noto-sans-latin-400-normal.woff2', 'noto-sans-vietnamese-400-normal.woff2', 'noto-sans-latin-700-normal.woff2', 'noto-sans-vietnamese-700-normal.woff2'];
+  for (const file of fontFiles) {
+    const fontPath = require.resolve('@fontsource/noto-sans/files/' + file);
+    if (!GlobalFonts.registerFromPath(fontPath, FONT_FAMILY)) throw new Error('Unable to register transcript font: ' + file);
+  }
+  transcriptFontsRegistered = true;
+}
 
 const W = 794, H = 1123, M = 48, BOTTOM = 1060;
 const P = { bg: '#FFF8FB', panel: '#FCEAF2', border: '#F1D5E2', text: '#493B48', muted: '#907D8C', accent: '#C8759D', card: '#FFFFFF' };
@@ -20,16 +35,39 @@ function componentText(components = []) {
   return out.filter(Boolean).join('\n');
 }
 
+function readableDiscordText(message, value) {
+  let text = String(value ?? '');
+  const guild = message.guild;
+  text = text.replace(/<@!?(\d+)>/g, (raw, id) => {
+    const member = guild?.members?.cache?.get(id);
+    const user = message.client?.users?.cache?.get(id);
+    return '@' + (member?.displayName || user?.globalName || user?.username || 'thành viên');
+  });
+  text = text.replace(/<@&(\d+)>/g, (raw, id) => '@' + (guild?.roles?.cache?.get(id)?.name || 'vai trò'));
+  text = text.replace(/<#(\d+)>/g, (raw, id) => '#' + (guild?.channels?.cache?.get(id)?.name || 'kênh'));
+  text = text.replace(/<a?:([A-Za-z0-9_]+):\d+>/g, ':$1:');
+  text = text.replace(/<t:(\d+)(?::[tTdDfFR])?>/g, (raw, seconds) => time(Number(seconds) * 1000));
+  text = text.replace(/<((?:https?:\/\/)[^>]+)>/g, '$1');
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '$1 ($2)');
+  const fence = String.fromCharCode(96).repeat(3);
+  text = text.split(fence).join('');
+  text = text.replace(/\|\|([\s\S]*?)\|\|/g, '$1');
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/__([^_]+)__/g, '$1');
+  text = text.replace(/~~([^~]+)~~/g, '$1').replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '$1');
+  text = text.replace(/(?<!_)_([^_\n]+)_(?!_)/g, '$1');
+  return text;
+}
+
 function plain(message) {
   const out = [];
-  const body = message.cleanContent || message.content;
+  const body = readableDiscordText(message, message.cleanContent || message.content);
   if (body) out.push(body);
   const componentBody = componentText(message.components);
   if (componentBody) out.push(componentBody);
   for (const e of message.embeds || []) {
-    if (e.title) out.push('[Embed] ' + e.title);
-    if (e.description) out.push(e.description);
-    for (const f of e.fields || []) out.push(f.name + ': ' + f.value);
+    if (e.title) out.push('[Embed] ' + readableDiscordText(message, e.title));
+    if (e.description) out.push(readableDiscordText(message, e.description));
+    for (const f of e.fields || []) out.push(readableDiscordText(message, f.name + ': ' + f.value));
   }
   for (const a of message.attachments?.values?.() || []) out.push('[Tệp đính kèm] ' + (a.name || 'Tệp'));
   for (const s of message.stickers?.values?.() || []) out.push('[Sticker] ' + s.name);
@@ -92,9 +130,9 @@ function page(channel, ticket, number) {
   ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = P.panel; ctx.fillRect(0, 0, W, 165);
   ctx.fillStyle = P.accent; ctx.fillRect(0, 0, 8, H);
-  ctx.fillStyle = '#A85F85'; ctx.font = 'bold 14px sans-serif'; ctx.fillText('SERENDIPITY · TICKET ARCHIVE', M, 45);
+  ctx.fillStyle = '#A85F85'; ctx.font = 'bold 14px "Usagi Noto Sans"'; ctx.fillText('SERENDIPITY · TICKET ARCHIVE', M, 45);
   ctx.fillStyle = P.text; ctx.font = 'bold 27px sans-serif'; ctx.fillText(('Transcript · #' + channel.name).slice(0, 44), M, 85);
-  ctx.fillStyle = P.muted; ctx.font = '13px sans-serif'; ctx.fillText('Ticket #' + (ticket?.number || channel.name.match(/\d+/)?.[0] || channel.id) + ' · ' + time(Date.now()), M, 115);
+  ctx.fillStyle = P.muted; ctx.font = '13px "Usagi Noto Sans"'; ctx.fillText('Ticket #' + (ticket?.number || channel.name.match(/\d+/)?.[0] || channel.id) + ' · ' + time(Date.now()), M, 115);
   ctx.fillText('TRANG ' + number, W - M - 75, H - 22);
   ctx.fillText('Serendipity · Giờ Việt Nam (UTC+7)', M, H - 22);
   return { canvas, ctx, y: 190 };
@@ -104,12 +142,14 @@ async function makePdf(channel, messages, ticket) {
   if (!createCanvas) {
     const canvasModule = await import('@napi-rs/canvas');
     createCanvas = canvasModule.createCanvas;
+    GlobalFonts = canvasModule.GlobalFonts;
   }
+  registerTranscriptFonts();
   const pages = [page(channel, ticket, 1)];
   let current = pages[0];
   for (const msg of messages) {
     const author = msg.member?.displayName || msg.author?.globalName || msg.author?.username || 'Unknown';
-    current.ctx.font = '15px sans-serif';
+    current.ctx.font = '15px "Usagi Noto Sans"';
     const lines = [];
     for (const p of plain(msg).split(/\r?\n/)) lines.push(...wrap(current.ctx, p, W - M * 2 - 32));
     for (let i = 0; i < lines.length; i += 27) {
@@ -118,9 +158,9 @@ async function makePdf(channel, messages, ticket) {
       const ctx = current.ctx;
       ctx.fillStyle = P.card; ctx.fillRect(M, current.y, W - M * 2, height);
       ctx.strokeStyle = P.border; ctx.strokeRect(M, current.y, W - M * 2, height);
-      ctx.fillStyle = '#A85F85'; ctx.font = 'bold 15px sans-serif'; ctx.fillText(author.slice(0, 60), M + 14, current.y + 23);
-      ctx.fillStyle = P.muted; ctx.font = '12px sans-serif'; ctx.fillText(time(msg.createdTimestamp), M + 14, current.y + 42);
-      ctx.fillStyle = P.text; ctx.font = '15px sans-serif';
+      ctx.fillStyle = '#A85F85'; ctx.font = 'bold 15px "Usagi Noto Sans"'; ctx.fillText(author.slice(0, 60), M + 14, current.y + 23);
+      ctx.fillStyle = P.muted; ctx.font = '12px "Usagi Noto Sans"'; ctx.fillText(time(msg.createdTimestamp), M + 14, current.y + 42);
+      ctx.fillStyle = P.text; ctx.font = '15px "Usagi Noto Sans"';
       let y = current.y + 66;
       for (const line of part) { ctx.fillText(line, M + 14, y, W - M * 2 - 28); y += 21; }
       current.y += height + 10;
