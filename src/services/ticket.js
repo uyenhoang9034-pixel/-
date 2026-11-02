@@ -50,6 +50,8 @@ import {
   logTicketEvent,
 } from '../utils/ticket/ticketLogging.js';
 
+import { generateTranscriptFiles } from '../utils/ticket/ticketTranscript.js';
+
 import {
   createError,
   ErrorTypes,
@@ -2019,302 +2021,6 @@ export async function reopenTicket(
 
 /**
  * =========================================================
- * ESCAPE HTML
- * =========================================================
- */
-
-function escapeHtml(
-  text,
-) {
-  if (!text) {
-    return '';
-  }
-
-  return String(
-    text,
-  )
-    .replace(
-      /&/g,
-      '&amp;',
-    )
-    .replace(
-      /</g,
-      '&lt;',
-    )
-    .replace(
-      />/g,
-      '&gt;',
-    )
-    .replace(
-      /"/g,
-      '&quot;',
-    )
-    .replace(
-      /'/g,
-      '&#039;',
-    );
-}
-
-
-/**
- * =========================================================
- * GENERATE TRANSCRIPT
- * =========================================================
- */
-
-async function generateTranscript(
-  channel,
-) {
-  try {
-    logger.debug(
-      'Generating transcript for channel',
-      {
-        channelId:
-          channel.id,
-
-        channelName:
-          channel.name,
-      },
-    );
-
-
-    const messages =
-      [];
-
-    let before =
-      undefined;
-
-    let batch;
-
-
-    do {
-      batch =
-        await channel.messages.fetch(
-          {
-            limit:
-              100,
-
-            ...(
-              before
-                ? {
-                    before,
-                  }
-                : {}
-            ),
-          },
-        );
-
-
-      if (
-        batch.size ===
-        0
-      ) {
-        break;
-      }
-
-
-      messages.push(
-        ...batch.values(),
-      );
-
-
-      before =
-        batch.last()?.id;
-
-    } while (
-      batch.size ===
-      100
-    );
-
-
-    messages.sort(
-      (
-        a,
-        b,
-      ) =>
-        a.createdTimestamp -
-        b.createdTimestamp,
-    );
-
-
-    const escape =
-      str =>
-        String(
-          str ??
-          '',
-        )
-          .replace(
-            /&/g,
-            '&amp;',
-          )
-          .replace(
-            /</g,
-            '&lt;',
-          )
-          .replace(
-            />/g,
-            '&gt;',
-          )
-          .replace(
-            /"/g,
-            '&quot;',
-          );
-
-
-    const rows =
-      messages.map(
-        message => {
-          const ts =
-            new Date(
-              message.createdTimestamp,
-            )
-              .toISOString()
-              .replace(
-                'T',
-                ' ',
-              )
-              .slice(
-                0,
-                19,
-              );
-
-
-          const author =
-            escape(
-              message.author?.tag ??
-              message.author?.username ??
-              'Unknown',
-            );
-
-
-          const content =
-            escape(
-              message.content ||
-              (
-                message.embeds.length
-                  ? '[embed]'
-                  : '[attachment]'
-              ),
-            );
-
-
-          return (
-            `<tr>` +
-            `<td class="ts">${ts}</td>` +
-            `<td class="author">${author}</td>` +
-            `<td class="msg">${content}</td>` +
-            `</tr>`
-          );
-        },
-      )
-        .join(
-          '\n',
-        );
-
-
-    const html =
-`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Transcript – #${escape(channel.name)}</title>
-<style>
-body{font-family:sans-serif;background:#36393f;color:#dcddde;margin:0;padding:16px}
-h1{color:#fff;font-size:1.2rem;margin-bottom:8px}
-table{width:100%;border-collapse:collapse;font-size:0.85rem}
-th{background:#2f3136;color:#8e9297;padding:6px 8px;text-align:left;border-bottom:2px solid #202225}
-td{padding:4px 8px;border-bottom:1px solid #40444b;vertical-align:top}
-.ts{color:#72767d;white-space:nowrap;width:160px}
-.author{color:#7289da;white-space:nowrap;width:160px}
-.msg{word-break:break-word}
-</style>
-</head>
-<body>
-<h1>📜 Transcript – #${escape(channel.name)}</h1>
-<p style="color:#72767d">${messages.length} message(s) exported on ${new Date().toUTCString()}</p>
-<table>
-<thead>
-<tr>
-<th>Timestamp (UTC)</th>
-<th>Author</th>
-<th>Message</th>
-</tr>
-</thead>
-<tbody>
-${rows}
-</tbody>
-</table>
-</body>
-</html>`;
-
-
-    const buffer =
-      Buffer.from(
-        html,
-        'utf8',
-      );
-
-
-    const attachment =
-      new AttachmentBuilder(
-        buffer,
-        {
-          name:
-            `ticket-${channel.id}.html`,
-        },
-      );
-
-
-    logger.info(
-      '✅ Successfully generated transcript',
-      {
-        channelId:
-          channel.id,
-
-        channelName:
-          channel.name,
-
-        messageCount:
-          messages.length,
-
-        size:
-          buffer.length,
-      },
-    );
-
-
-    return attachment;
-
-  } catch (error) {
-    logger.error(
-      '❌ Failed to generate transcript:',
-      {
-        channelId:
-          channel.id,
-
-        channelName:
-          channel.name,
-
-        errorMessage:
-          error.message,
-
-        errorName:
-          error.name,
-
-        errorStack:
-          error.stack,
-      },
-    );
-
-
-    return null;
-  }
-}
-
-
-/**
- * =========================================================
  * DELETE TICKET
  * =========================================================
  */
@@ -2339,7 +2045,7 @@ export async function deleteTicket(
     const deleteBody = [
       `Kênh ticket này sẽ được xóa vĩnh viễn trong ${TICKET_DELETE_DELAY_SECONDS} giây nữa.`,
       '',
-      `Toàn bộ nội dung hội thoại đang được tự động sao lưu thành bản **Transcript HTML** gửi về kênh lưu trữ.`,
+      `Toàn bộ nội dung hội thoại đang được tự động sao lưu thành bản **Transcript HTML + PDF** gửi về kênh lưu trữ.`,
       '',
       `-# Ticket ID: ${ticketData.id}`,
     ].join('\n');
@@ -2428,20 +2134,19 @@ export async function deleteTicket(
           );
 
 
-          let attachment =
-            null;
+          let transcriptFiles =
+            [];
 
 
           try {
-            attachment =
-              await generateTranscript(
+            transcriptFiles =
+              await generateTranscriptFiles(
                 channel,
+                ticketData,
               );
 
 
-            if (
-              attachment
-            ) {
+            if (transcriptFiles.length > 0) {
               logger.info(
                 'Transcript generated successfully, attempting to send',
                 {
@@ -2483,9 +2188,7 @@ export async function deleteTicket(
           }
 
 
-          if (
-            attachment
-          ) {
+          if (transcriptFiles.length > 0) {
             try {
               const guildConfig =
                 await getGuildConfig(
@@ -2567,7 +2270,7 @@ export async function deleteTicket(
 
                   await transcriptChannel.send({
                     embeds: [transcriptEmbed],
-                    files: [attachment],
+                    files: transcriptFiles,
                   });
 
 
