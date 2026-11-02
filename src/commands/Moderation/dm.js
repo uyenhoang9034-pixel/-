@@ -205,10 +205,7 @@ export default {
                 ? '**Ban Quản Trị**'
                 : `<@${interaction.user.id}> (\`${interaction.user.tag}\`)`;
 
-            const formattedMessage = sanitized
-                .split('\n')
-                .map((line) => (line.trim().length > 0 ? `**${line}**` : line))
-                .join('\n');
+            const formattedMessage = sanitized;
 
             const dmDescription = [
                 `Chào <@${targetUser.id}> ${EMOJIS.bunny}, bạn có một lời nhắn từ ${senderDisplayName}:`,
