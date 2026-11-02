@@ -62,6 +62,8 @@ export function getBoostImageAttachment() {
 // DEFAULT CONFIG
 // ============================================================
 
+export const DEFAULT_BOOST_CHANNEL_ID = '1541293511045947494';
+
 export const DEFAULT_TITLE =
     '<a:trangtrig2:1546040703375904801> **NGƯỜI GIÀU TỚI CHƠI** <a:trangtrig3:1546040818261954610>';
 
@@ -74,7 +76,7 @@ export const DEFAULT_DESCRIPTION =
 const DEFAULT_CONFIG = {
     enabled: true,
 
-    channelId: null,
+    channelId: DEFAULT_BOOST_CHANNEL_ID,
 
     tyPhuRoleId: '1541305195512856627',
 
@@ -168,9 +170,12 @@ export async function getBoostConfig(
     const configs =
         await readAllConfigs();
 
+    const guildConfig = configs[guildId] || {};
+
     return {
         ...DEFAULT_CONFIG,
-        ...(configs[guildId] || {}),
+        ...guildConfig,
+        channelId: guildConfig.channelId || DEFAULT_BOOST_CHANNEL_ID,
     };
 }
 
@@ -821,7 +826,11 @@ async function resolveBoostChannel(
     guild,
     channelId,
 ) {
-    const targetId = channelId || guild.systemChannelId;
+    const targetId =
+        channelId ||
+        DEFAULT_BOOST_CHANNEL_ID ||
+        guild.systemChannelId;
+
     if (!targetId) {
         return null;
     }
@@ -875,6 +884,7 @@ export async function sendBoostNotification(
 
     const targetChannelId =
         config.channelId ||
+        DEFAULT_BOOST_CHANNEL_ID ||
         member.guild.systemChannelId;
 
 
@@ -1145,6 +1155,7 @@ export async function sendTestBoost(
     ) {
         const targetId =
             config.channelId ||
+            DEFAULT_BOOST_CHANNEL_ID ||
             member.guild.systemChannelId;
 
         if (

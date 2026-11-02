@@ -9,6 +9,7 @@ import {
     getBoostConfig,
     setBoostConfig,
     sendTestBoost,
+    DEFAULT_BOOST_CHANNEL_ID,
 } from '../../services/boost/boostService.js';
 
 
@@ -144,10 +145,10 @@ export default {
                                         'channel',
                                     )
                                     .setDescription(
-                                        'Kênh nhận thông báo Boost',
+                                        'Kênh nhận thông báo Boost (bỏ trống để đặt về mặc định)',
                                     )
                                     .setRequired(
-                                        true,
+                                        false,
                                     ),
                         ),
             )
@@ -467,22 +468,26 @@ export default {
             const channel =
                 interaction.options.getChannel(
                     'channel',
-                    true,
+                    false,
                 );
+
+            const targetChannelId =
+                channel?.id ||
+                DEFAULT_BOOST_CHANNEL_ID;
 
 
             await setBoostConfig(
                 interaction.guild.id,
                 {
                     channelId:
-                        channel.id,
+                        targetChannelId,
                 },
             );
 
 
             await interaction.reply({
                 content:
-                    `✅ Đã đặt kênh Boost thành ${channel}.`,
+                    `✅ Đã đặt kênh Boost thành <#${targetChannelId}>.`,
 
                 flags:
                     MessageFlags.Ephemeral,

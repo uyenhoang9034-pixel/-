@@ -9,6 +9,7 @@ import {
 import {
     getBoostConfig,
     sendTestBoost,
+    DEFAULT_BOOST_CHANNEL_ID,
 } from '../../../services/boost/boostService.js';
 
 
@@ -204,7 +205,7 @@ async function handleBoostButton(
                 )
                 .setValue(
                     config.channelId ||
-                    '',
+                    DEFAULT_BOOST_CHANNEL_ID,
                 );
 
 

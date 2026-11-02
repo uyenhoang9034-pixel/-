@@ -6,6 +6,7 @@ import {
     setBoostConfig,
     DEFAULT_TITLE,
     DEFAULT_DESCRIPTION,
+    DEFAULT_BOOST_CHANNEL_ID,
 } from '../../../services/boost/boostService.js';
 
 
@@ -96,7 +97,7 @@ async function handleBoostSettingsModal(
         {
             channelId:
                 channelId ||
-                null,
+                DEFAULT_BOOST_CHANNEL_ID,
 
             tyPhuRoleId:
                 tyPhuRoleId ||
