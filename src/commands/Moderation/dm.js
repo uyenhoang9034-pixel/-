@@ -25,6 +25,7 @@ const EMOJIS = {
     bunny: '<a:bunnyg4:1541439959385374760>',
     heart: '<a:heartg3:1546047728314884226>',
     bullet: '<a:trangtrig6:1546043036390260756>',
+    time: '<a:trangtrig41:1547238037832863744>',
     warning: '<a:bang2:1546891483250954290>',
     catSad: '<a:catg11:1546058047393239151>',
 };
@@ -78,7 +79,7 @@ export function createDmContainer({
 
     const footerText = [
         `${EMOJIS.heart} **Máy chủ gửi:** ${guildName}`,
-        `${EMOJIS.bullet} **Thời gian:** <t:${Math.floor(Date.now() / 1000)}:F>`,
+        `${EMOJIS.time} **Thời gian:** <t:${Math.floor(Date.now() / 1000)}:F>`,
         '',
         '-# Tin nhắn từ Usagi • Không thể phản hồi trực tiếp tin nhắn này',
     ].join('\n');
@@ -215,7 +216,7 @@ export default {
                 formattedMessage,
                 '',
                 `${EMOJIS.heart} **Máy chủ gửi:** ${interaction.guild.name}`,
-                `${EMOJIS.bullet} **Thời gian:** <t:${Math.floor(Date.now() / 1000)}:F>`,
+                `${EMOJIS.time} **Thời gian:** <t:${Math.floor(Date.now() / 1000)}:F>`,
             ].join('\n');
 
             const authorName = anonymous
@@ -305,7 +306,7 @@ export default {
                 `${EMOJIS.bullet} **Chế độ:** ${anonymous ? '🕵️‍♂️ Ẩn danh (Ban Quản Trị)' : '👤 Công khai danh tính'}`,
                 customTitle ? `${EMOJIS.bullet} **Tiêu đề:** ${customTitle}` : null,
                 attachment ? `${EMOJIS.bullet} **Tệp đính kèm:** [${attachment.name}](${attachment.url})` : null,
-                `${EMOJIS.bullet} **Thời gian gửi:** <t:${Math.floor(Date.now() / 1000)}:R>`,
+                `${EMOJIS.time} **Thời gian gửi:** <t:${Math.floor(Date.now() / 1000)}:R>`,
                 '',
                 '**Nội dung đã gửi:**',
                 `> ${sanitized.length > 300 ? `${sanitized.slice(0, 297)}...` : sanitized}`,
