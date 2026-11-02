@@ -2570,39 +2570,6 @@ export async function deleteTicket(
                     files: [attachment],
                   });
 
-                  // Gửi bản sao transcript về DM cho người tạo ticket
-                  if (ticketData.userId) {
-                    try {
-                      const ticketCreator = await channel.client.users.fetch(ticketData.userId).catch(() => null);
-                      if (ticketCreator) {
-                        const dmTranscriptAttachment = new AttachmentBuilder(
-                          attachment.attachment,
-                          { name: `transcript-${ticketNum}.html` }
-                        );
-                        const dmEmbed = createEmbed({
-                          title: '📜 BẢN SAO TRANSCRIPT TICKET',
-                          description: [
-                            `Chào bạn, ticket **#${ticketNum}** của bạn tại **${channel.guild.name}** đã được lưu trữ và xóa.`,
-                            '',
-                            `Dưới đây là tệp sao lưu toàn bộ nội dung hội thoại (**HTML**) của ticket. Bạn có thể tải về và mở trên trình duyệt web bất cứ lúc nào!`,
-                            '',
-                            `-# Thời gian xuất transcript: <t:${nowTs}:F>`,
-                          ].join('\n'),
-                          color: 0x3498db,
-                        });
-
-                        await ticketCreator.send({
-                          embeds: [dmEmbed],
-                          files: [dmTranscriptAttachment],
-                        }).catch(dmErr => {
-                          logger.debug(`Could not send transcript DM to user ${ticketData.userId}:`, dmErr.message);
-                        });
-                      }
-                    } catch (dmError) {
-                      logger.debug('Failed to send transcript DM to ticket creator:', dmError);
-                    }
-                  }
-
 
                   logger.info(
                     '✅ Transcript sent successfully',
