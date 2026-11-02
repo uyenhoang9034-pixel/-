@@ -142,45 +142,52 @@ const createTicketModalHandler = {
       const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
       if (!deferSuccess) return;
 
-      const rateLimitKey = `${interaction.user.id}:create_ticket`;
-const allowed = await checkRateLimit(rateLimitKey, 3, 60000);
+      const UNLIMITED_TICKET_ROLE_ID = '1545295139390619768';
+      const isUnlimitedTicketMember =
+        interaction.member?.roles?.cache?.has?.(UNLIMITED_TICKET_ROLE_ID) ||
+        (Array.isArray(interaction.member?.roles) && interaction.member.roles.includes(UNLIMITED_TICKET_ROLE_ID));
 
-if (!allowed) {
-  await interaction.editReply({
-    embeds: [
-      createEmbed({
-        title: 'Too Many Requests',
-        description: 'You are creating tickets too quickly. Please wait a minute and try again.',
-        color: 0xE74C3C
-      })
-    ]
-  });
-  return;
-}
+      const rateLimitKey = `${interaction.user.id}:create_ticket`;
+      const allowed = isUnlimitedTicketMember ? true : await checkRateLimit(rateLimitKey, 3, 60000);
+
+      if (!allowed) {
+        await interaction.editReply({
+          embeds: [
+            createEmbed({
+              title: 'Too Many Requests',
+              description: 'You are creating tickets too quickly. Please wait a minute and try again.',
+              color: 0xE74C3C
+            })
+          ]
+        });
+        return;
+      }
       
       const reason = interaction.fields.getTextInputValue('reason');
       const config = await getGuildConfig(client, interaction.guildId);
       const maxTicketsPerUser = config.maxTicketsPerUser || 3;
 
-const currentTicketCount = await getUserTicketCount(
-  interaction.guildId,
-  interaction.user.id
-);
+      if (!isUnlimitedTicketMember) {
+        const currentTicketCount = await getUserTicketCount(
+          interaction.guildId,
+          interaction.user.id
+        );
 
-if (currentTicketCount >= maxTicketsPerUser) {
-  await interaction.editReply({
-    embeds: [
-      createEmbed({
-        title: 'Ticket Limit',
-        description:
-          `You have reached the maximum number of open tickets (${maxTicketsPerUser}).\n\n` +
-          `Current Tickets: ${currentTicketCount}/${maxTicketsPerUser}`,
-        color: 0xE74C3C
-      })
-    ]
-  });
-  return;
-}
+        if (currentTicketCount >= maxTicketsPerUser) {
+          await interaction.editReply({
+            embeds: [
+              createEmbed({
+                title: 'Ticket Limit',
+                description:
+                  `You have reached the maximum number of open tickets (${maxTicketsPerUser}).\n\n` +
+                  `Current Tickets: ${currentTicketCount}/${maxTicketsPerUser}`,
+                color: 0xE74C3C
+              })
+            ]
+          });
+          return;
+        }
+      }
       const categoryId = config.ticketCategoryId || null;
       
       const { channel } = await createTicket(

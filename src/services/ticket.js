@@ -384,34 +384,42 @@ export async function createTicket(
       config.maxTicketsPerUser ??
       3;
 
-    const currentTicketCount =
-      await getUserTicketCount(
-        guild.id,
-        member.id,
-      );
+    const UNLIMITED_TICKET_ROLE_ID = '1545295139390619768';
+    const isUnlimitedTicketMember =
+      member?.roles?.cache?.has?.(UNLIMITED_TICKET_ROLE_ID) ||
+      (Array.isArray(member?.roles) && member.roles.includes(UNLIMITED_TICKET_ROLE_ID)) ||
+      (guild?.members?.cache?.get?.(member?.id)?.roles?.cache?.has?.(UNLIMITED_TICKET_ROLE_ID));
 
-    if (
-      currentTicketCount >=
-      maxTicketsPerUser
-    ) {
-      ticketUserError(
-        `Max open tickets reached for ${member.id}`,
+    if (!isUnlimitedTicketMember) {
+      const currentTicketCount =
+        await getUserTicketCount(
+          guild.id,
+          member.id,
+        );
 
-        `You have reached the maximum number of open tickets (${maxTicketsPerUser}). Please close your existing tickets before creating a new one.`,
+      if (
+        currentTicketCount >=
+        maxTicketsPerUser
+      ) {
+        ticketUserError(
+          `Max open tickets reached for ${member.id}`,
 
-        ErrorTypes.VALIDATION,
+          `You have reached the maximum number of open tickets (${maxTicketsPerUser}). Please close your existing tickets before creating a new one.`,
 
-        {
-          guildId:
-            guild.id,
+          ErrorTypes.VALIDATION,
 
-          userId:
-            member.id,
+          {
+            guildId:
+              guild.id,
 
-          operation:
-            'createTicket',
-        },
-      );
+            userId:
+              member.id,
+
+            operation:
+              'createTicket',
+          },
+        );
+      }
     }
 
 
