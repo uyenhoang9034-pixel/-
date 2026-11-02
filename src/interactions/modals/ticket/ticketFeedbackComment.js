@@ -1,4 +1,11 @@
-import { EmbedBuilder, MessageFlags } from 'discord.js';
+import {
+    EmbedBuilder,
+    MessageFlags,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+} from 'discord.js';
 import { getTicketData, saveTicketData } from '../../../utils/database.js';
 import { logger } from '../../../utils/logger.js';
 import { getColor } from '../../../config/bot.js';
@@ -103,13 +110,44 @@ export default {
             logger.warn('ticketFeedbackComment: failed to send log', { guildId, channelId, error: err.message });
         }
 
-        await InteractionHelper.safeEditReply(interaction, {
-            embeds: [buildEmbed(
-                '💗 Đã gửi phản hồi',
-                'Phản hồi của bạn đã được ghi nhận. Cảm ơn bạn đã giúp chúng mình cải thiện dịch vụ! ✨',
-                getColor('success'),
-            )],
-        });
+        const ts = Math.floor(Date.now() / 1000);
+        const commentTitle = `<a:trangtrig2:1546040703375904801> **FEEDBACK RECEIVED** <a:trangtrig3:1546040818261954610>`;
+        const commentBody = [
+            `Cảm ơn bạn đã gửi nhận xét chi tiết về dịch vụ hỗ trợ!`,
+            `> "${comment}"`,
+            '',
+            `Ý kiến đóng góp quý báu của bạn đã được chuyển tới Ban Quản Trị để cải thiện và nâng cao chất lượng hỗ trợ. <a:heartg1:1545307544808071258>`,
+            '',
+            `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
+        ].join('\n');
+
+        try {
+            const commentContainer = new ContainerBuilder()
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(`# ${commentTitle}`)
+                )
+                .addSeparatorComponents(
+                    new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+                )
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(commentBody)
+                );
+
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [],
+                components: [commentContainer],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } catch (v2Err) {
+            logger.warn('Failed to edit modal reply as V2:', v2Err);
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [buildEmbed(
+                    '💗 Đã gửi phản hồi',
+                    'Phản hồi của bạn đã được ghi nhận. Cảm ơn bạn đã giúp chúng mình cải thiện dịch vụ! ✨',
+                    getColor('success'),
+                )],
+            });
+        }
 
         logger.info('Ticket feedback comment submitted', {
             guildId,

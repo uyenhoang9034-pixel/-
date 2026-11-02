@@ -998,142 +998,114 @@ export async function closeTicket(
           try {
             const feedbackAttachment = getTicketImageAttachment();
             const feedbackFiles = feedbackAttachment ? [feedbackAttachment] : [];
+            const ticketNum = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : channel.name);
 
-            const feedbackEmbed =
-              createEmbed(
-                {
-                  title:
-                    '🌷 Bạn cảm thấy thế nào về hỗ trợ vừa rồi?',
+            let staffMention = 'SP Ticket';
+            if (ticketData.claimedBy) {
+              staffMention = `<@${ticketData.claimedBy}>`;
+            } else if (closer && closer !== ticketData.userId && closer !== `<@${ticketData.userId}>`) {
+              staffMention = typeof closer === 'string' ? closer : closer.toString();
+            }
 
-                  description:
-                    `Ticket **${channel.name}** của bạn đã được đóng.\n\n` +
-                    `💗 Chúng mình rất muốn biết trải nghiệm hỗ trợ của bạn như thế nào.\n` +
-                    `Hãy chọn mức đánh giá từ **1 đến 5 ⭐** bên dưới nhé!\n\n` +
-                    `Ý kiến của bạn sẽ giúp chúng mình cải thiện chất lượng hỗ trợ tốt hơn. ✨`,
+            const nowTs = Math.floor(Date.now() / 1000);
+            const feedbackTitle = `<a:trangtrig2:1546040703375904801> **TICKET FEEDBACK** <a:trangtrig3:1546040818261954610>`;
+            const feedbackLines = [
+              `Ticket #${ticketNum} của bạn đã được đóng bởi ${staffMention}.`,
+              '',
+              `<a:heartg3:1546047728314884226> Bọn mình rất muốn biết trải nghiệm của bạn vừa rồi như thế nào, bạn cảm thấy ổn không về hỗ trợ vừa rồi?`,
+              '',
+              `<a:heartg3:1546047728314884226> Nếu mọi thứ đều tốt, xin hãy đánh giá giúp bọn mình nhé! Mỗi một đánh giá của bạn sẽ giúp bọn mình cải thiện chất lượng hỗ trợ tốt hơn ạ.`,
+              '',
+              `*Bọn mình xin cảm ơn!*`,
+              '',
+              `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${nowTs}:F>`,
+            ].join('\n');
 
-                  color:
-                    '#F1C40F',
+            const base = `ticket_feedback:${channel.guild.id}:${channel.id}`;
 
-                  image: {
-                    url:
-                      feedbackAttachment ? 'attachment://ticket.png' : TICKET_IMAGE_URL,
-                  },
-
-                  footer: {
-                    text:
-                      'Cảm ơn bạn đã dành thời gian đánh giá! 💕',
-                  },
-                },
-              );
-
-
-            const base =
-              `ticket_feedback:${channel.guild.id}:${channel.id}`;
-
-
-            const starsRow =
-              new ActionRowBuilder()
-                .addComponents(
-
-                  new ButtonBuilder()
-                    .setCustomId(
-                      `${base}:1`,
-                    )
-                    .setLabel(
-                      '⭐ 1',
-                    )
-                    .setStyle(
-                      ButtonStyle.Secondary,
-                    ),
-
-                  new ButtonBuilder()
-                    .setCustomId(
-                      `${base}:2`,
-                    )
-                    .setLabel(
-                      '⭐ 2',
-                    )
-                    .setStyle(
-                      ButtonStyle.Secondary,
-                    ),
-
-                  new ButtonBuilder()
-                    .setCustomId(
-                      `${base}:3`,
-                    )
-                    .setLabel(
-                      '⭐ 3',
-                    )
-                    .setStyle(
-                      ButtonStyle.Secondary,
-                    ),
-
-                  new ButtonBuilder()
-                    .setCustomId(
-                      `${base}:4`,
-                    )
-                    .setLabel(
-                      '⭐ 4',
-                    )
-                    .setStyle(
-                      ButtonStyle.Secondary,
-                    ),
-
-                  new ButtonBuilder()
-                    .setCustomId(
-                      `${base}:5`,
-                    )
-                    .setLabel(
-                      '⭐ 5',
-                    )
-                    .setStyle(
-                      ButtonStyle.Primary,
-                    ),
-                );
-
-
-            const declineRow =
-              new ActionRowBuilder()
-                .addComponents(
-
-                  new ButtonBuilder()
-                    .setCustomId(
-                      `ticket_feedback_comment:${channel.guild.id}:${channel.id}`,
-                    )
-                    .setLabel(
-                      '✍️ Viết nhận xét',
-                    )
-                    .setStyle(
-                      ButtonStyle.Secondary,
-                    ),
-
-                  new ButtonBuilder()
-                    .setCustomId(
-                      `ticket_feedback_decline:${channel.guild.id}:${channel.id}`,
-                    )
-                    .setLabel(
-                      '❌ Không, cảm ơn',
-                    )
-                    .setStyle(
-                      ButtonStyle.Secondary,
-                    ),
-                );
-
-
-            await ticketCreator.send(
-              {
-                embeds: [
-                  feedbackEmbed,
-                ],
-
-                files: feedbackFiles,
-
-                components: [
-                  starsRow,
-                  declineRow,
-                ],
-              },
+            const starsRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`${base}:1`)
+                .setLabel('⭐ 1')
+                .setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder()
+                .setCustomId(`${base}:2`)
+                .setLabel('⭐ 2')
+                .setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder()
+                .setCustomId(`${base}:3`)
+                .setLabel('⭐ 3')
+                .setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder()
+                .setCustomId(`${base}:4`)
+                .setLabel('⭐ 4')
+                .setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder()
+                .setCustomId(`${base}:5`)
+                .setLabel('⭐ 5')
+                .setStyle(ButtonStyle.Secondary),
             );
+
+            const declineRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`ticket_feedback_comment:${channel.guild.id}:${channel.id}`)
+                .setLabel('Viết nhận xét')
+                .setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder()
+                .setCustomId(`ticket_feedback_decline:${channel.guild.id}:${channel.id}`)
+                .setLabel('Không, cảm ơn')
+                .setStyle(ButtonStyle.Secondary),
+            );
+
+            try {
+              const feedbackContainer = new ContainerBuilder()
+                .addTextDisplayComponents(
+                  new TextDisplayBuilder().setContent(`# ${feedbackTitle}`)
+                )
+                .addSeparatorComponents(
+                  new SeparatorBuilder()
+                    .setDivider(true)
+                    .setSpacing(SeparatorSpacingSize.Small)
+                )
+                .addTextDisplayComponents(
+                  new TextDisplayBuilder().setContent(feedbackLines)
+                );
+
+              if (feedbackAttachment) {
+                feedbackContainer.addSeparatorComponents(
+                  new SeparatorBuilder()
+                    .setDivider(true)
+                    .setSpacing(SeparatorSpacingSize.Small)
+                );
+                feedbackContainer.addMediaGalleryComponents(
+                  new MediaGalleryBuilder().addItems(
+                    new MediaGalleryItemBuilder().setURL('attachment://ticket.png')
+                  )
+                );
+              }
+
+              feedbackContainer.addActionRowComponents(starsRow, declineRow);
+
+              await ticketCreator.send({
+                components: [feedbackContainer],
+                files: feedbackFiles,
+                flags: MessageFlags.IsComponentsV2,
+              });
+            } catch (v2SendErr) {
+              logger.warn('Failed to send feedback DM as Components V2, falling back to embed:', v2SendErr);
+              const feedbackEmbed = createEmbed({
+                title: 'TICKET FEEDBACK',
+                description: feedbackLines,
+                color: '#F1C40F',
+                image: feedbackAttachment ? { url: 'attachment://ticket.png' } : undefined,
+              });
+
+              await ticketCreator.send({
+                embeds: [feedbackEmbed],
+                files: feedbackFiles,
+                components: [starsRow, declineRow],
+              });
+            }
 
 
             dmSent =
@@ -1289,72 +1261,61 @@ export async function closeTicket(
      * =====================================================
      */
 
-    const closeEmbed =
-      createEmbed(
-        {
-          title:
-            '🔒 Ticket đã đóng',
-
-          description:
-            `Ticket này đã được đóng bởi ${closer}.\n` +
-            `📝 **Lý do:** ${reason}`,
-
-          color:
-            '#e74c3c',
-
-          footer: {
-            text:
-              `Ticket ID: ${ticketData.id}`,
-          },
-        },
-      );
-
+    const closeTitleText = `<a:trangtrig2:1546040703375904801> **TICKET CLOSED** <a:trangtrig3:1546040818261954610>`;
+    const closeBody = [
+      `Ticket này đã được đóng bởi ${closer}.`,
+      `<a:trangtrig18:1546068102817775626> Lý do: ${reason}`,
+      `<a:trangtrig18:1546068102817775626> Ticket ID: ${ticketData.id}`,
+    ].join('\n');
 
     const controlRow =
       new ActionRowBuilder()
         .addComponents(
+          new ButtonBuilder()
+            .setCustomId('ticket_reopen')
+            .setLabel('Mở lại ticket')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('<a:trangtrig20:1546092997299667055>'),
 
           new ButtonBuilder()
-            .setCustomId(
-              'ticket_reopen',
-            )
-            .setLabel(
-              'Mở lại ticket',
-            )
-            .setStyle(
-              ButtonStyle.Success,
-            )
-            .setEmoji(
-              '<a:chiikawag2:1541424037408800789>',
-            ),
-
-          new ButtonBuilder()
-            .setCustomId(
-              'ticket_delete',
-            )
-            .setLabel(
-              'Xóa ticket',
-            )
-            .setStyle(
-              ButtonStyle.Danger,
-            )
-            .setEmoji(
-              '<a:chiikawag2:1541424037408800789>',
-            ),
+            .setCustomId('ticket_delete')
+            .setLabel('Xóa ticket')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('<a:trangtrig20:1546092997299667055>'),
         );
 
+    try {
+      const closeContainer = new ContainerBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`# ${closeTitleText}`)
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(closeBody)
+        )
+        .addActionRowComponents(controlRow);
 
-    await channel.send(
-      {
-        embeds: [
-          closeEmbed,
-        ],
+      await channel.send({
+        components: [closeContainer],
+        flags: MessageFlags.IsComponentsV2,
+      });
+    } catch (v2CloseErr) {
+      logger.warn('Failed to send close message as V2 container, falling back:', v2CloseErr);
+      const closeEmbed = createEmbed({
+        title: '🔒 TICKET CLOSED',
+        description: closeBody,
+        color: '#e74c3c',
+      });
 
-        components: [
-          controlRow,
-        ],
-      },
-    );
+      await channel.send({
+        embeds: [closeEmbed],
+        components: [controlRow],
+      });
+    }
 
 
     /**
@@ -1920,35 +1881,47 @@ export async function reopenTicket(
     const closeStatusMessage =
       messages.find(
         message =>
-          message.embeds.length >
-            0 &&
-          message.embeds[0].title ===
-            'Ticket Closed' &&
-          message.components.length >
-            0 &&
-          message.components[0]
-            .components
-            .some(
-              component =>
-                component.customId ===
-                'ticket_reopen',
-            ),
+          message.components?.some(
+            row =>
+              row.components?.some(
+                component =>
+                  component.customId ===
+                  'ticket_reopen',
+              ),
+          ),
       );
 
 
     if (
       closeStatusMessage
     ) {
-      await closeStatusMessage.edit(
-        {
-          embeds: [
-            reopenEmbed,
-          ],
+      if (closeStatusMessage.flags?.has?.(MessageFlags.IsComponentsV2)) {
+        const reopenContainer = new ContainerBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`# 🔓 **Ticket Reopened**`)
+          )
+          .addSeparatorComponents(
+            new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`🔓 ${reopener} đã mở lại ticket này!`)
+          );
+        await closeStatusMessage.edit({
+          components: [reopenContainer],
+          flags: MessageFlags.IsComponentsV2,
+        }).catch(err => logger.warn('Failed to edit closeStatusMessage as V2:', err));
+      } else {
+        await closeStatusMessage.edit(
+          {
+            embeds: [
+              reopenEmbed,
+            ],
 
-          components:
-            [],
-        },
-      );
+            components:
+              [],
+          },
+        ).catch(err => logger.warn('Failed to edit closeStatusMessage:', err));
+      }
 
     } else {
       await channel.send(

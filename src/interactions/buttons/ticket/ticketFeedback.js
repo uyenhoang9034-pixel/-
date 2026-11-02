@@ -1,4 +1,15 @@
-import { EmbedBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import {
+    EmbedBuilder,
+    ModalBuilder,
+    ActionRowBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MessageFlags,
+} from 'discord.js';
 import { getTicketData, saveTicketData } from '../../../utils/database.js';
 import { logger } from '../../../utils/logger.js';
 import { getColor } from '../../../config/bot.js';
@@ -74,18 +85,47 @@ const feedbackHandler = {
         }
 
         if (ticketData.feedback?.rating) {
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle('✅ Bạn đã đánh giá rồi')
-                        .setDescription(
-    `Bạn đã đánh giá ticket này **${STAR_LABELS[String(ticketData.feedback.rating)]}**.\n\n` +
-    `Cảm ơn bạn đã gửi phản hồi! 💗`
-)
-                        .setColor(getColor('success')),
-                ],
-                components: [],
-            });
+            const ts = Math.floor(Date.now() / 1000);
+            const ratedTitle = `<a:trangtrig2:1546040703375904801> **THANKS YOUR FEEDBACK** <a:trangtrig3:1546040818261954610>`;
+            const ratedBody = [
+                `Bạn đã đánh giá ticket này **${STAR_LABELS[String(ticketData.feedback.rating)] || ticketData.feedback.rating}** rồi nè!`,
+                `> Đánh giá của bạn đã được ghi lại vào hệ thống.`,
+                '',
+                `Cảm ơn bạn rất nhiều! Chúc bạn một ngày tốt lành! <a:heartg1:1545307544808071258>`,
+                '',
+                `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
+            ].join('\n');
+
+            try {
+                const ratedContainer = new ContainerBuilder()
+                    .addTextDisplayComponents(
+                        new TextDisplayBuilder().setContent(`# ${ratedTitle}`)
+                    )
+                    .addSeparatorComponents(
+                        new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+                    )
+                    .addTextDisplayComponents(
+                        new TextDisplayBuilder().setContent(ratedBody)
+                    );
+
+                await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [],
+                    files: [],
+                    components: [ratedContainer],
+                    flags: MessageFlags.IsComponentsV2,
+                });
+            } catch (err) {
+                await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [
+                        new EmbedBuilder()
+                            .setTitle('✅ Bạn đã đánh giá rồi')
+                            .setDescription(ratedBody)
+                            .setColor(getColor('success')),
+                    ],
+                    files: [],
+                    components: [],
+                });
+            }
             return;
         }
 
@@ -115,22 +155,71 @@ const feedbackHandler = {
             logger.warn('ticketFeedback: failed to send log', { guildId, channelId, error: err.message });
         }
 
-        await InteractionHelper.safeEditReply(interaction, {
-            embeds: [
-                new EmbedBuilder()
-                    .setTitle('💗 Cảm ơn bạn đã đánh giá!')
-                    .setDescription(
-    `Bạn đã đánh giá trải nghiệm hỗ trợ của mình: **${ratingLabel}**.\n\n` +
-    `Phản hồi của bạn đã được ghi nhận và sẽ giúp chúng mình cải thiện dịch vụ tốt hơn! ✨`
-)
-                    .setColor(getColor('success'))
-                    .setFooter({
-    text: 'Cảm ơn bạn đã sử dụng hệ thống hỗ trợ! 🌷'
-})
-                    .setTimestamp(),
-            ],
-            components: [],
-        });
+        const ts = Math.floor(Date.now() / 1000);
+        let thankTitle = `<a:trangtrig2:1546040703375904801> **THANKS YOUR FEEDBACK** <a:trangtrig3:1546040818261954610>`;
+        let thankLines;
+
+        if (rating >= 4) {
+            thankLines = [
+                `Bạn đã đánh giá trải nghiệm hỗ trợ vừa rồi **(${ratingLabel})**.`,
+                `> Đánh giá của bạn đã được ghi lại vào hệ thống.`,
+                '',
+                `Xin chân thành cảm ơn đánh giá của bạn. Chúc bạn một ngày tốt lành! <a:heartg1:1545307544808071258>`,
+                '',
+                `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
+            ].join('\n');
+        } else if (rating === 3) {
+            thankLines = [
+                `Bạn đã đánh giá trải nghiệm hỗ trợ vừa rồi **(${ratingLabel})**.`,
+                `> Đánh giá của bạn đã được ghi lại vào hệ thống.`,
+                '',
+                `Cảm ơn bạn đã phản hồi. Bọn mình sẽ tiếp tục cố gắng cải thiện chất lượng hỗ trợ tốt hơn! <a:heartg1:1545307544808071258>`,
+                '',
+                `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
+            ].join('\n');
+        } else {
+            thankTitle = `<a:trangtrig2:1546040703375904801> **WE ARE SORRY** <a:trangtrig3:1546040818261954610>`;
+            thankLines = [
+                `Bạn đã đánh giá trải nghiệm hỗ trợ vừa rồi **(${ratingLabel})**.`,
+                `> Đánh giá của bạn đã được ghi lại vào hệ thống.`,
+                '',
+                `Bọn mình rất tiếc vì trải nghiệm vừa rồi chưa làm bạn hài lòng. Bọn mình sẽ kiểm tra lại để khắc phục và nâng cao chất lượng hỗ trợ tốt hơn. <a:heartg3:1546047728314884226>`,
+                '',
+                `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
+            ].join('\n');
+        }
+
+        try {
+            const thankContainer = new ContainerBuilder()
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(`# ${thankTitle}`)
+                )
+                .addSeparatorComponents(
+                    new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+                )
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(thankLines)
+                );
+
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [],
+                files: [],
+                components: [thankContainer],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } catch (v2Err) {
+            logger.warn('Failed to edit feedback reply as Components V2, falling back to embed:', v2Err);
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [
+                    new EmbedBuilder()
+                        .setTitle('THANKS YOUR FEEDBACK')
+                        .setDescription(thankLines)
+                        .setColor(getColor('success')),
+                ],
+                files: [],
+                components: [],
+            });
+        }
 
         logger.info('Ticket feedback submitted', {
             guildId,
@@ -182,15 +271,48 @@ const declineHandler = {
     name: 'ticket_feedback_decline',
 
     async execute(interaction) {
-        await interaction.update({
-            embeds: [
-                new EmbedBuilder()
-                    .setTitle('👋 No problem!')
-                    .setDescription('You can always reach out again if you need further support.')
-                    .setColor(getColor('default')),
-            ],
-            components: [],
-        });
+        try {
+            await interaction.deferUpdate();
+            const ts = Math.floor(Date.now() / 1000);
+            const declineTitle = `<a:trangtrig2:1546040703375904801> **THANK YOU** <a:trangtrig3:1546040818261954610>`;
+            const declineBody = [
+                `Không sao nè! Cảm ơn bạn đã ghé thăm và sử dụng hệ thống hỗ trợ của Serendipity. <a:heartg1:1545307544808071258>`,
+                '',
+                `Nếu bạn cần hỗ trợ thêm bất cứ lúc nào, bọn mình luôn sẵn sàng ở đây nhé. Chúc bạn một ngày tốt lành!`,
+                '',
+                `<a:trangtrig41:1547238037832863744> **Thời gian:** <t:${ts}:F>`,
+            ].join('\n');
+
+            const declineContainer = new ContainerBuilder()
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(`# ${declineTitle}`)
+                )
+                .addSeparatorComponents(
+                    new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+                )
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(declineBody)
+                );
+
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [],
+                files: [],
+                components: [declineContainer],
+                flags: MessageFlags.IsComponentsV2,
+            });
+        } catch (err) {
+            logger.warn('Failed to handle feedback decline as V2:', err);
+            await interaction.editReply({
+                embeds: [
+                    new EmbedBuilder()
+                        .setTitle('👋 Cảm ơn bạn!')
+                        .setDescription('Bạn có thể liên hệ lại bất cứ lúc nào nếu cần hỗ trợ thêm nhé.')
+                        .setColor(getColor('default')),
+                ],
+                files: [],
+                components: [],
+            }).catch(() => {});
+        }
     },
 };
 
