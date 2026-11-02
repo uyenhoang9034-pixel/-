@@ -62,7 +62,7 @@ import {
 
 
 const TICKET_DELETE_DELAY_MS =
-  3000;
+  5000;
 
 const TICKET_DELETE_DELAY_SECONDS =
   Math.floor(
@@ -2281,33 +2281,48 @@ export async function deleteTicket(
       );
 
 
-    const deleteEmbed =
-      createEmbed(
-        {
-          title:
-            'Ticket Deleted',
+    const deleteTitle = `<a:trangtrig2:1546040703375904801> **TICKET DELETE** <a:trangtrig3:1546040818261954610>`;
+    const deleteBody = [
+      `Kênh ticket này sẽ được xóa vĩnh viễn trong ${TICKET_DELETE_DELAY_SECONDS} giây nữa.`,
+      '',
+      `Toàn bộ nội dung hội thoại đang được tự động sao lưu thành bản **Transcript HTML** gửi về kênh lưu trữ.`,
+      '',
+      `-# Ticket ID: ${ticketData.id}`,
+    ].join('\n');
 
-          description:
-            `🗑️ This ticket will be permanently deleted in ${TICKET_DELETE_DELAY_SECONDS} seconds.`,
+    try {
+      const deleteContainer = new ContainerBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`# ${deleteTitle}`)
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(deleteBody)
+        );
 
-          color:
-            '#e74c3c',
-
-          footer: {
-            text:
-              `Ticket ID: ${ticketData.id}`,
-          },
+      await channel.send({
+        components: [deleteContainer],
+        flags: MessageFlags.IsComponentsV2,
+      });
+    } catch (v2DeleteErr) {
+      logger.warn('Failed to send delete message as V2, falling back:', v2DeleteErr);
+      const deleteEmbed = createEmbed({
+        title: 'TICKET DELETE',
+        description: deleteBody,
+        color: '#e74c3c',
+        footer: {
+          text: `Ticket ID: ${ticketData.id}`,
         },
-      );
+      });
 
-
-    await channel.send(
-      {
-        embeds: [
-          deleteEmbed,
-        ],
-      },
-    );
+      await channel.send({
+        embeds: [deleteEmbed],
+      });
+    }
 
 
     await logTicketEvent(
@@ -2480,62 +2495,49 @@ export async function deleteTicket(
                   );
 
                 } else {
-                  const transcriptEmbed =
-                    buildStandardLogEmbed(
-                      {
-                        color:
-                          0x3498db,
+                  const transcriptTitle = `<a:trangtrig2:1546040703375904801> **TICKET TRANSCRIPT** <a:trangtrig3:1546040818261954610>`;
+                  const ticketNum = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : (ticketData.id || channel.name));
+                  const nowTs = Math.floor(Date.now() / 1000);
+                  const deleterMention = deleter ? `<@${deleter.id || deleter}>` : 'Unknown';
 
-                        title:
-                          'Ticket Transcript',
+                  const transcriptLines = [
+                    `<a:trangtrig31:1546905996893626440> Ticket: #${ticketNum}`,
+                    `<a:trangtrig31:1546905996893626440> Thời gian xuất transcript: <t:${nowTs}:F>`,
+                    `<a:trangtrig31:1546905996893626440> Deleted by: ${deleterMention}`,
+                  ].join('\n');
 
-                        description: [
-                          formatLogLine(
-                            'Ticket',
-                            `#${ticketData.id}`,
-                          ),
+                  try {
+                    const transcriptContainer = new ContainerBuilder()
+                      .addTextDisplayComponents(
+                        new TextDisplayBuilder().setContent(`# ${transcriptTitle}`)
+                      )
+                      .addSeparatorComponents(
+                        new SeparatorBuilder()
+                          .setDivider(true)
+                          .setSpacing(SeparatorSpacingSize.Small)
+                      )
+                      .addTextDisplayComponents(
+                        new TextDisplayBuilder().setContent(transcriptLines)
+                      );
 
-                          formatLogLine(
-                            'Channel',
-                            `#${channel.name}`,
-                          ),
+                    await transcriptChannel.send({
+                      components: [transcriptContainer],
+                      files: [attachment],
+                      flags: MessageFlags.IsComponentsV2,
+                    });
+                  } catch (v2TranscriptErr) {
+                    logger.warn('Failed to send transcript as V2, falling back:', v2TranscriptErr);
+                    const transcriptEmbed = createEmbed({
+                      title: 'TICKET TRANSCRIPT',
+                      description: transcriptLines,
+                      color: 0x3498db,
+                    });
 
-                          formatLogLine(
-                            'Generated',
-                            `<t:${Math.floor(Date.now() / 1000)}:F>`,
-                          ),
-                        ].join(
-                          '\n',
-                        ),
-
-                        footer:
-                          deleter?.username
-                            ? {
-                                text:
-                                  `Deleted by ${deleter.username}`,
-
-                                iconURL:
-                                  deleter.displayAvatarURL?.(),
-                              }
-                            : undefined,
-
-                        timestamp:
-                          true,
-                      },
-                    );
-
-
-                  await transcriptChannel.send(
-                    {
-                      embeds: [
-                        transcriptEmbed,
-                      ],
-
-                      files: [
-                        attachment,
-                      ],
-                    },
-                  );
+                    await transcriptChannel.send({
+                      embeds: [transcriptEmbed],
+                      files: [attachment],
+                    });
+                  }
 
 
                   logger.info(
