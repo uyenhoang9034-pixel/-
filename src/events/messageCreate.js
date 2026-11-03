@@ -107,6 +107,10 @@ import {
   handleDonateKeyword,
 } from '../services/donate/donateService.js';
 
+import {
+  handleFinancialPrefix,
+} from '../services/financial/financialLedgerService.js';
+
 
 
 import { pumpkinGrowthTracker } from '../services/pumpkinGrowthTracker.js';
@@ -173,6 +177,11 @@ export default {
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
       );
+
+      const financialProcessed = await handleFinancialPrefix(message, client);
+      if (financialProcessed) {
+        return;
+      }
 
       const wordChainProcessed = await handleWordChain(
         message,
