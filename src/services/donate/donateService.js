@@ -432,23 +432,26 @@ export async function sendDonationNotification(client, transaction) {
     donorId = null,
   } = transaction;
 
-  let donorMention = 'Một bạn ẩn danh';
-  if (donorId) {
+  let donorMention = 'Một người bạn ẩn danh';
+  let resolvedDonorId = null;
+  if (donorId && /^\d{17,20}$/.test(String(donorId))) {
     try {
       const user = await client.users.fetch(String(donorId));
       donorMention = `<@${donorId}> (${user.username})`;
+      resolvedDonorId = String(donorId);
     } catch {
-      donorMention = `<@${donorId}>`;
+      // ID không còn hợp lệ hoặc không thể phân giải: giữ tên ẩn danh, không tạo mention lỗi.
     }
-  } else {
+  } else if (!donorId) {
     const snowflakeMatch = String(content).match(/\b(\d{17,20})\b/);
     if (snowflakeMatch) {
       const userId = snowflakeMatch[1];
       try {
         const user = await client.users.fetch(userId);
         donorMention = `<@${userId}> (${user.username})`;
+        resolvedDonorId = userId;
       } catch {
-        donorMention = `<@${userId}>`;
+        // Dãy số trong nội dung chuyển khoản có thể là mã tham chiếu, không phải Discord ID.
       }
     } else if (!/SEVQR/i.test(content)) {
       const cleaned = String(content).replace(/^(?:DONATE|CK|UNG HO)\s*/i, '').trim();
@@ -508,7 +511,7 @@ export async function sendDonationNotification(client, transaction) {
     await channel.send({
       components: [container],
       flags: MessageFlags.IsComponentsV2,
-      allowedMentions: donorId ? { users: [String(donorId)] } : { parse: [] },
+      allowedMentions: resolvedDonorId ? { users: [resolvedDonorId] } : { parse: [] },
     });
     logger.info('[Donate] Sent donation notification', {
       transactionId: String(id || referenceCode || ''),
