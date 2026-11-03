@@ -142,6 +142,18 @@ export const tableStatements = [
         expires_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
+
+    `CREATE TABLE IF NOT EXISTS ${t.financial_transactions} (
+        id BIGSERIAL PRIMARY KEY,
+        guild_id VARCHAR(20) NOT NULL,
+        scope VARCHAR(16) NOT NULL CHECK (scope IN ('personal', 'common')),
+        donor_id VARCHAR(20),
+        donor_label VARCHAR(100),
+        amount BIGINT NOT NULL CHECK (amount <> 0),
+        reason TEXT,
+        actor_id VARCHAR(20) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`,
 ];
 
 export const indexStatements = [
@@ -159,6 +171,8 @@ export const indexStatements = [
     `CREATE INDEX IF NOT EXISTS idx_user_levels_xp ON ${t.user_levels}(xp)`,
     `CREATE INDEX IF NOT EXISTS idx_temp_data_expires_at ON ${t.temp_data}(expires_at)`,
     `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${t.cache_data}(expires_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_financial_transactions_guild_scope_created ON ${t.financial_transactions}(guild_id, scope, created_at DESC, id DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_financial_transactions_personal_user ON ${t.financial_transactions}(guild_id, donor_id, created_at DESC) WHERE scope = 'personal'`,
 ];
 
 export const UPDATE_TIMESTAMP_FUNCTION = `
