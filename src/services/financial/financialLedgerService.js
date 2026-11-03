@@ -538,19 +538,19 @@ function createXlsx(sheets) {
   return zipFiles(files);
 }
 
-export async function exportMonthlyWorkbook(client, guildId, month, year) {
-  const report = await buildMonthlyReport(client, guildId, month, year);
+export async function exportMonthlyWorkbook(client, guildId, month, year, report = null) {
+  const monthlyData = report || await buildMonthlyReport(client, guildId, month, year);
   const monthLabel = String(month).padStart(2, '0') + '/' + year;
   const summaryRows = [
     ['Bảng Tổng Kết Tháng', monthLabel],
-    ['Số dư đầu tháng', report.opening],
-    ['Tổng tiền donate', report.income],
-    ['Tổng tiền chi', report.expense],
-    ['Số dư cuối tháng', report.closing],
+    ['Số dư đầu tháng', monthlyData.opening],
+    ['Tổng tiền donate', monthlyData.income],
+    ['Tổng tiền chi', monthlyData.expense],
+    ['Số dư cuối tháng', monthlyData.closing],
   ];
   const commonRows = [['Mã giao dịch', 'Thời gian', 'Loại', 'Người donate', 'Khoản tiền', 'Lý do chi', 'Người ghi nhận']];
   const personalRows = [['Discord User ID', 'Tổng donate trong tháng', 'Số giao dịch']];
-  for (const row of report.transactions) {
+  for (const row of monthlyData.transactions) {
     if (row.scope !== 'common') continue;
     commonRows.push([
       Number(row.id),
@@ -562,7 +562,7 @@ export async function exportMonthlyWorkbook(client, guildId, month, year) {
       row.actor_id || '',
     ]);
   }
-  for (const row of report.personal) {
+  for (const row of monthlyData.personal) {
     personalRows.push([row.donor_id, Number(row.total), Number(row.transactions)]);
   }
   const buffer = createXlsx([
@@ -609,8 +609,7 @@ export async function executeFinancialSlash(interaction, client) {
   });
 }
 
-async function buildMonthlySummaryContainer(client, guildId, month, year) {
-  const report = await buildMonthlyReport(client, guildId, month, year);
+async function buildMonthlySummaryContainer(report, month, year) {
   const monthLabel = String(month).padStart(2, '0') + '/' + year;
   const container = createContainer('Bảng Tổng Kết Tháng', [
     LEDGER_EMOJIS.decoration + ' **THÁNG ' + monthLabel + '**',
@@ -654,10 +653,9 @@ export async function executeFinancialExport(interaction, client) {
   const month = interaction.options.getInteger('thang') || current.month;
   const year = interaction.options.getInteger('nam') || current.year;
   await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
-  const [attachment, container] = await Promise.all([
-    exportMonthlyWorkbook(client, interaction.guildId, month, year),
-    buildMonthlySummaryContainer(client, interaction.guildId, month, year),
-  ]);
+  const report = await buildMonthlyReport(client, interaction.guildId, month, year);
+  const attachment = await exportMonthlyWorkbook(client, interaction.guildId, month, year, report);
+  const container = await buildMonthlySummaryContainer(report, month, year);
   await interaction.editReply({
     components: [container],
     files: [attachment],
