@@ -1,29 +1,5 @@
 import { AttachmentBuilder } from 'discord.js';
-import { createRequire } from 'node:module';
 import { logger } from '../logger.js';
-
-const require = createRequire(import.meta.url);
-let createCanvas;
-let GlobalFonts;
-let transcriptFontsRegistered = false;
-const FONT_FAMILY = 'Usagi Noto Sans';
-
-function registerTranscriptFonts() {
-  if (transcriptFontsRegistered) return;
-  const fontFiles = ['noto-sans-latin-400-normal', 'noto-sans-vietnamese-400-normal', 'noto-sans-latin-700-normal', 'noto-sans-vietnamese-700-normal'];
-  for (const file of fontFiles) {
-    const candidates = ['.woff2', '.woff'];
-    let registered = false;
-    for (const extension of candidates) {
-      try {
-        const fontPath = require.resolve('@fontsource/noto-sans/files/' + file + extension);
-        if (GlobalFonts.registerFromPath(fontPath, FONT_FAMILY)) { registered = true; break; }
-      } catch {}
-    }
-    if (!registered) throw new Error('Unable to register transcript font subset: ' + file);
-  }
-  transcriptFontsRegistered = true;
-}
 
 const W = 794, H = 1123, M = 48, BOTTOM = 1060;
 const P = { bg: '#FFF8FB', panel: '#FCEAF2', border: '#F1D5E2', text: '#493B48', muted: '#907D8C', accent: '#C8759D', card: '#FFFFFF' };
