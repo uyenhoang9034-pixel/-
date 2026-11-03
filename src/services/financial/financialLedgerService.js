@@ -201,7 +201,7 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
       '**<@' + userId + '> đã donate tổng ' + formatMoney(total) + ' tích lũy từ trước đến nay. Một tấm lòng bác ái!**',
     ));
     container.addSeparatorComponents(separator());
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**Lịch sử ghi nhận**'));
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(LEDGER_EMOJIS.usagi + ' **Lịch sử ghi nhận**'));
     const historyLines = rows.length
       ? rows.map((row, index) => LEDGER_EMOJIS.heart + ' **#' + row.id + ' · ' + formatDate(row.created_at) + '**\n' + LEDGER_EMOJIS.detail + ' **+' + formatMoney(row.amount) + '**').join('\n')
       : 'Chưa có lịch sử donate nào được ghi nhận.';
@@ -345,7 +345,7 @@ export async function handleFinancialPrefix(message, client) {
     const summary = await getCommonSummary(client, message.guild.id);
     const container = createContainer('QUỸ CHUNG', [
       LEDGER_EMOJIS.heart + ' **Khoản chi:** **' + formatMoney(amount) + '**',
-      LEDGER_EMOJIS.detail + ' **Lý do chi:** ' + reason,
+      LEDGER_EMOJIS.notice + ' **Lý do chi:** ' + reason,
       LEDGER_EMOJIS.heart + ' **Thời gian ghi nhận:** ' + formatDate(result.created_at),
     ]);
     container.addSeparatorComponents(separator());
@@ -611,7 +611,7 @@ async function buildMonthlySummaryContainer(client, guildId, month, year) {
   const report = await buildMonthlyReport(client, guildId, month, year);
   const monthLabel = String(month).padStart(2, '0') + '/' + year;
   const container = createContainer('BẢNG TỔNG KẾT THÁNG', [
-    '**THÁNG ' + monthLabel + '**',
+    LEDGER_EMOJIS.decoration + ' **THÁNG ' + monthLabel + '**',
   ]);
   container.addSeparatorComponents(separator());
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
