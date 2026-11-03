@@ -2045,7 +2045,7 @@ export async function deleteTicket(
     const deleteBody = [
       `Kênh ticket này sẽ được xóa vĩnh viễn trong ${TICKET_DELETE_DELAY_SECONDS} giây nữa.`,
       '',
-      `Toàn bộ nội dung hội thoại đang được tự động sao lưu thành bản **Transcript HTML + PDF** gửi về kênh lưu trữ.`,
+      `Toàn bộ nội dung hội thoại đang được tự động sao lưu thành bản **Transcript HTML** gửi về kênh lưu trữ.`,
       '',
       `-# Ticket ID: ${ticketData.id}`,
     ].join('\n');
