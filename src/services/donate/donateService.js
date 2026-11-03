@@ -215,6 +215,11 @@ async function recordDonationTransaction(client, transaction) {
     await connection.query('BEGIN');
 
     const transactionKey = `donate:sepay:transaction:${transactionId}`;
+    const initialValue = {
+      transactionId,
+      notificationStatus: 'sending',
+      notificationLockedAt: new Date().toISOString(),
+    };
     const insertResult = await connection.query(
       `INSERT INTO ${pgConfig.tables.temp_data} (key, value, expires_at)
        VALUES ($1, $2::jsonb, $3)
@@ -222,20 +227,55 @@ async function recordDonationTransaction(client, transaction) {
        RETURNING key`,
       [
         transactionKey,
-        JSON.stringify({ transactionId, status: 'received' }),
+        JSON.stringify(initialValue),
         new Date(Date.now() + 365 * 24 * 60 * 60_000),
       ],
     );
 
+    let storedValue = initialValue;
     if (insertResult.rowCount === 0) {
-      await connection.query('COMMIT');
-      return { duplicate: true, donorId: null, token: null };
+      const existingResult = await connection.query(
+        `SELECT value
+         FROM ${pgConfig.tables.temp_data}
+         WHERE key = $1
+         FOR UPDATE`,
+        [transactionKey],
+      );
+      storedValue = existingResult.rows[0]?.value || {};
+
+      if (storedValue.notificationStatus === 'sent') {
+        await connection.query('COMMIT');
+        return { duplicate: true, donorId: storedValue.donorId || null, token: storedValue.token || null };
+      }
+
+      const lockedAt = Date.parse(storedValue.notificationLockedAt || '');
+      const lockIsFresh = storedValue.notificationStatus === 'sending'
+        && Number.isFinite(lockedAt)
+        && Date.now() - lockedAt < 2 * 60_000;
+
+      if (lockIsFresh) {
+        await connection.query('COMMIT');
+        return { duplicate: true, donorId: storedValue.donorId || null, token: storedValue.token || null };
+      }
+
+      await connection.query(
+        `UPDATE ${pgConfig.tables.temp_data}
+         SET value = value || $2::jsonb
+         WHERE key = $1`,
+        [
+          transactionKey,
+          JSON.stringify({
+            notificationStatus: 'sending',
+            notificationLockedAt: new Date().toISOString(),
+          }),
+        ],
+      );
     }
 
-    const token = extractDonationToken(transaction.content);
-    let donorId = null;
+    let donorId = storedValue.donorId ? String(storedValue.donorId) : null;
+    let token = storedValue.token || extractDonationToken(transaction.content);
 
-    if (token) {
+    if (!donorId && token) {
       const pendingKey = `donate:pending:${token}`;
       const pendingResult = await connection.query(
         `SELECT value
@@ -272,18 +312,42 @@ async function recordDonationTransaction(client, transaction) {
        WHERE key = $1`,
       [
         transactionKey,
-        JSON.stringify({ donorId, token, content: transaction.content || '' }),
+        JSON.stringify({
+          donorId,
+          token,
+          content: transaction.content || '',
+          notificationStatus: 'sending',
+          notificationLockedAt: new Date().toISOString(),
+        }),
       ],
     );
 
     await connection.query('COMMIT');
-    return { duplicate: false, donorId, token };
+    return { duplicate: false, donorId, token, transactionKey };
   } catch (error) {
     await connection.query('ROLLBACK').catch(() => {});
     throw error;
   } finally {
     connection.release();
   }
+}
+
+async function updateDonationNotificationStatus(client, transactionKey, status) {
+  const pool = getDonatePool(client);
+  if (!pool || !transactionKey) return;
+
+  await pool.query(
+    `UPDATE ${pgConfig.tables.temp_data}
+     SET value = value || $2::jsonb
+     WHERE key = $1`,
+    [
+      transactionKey,
+      JSON.stringify({
+        notificationStatus: status,
+        notificationUpdatedAt: new Date().toISOString(),
+      }),
+    ],
+  );
 }
 
 /**
@@ -458,15 +522,30 @@ export function setupDonateWebhook(app, client) {
           continue;
         }
 
+        if (recorded.duplicate) {
+          logger.info('[Donate Webhook] Ignoring duplicate or currently processing SePay transaction', {
+            transactionId: String(tx.id || tx.referenceCode || ''),
+          });
+          continue;
+        }
+
         const sent = await sendDonationNotification(client, {
           ...tx,
           donorId: recorded.donorId,
         });
+
+        await updateDonationNotificationStatus(
+          client,
+          recorded.transactionKey,
+          sent ? 'sent' : 'pending',
+        );
+
         if (!sent) {
-          logger.error('[Donate Webhook] Transaction was recorded but Discord notification failed', {
+          logger.error('[Donate Webhook] Discord notification failed; SePay may retry this transaction', {
             transactionId: String(tx.id || tx.referenceCode || ''),
             donorId: recorded.donorId,
           });
+          return res.status(500).json({ success: false, message: 'Discord notification failed' });
         }
       }
 
