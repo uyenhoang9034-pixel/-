@@ -29,6 +29,7 @@ export const LEDGER_EMOJIS = {
   heart: '<a:heartg1:1545307544808071258>',
   notice: '<a:bang2:1546891483250954290>',
   detail: '<a:bang4:1546905765439217666>',
+  expense: '<a:bang3:1546891744237461635>',
   usagi: '<:usagi9:1541422359960092813>',
   decoration: '<a:trangtrig29:1546385117478527016>',
 };
@@ -197,7 +198,7 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
       ),
     ]);
     rows = history.rows;
-    container = createContainer('Lịch sử donate cá nhân');
+    container = createContainer('LỊCH SỬ DONATE');
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '**<@' + userId + '> đã donate tổng ' + formatMoney(total) + ' tích lũy từ trước đến nay. Một tấm lòng bác ái!**',
     ));
@@ -226,10 +227,10 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
   );
   rows = history.rows;
 
-  container = createContainer('Quỹ chung');
+  container = createContainer('QUỸ CHUNG');
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
     '## ' + LEDGER_EMOJIS.heart + ' **TỔNG TIỀN DONATE**\n**' + formatMoney(summary.income) + '**',
-    '## ' + LEDGER_EMOJIS.detail + ' **TỔNG TIỀN CHI**\n**' + formatMoney(summary.expense) + '**',
+    '## ' + LEDGER_EMOJIS.expense + ' **TỔNG TIỀN CHI**\n**' + formatMoney(summary.expense) + '**',
     '## ' + LEDGER_EMOJIS.notice + ' **SỐ DƯ QUỸ CHUNG HIỆN TẠI**\n**' + formatMoney(summary.balance) + '**',
   ].join('\n\n')));
   container.addSeparatorComponents(separator());
@@ -242,7 +243,7 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
         LEDGER_EMOJIS.heart + ' **Người donate:** ' + donor + '\n' +
         LEDGER_EMOJIS.heart + ' **Khoản thu:** **+' + formatMoney(row.amount) + '**';
     }
-    return LEDGER_EMOJIS.detail + ' **#' + row.id + ' · ' + date + '**\n' +
+    return LEDGER_EMOJIS.expense + ' **#' + row.id + ' · ' + date + '**\n' +
       LEDGER_EMOJIS.heart + ' **Khoản chi:** **' + formatMoney(Math.abs(Number(row.amount))) + '**\n' +
       LEDGER_EMOJIS.notice + ' **Lý do chi:** ' + (row.reason || 'Không có');
   }).join('\n\n') : 'Quỹ chung chưa có giao dịch nào.';
@@ -320,7 +321,7 @@ export async function handleFinancialPrefix(message, client) {
       });
       const summary = await getCommonSummary(client, message.guild.id);
       const donor = match[2] ? '<@' + match[2] + '>' : 'Ẩn Danh';
-      const container = createContainer('Quỹ chung', [
+      const container = createContainer('QUỸ CHUNG', [
         LEDGER_EMOJIS.heart + ' **Người donate:** ' + donor,
         LEDGER_EMOJIS.heart + ' **Khoản thu:** **+' + formatMoney(amount) + '**',
         LEDGER_EMOJIS.heart + ' **Thời gian:** ' + formatDate(result.created_at),
@@ -347,7 +348,7 @@ export async function handleFinancialPrefix(message, client) {
       actorId: message.author.id,
     });
     const summary = await getCommonSummary(client, message.guild.id);
-    const container = createContainer('Quỹ chung', [
+    const container = createContainer('QUỸ CHUNG', [
       LEDGER_EMOJIS.heart + ' **Khoản chi:** **' + formatMoney(amount) + '**',
       LEDGER_EMOJIS.notice + ' **Lý do chi:** ' + reason,
       LEDGER_EMOJIS.heart + ' **Thời gian ghi nhận:** ' + formatDate(result.created_at),
@@ -626,14 +627,14 @@ async function buildMonthlySummaryContainer(report, month, year) {
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
     LEDGER_EMOJIS.heart + ' **Số dư đầu tháng:** ' + formatMoney(report.opening),
     LEDGER_EMOJIS.heart + ' **Donate trong tháng:** +' + formatMoney(report.income),
-    LEDGER_EMOJIS.detail + ' **Chi trong tháng:** -' + formatMoney(report.expense),
+    LEDGER_EMOJIS.expense + ' **Chi trong tháng:** -' + formatMoney(report.expense),
   ].join('\n')));
   const expenses = report.transactions.filter(row => row.scope === 'common' && Number(row.amount) < 0);
   if (expenses.length) {
     container.addSeparatorComponents(separator());
     const visibleExpenses = expenses.slice(0, 10);
     const expenseLines = visibleExpenses.map(row =>
-      LEDGER_EMOJIS.detail + ' ' + formatDate(row.created_at) + ' · ' +
+      LEDGER_EMOJIS.expense + ' ' + formatDate(row.created_at) + ' · ' +
       (row.reason || 'Không có lý do') + ': **' + formatMoney(Math.abs(Number(row.amount))) + '**'
     );
     if (expenses.length > visibleExpenses.length) {
