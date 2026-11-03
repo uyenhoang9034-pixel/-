@@ -615,24 +615,24 @@ async function buildMonthlySummaryContainer(client, guildId, month, year) {
   ]);
   container.addSeparatorComponents(separator());
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
-    '## ' + LEDGER_EMOJIS.heart + ' **TỔNG TIỀN DONATE**\\n**' + formatMoney(report.income) + '**',
-    '## ' + LEDGER_EMOJIS.detail + ' **TỔNG TIỀN CHI**\\n**' + formatMoney(report.expense) + '**',
-    '## ' + LEDGER_EMOJIS.notice + ' **SỐ DƯ CUỐI THÁNG**\\n**' + formatMoney(report.closing) + '**',
-  ].join('\\n\\n')));
+    '## ' + LEDGER_EMOJIS.heart + ' **TỔNG TIỀN DONATE**\n**' + formatMoney(report.income) + '**',
+    '## ' + LEDGER_EMOJIS.detail + ' **TỔNG TIỀN CHI**\n**' + formatMoney(report.expense) + '**',
+    '## ' + LEDGER_EMOJIS.notice + ' **SỐ DƯ CUỐI THÁNG**\n**' + formatMoney(report.closing) + '**',
+  ].join('\n\n')));
   container.addSeparatorComponents(separator());
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
     LEDGER_EMOJIS.heart + ' **Số dư đầu tháng:** ' + formatMoney(report.opening),
     LEDGER_EMOJIS.heart + ' **Donate trong tháng:** +' + formatMoney(report.income),
     LEDGER_EMOJIS.detail + ' **Chi trong tháng:** -' + formatMoney(report.expense),
-  ].join('\\n')));
+  ].join('\n')));
   const expenses = report.transactions.filter(row => row.scope === 'common' && Number(row.amount) < 0);
   if (expenses.length) {
     container.addSeparatorComponents(separator());
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '**Các khoản chi trong tháng**\\n' + expenses.map(row =>
+      '**Các khoản chi trong tháng**\n' + expenses.map(row =>
         LEDGER_EMOJIS.detail + ' ' + formatDate(row.created_at) + ' · ' +
         (row.reason || 'Không có lý do') + ': **' + formatMoney(Math.abs(Number(row.amount))) + '**'
-      ).join('\\n')
+      ).join('\n')
     ));
   }
   return container;
