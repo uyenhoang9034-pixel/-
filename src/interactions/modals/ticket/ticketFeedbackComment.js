@@ -97,10 +97,11 @@ export default {
         }
 
         try {
+            const ticketName = interaction.client.channels.cache.get(channelId)?.name || (ticketData.number ? `ticket-${ticketData.number}` : ticketData.id);
             await logTicketFeedback({
                 client: interaction.client,
                 guildId,
-                ticketNumber: ticketData.id,
+                ticketNumber: ticketName,
                 ticketChannelId: channelId,
                 userId: interaction.user.id,
                 rating: ticketData.feedback?.rating ?? null,

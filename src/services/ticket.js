@@ -998,14 +998,11 @@ export async function closeTicket(
           try {
             const feedbackAttachment = getTicketImageAttachment();
             const feedbackFiles = feedbackAttachment ? [feedbackAttachment] : [];
-            const ticketNum = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : channel.name);
+            const rawTicketNum = channel.name || ticketData.number || ticketData.ticketNumber || ticketData.id;
+            const ticketNum = String(rawTicketNum).startsWith('#') ? String(rawTicketNum).slice(1) : rawTicketNum;
 
-            let staffMention = 'SP Ticket';
-            if (ticketData.claimedBy) {
-              staffMention = `<@${ticketData.claimedBy}>`;
-            } else if (closer && closer !== ticketData.userId && closer !== `<@${ticketData.userId}>`) {
-              staffMention = typeof closer === 'string' ? closer : closer.toString();
-            }
+            const staffRoleId = config.ticketStaffRoleId || '1545295139390619768';
+            const staffMention = `<@&${staffRoleId}>`;
 
             const nowTs = Math.floor(Date.now() / 1000);
             const feedbackTitle = `<a:trangtrig2:1546040703375904801> **TICKET FEEDBACK** <a:trangtrig3:1546040818261954610>`;

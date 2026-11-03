@@ -1,13 +1,17 @@
 // ticketLogging.js
 
-import { ChannelType } from 'discord.js';
+import {
+  ChannelType,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
+  EmbedBuilder,
+} from 'discord.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { logger } from '../logger.js';
-import {
-  buildStandardLogEmbed,
-  formatRatingStars,
-  resolveUserAuthor,
-} from '../logging/logEmbeds.js';
+import { formatRatingStars } from '../logging/logEmbeds.js';
 
 export async function logTicketEvent({ client, guildId, event }) {
   try {
@@ -36,15 +40,24 @@ export async function logTicketEvent({ client, guildId, event }) {
       return;
     }
 
-    const embed = await createTicketLogEmbed(guild, event);
+    const files = event.attachments && event.attachments.length > 0 ? event.attachments : undefined;
 
-    const messageOptions = { embeds: [embed] };
-
-    if (event.attachments && event.attachments.length > 0) {
-      messageOptions.files = event.attachments;
+    try {
+      const v2Container = buildTicketLogV2Container(guild, event);
+      await channel.send({
+        components: [v2Container],
+        flags: MessageFlags.IsComponentsV2,
+        files,
+      });
+    } catch (v2Err) {
+      logger.warn('Failed to send ticket log as Components V2, falling back to embed:', v2Err);
+      const fallbackEmbed = buildTicketLogFallbackEmbed(guild, event);
+      await channel.send({
+        embeds: [fallbackEmbed],
+        files,
+      });
     }
 
-    await channel.send(messageOptions);
     logger.info(`Ticket event logged: ${event.type} in guild ${guildId}`);
   } catch (error) {
     logger.error('Error logging ticket event:', error);
@@ -96,141 +109,255 @@ function getLogChannelForEventType(config, eventType) {
   }
 }
 
-const TICKET_EVENT_STYLES = {
-  open: { color: 0x5865F2, title: 'Ticket Created' },
-  close: { color: 0xED4245, title: 'Ticket Closed' },
-  delete: { color: 0x8b0000, title: 'Ticket Deleted' },
-  claim: { color: 0x5865F2, title: 'Ticket Claimed' },
-  unclaim: { color: 0xFAA61A, title: 'Ticket Unclaimed' },
-  transcript: { color: 0x57F287, title: 'Transcript Generated' },
-  feedback: { color: 0x57F287, title: 'Feedback Received' },
-};
+export function buildTicketLogV2Container(guild, event) {
+  const container = new ContainerBuilder();
+  let rawNumber = event.ticketNumber;
+  if (!rawNumber || /^\d{17,20}$/.test(String(rawNumber))) {
+    const cached = guild?.channels?.cache?.get(event.ticketId) || guild?.client?.channels?.cache?.get(event.ticketId);
+    if (cached?.name) {
+      rawNumber = cached.name;
+    }
+  }
+  const ticketRef = rawNumber
+    ? (String(rawNumber).startsWith('#') ? String(rawNumber) : `#${rawNumber}`)
+    : (event.ticketId ? `<#${event.ticketId}>` : 'Unknown');
 
-async function createTicketLogEmbed(guild, event) {
-  const style = TICKET_EVENT_STYLES[event.type] || { color: 0x95a5a6, title: 'Ticket Event' };
-  const ticketNumber = event.ticketNumber || event.ticketId;
-  const ticketRef = ticketNumber
-    ? (String(ticketNumber).startsWith('#') ? ticketNumber : `#${ticketNumber}`)
-    : 'Unknown';
-  const channelMention = event.ticketId ? `<#${event.ticketId}>` : null;
-  const executorMention = event.executorId ? `<@${event.executorId}>` : null;
-  const userMention = event.userId ? `<@${event.userId}>` : null;
-
-  let inlineFields = [];
-  let fields = [];
-  let author = null;
-  let footer = { text: 'TitanBot Ticketing' };
+  let title = '';
+  let mainLines = [];
+  let extraLine = null;
 
   switch (event.type) {
-    case 'open':
-      author = await resolveUserAuthor(guild.client, event.userId);
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
-        { name: 'Creator', value: userMention || 'Unknown', inline: true },
-      ];
-      if (channelMention) {
-        inlineFields.push({ name: 'Channel', value: channelMention, inline: true });
-      }
-      if (event.reason) {
-        fields.push({ name: 'Reason', value: String(event.reason).slice(0, 1024), inline: false });
-      }
-      break;
-
-    case 'close':
-      author = await resolveUserAuthor(guild.client, event.executorId);
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
-        { name: 'Closed by', value: executorMention || 'Unknown', inline: true },
-      ];
-      if (channelMention) {
-        inlineFields.push({ name: 'Channel', value: channelMention, inline: true });
-      }
-      if (event.reason) {
-        fields.push({ name: 'Reason', value: String(event.reason).slice(0, 1024), inline: false });
-      }
-      break;
-
-    case 'delete':
-      author = await resolveUserAuthor(guild.client, event.executorId);
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
-        { name: 'Deleted by', value: executorMention || 'Unknown', inline: true },
-      ];
-      break;
-
-    case 'claim':
-    case 'unclaim':
-      author = await resolveUserAuthor(guild.client, event.executorId);
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
-        {
-          name: event.type === 'claim' ? 'Claimed by' : 'Unclaimed by',
-          value: executorMention || 'Unknown',
-          inline: true,
-        },
-      ];
-      break;
-
-
-    case 'transcript':
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
-        { name: 'Creator', value: userMention || 'Unknown', inline: true },
-      ];
-      if (event.metadata?.messageCount) {
-        inlineFields.push({ name: 'Messages', value: String(event.metadata.messageCount), inline: true });
-      }
-      if (event.metadata?.duration) {
-        fields.push({ name: 'Duration', value: String(event.metadata.duration), inline: false });
-      }
-      if (event.metadata?.subject || event.reason) {
-        fields.push({
-          name: 'Subject',
-          value: String(event.metadata?.subject || event.reason).slice(0, 1024),
-          inline: false,
-        });
-      }
-      break;
-
     case 'feedback': {
+      title = '<a:trangtrig2:1546040703375904801> **FEEDBACK RECEIVED** <a:trangtrig3:1546040818261954610>';
       const rating = event.metadata?.rating ?? event.rating;
       const comment = event.metadata?.comment;
-      const ratingDisplay = formatRatingStars(rating) || 'No rating';
+      const ratingDisplay = formatRatingStars(rating) || 'Chưa đánh giá';
 
-      author = await resolveUserAuthor(guild.client, event.userId);
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
-        { name: 'Rating', value: ratingDisplay, inline: true },
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Người đánh giá: <@${event.userId}> | ID: ${event.userId}`,
+        `<a:trangtrig15:1546047955696488489> Đánh giá: ${ratingDisplay}`,
       ];
 
-      if (comment) {
-        fields.push({
-          name: 'Comment',
-          value: String(comment).slice(0, 1024),
-          inline: false,
-        });
+      if (comment && String(comment).trim().length > 0) {
+        extraLine = `<a:trangtrig31:1546905996893626440> Nhận xét: "${String(comment).trim()}"`;
       }
       break;
     }
 
-    default:
-      inlineFields = [
-        { name: 'Ticket', value: ticketRef, inline: true },
+    case 'open': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET CREATED** <a:trangtrig3:1546040818261954610>';
+      const channelDisplay = event.ticketId ? `<#${event.ticketId}>` : ticketRef;
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Người tạo: <@${event.userId}> | ID: ${event.userId}`,
+        `<a:trangtrig15:1546047955696488489> Kênh: ${channelDisplay}`,
+      ];
+      extraLine = `<a:trangtrig31:1546905996893626440> Lý do: "${event.reason || 'Không có lý do'}"`;
+      break;
+    }
+
+    case 'close': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET CLOSED** <a:trangtrig3:1546040818261954610>';
+      const channelDisplay = event.ticketId ? `<#${event.ticketId}>` : ticketRef;
+      const closerMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Đóng bởi: ${closerMention}`,
+        `<a:trangtrig15:1546047955696488489> Kênh: ${channelDisplay}`,
+      ];
+      extraLine = `<a:trangtrig31:1546905996893626440> Lý do đóng: "${event.reason || 'Không có lý do'}"`;
+      break;
+    }
+
+    case 'delete': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET DELETED** <a:trangtrig3:1546040818261954610>';
+      const deleterMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      const creatorDisplay = event.userId ? `<@${event.userId}> | ID: ${event.userId}` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Xóa bởi: ${deleterMention}`,
+        `<a:trangtrig15:1546047955696488489> Chủ ticket: ${creatorDisplay}`,
+      ];
+      break;
+    }
+
+    case 'claim': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET CLAIMED** <a:trangtrig3:1546040818261954610>';
+      const claimerMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Nhận bởi: ${claimerMention}`,
+      ];
+      break;
+    }
+
+    case 'unclaim': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET UNCLAIMED** <a:trangtrig3:1546040818261954610>';
+      const unclaimerMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Bỏ nhận bởi: ${unclaimerMention}`,
+      ];
+      break;
+    }
+
+    default: {
+      title = `<a:trangtrig2:1546040703375904801> **TICKET ${String(event.type || 'EVENT').toUpperCase()}** <a:trangtrig3:1546040818261954610>`;
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
       ];
       if (event.reason) {
-        fields.push({ name: 'Details', value: String(event.reason).slice(0, 1024), inline: false });
+        extraLine = `<a:trangtrig31:1546905996893626440> Chi tiết: "${event.reason}"`;
       }
+      break;
+    }
   }
 
-  const titlePrefix = event.type === 'feedback' ? '⭐ ' : '';
-  return buildStandardLogEmbed({
-    color: style.color,
-    title: `${titlePrefix}${style.title}`,
-    inlineFields,
-    fields,
-    author,
-    footer,
-  });
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`# ${title}`)
+  );
+
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+  );
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(mainLines.join('\n'))
+  );
+
+  if (extraLine) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(extraLine)
+    );
+  }
+
+  return container;
+}
+
+export function buildTicketLogFallbackEmbed(guild, event) {
+  let rawNumber = event.ticketNumber;
+  if (!rawNumber || /^\d{17,20}$/.test(String(rawNumber))) {
+    const cached = guild?.channels?.cache?.get(event.ticketId) || guild?.client?.channels?.cache?.get(event.ticketId);
+    if (cached?.name) {
+      rawNumber = cached.name;
+    }
+  }
+  const ticketRef = rawNumber
+    ? (String(rawNumber).startsWith('#') ? String(rawNumber) : `#${rawNumber}`)
+    : (event.ticketId ? `<#${event.ticketId}>` : 'Unknown');
+
+  let title = '';
+  let mainLines = [];
+  let extraLine = null;
+
+  switch (event.type) {
+    case 'feedback': {
+      title = '<a:trangtrig2:1546040703375904801> **FEEDBACK RECEIVED** <a:trangtrig3:1546040818261954610>';
+      const rating = event.metadata?.rating ?? event.rating;
+      const comment = event.metadata?.comment;
+      const ratingDisplay = formatRatingStars(rating) || 'Chưa đánh giá';
+
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Người đánh giá: <@${event.userId}> | ID: ${event.userId}`,
+        `<a:trangtrig15:1546047955696488489> Đánh giá: ${ratingDisplay}`,
+      ];
+
+      if (comment && String(comment).trim().length > 0) {
+        extraLine = `<a:trangtrig31:1546905996893626440> Nhận xét: "${String(comment).trim()}"`;
+      }
+      break;
+    }
+
+    case 'open': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET CREATED** <a:trangtrig3:1546040818261954610>';
+      const channelDisplay = event.ticketId ? `<#${event.ticketId}>` : ticketRef;
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Người tạo: <@${event.userId}> | ID: ${event.userId}`,
+        `<a:trangtrig15:1546047955696488489> Kênh: ${channelDisplay}`,
+      ];
+      extraLine = `<a:trangtrig31:1546905996893626440> Lý do: "${event.reason || 'Không có lý do'}"`;
+      break;
+    }
+
+    case 'close': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET CLOSED** <a:trangtrig3:1546040818261954610>';
+      const channelDisplay = event.ticketId ? `<#${event.ticketId}>` : ticketRef;
+      const closerMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Đóng bởi: ${closerMention}`,
+        `<a:trangtrig15:1546047955696488489> Kênh: ${channelDisplay}`,
+      ];
+      extraLine = `<a:trangtrig31:1546905996893626440> Lý do đóng: "${event.reason || 'Không có lý do'}"`;
+      break;
+    }
+
+    case 'delete': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET DELETED** <a:trangtrig3:1546040818261954610>';
+      const deleterMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      const creatorDisplay = event.userId ? `<@${event.userId}> | ID: ${event.userId}` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Xóa bởi: ${deleterMention}`,
+        `<a:trangtrig15:1546047955696488489> Chủ ticket: ${creatorDisplay}`,
+      ];
+      break;
+    }
+
+    case 'claim': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET CLAIMED** <a:trangtrig3:1546040818261954610>';
+      const claimerMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Nhận bởi: ${claimerMention}`,
+      ];
+      break;
+    }
+
+    case 'unclaim': {
+      title = '<a:trangtrig2:1546040703375904801> **TICKET UNCLAIMED** <a:trangtrig3:1546040818261954610>';
+      const unclaimerMention = event.executorId ? `<@${event.executorId}>` : 'Unknown';
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+        `<a:trangtrig15:1546047955696488489> Bỏ nhận bởi: ${unclaimerMention}`,
+      ];
+      break;
+    }
+
+    default: {
+      title = `<a:trangtrig2:1546040703375904801> **TICKET ${String(event.type || 'EVENT').toUpperCase()}** <a:trangtrig3:1546040818261954610>`;
+      mainLines = [
+        `<a:trangtrig15:1546047955696488489> Ticket: ${ticketRef}`,
+      ];
+      if (event.reason) {
+        extraLine = `<a:trangtrig31:1546905996893626440> Chi tiết: "${event.reason}"`;
+      }
+      break;
+    }
+  }
+
+  const descParts = [
+    `# ${title}`,
+    '---',
+    mainLines.join('\n'),
+  ];
+  if (extraLine) {
+    descParts.push('---', extraLine);
+  }
+
+  return new EmbedBuilder()
+    .setColor(0x2B2D31)
+    .setDescription(descParts.join('\n'));
+}
+
+export async function createTicketLogEmbed(guild, event) {
+  return buildTicketLogFallbackEmbed(guild, event);
 }
 
 export async function getTicketLoggingConfig(client, guildId) {
