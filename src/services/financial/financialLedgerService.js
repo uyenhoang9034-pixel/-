@@ -161,12 +161,12 @@ async function getCommonSummary(client, guildId, range = null) {
 
 function createPaginationRow(scope, ownerId, page, totalPages) {
   const previous = new ButtonBuilder()
-    .setCustomId('financial_page:' + scope + ':' + ownerId + ':' + Math.max(0, page - 1))
+    .setCustomId('financial_page:' + scope + ':' + ownerId + ':' + Math.max(0, page - 1) + ':previous')
     .setLabel('◀')
     .setStyle(ButtonStyle.Secondary)
     .setDisabled(page <= 0);
   const next = new ButtonBuilder()
-    .setCustomId('financial_page:' + scope + ':' + ownerId + ':' + Math.min(totalPages - 1, page + 1))
+    .setCustomId('financial_page:' + scope + ':' + ownerId + ':' + Math.min(totalPages - 1, page + 1) + ':next')
     .setLabel('▶')
     .setStyle(ButtonStyle.Secondary)
     .setDisabled(page >= totalPages - 1);
