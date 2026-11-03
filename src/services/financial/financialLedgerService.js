@@ -16,10 +16,8 @@ import { pgConfig } from '../../config/database/postgres.js';
 import { logger } from '../../utils/logger.js';
 
 const TABLE = pgConfig.tables.financial_transactions;
-const ADMIN_ROLE_IDS = new Set([
-  '1541303749916754001',
-  '1545305594712432640',
-]);
+const FINANCIAL_SUPPORT_ROLE_ID = '1545295139390619768';
+const FINANCIAL_LOOKUP_CHANNEL_ID = '1567242635633098842';
 const PAGE_SIZE = 6;
 const TZ = 'Asia/Ho_Chi_Minh';
 
@@ -86,11 +84,14 @@ function v2Payload(container, extra = {}) {
 
 export function isFinancialAdmin(member) {
   if (!member) return false;
-  if (member.permissions?.has?.(PermissionFlagsBits.Administrator)) return true;
   const roleIds = member.roles?.cache
     ? [...member.roles.cache.keys()]
     : (Array.isArray(member.roles) ? member.roles : []);
-  return roleIds.some(roleId => ADMIN_ROLE_IDS.has(String(roleId)));
+  return roleIds.some(roleId => String(roleId) === FINANCIAL_SUPPORT_ROLE_ID);
+}
+
+function isFinancialLookupChannel(interaction) {
+  return String(interaction.channelId || '') === FINANCIAL_LOOKUP_CHANNEL_ID;
 }
 
 function requirePool(client) {
@@ -274,7 +275,7 @@ export async function handleFinancialPrefix(message, client) {
   if (!/^&(?:add|addquychung|trutien)(?:\s|$)/i.test(content)) return false;
 
   if (!isFinancialAdmin(message.member)) {
-    await message.reply('Bạn không có quyền sử dụng lệnh quản lý sổ quỹ.').catch(() => {});
+    await message.reply('Chỉ thành viên có role Support Ticket mới được sử dụng lệnh quản lý sổ quỹ.').catch(() => {});
     return true;
   }
 
@@ -649,7 +650,7 @@ async function buildMonthlySummaryContainer(report, month, year) {
 
 export async function executeFinancialExport(interaction, client) {
   if (!isFinancialAdmin(interaction.member)) {
-    await interaction.reply({ content: 'Bạn không có quyền xuất báo cáo Quỹ chung.', flags: MessageFlags.Ephemeral });
+    await interaction.reply({ content: 'Chỉ thành viên có role Support Ticket mới được xuất báo cáo Quỹ chung.', flags: MessageFlags.Ephemeral });
     return;
   }
   const current = getCurrentVietnamMonth();
