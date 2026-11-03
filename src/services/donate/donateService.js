@@ -516,13 +516,6 @@ export function setupDonateWebhook(app, client) {
 
         const recorded = await recordDonationTransaction(client, tx);
         if (recorded.duplicate) {
-          logger.info('[Donate Webhook] Ignoring duplicate SePay transaction', {
-            transactionId: String(tx.id || tx.referenceCode || ''),
-          });
-          continue;
-        }
-
-        if (recorded.duplicate) {
           logger.info('[Donate Webhook] Ignoring duplicate or currently processing SePay transaction', {
             transactionId: String(tx.id || tx.referenceCode || ''),
           });
