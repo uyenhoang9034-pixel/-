@@ -620,7 +620,7 @@ async function buildMonthlySummaryContainer(report, month, year) {
   container.addSeparatorComponents(separator());
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
     '## ' + LEDGER_EMOJIS.heart + ' **TỔNG TIỀN DONATE**\n**' + formatMoney(report.income) + '**',
-    '## ' + LEDGER_EMOJIS.detail + ' **TỔNG TIỀN CHI**\n**' + formatMoney(report.expense) + '**',
+    '## ' + LEDGER_EMOJIS.expense + ' **TỔNG TIỀN CHI**\n**' + formatMoney(report.expense) + '**',
     '## ' + LEDGER_EMOJIS.notice + ' **SỐ DƯ CUỐI THÁNG**\n**' + formatMoney(report.closing) + '**',
   ].join('\n\n')));
   container.addSeparatorComponents(separator());
