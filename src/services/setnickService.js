@@ -3,6 +3,8 @@ import {
     TextDisplayBuilder,
     SeparatorBuilder,
     SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
@@ -14,6 +16,7 @@ import { logger } from '../utils/logger.js';
 export const SETNICK_CONFIG = {
     channelId: '1541364885789745213',
     managementRoleId: '1545295139390619768',
+    panelImageUrl: 'https://cdn.phototourl.com/member/2026-11-03-83e89905-920b-4692-8d3f-94ee9e1bb22b.png',
     prefix: '⋆˚࿔ ',
     suffix: ' ♡',
     maxInputLength: 20,
@@ -88,7 +91,21 @@ export function createSetnickPanelPayload() {
         ),
     );
 
-    // 5. 2 nút màu xám (Secondary), không cần emoji
+    // Đường kẻ 4 (dưới dòng bấm vào...)
+    container.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+    );
+
+    // 5. Ảnh trang trí mini
+    if (SETNICK_CONFIG.panelImageUrl) {
+        container.addMediaGalleryComponents(
+            new MediaGalleryBuilder().addItems(
+                new MediaGalleryItemBuilder().setURL(SETNICK_CONFIG.panelImageUrl),
+            ),
+        );
+    }
+
+    // 6. 2 nút màu xám (Secondary), không cần emoji
     const actionRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('setnick_change')
@@ -102,6 +119,26 @@ export function createSetnickPanelPayload() {
 
     container.addActionRowComponents(actionRow);
 
+    const fallbackEmbed = new EmbedBuilder()
+        .setColor(0x2B2D31)
+        .setDescription(
+            [
+                `# ${SETNICK_EMOJIS.titleLeft} **TỰ ĐỔI NICKNAME** ${SETNICK_EMOJIS.titleRight}`,
+                '---',
+                `${SETNICK_EMOJIS.heart} Bạn có thể tự đổi biệt danh cho chính mình tại đây.`,
+                '---',
+                `${SETNICK_EMOJIS.heart} Định dạng hiển thị tự động:`,
+                `> - Tên bạn nhập: Từ 1 đến 20 ký tự.`,
+                `> - Bot tự động thêm tiền tố và hậu tố.`,
+                '---',
+                `${SETNICK_EMOJIS.notice} Bấm vào nút bên dưới để thay đổi tên!`,
+            ].join('\n'),
+        );
+
+    if (SETNICK_CONFIG.panelImageUrl) {
+        fallbackEmbed.setImage(SETNICK_CONFIG.panelImageUrl);
+    }
+
     return {
         container,
         actionRow,
@@ -110,23 +147,7 @@ export function createSetnickPanelPayload() {
             flags: MessageFlags.IsComponentsV2,
         },
         fallback: {
-            embeds: [
-                new EmbedBuilder()
-                    .setColor(0x2B2D31)
-                    .setDescription(
-                        [
-                            `# ${SETNICK_EMOJIS.titleLeft} **TỰ ĐỔI NICKNAME** ${SETNICK_EMOJIS.titleRight}`,
-                            '---',
-                            `${SETNICK_EMOJIS.heart} Bạn có thể tự đổi biệt danh cho chính mình tại đây.`,
-                            '---',
-                            `${SETNICK_EMOJIS.heart} Định dạng hiển thị tự động:`,
-                            `> - Tên bạn nhập: Từ 1 đến 20 ký tự.`,
-                            `> - Bot tự động thêm tiền tố và hậu tố.`,
-                            '---',
-                            `${SETNICK_EMOJIS.notice} Bấm vào nút bên dưới để thay đổi tên!`,
-                        ].join('\n'),
-                    ),
-            ],
+            embeds: [fallbackEmbed],
             components: [actionRow],
         },
     };
