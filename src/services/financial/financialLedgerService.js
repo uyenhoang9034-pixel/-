@@ -209,7 +209,8 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(historyLines));
     container.addSeparatorComponents(separator());
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent('Trang **' + (currentPage + 1) + ' / ' + totalPages + '**'));
-    return { components: [container, createPaginationRow(scope, ownerId, currentPage, totalPages)], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+    container.addActionRowComponents(createPaginationRow(scope, ownerId, currentPage, totalPages));
+    return { components: [container], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
   }
 
   const [summary, count] = await Promise.all([
@@ -248,7 +249,8 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(historyLines));
   container.addSeparatorComponents(separator());
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('Trang **' + (currentPage + 1) + ' / ' + totalPages + '**'));
-  return { components: [container, createPaginationRow(scope, ownerId, currentPage, totalPages)], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+  container.addActionRowComponents(createPaginationRow(scope, ownerId, currentPage, totalPages));
+  return { components: [container], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
 export async function handleFinancialPage(interaction, client, args = []) {
