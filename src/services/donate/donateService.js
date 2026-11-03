@@ -124,10 +124,9 @@ export function buildDonatePanelPayload(author, request) {
   const syntaxLines = [
     `${DONATE_EMOJIS.notice} **Hướng dẫn chuyển khoản:**`,
     '> Quét mã QR bên dưới bằng ứng dụng ngân hàng.',
-    '> Số tiền tùy tâm, bạn tự nhập số tiền muốn ủng hộ.',
     `> **Nội dung chuyển khoản:** \`${request.paymentContent}\``,
     `> Mã này được cấp riêng cho <@${author.id}> và có hiệu lực trong **${DONATE_CONFIG.requestExpiryMinutes} phút**.`,
-    '> Vui lòng giữ nguyên nội dung chuyển khoản để bot nhận diện và xướng tên chính xác nhé!',
+    '> Ưu tiên chuyển khoản bằng quét mã QR để bot nhận diện và gửi thông báo ạ, em xin cảm ơn!',
   ];
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(syntaxLines.join('\n')));
 
@@ -150,9 +149,10 @@ export function buildDonatePanelPayload(author, request) {
       `**Chủ tài khoản:** ${DONATE_CONFIG.accountName}`,
       '',
       '**Hướng dẫn chuyển khoản:**',
-      '> Quét QR, tự nhập số tiền muốn ủng hộ.',
-      `> **Nội dung:** \`${request.paymentContent}\``,
-      `> Mã riêng của <@${author.id}> · Hết hạn sau ${DONATE_CONFIG.requestExpiryMinutes} phút.`,
+      '> Quét mã QR bên dưới bằng ứng dụng ngân hàng.',
+      `> **Nội dung chuyển khoản:** \`${request.paymentContent}\``,
+      `> Mã này được cấp riêng cho <@${author.id}> và có hiệu lực trong **${DONATE_CONFIG.requestExpiryMinutes} phút**.`,
+      '> Ưu tiên chuyển khoản bằng quét mã QR để bot nhận diện và gửi thông báo ạ, em xin cảm ơn!',
     ].join('\n'))
     .setImage(request.qrUrl);
 
