@@ -15,6 +15,7 @@ const configuredTables = {
     invite_tracking: 'invite_tracking',
     temp_data: 'temp_data',
     cache_data: 'cache_data',
+    financial_transactions: 'financial_transactions',
 };
 
 const allowedTableIdentifiers = new Set([
@@ -31,6 +32,7 @@ const allowedTableIdentifiers = new Set([
     'invite_tracking',
     'temp_data',
     'cache_data',
+    'financial_transactions',
 ]);
 
 const validatedTables = Object.fromEntries(
