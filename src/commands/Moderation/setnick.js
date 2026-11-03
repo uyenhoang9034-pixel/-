@@ -17,6 +17,10 @@ import {
     logger,
 } from '../../utils/logger.js';
 
+import {
+    sendSetnickLog,
+} from '../../services/setnickService.js';
+
 
 /*
  * ============================================================
@@ -474,107 +478,16 @@ export default {
 
             /*
              * ------------------------------------------------
-             * NOTIFICATION CHANNEL
+             * SEND NOTIFICATION VIA SETNICK SERVICE
              * ------------------------------------------------
              */
 
-            const notificationChannel =
-                guild.channels.cache.get(
-                    SETNICK_CHANNEL_ID,
-                ) ||
-                await guild.channels
-                    .fetch(
-                        SETNICK_CHANNEL_ID,
-                    )
-                    .catch(
-                        () => null,
-                    );
-
-
-            /*
-             * ------------------------------------------------
-             * SEND NOTIFICATION
-             * ------------------------------------------------
-             *
-             * TITLE:
-             *
-             * <a:chiikawag9:1541427795786207313>
-             *
-             * INFO:
-             *
-             * <a:pinkheart:1545307544808071258>
-             */
-
-            if (
-                notificationChannel?.isTextBased()
-            ) {
-
-                const botMention =
-                    client.user
-                        ? `<@${client.user.id}>`
-                        : 'Bot';
-
-
-                const embed =
-                    new EmbedBuilder()
-                        .setColor(
-                            '#F6B6D6',
-                        )
-
-                        .setTitle(
-                            `${TITLE_EMOJI} 𝓝𝓲𝓬𝓴𝓷𝓪𝓶𝓮 𝓤𝓹𝓭𝓪𝓽𝓮𝓭`,
-                        )
-
-                        .setDescription(
-                            [
-                                `${INFO_EMOJI} 𝙼𝚎𝚖𝚋𝚎𝚛: ${targetMember}`,
-
-                                `${INFO_EMOJI} 𝙽𝚎𝚠 𝚗𝚒𝚌𝚔𝚗𝚊𝚖𝚎: ${nickname}`,
-
-                                `${INFO_EMOJI} 𝙲𝚑𝚊𝚗𝚐𝚎𝚍 𝚋𝚢: ${botMention}`,
-                            ].join(
-                                '\n',
-                            ),
-                        );
-
-
-                await notificationChannel
-                    .send({
-                        embeds: [
-                            embed,
-                        ],
-                    })
-                    .catch(
-                        error => {
-                            logger.warn(
-                                '[SetNick] Failed to send notification',
-                                {
-                                    guildId:
-                                        guild.id,
-
-                                    channelId:
-                                        SETNICK_CHANNEL_ID,
-
-                                    error:
-                                        error?.message,
-                                },
-                            );
-                        },
-                    );
-
-            } else {
-
-                logger.warn(
-                    '[SetNick] Notification channel not found',
-                    {
-                        guildId:
-                            guild.id,
-
-                        channelId:
-                            SETNICK_CHANNEL_ID,
-                    },
-                );
-            }
+            await sendSetnickLog({
+                client,
+                guild,
+                targetMember,
+                nickname,
+            });
 
 
             /*
