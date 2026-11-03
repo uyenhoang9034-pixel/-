@@ -69,19 +69,23 @@ export function createSay2Container({
             .setSpacing(SeparatorSpacingSize.Small),
     );
 
-    // 3. Message Body
-    container.addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(message),
-    );
+    // 3. Message Body (nếu có nội dung chữ)
+    if (message && message.trim().length > 0) {
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(message),
+        );
+
+        if (attachment && attachment.contentType?.startsWith('image/')) {
+            container.addSeparatorComponents(
+                new SeparatorBuilder()
+                    .setDivider(true)
+                    .setSpacing(SeparatorSpacingSize.Small),
+            );
+        }
+    }
 
     // 4. Image Attachment if present
     if (attachment && attachment.contentType?.startsWith('image/')) {
-        container.addSeparatorComponents(
-            new SeparatorBuilder()
-                .setDivider(true)
-                .setSpacing(SeparatorSpacingSize.Small),
-        );
-
         container.addMediaGalleryComponents(
             new MediaGalleryBuilder().addItems(
                 new MediaGalleryItemBuilder().setURL(attachment.url),
@@ -113,7 +117,7 @@ export default {
             option
                 .setName('message')
                 .setDescription('Nội dung tin nhắn bot cần nói (hỗ trợ xuống dòng hoặc gõ \\n)')
-                .setRequired(true)
+                .setRequired(false)
                 .setMaxLength(2000),
         )
         .addChannelOption((option) =>
@@ -170,10 +174,10 @@ export default {
         const customFooter = interaction.options.getString('footer');
         const attachment = interaction.options.getAttachment('image');
 
-        if (!message) {
+        if (!message && !attachment) {
             return replyUserError(interaction, {
                 type: ErrorTypes.VALIDATION,
-                message: 'Tin nhắn không được để trống.',
+                message: 'Vui lòng nhập nội dung tin nhắn hoặc đính kèm ảnh/tệp cần gửi.',
             });
         }
 
@@ -247,12 +251,15 @@ export default {
             const fallbackEmbed = new EmbedBuilder()
                 .setColor(USAGI_PINK)
                 .setTitle(finalTitle.replace(/^#\s*/, ''))
-                .setDescription(message)
                 .setFooter({
                     text: customFooter || `${interaction.guild.name} • 𝓤𝓼𝓪𝓰𝓲`,
                     iconURL: client.user.displayAvatarURL(),
                 })
                 .setTimestamp();
+
+            if (message && message.trim().length > 0) {
+                fallbackEmbed.setDescription(message);
+            }
 
             if (attachment && attachment.contentType?.startsWith('image/')) {
                 fallbackEmbed.setImage(attachment.url);
@@ -271,9 +278,9 @@ export default {
                 action: 'Bot Say2 Message Sent',
                 target: `${channel} (${channel.id})`,
                 executor: `${interaction.user.tag} (${interaction.user.id})`,
-                reason: message.length > 200
-                    ? `${message.slice(0, 197)}...`
-                    : message,
+                reason: message
+                    ? (message.length > 200 ? `${message.slice(0, 197)}...` : message)
+                    : (attachment ? `Gửi tệp/ảnh: ${attachment.name}` : 'Không có nội dung'),
                 metadata: {
                     channelId: channel.id,
                     messageId: sentMessage.id,
@@ -281,18 +288,20 @@ export default {
                     isComponentsV2: true,
                     hasAttachment: Boolean(attachment),
                     customTitle: customTitle || 'None',
-                    messageLength: message.length,
+                    messageLength: message ? message.length : 0,
                 },
             },
         });
 
-        const previewMessage = message.length > 250
-            ? `${message.slice(0, 247)}...`
-            : message;
+        const previewMessage = message
+            ? (message.length > 250 ? `${message.slice(0, 247)}...` : message)
+            : null;
         const quotedPreview = previewMessage
-            .split('\n')
-            .map((line) => `> ${line}`)
-            .join('\n');
+            ? previewMessage
+                .split('\n')
+                .map((line) => `> ${line}`)
+                .join('\n')
+            : '> *(Không có chữ - chỉ gửi tệp/ảnh)*';
 
         const confirmDescription = [
             `Em đã gửi tin nhắn giao diện mới của chị vào ${channel} thành công mĩ mãn rồi nha! ${EMOJIS.heart}`,

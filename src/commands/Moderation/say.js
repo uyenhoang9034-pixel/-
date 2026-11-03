@@ -53,7 +53,7 @@ export default {
             option
                 .setName('message')
                 .setDescription('Nội dung tin nhắn bot cần nói (hỗ trợ xuống dòng hoặc gõ \\n)')
-                .setRequired(true)
+                .setRequired(false)
                 .setMaxLength(2000),
         )
         .addChannelOption((option) =>
@@ -109,10 +109,10 @@ export default {
         const customTitle = interaction.options.getString('title');
         const attachment = interaction.options.getAttachment('image');
 
-        if (!message) {
+        if (!message && !attachment) {
             return replyUserError(interaction, {
                 type: ErrorTypes.VALIDATION,
-                message: 'Tin nhắn không được để trống.',
+                message: 'Vui lòng nhập nội dung tin nhắn hoặc đính kèm ảnh/tệp cần gửi.',
             });
         }
 
@@ -165,12 +165,15 @@ export default {
             const sayEmbed = new EmbedBuilder()
                 .setColor(USAGI_PINK)
                 .setTitle(embedTitle)
-                .setDescription(message)
                 .setFooter({
                     text: `${interaction.guild.name} • 𝓤𝓼𝓪𝓰𝓲`,
                     iconURL: client.user.displayAvatarURL(),
                 })
                 .setTimestamp();
+
+            if (message && message.trim().length > 0) {
+                sayEmbed.setDescription(message);
+            }
 
             if (attachment) {
                 if (attachment.contentType?.startsWith('image/')) {
@@ -186,7 +189,9 @@ export default {
 
             sendPayload.embeds = [sayEmbed];
         } else {
-            sendPayload.content = message;
+            if (message && message.trim().length > 0) {
+                sendPayload.content = message;
+            }
             if (attachment) {
                 sendPayload.files = [
                     new AttachmentBuilder(attachment.url, {
@@ -205,9 +210,9 @@ export default {
                 action: 'Bot Message Sent',
                 target: `${channel} (${channel.id})`,
                 executor: `${interaction.user.tag} (${interaction.user.id})`,
-                reason: message.length > 200
-                    ? `${message.slice(0, 197)}...`
-                    : message,
+                reason: message
+                    ? (message.length > 200 ? `${message.slice(0, 197)}...` : message)
+                    : (attachment ? `Gửi tệp/ảnh: ${attachment.name}` : 'Không có nội dung'),
                 metadata: {
                     channelId: channel.id,
                     messageId: sentMessage.id,
@@ -215,18 +220,20 @@ export default {
                     isEmbed,
                     hasAttachment: Boolean(attachment),
                     customTitle: customTitle || 'None',
-                    messageLength: message.length,
+                    messageLength: message ? message.length : 0,
                 },
             },
         });
 
-        const previewMessage = message.length > 250
-            ? `${message.slice(0, 247)}...`
-            : message;
+        const previewMessage = message
+            ? (message.length > 250 ? `${message.slice(0, 247)}...` : message)
+            : null;
         const quotedPreview = previewMessage
-            .split('\n')
-            .map((line) => `> ${line}`)
-            .join('\n');
+            ? previewMessage
+                .split('\n')
+                .map((line) => `> ${line}`)
+                .join('\n')
+            : '> *(Không có chữ - chỉ gửi tệp/ảnh)*';
 
         const confirmDescription = [
             `Em đã gửi tin nhắn của chị vào ${channel} thành công mĩ mãn rồi nha! ${EMOJIS.heart}`,
