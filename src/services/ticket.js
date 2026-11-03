@@ -1001,13 +1001,10 @@ export async function closeTicket(
             const rawTicketNum = channel.name || ticketData.number || ticketData.ticketNumber || ticketData.id;
             const ticketNum = String(rawTicketNum).startsWith('#') ? String(rawTicketNum).slice(1) : rawTicketNum;
 
-            const staffRoleId = config.ticketStaffRoleId || '1545295139390619768';
-            const staffMention = `<@&${staffRoleId}>`;
-
             const nowTs = Math.floor(Date.now() / 1000);
             const feedbackTitle = `<a:trangtrig2:1546040703375904801> **TICKET FEEDBACK** <a:trangtrig3:1546040818261954610>`;
             const feedbackLines = [
-              `Ticket #${ticketNum} của bạn đã được đóng bởi ${staffMention}.`,
+              `Ticket #${ticketNum} của bạn đã được đóng rồi.`,
               '',
               `<a:heartg3:1546047728314884226> Bọn mình rất muốn biết trải nghiệm của bạn vừa rồi như thế nào, bạn cảm thấy ổn không về hỗ trợ vừa rồi?`,
               '',
