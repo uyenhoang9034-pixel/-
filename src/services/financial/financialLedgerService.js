@@ -74,11 +74,12 @@ function createContainer(title, lines = []) {
 }
 
 function v2Payload(container, extra = {}) {
+  const { allowedMentions = {}, ...rest } = extra;
   return {
     components: [container],
     flags: MessageFlags.IsComponentsV2,
-    allowedMentions: { parse: [], ...(extra.allowedMentions || {}) },
-    ...extra,
+    ...rest,
+    allowedMentions: { parse: [], ...allowedMentions },
   };
 }
 
