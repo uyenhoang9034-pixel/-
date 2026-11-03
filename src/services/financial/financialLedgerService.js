@@ -256,8 +256,8 @@ export async function handleFinancialPage(interaction, client, args = []) {
     await interaction.reply({ content: 'Trang tra cứu không hợp lệ.', flags: MessageFlags.Ephemeral });
     return;
   }
-  if (interaction.user.id !== ownerId) {
-    await interaction.reply({ content: 'Chỉ người mở bảng tra cứu mới có thể chuyển trang này.', flags: MessageFlags.Ephemeral });
+  if (scope === 'personal' && interaction.user.id !== ownerId) {
+    await interaction.reply({ content: 'Chỉ chủ tài khoản mới có thể chuyển trang lịch sử donate cá nhân.', flags: MessageFlags.Ephemeral });
     return;
   }
   const payload = await buildHistoryMessage(client, interaction.guildId, scope, ownerId, Number(pageText), ownerId);
