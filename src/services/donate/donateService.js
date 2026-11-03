@@ -81,6 +81,7 @@ async function createDonationRequest(client, author) {
         token,
         paymentContent,
         expiresAt,
+        pendingKey: key,
         qrUrl: createQrUrl(paymentContent),
       };
     } catch (error) {
@@ -179,12 +180,30 @@ export async function handleDonateKeyword(message, client) {
     const request = await createDonationRequest(client, message.author);
     const payload = buildDonatePanelPayload(message.author, request);
 
+    let qrMessage;
     try {
-      await message.channel.send(payload.v2);
+      qrMessage = await message.channel.send(payload.v2);
     } catch (v2Error) {
       logger.warn('[Donate] Components V2 send failed, falling back to Embed:', v2Error);
-      await message.channel.send(payload.fallback);
+      qrMessage = await message.channel.send(payload.fallback);
     }
+
+    // Lưu ID hai tin nhắn để tự xóa sau khi giao dịch QR riêng được xác nhận.
+    const pool = getDonatePool(client);
+    await pool.query(
+      `UPDATE ${pgConfig.tables.temp_data}
+       SET value = value || $2::jsonb
+       WHERE key = $1`,
+      [
+        request.pendingKey,
+        JSON.stringify({
+          guildId: message.guildId || message.guild?.id || null,
+          channelId: message.channel.id,
+          commandMessageId: message.id,
+          qrMessageId: qrMessage.id,
+        }),
+      ],
+    );
 
     logger.info('[Donate] Created dynamic QR request', {
       userId: message.author.id,
@@ -281,6 +300,12 @@ async function recordDonationTransaction(client, transaction) {
 
     let donorId = storedValue.donorId ? String(storedValue.donorId) : null;
     let token = storedValue.token || extractDonationToken(transaction.content);
+    let cleanup = {
+      guildId: storedValue.guildId || null,
+      channelId: storedValue.channelId || null,
+      commandMessageId: storedValue.commandMessageId || null,
+      qrMessageId: storedValue.qrMessageId || null,
+    };
 
     if (!donorId && token) {
       const pendingKey = `donate:pending:${token}`;
@@ -295,6 +320,12 @@ async function recordDonationTransaction(client, transaction) {
       const pending = pendingResult.rows[0]?.value;
       if (pending?.status === 'pending' && pending.userId) {
         donorId = String(pending.userId);
+        cleanup = {
+          guildId: pending.guildId || null,
+          channelId: pending.channelId || null,
+          commandMessageId: pending.commandMessageId || null,
+          qrMessageId: pending.qrMessageId || null,
+        };
 
         await connection.query(
           `UPDATE ${pgConfig.tables.temp_data}
@@ -322,6 +353,7 @@ async function recordDonationTransaction(client, transaction) {
         JSON.stringify({
           donorId,
           token,
+          ...cleanup,
           content: transaction.content || '',
           notificationStatus: 'sending',
           notificationLockedAt: new Date().toISOString(),
@@ -330,12 +362,33 @@ async function recordDonationTransaction(client, transaction) {
     );
 
     await connection.query('COMMIT');
-    return { duplicate: false, donorId, token, transactionKey };
+    return { duplicate: false, donorId, token, transactionKey, ...cleanup };
   } catch (error) {
     await connection.query('ROLLBACK').catch(() => {});
     throw error;
   } finally {
     connection.release();
+  }
+}
+
+async function deletePaidDonationMessages(client, cleanup) {
+  if (!cleanup?.channelId) return;
+
+  const channel = client.channels.cache.get(cleanup.channelId)
+    || await client.channels.fetch(cleanup.channelId).catch(() => null);
+  if (!channel?.messages?.fetch) return;
+
+  const messageIds = [cleanup.commandMessageId, cleanup.qrMessageId].filter(Boolean);
+  for (const messageId of messageIds) {
+    const target = await channel.messages.fetch(messageId).catch(() => null);
+    if (target) {
+      await target.delete().catch(error => {
+        logger.warn('[Donate] Could not delete paid donation message', {
+          messageId,
+          error: error?.message || String(error),
+        });
+      });
+    }
   }
 }
 
@@ -379,7 +432,7 @@ export async function sendDonationNotification(client, transaction) {
     donorId = null,
   } = transaction;
 
-  let donorMention = 'Một bạn ẩn danh ✨';
+  let donorMention = 'Một bạn ẩn danh';
   if (donorId) {
     try {
       const user = await client.users.fetch(String(donorId));
@@ -546,6 +599,11 @@ export function setupDonateWebhook(app, client) {
             donorId: recorded.donorId,
           });
           return res.status(500).json({ success: false, message: 'Discord notification failed' });
+        }
+
+        // Chỉ xóa lệnh &donate và QR được tạo riêng sau khi giao dịch đã báo thành công.
+        if (recorded.donorId && recorded.qrMessageId) {
+          await deletePaidDonationMessages(client, recorded);
         }
       }
 
