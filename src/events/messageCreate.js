@@ -158,6 +158,11 @@ export default {
         return;
       }
 
+      const financialProcessed = await handleFinancialPrefix(message, client);
+      if (financialProcessed) {
+        return;
+      }
+
       pumpkinGrowthTracker.recordChatMessage(message.author.id);
 
       // Ghi nhận nhiệm vụ tuần Witch Hunter: Mật Thư Chiến Trường (Chat)
@@ -177,11 +182,6 @@ export default {
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
       );
-
-      const financialProcessed = await handleFinancialPrefix(message, client);
-      if (financialProcessed) {
-        return;
-      }
 
       const wordChainProcessed = await handleWordChain(
         message,
