@@ -51,6 +51,13 @@ async function createDonationRequest(client, author) {
     throw new Error('PostgreSQL is unavailable; cannot safely create a persistent donation request.');
   }
 
+  // Dọn các QR đã hết hạn và bản ghi chống trùng đã quá thời gian lưu.
+  await pool.query(
+    `DELETE FROM ${pgConfig.tables.temp_data}
+     WHERE (key LIKE 'donate:pending:%' OR key LIKE 'donate:sepay:transaction:%')
+       AND expires_at IS NOT NULL AND expires_at <= NOW()`,
+  );
+
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const token = crypto.randomBytes(4).toString('hex').toUpperCase();
     const paymentContent = `SEVQR DONATE ${token}`;
