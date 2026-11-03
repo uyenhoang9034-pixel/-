@@ -27,7 +27,7 @@ export function applyConfessionImage(embed) {
 export const CONFESSION = {
   publicForumId: '1551813977502130216',
   reviewChannelId: '1551820171306606632',
-  reviewerRoleId: '1545305594712432640',
+  reviewerRoleId: '1545295139390619768',
   color: 0xfceec9,
   emojiMain: '<a:trangtrig30:1546905942476464178>',
   emojiMode: '<a:trangtrig47:1547249293944029308>',
