@@ -35,7 +35,7 @@ const SETNICK_CHANNEL_ID =
  * Role quản lý được phép sử dụng /setnick
  */
 const SETNICK_MANAGEMENT_ROLE_ID =
-    '1545305594712432640';
+    '1545295139390619768';
 
 /*
  * Emoji dùng cho tiêu đề:
@@ -224,7 +224,7 @@ export default {
              *
              * Chỉ role:
              *
-             * 1545305594712432640
+             * 1545295139390619768
              *
              * được sử dụng /setnick.
              */

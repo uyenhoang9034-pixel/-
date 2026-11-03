@@ -13,7 +13,7 @@ import { logger } from '../utils/logger.js';
 
 export const SETNICK_CONFIG = {
     channelId: '1541364885789745213',
-    managementRoleId: '1545305594712432640',
+    managementRoleId: '1545295139390619768',
     prefix: '⋆˚࿔ ',
     suffix: ' ♡',
     maxInputLength: 20,
