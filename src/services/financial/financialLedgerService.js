@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ContainerBuilder,
+  PermissionFlagsBits,
   MessageFlags,
   SeparatorBuilder,
   SeparatorSpacingSize,
@@ -83,8 +84,11 @@ function v2Payload(container, extra = {}) {
 
 export function isFinancialAdmin(member) {
   if (!member) return false;
-  if (member.permissions?.has?.('Administrator')) return true;
-  return member.roles?.cache?.some(role => ADMIN_ROLE_IDS.has(role.id)) || false;
+  if (member.permissions?.has?.(PermissionFlagsBits.Administrator)) return true;
+  const roleIds = member.roles?.cache
+    ? [...member.roles.cache.keys()]
+    : (Array.isArray(member.roles) ? member.roles : []);
+  return roleIds.some(roleId => ADMIN_ROLE_IDS.has(String(roleId)));
 }
 
 function requirePool(client) {
@@ -257,7 +261,8 @@ export async function handleFinancialPage(interaction, client, args = []) {
     return;
   }
   const payload = await buildHistoryMessage(client, interaction.guildId, scope, ownerId, Number(pageText), ownerId);
-  await interaction.update(payload);
+  const { flags, ...updatePayload } = payload;
+  await interaction.update(updatePayload);
 }
 
 export async function handleFinancialPrefix(message, client) {
@@ -602,6 +607,37 @@ export async function executeFinancialSlash(interaction, client) {
   });
 }
 
+async function buildMonthlySummaryContainer(client, guildId, month, year) {
+  const report = await buildMonthlyReport(client, guildId, month, year);
+  const monthLabel = String(month).padStart(2, '0') + '/' + year;
+  const container = createContainer('BẢNG TỔNG KẾT THÁNG', [
+    '**THÁNG ' + monthLabel + '**',
+  ]);
+  container.addSeparatorComponents(separator());
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
+    '## ' + LEDGER_EMOJIS.heart + ' **TỔNG TIỀN DONATE**\\n**' + formatMoney(report.income) + '**',
+    '## ' + LEDGER_EMOJIS.detail + ' **TỔNG TIỀN CHI**\\n**' + formatMoney(report.expense) + '**',
+    '## ' + LEDGER_EMOJIS.notice + ' **SỐ DƯ CUỐI THÁNG**\\n**' + formatMoney(report.closing) + '**',
+  ].join('\\n\\n')));
+  container.addSeparatorComponents(separator());
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
+    LEDGER_EMOJIS.heart + ' **Số dư đầu tháng:** ' + formatMoney(report.opening),
+    LEDGER_EMOJIS.heart + ' **Donate trong tháng:** +' + formatMoney(report.income),
+    LEDGER_EMOJIS.detail + ' **Chi trong tháng:** -' + formatMoney(report.expense),
+  ].join('\\n')));
+  const expenses = report.transactions.filter(row => row.scope === 'common' && Number(row.amount) < 0);
+  if (expenses.length) {
+    container.addSeparatorComponents(separator());
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+      '**Các khoản chi trong tháng**\\n' + expenses.map(row =>
+        LEDGER_EMOJIS.detail + ' ' + formatDate(row.created_at) + ' · ' +
+        (row.reason || 'Không có lý do') + ': **' + formatMoney(Math.abs(Number(row.amount))) + '**'
+      ).join('\\n')
+    ));
+  }
+  return container;
+}
+
 export async function executeFinancialExport(interaction, client) {
   if (!isFinancialAdmin(interaction.member)) {
     await interaction.reply({ content: 'Bạn không có quyền xuất báo cáo Quỹ chung.', flags: MessageFlags.Ephemeral });
@@ -609,12 +645,16 @@ export async function executeFinancialExport(interaction, client) {
   }
   const current = getCurrentVietnamMonth();
   const month = interaction.options.getInteger('thang') || current.month;
-  const year = interaction.options.getInteger('nam') || (interaction.options.getInteger('thang') ? current.year : current.year);
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const attachment = await exportMonthlyWorkbook(client, interaction.guildId, month, year);
+  const year = interaction.options.getInteger('nam') || current.year;
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
+  const [attachment, container] = await Promise.all([
+    exportMonthlyWorkbook(client, interaction.guildId, month, year),
+    buildMonthlySummaryContainer(client, interaction.guildId, month, year),
+  ]);
   await interaction.editReply({
-    content: '🌸 Đã xuất **Bảng Tổng Kết Tháng ' + String(month).padStart(2, '0') + '/' + year + '**.',
+    components: [container],
     files: [attachment],
+    allowedMentions: { parse: [] },
   });
 }
 
