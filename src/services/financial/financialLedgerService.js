@@ -118,9 +118,13 @@ async function insertTransaction(client, data) {
     }
 
     const result = await connection.query(
-      'INSERT INTO ' + TABLE + ' (guild_id, scope, donor_id, donor_label, amount, reason, actor_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at',
-      [data.guildId, data.scope, data.donorId || null, data.donorLabel || null, data.amount, data.reason || null, data.actorId],
+      'INSERT INTO ' + TABLE + ' (guild_id, scope, donor_id, donor_label, amount, reason, actor_id, source_message_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (guild_id, source_message_id) DO NOTHING RETURNING id, created_at',
+      [data.guildId, data.scope, data.donorId || null, data.donorLabel || null, data.amount, data.reason || null, data.actorId, data.sourceMessageId || null],
     );
+    if (!result.rows[0]) {
+      await connection.query('COMMIT');
+      return { duplicate: true };
+    }
     await connection.query('COMMIT');
     return result.rows[0];
   } catch (error) {
@@ -295,7 +299,9 @@ export async function handleFinancialPrefix(message, client) {
         donorLabel: null,
         amount,
         actorId: message.author.id,
+        sourceMessageId: message.id,
       });
+      if (result.duplicate) return true;
       const total = await getPersonalTotal(client, message.guild.id, match[1]);
       const container = createContainer('Sổ ghi nhận ủng hộ');
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
@@ -322,7 +328,9 @@ export async function handleFinancialPrefix(message, client) {
         donorLabel: match[2] ? null : 'Ẩn Danh',
         amount,
         actorId: message.author.id,
+        sourceMessageId: message.id,
       });
+      if (result.duplicate) return true;
       const summary = await getCommonSummary(client, message.guild.id);
       const donor = match[2] ? '<@' + match[2] + '>' : 'Ẩn Danh';
       const container = createContainer('QUỸ CHUNG', [
@@ -350,7 +358,9 @@ export async function handleFinancialPrefix(message, client) {
       amount: -amount,
       reason,
       actorId: message.author.id,
+      sourceMessageId: message.id,
     });
+    if (result.duplicate) return true;
     const summary = await getCommonSummary(client, message.guild.id);
     const container = createContainer('QUỸ CHUNG', [
       LEDGER_EMOJIS.heart + ' **Khoản chi:** **' + formatMoney(amount) + '**',
@@ -684,8 +694,10 @@ export async function initializeFinancialLedger(client) {
     return false;
   }
   await pool.query(
-    'CREATE TABLE IF NOT EXISTS ' + TABLE + ' (id BIGSERIAL PRIMARY KEY, guild_id VARCHAR(20) NOT NULL, scope VARCHAR(16) NOT NULL CHECK (scope IN (\'personal\', \'common\')), donor_id VARCHAR(20), donor_label VARCHAR(100), amount BIGINT NOT NULL CHECK (amount <> 0), reason TEXT, actor_id VARCHAR(20) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())',
+    'CREATE TABLE IF NOT EXISTS ' + TABLE + ' (id BIGSERIAL PRIMARY KEY, guild_id VARCHAR(20) NOT NULL, scope VARCHAR(16) NOT NULL CHECK (scope IN (\'personal\', \'common\')), donor_id VARCHAR(20), donor_label VARCHAR(100), amount BIGINT NOT NULL CHECK (amount <> 0), reason TEXT, actor_id VARCHAR(20) NOT NULL, source_message_id VARCHAR(20), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())',
   );
+  await pool.query('ALTER TABLE ' + TABLE + ' ADD COLUMN IF NOT EXISTS source_message_id VARCHAR(20)');
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_financial_transactions_source_message ON ' + TABLE + ' (guild_id, source_message_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_financial_transactions_guild_scope_created ON ' + TABLE + ' (guild_id, scope, created_at DESC, id DESC)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_financial_transactions_personal_user ON ' + TABLE + ' (guild_id, donor_id, created_at DESC) WHERE scope = \'personal\'');
   logger.info('[FinancialLedger] PostgreSQL ledger table is ready.');
