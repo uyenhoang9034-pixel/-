@@ -1366,7 +1366,7 @@ export async function closeTicket(
             channel.id,
 
           ticketNumber:
-            ticketData.id,
+            channel.name || ticketData.number || ticketData.id,
 
           userId:
             ticketData.userId,
@@ -1633,7 +1633,7 @@ export async function claimTicket(
             channel.id,
 
           ticketNumber:
-            ticketData.id,
+            channel.name || ticketData.number || ticketData.id,
 
           userId:
             ticketData.userId,
@@ -2101,7 +2101,7 @@ export async function deleteTicket(
             channel.id,
 
           ticketNumber:
-            ticketData.id,
+            channel.name || ticketData.number || ticketData.id,
 
           userId:
             ticketData.userId,
@@ -2252,12 +2252,14 @@ export async function deleteTicket(
                   );
 
                 } else {
-                  const ticketNum = ticketData.number || ticketData.ticketNumber || (channel.name.match(/\d+/) ? channel.name.match(/\d+/)[0] : (ticketData.id || channel.name));
+                  const liveChannel = await channel.fetch().catch(() => channel);
+                  const currentTicketName = liveChannel?.name || channel.name || (ticketData.number ? `ticket-${ticketData.number}` : (ticketData.id || 'ticket'));
+                  const ticketDisplayName = currentTicketName.startsWith('#') ? currentTicketName : `#${currentTicketName}`;
                   const nowTs = Math.floor(Date.now() / 1000);
                   const deleterMention = deleter ? `<@${deleter.id || deleter}>` : 'Unknown';
 
                   const transcriptLines = [
-                    `<a:trangtrig31:1546905996893626440> **Ticket:** #${ticketNum}`,
+                    `<a:trangtrig31:1546905996893626440> **Ticket:** ${ticketDisplayName}`,
                     `<a:trangtrig31:1546905996893626440> **Thời gian xuất transcript:** <t:${nowTs}:F>`,
                     `<a:trangtrig31:1546905996893626440> **Deleted by:** ${deleterMention}`,
                   ].join('\n');
@@ -2627,7 +2629,7 @@ export async function unclaimTicket(
             channel.id,
 
           ticketNumber:
-            ticketData.id,
+            channel.name || ticketData.number || ticketData.id,
 
           userId:
             ticketData.userId,
