@@ -196,7 +196,7 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
       ),
     ]);
     rows = history.rows;
-    container = createContainer('LỊCH SỬ DONATE CÁ NHÂN');
+    container = createContainer('Lịch sử donate cá nhân');
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '**<@' + userId + '> đã donate tổng ' + formatMoney(total) + ' tích lũy từ trước đến nay. Một tấm lòng bác ái!**',
     ));
@@ -224,7 +224,7 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
   );
   rows = history.rows;
 
-  container = createContainer('QUỸ CHUNG');
+  container = createContainer('Quỹ chung');
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
     '## ' + LEDGER_EMOJIS.heart + ' **TỔNG TIỀN DONATE**\n**' + formatMoney(summary.income) + '**',
     '## ' + LEDGER_EMOJIS.detail + ' **TỔNG TIỀN CHI**\n**' + formatMoney(summary.expense) + '**',
@@ -242,7 +242,7 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
     }
     return LEDGER_EMOJIS.detail + ' **#' + row.id + ' · ' + date + '**\n' +
       LEDGER_EMOJIS.heart + ' **Khoản chi:** **' + formatMoney(Math.abs(Number(row.amount))) + '**\n' +
-      LEDGER_EMOJIS.detail + ' **Lý do chi:** ' + (row.reason || 'Không có');
+      LEDGER_EMOJIS.notice + ' **Lý do chi:** ' + (row.reason || 'Không có');
   }).join('\n\n') : 'Quỹ chung chưa có giao dịch nào.';
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(historyLines));
   container.addSeparatorComponents(separator());
@@ -289,7 +289,7 @@ export async function handleFinancialPrefix(message, client) {
         actorId: message.author.id,
       });
       const total = await getPersonalTotal(client, message.guild.id, match[1]);
-      const container = createContainer('SỔ GHI NHẬN ỦNG HỘ');
+      const container = createContainer('Sổ ghi nhận ủng hộ');
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
         LEDGER_EMOJIS.heart + ' **Người ủng hộ:** <@' + match[1] + '>',
         LEDGER_EMOJIS.heart + ' **Số tiền ghi nhận:** **+' + formatMoney(amount) + '**',
@@ -317,7 +317,7 @@ export async function handleFinancialPrefix(message, client) {
       });
       const summary = await getCommonSummary(client, message.guild.id);
       const donor = match[2] ? '<@' + match[2] + '>' : 'Ẩn Danh';
-      const container = createContainer('QUỸ CHUNG', [
+      const container = createContainer('Quỹ chung', [
         LEDGER_EMOJIS.heart + ' **Người donate:** ' + donor,
         LEDGER_EMOJIS.heart + ' **Khoản thu:** **+' + formatMoney(amount) + '**',
         LEDGER_EMOJIS.heart + ' **Thời gian:** ' + formatDate(result.created_at),
@@ -343,7 +343,7 @@ export async function handleFinancialPrefix(message, client) {
       actorId: message.author.id,
     });
     const summary = await getCommonSummary(client, message.guild.id);
-    const container = createContainer('QUỸ CHUNG', [
+    const container = createContainer('Quỹ chung', [
       LEDGER_EMOJIS.heart + ' **Khoản chi:** **' + formatMoney(amount) + '**',
       LEDGER_EMOJIS.notice + ' **Lý do chi:** ' + reason,
       LEDGER_EMOJIS.heart + ' **Thời gian ghi nhận:** ' + formatDate(result.created_at),
@@ -540,7 +540,7 @@ export async function exportMonthlyWorkbook(client, guildId, month, year) {
   const report = await buildMonthlyReport(client, guildId, month, year);
   const monthLabel = String(month).padStart(2, '0') + '/' + year;
   const summaryRows = [
-    ['BẢNG TỔNG KẾT THÁNG', monthLabel],
+    ['Bảng Tổng Kết Tháng', monthLabel],
     ['Số dư đầu tháng', report.opening],
     ['Tổng tiền donate', report.income],
     ['Tổng tiền chi', report.expense],
@@ -610,7 +610,7 @@ export async function executeFinancialSlash(interaction, client) {
 async function buildMonthlySummaryContainer(client, guildId, month, year) {
   const report = await buildMonthlyReport(client, guildId, month, year);
   const monthLabel = String(month).padStart(2, '0') + '/' + year;
-  const container = createContainer('BẢNG TỔNG KẾT THÁNG', [
+  const container = createContainer('Bảng Tổng Kết Tháng', [
     LEDGER_EMOJIS.decoration + ' **THÁNG ' + monthLabel + '**',
   ]);
   container.addSeparatorComponents(separator());
