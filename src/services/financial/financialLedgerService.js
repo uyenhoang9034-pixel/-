@@ -336,6 +336,7 @@ export async function handleFinancialPrefix(message, client) {
     const amount = parseAmount(match[1]);
     const reason = match[2].trim().replace(/^["']|["']$/g, '');
     if (!reason) throw new Error('Vui lòng nhập lý do chi.');
+    if (reason.length > 300) throw new Error('Lý do chi không được dài quá 300 ký tự.');
     result = await insertTransaction(client, {
       guildId: message.guild.id,
       scope: 'common',
@@ -629,11 +630,16 @@ async function buildMonthlySummaryContainer(client, guildId, month, year) {
   const expenses = report.transactions.filter(row => row.scope === 'common' && Number(row.amount) < 0);
   if (expenses.length) {
     container.addSeparatorComponents(separator());
+    const visibleExpenses = expenses.slice(0, 10);
+    const expenseLines = visibleExpenses.map(row =>
+      LEDGER_EMOJIS.detail + ' ' + formatDate(row.created_at) + ' · ' +
+      (row.reason || 'Không có lý do') + ': **' + formatMoney(Math.abs(Number(row.amount))) + '**'
+    );
+    if (expenses.length > visibleExpenses.length) {
+      expenseLines.push('*Còn ' + (expenses.length - visibleExpenses.length) + ' khoản chi khác trong file Excel.*');
+    }
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '**Các khoản chi trong tháng**\n' + expenses.map(row =>
-        LEDGER_EMOJIS.detail + ' ' + formatDate(row.created_at) + ' · ' +
-        (row.reason || 'Không có lý do') + ': **' + formatMoney(Math.abs(Number(row.amount))) + '**'
-      ).join('\n')
+      '**Các khoản chi trong tháng**\n' + expenseLines.join('\n')
     ));
   }
   return container;
