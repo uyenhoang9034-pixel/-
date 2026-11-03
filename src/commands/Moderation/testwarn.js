@@ -4,10 +4,17 @@ import {
     EmbedBuilder,
     MessageFlags,
     AttachmentBuilder,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
 } from 'discord.js';
 
 import fs from 'fs';
 import path from 'path';
+import { logger } from '../../utils/logger.js';
 
 
 const MODERATION_CHANNEL_ID =
@@ -124,74 +131,89 @@ export default {
         const fakeWarningCase =
             'TEST-001';
 
-
-        const embed =
-            new EmbedBuilder()
-                .setColor(
-                    0xffffff,
-                )
-                .setTitle(
-                    `${EMOJIS.decoration} 𝓤𝓼𝓪𝓰𝓲 𝓜𝓸𝓭𝓮𝓻𝓪𝓽𝓲𝓸𝓷 ${EMOJIS.decoration}`,
-                )
-                .setDescription(
-                    [
-                        `${EMOJIS.field} **CẢNH CÁO!**`,
-
-                        '',
-
-                        `${EMOJIS.field} **Thành viên**`,
-                        `<@${target.id}>`,
-
-                        '',
-
-                        `${EMOJIS.field} **Người cảnh cáo**`,
-                        `<@${interaction.user.id}>`,
-
-                        '',
-
-                        `${EMOJIS.field} **Lý do**`,
-                        reason,
-
-                        '',
-
-                        `${EMOJIS.field} **Tổng cảnh cáo**`,
-                        `**${fakeTotalWarnings}**`,
-
-                        '',
-
-                        `${EMOJIS.field} **Warning Case**`,
-                        `#${fakeWarningCase}`,
-                    ].join(
-                        '\n',
-                    ),
-                )
-                .setTimestamp();
-
         const files = [];
+        let mediaUrl = MODERATION_IMAGE_URL;
         if (fs.existsSync(MODERATION_IMAGE_PATH)) {
             files.push(new AttachmentBuilder(MODERATION_IMAGE_PATH, { name: 'ban.webp' }));
-            embed.setImage('attachment://ban.webp');
-        } else {
-            embed.setImage(MODERATION_IMAGE_URL);
+            mediaUrl = 'attachment://ban.webp';
         }
+
+        const container = new ContainerBuilder()
+            .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    '# <a:trangtrig2:1546040703375904801> **WARN** <a:trangtrig3:1546040818261954610>',
+                ),
+            )
+            .addSeparatorComponents(
+                new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+            )
+            .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    [
+                        `<:usagi9:1541422359960092813> Thành viên: <@${target.id}>`,
+                        `<:usagi9:1541422359960092813> Người cảnh cáo: <@${interaction.user.id}>`,
+                        `<a:bang2:1546891483250954290> Tổng cảnh cáo: ${fakeTotalWarnings}`,
+                        `<a:bang2:1546891483250954290> Warning Case: #${fakeWarningCase}`,
+                    ].join('\n'),
+                ),
+            )
+            .addSeparatorComponents(
+                new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+            )
+            .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                    `<a:trangtrig29:1546385117478527016> Lý do: ${reason}`,
+                ),
+            )
+            .addMediaGalleryComponents(
+                new MediaGalleryBuilder().addItems(
+                    new MediaGalleryItemBuilder().setURL(mediaUrl),
+                ),
+            );
 
         try {
             await channel.send({
-                embeds: [
-                    embed,
-                ],
-                files,
+                components: [container],
+                flags: MessageFlags.IsComponentsV2,
+                files: files.length > 0 ? files : undefined,
             });
-        } catch (sendError) {
+        } catch (v2Err) {
+            logger.warn('Failed to send testwarn log as Components V2, falling back to embed:', v2Err);
+            const fallbackEmbed = new EmbedBuilder()
+                .setColor(0x2B2D31)
+                .setDescription(
+                    [
+                        '# <a:trangtrig2:1546040703375904801> **WARN** <a:trangtrig3:1546040818261954610>',
+                        '---',
+                        `<:usagi9:1541422359960092813> Thành viên: <@${target.id}>`,
+                        `<:usagi9:1541422359960092813> Người cảnh cáo: <@${interaction.user.id}>`,
+                        `<a:bang2:1546891483250954290> Tổng cảnh cáo: ${fakeTotalWarnings}`,
+                        `<a:bang2:1546891483250954290> Warning Case: #${fakeWarningCase}`,
+                        '---',
+                        `<a:trangtrig29:1546385117478527016> Lý do: ${reason}`,
+                    ].join('\n'),
+                );
+
             if (files.length > 0) {
-                embed.setImage(MODERATION_IMAGE_URL);
-                await channel.send({
-                    embeds: [
-                        embed,
-                    ],
-                });
+                fallbackEmbed.setImage('attachment://ban.webp');
             } else {
-                throw sendError;
+                fallbackEmbed.setImage(MODERATION_IMAGE_URL);
+            }
+
+            try {
+                await channel.send({
+                    embeds: [fallbackEmbed],
+                    files: files.length > 0 ? files : undefined,
+                });
+            } catch (sendError) {
+                if (files.length > 0) {
+                    fallbackEmbed.setImage(MODERATION_IMAGE_URL);
+                    await channel.send({
+                        embeds: [fallbackEmbed],
+                    });
+                } else {
+                    throw sendError;
+                }
             }
         }
 
