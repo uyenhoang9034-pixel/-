@@ -103,6 +103,10 @@ import {
   handleEastMention,
 } from '../services/eastMentionService.js';
 
+import {
+  handleDonateKeyword,
+} from '../services/donate/donateService.js';
+
 
 
 import { pumpkinGrowthTracker } from '../services/pumpkinGrowthTracker.js';
@@ -176,6 +180,11 @@ export default {
       );
 
       if (!wordChainProcessed) {
+        const donateProcessed = await handleDonateKeyword(message, client);
+        if (donateProcessed) {
+          return;
+        }
+
         const autoresponderProcessed = await handleAutoresponder(
           message,
           client,

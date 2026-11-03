@@ -17,6 +17,7 @@ import { initializeMusic, initRiffyAfterReady } from './services/music/riffySetu
 import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
+import { setupDonateWebhook } from './services/donate/donateService.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -221,6 +222,9 @@ class TitanBot extends Client {
 
   startWebServer() {
     const app = express();
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
     const configuredPort = Number(this.config.api?.port || process.env.PORT || 3000);
     const maxPortRetryAttempts = Number(process.env.PORT_RETRY_ATTEMPTS || 5);
     const host = process.env.WEB_HOST || '0.0.0.0';
@@ -339,6 +343,9 @@ class TitanBot extends Client {
         timestamp: new Date().toISOString()
       });
     });
+
+    // SePay Webhook Endpoint
+    setupDonateWebhook(app, this);
 
     const startServer = (port, attempt = 0) => {
       let hasStartedListening = false;
