@@ -4,7 +4,6 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ContainerBuilder,
-  PermissionFlagsBits,
   MessageFlags,
   SeparatorBuilder,
   SeparatorSpacingSize,
@@ -256,6 +255,10 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
 }
 
 export async function handleFinancialPage(interaction, client, args = []) {
+  if (!isFinancialLookupChannel(interaction)) {
+    await interaction.reply({ content: 'Nút tra cứu chỉ hoạt động tại <#' + FINANCIAL_LOOKUP_CHANNEL_ID + '>.', flags: MessageFlags.Ephemeral });
+    return;
+  }
   const [scope, ownerId, pageText] = args;
   if (!['personal', 'common'].includes(scope) || !ownerId) {
     await interaction.reply({ content: 'Trang tra cứu không hợp lệ.', flags: MessageFlags.Ephemeral });
@@ -597,6 +600,13 @@ export const financialExportCommand = new SlashCommandBuilder()
   .addIntegerOption(option => option.setName('nam').setDescription('Năm cần xuất').setMinValue(2020).setMaxValue(2100));
 
 export async function executeFinancialSlash(interaction, client) {
+  if (!isFinancialLookupChannel(interaction)) {
+    await interaction.reply({
+      content: 'Lệnh tra cứu chỉ được sử dụng tại <#' + FINANCIAL_LOOKUP_CHANNEL_ID + '>.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
   const subcommand = interaction.options.getSubcommand();
   const scope = subcommand === 'canhan' ? 'personal' : 'common';
   const payload = await buildHistoryMessage(
