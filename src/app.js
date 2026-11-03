@@ -18,6 +18,7 @@ import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
 import { setupDonateWebhook } from './services/donate/donateService.js';
+import { initializeFinancialLedger } from './services/financial/financialLedgerService.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -117,6 +118,12 @@ class TitanBot extends Client {
       startupLog('Initializing database...');
       const dbInstance = await initializeDatabase();
       this.db = dbInstance.db;
+
+      try {
+        await initializeFinancialLedger(this);
+      } catch (ledgerError) {
+        logger.error('[FinancialLedger] Could not initialize PostgreSQL ledger:', ledgerError);
+      }
 
       // Check database status and report
       const dbStatus = this.db.getStatus();
