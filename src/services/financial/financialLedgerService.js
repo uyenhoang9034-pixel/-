@@ -398,8 +398,8 @@ async function buildMonthlyReport(client, guildId, month, year) {
     ),
     getCommonSummary(client, guildId, range),
     pool.query(
-      'SELECT id, scope, donor_id, donor_label, amount, reason, actor_id, created_at FROM ' + TABLE + ' WHERE guild_id = $1 AND created_at >= $2 AND created_at < $3 ORDER BY created_at ASC, id ASC',
-      [guildId, range.start, range.end],
+      'SELECT id, scope, donor_id, donor_label, amount, reason, actor_id, created_at FROM ' + TABLE + ' WHERE guild_id = $1 AND scope = $4 AND created_at >= $2 AND created_at < $3 ORDER BY created_at ASC, id ASC',
+      [guildId, range.start, range.end, 'common'],
     ),
     pool.query(
       'SELECT donor_id, COALESCE(SUM(amount), 0)::bigint AS total, COUNT(*)::int AS transactions FROM ' + TABLE + ' WHERE guild_id = $1 AND scope = $2 AND created_at >= $3 AND created_at < $4 GROUP BY donor_id ORDER BY total DESC',
