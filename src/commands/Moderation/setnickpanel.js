@@ -20,7 +20,7 @@ import {
 
 import {
     SETNICK_CONFIG,
-    createSetnickPanelPayload,
+    refreshSetnickPanel,
 } from '../../services/setnickService.js';
 
 export default {
@@ -30,7 +30,7 @@ export default {
         .addChannelOption(option =>
             option
                 .setName('channel')
-                .setDescription('Kênh muốn gửi bảng (mặc định là kênh hiện tại).')
+                .setDescription('Kênh muốn gửi bảng (mặc định là kênh cấu hình setnick).')
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(false),
         )
@@ -62,7 +62,9 @@ export default {
             }
 
             const targetChannel =
-                interaction.options.getChannel('channel') || interaction.channel;
+                interaction.options.getChannel('channel') ||
+                guild.channels.cache.get(SETNICK_CONFIG.channelId) ||
+                interaction.channel;
 
             if (!targetChannel || !targetChannel.isTextBased()) {
                 return replyUserError(interaction, {
@@ -71,14 +73,8 @@ export default {
                 });
             }
 
-            const payload = createSetnickPanelPayload();
-
-            try {
-                await targetChannel.send(payload.v2);
-            } catch (v2Err) {
-                logger.warn('[SetNickPanel] Failed to send V2 panel, using fallback embed:', v2Err);
-                await targetChannel.send(payload.fallback);
-            }
+            // Tự động xóa panel cũ (nếu có) và tạo mới tại cuối kênh
+            await refreshSetnickPanel(client, guild, targetChannel);
 
             return InteractionHelper.universalReply(interaction, {
                 content: `<a:heartg1:1545307544808071258> Đã gửi bảng **TỰ ĐỔI NICKNAME** thành công tại ${targetChannel}!`,
@@ -93,4 +89,3 @@ export default {
         }
     },
 };
-

@@ -27,6 +27,10 @@ export const SETNICK_EMOJIS = {
     notice: '<a:bang2:1546891483250954290>',
 };
 
+let cachedPanelMessageId = null;
+let isRefreshing = false;
+let pendingRefresh = false;
+
 export function buildNickname(name) {
     return `${SETNICK_CONFIG.prefix}${name}${SETNICK_CONFIG.suffix}`;
 }
@@ -129,7 +133,91 @@ export function createSetnickPanelPayload() {
 }
 
 /**
- * Gửi thông báo log Nickname Updated về kênh log
+ * Xóa panel cũ và gửi lại panel mới ở cuối kênh (Sticky Bottom Panel)
+ */
+export async function refreshSetnickPanel(client, guild, targetChannel = null) {
+    if (isRefreshing) {
+        pendingRefresh = true;
+        return;
+    }
+    isRefreshing = true;
+
+    try {
+        const channel =
+            targetChannel ||
+            guild.channels.cache.get(SETNICK_CONFIG.channelId) ||
+            await guild.channels.fetch(SETNICK_CONFIG.channelId).catch(() => null);
+
+        if (!channel || !channel.isTextBased()) {
+            logger.warn(`[SetNick] Panel channel not found or not text-based.`);
+            return;
+        }
+
+        // 1. Xóa panel cũ theo ID lưu trữ (cache hoặc DB)
+        let savedPanelId = cachedPanelMessageId;
+        if (!savedPanelId && client?.db?.get) {
+            savedPanelId = await client.db.get(`setnick:panel:${guild.id}`, null).catch(() => null);
+        }
+
+        if (savedPanelId) {
+            await channel.messages.delete(savedPanelId).catch(() => {});
+        }
+
+        // 2. Quét dọn các panel cũ của bot trong 20 tin nhắn gần nhất để đảm bảo không bị sót
+        const recentMessages = await channel.messages.fetch({ limit: 20 }).catch(() => null);
+        if (recentMessages) {
+            for (const msg of recentMessages.values()) {
+                if (msg.author?.id !== client.user?.id) continue;
+
+                let compsString = '';
+                try {
+                    compsString = JSON.stringify(msg.components ?? []);
+                } catch {
+                    compsString = '';
+                }
+
+                const isBotPanel =
+                    compsString.includes('setnick_change') ||
+                    compsString.includes('setnick_reset') ||
+                    compsString.includes('TỰ ĐỔI NICKNAME') ||
+                    msg.embeds?.some(e => e.description?.includes('TỰ ĐỔI NICKNAME'));
+
+                if (isBotPanel) {
+                    await msg.delete().catch(() => {});
+                }
+            }
+        }
+
+        // 3. Gửi panel mới nhất xuống đáy kênh
+        const payload = createSetnickPanelPayload();
+        let newPanelMsg = null;
+        try {
+            newPanelMsg = await channel.send(payload.v2);
+        } catch (v2Err) {
+            logger.warn('[SetNick] Failed to send V2 panel in refresh, falling back to embed:', v2Err);
+            newPanelMsg = await channel.send(payload.fallback);
+        }
+
+        if (newPanelMsg) {
+            cachedPanelMessageId = newPanelMsg.id;
+            if (client?.db?.set) {
+                await client.db.set(`setnick:panel:${guild.id}`, newPanelMsg.id).catch(() => {});
+            }
+        }
+    } catch (err) {
+        logger.error('[SetNick] Error refreshing setnick panel:', err);
+    } finally {
+        isRefreshing = false;
+        if (pendingRefresh) {
+            pendingRefresh = false;
+            // Chạy lại nếu có thêm yêu cầu trong lúc đang refresh
+            await refreshSetnickPanel(client, guild, targetChannel);
+        }
+    }
+}
+
+/**
+ * Gửi thông báo log Nickname Updated về kênh log, đồng thời tái tạo panel ở cuối kênh
  */
 export async function sendSetnickLog({ client, guild, targetMember, nickname }) {
     try {
@@ -192,6 +280,9 @@ export async function sendSetnickLog({ client, guild, targetMember, nickname }) 
                 embeds: [fallbackEmbed],
             });
         }
+
+        // Tự động xóa panel cũ và gửi lại panel mới ở cuối kênh để không bao giờ bị trôi
+        await refreshSetnickPanel(client, guild, channel);
     } catch (err) {
         logger.error('Error sending setnick log:', err);
     }
