@@ -180,9 +180,15 @@ function buildSelectMenu() {
             },
             {
                 label: 'Nhà tài trợ (Sponsor)',
-                description: 'Thêm ID nhà tài trợ (hiển thị @User).',
+                description: 'Cài đặt nhà tài trợ (ID/@User hoặc Quỹ chung).',
                 value: 'sponsor',
                 emoji: '🤝',
+            },
+            {
+                label: 'Rút tiền từ quỹ chung',
+                description: 'Đặt nhà tài trợ là "Rút tiền từ quỹ chung".',
+                value: 'sponsor_fund',
+                emoji: '🏦',
             },
             {
                 label: 'Duration',
@@ -258,6 +264,38 @@ function buildDashboardComponents() {
                 .setCustomId('giveaway_dashboard_cancel')
                 .setLabel('Cancel')
                 .setEmoji('✖️')
+                .setStyle(ButtonStyle.Secondary),
+        ),
+    ];
+}
+
+function buildSponsorComponents() {
+    return [
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('giveaway_dashboard_sponsor_fund')
+                .setLabel('Rút tiền từ quỹ chung')
+                .setEmoji('🏦')
+                .setStyle(ButtonStyle.Success),
+
+            new ButtonBuilder()
+                .setCustomId('giveaway_dashboard_sponsor_modal')
+                .setLabel('Điền ID hoặc @User')
+                .setEmoji('👤')
+                .setStyle(ButtonStyle.Primary),
+
+            new ButtonBuilder()
+                .setCustomId('giveaway_dashboard_sponsor_clear')
+                .setLabel('Xóa nhà tài trợ')
+                .setEmoji('🗑️')
+                .setStyle(ButtonStyle.Danger),
+        ),
+
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('giveaway_dashboard_back')
+                .setLabel('Quay lại')
+                .setEmoji('◀')
                 .setStyle(ButtonStyle.Secondary),
         ),
     ];
@@ -409,7 +447,7 @@ function buildModal(type, session) {
                             .setCustomId('sponsor')
                             .setLabel('ID Nhà Tài Trợ (hoặc @User)')
                             .setStyle(TextInputStyle.Short)
-                            .setPlaceholder('Ví dụ: 1541303749916754001 hoặc @East')
+                            .setPlaceholder('Ví dụ: @East, 1541303749916754001 hoặc Quỹ chung')
                             .setValue(session.sponsor || '')
                             .setRequired(false)
                             .setMaxLength(64),
@@ -481,6 +519,37 @@ async function handleSelect(interaction) {
                 ),
             ],
             components: buildDashboardComponents(),
+        });
+
+        return true;
+    }
+
+    if (value === 'sponsor_fund') {
+        const session = getSession(interaction);
+        session.sponsor = 'Rút tiền từ quỹ chung';
+
+        await interaction.update({
+            embeds: [
+                buildDashboardEmbed(
+                    interaction,
+                    session,
+                ),
+            ],
+            components: buildDashboardComponents(),
+        });
+
+        return true;
+    }
+
+    if (value === 'sponsor') {
+        await interaction.update({
+            embeds: [
+                buildDashboardEmbed(
+                    interaction,
+                    getSession(interaction),
+                ),
+            ],
+            components: buildSponsorComponents(),
         });
 
         return true;
@@ -641,8 +710,14 @@ async function handleModal(interaction) {
             .getTextInputValue('sponsor')
             .trim();
 
-        const match = raw.match(/\d{17,20}/);
-        session.sponsor = match ? match[0] : raw;
+        if (!raw) {
+            session.sponsor = '';
+        } else if (/^(?:rút\s*tiền\s*từ\s*)?quỹ\s*chung$/i.test(raw) || /^quychung$/i.test(raw)) {
+            session.sponsor = 'Rút tiền từ quỹ chung';
+        } else {
+            const match = raw.match(/\d{17,20}/);
+            session.sponsor = match ? match[0] : raw;
+        }
     }
 
     await interaction.update({
@@ -853,19 +928,8 @@ async function handleInteraction(interaction) {
         interaction.customId || '';
 
     const isDashboardInteraction =
-        customId ===
-            'giveaway_dashboard_select' ||
-        customId ===
-            'giveaway_dashboard_channel' ||
-        customId ===
-            'giveaway_dashboard_create' ||
-        customId ===
-            'giveaway_dashboard_cancel' ||
-        customId ===
-            'giveaway_dashboard_back' ||
-        customId.startsWith(
-            'giveaway_modal_',
-        );
+        customId.startsWith('giveaway_dashboard_') ||
+        customId.startsWith('giveaway_modal_');
 
     if (!isDashboardInteraction) {
         return false;
@@ -904,12 +968,71 @@ async function handleInteraction(interaction) {
             customId ===
             'giveaway_dashboard_sponsor'
         ) {
+            await interaction.update({
+                embeds: [
+                    buildDashboardEmbed(
+                        interaction,
+                        getSession(
+                            interaction,
+                        ),
+                    ),
+                ],
+                components:
+                    buildSponsorComponents(),
+            });
+            return true;
+        }
+
+        if (
+            customId ===
+            'giveaway_dashboard_sponsor_fund'
+        ) {
+            const session = getSession(interaction);
+            session.sponsor = 'Rút tiền từ quỹ chung';
+
+            await interaction.update({
+                embeds: [
+                    buildDashboardEmbed(
+                        interaction,
+                        session,
+                    ),
+                ],
+                components:
+                    buildDashboardComponents(),
+            });
+            return true;
+        }
+
+        if (
+            customId ===
+            'giveaway_dashboard_sponsor_modal'
+        ) {
             await interaction.showModal(
                 buildModal(
                     'sponsor',
                     getSession(interaction),
                 ),
             );
+            return true;
+        }
+
+        if (
+            customId ===
+            'giveaway_dashboard_sponsor_clear'
+        ) {
+            const session = getSession(interaction);
+            session.sponsor = '';
+
+            await interaction.update({
+                embeds: [
+                    buildDashboardEmbed(
+                        interaction,
+                        session,
+                    ),
+                ],
+                components:
+                    buildDashboardComponents(),
+            });
             return true;
         }
 
