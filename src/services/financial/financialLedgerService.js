@@ -25,7 +25,7 @@ export const LEDGER_EMOJIS = {
   titleRight: '<a:trangtrig3:1546040818261954610>',
   heart: '<a:heartg1:1545307544808071258>',
   notice: '<a:bang2:1546891483250954290>',
-  detail: '<a:bang4:1546905765439217666>',
+  detail: '<a:trangtrig27:1546093546178748426>',
   expense: '<a:bang3:1546891744237461635>',
   usagi: '<:usagi9:1541422359960092813>',
   decoration: '<a:trangtrig29:1546385117478527016>',
