@@ -5,6 +5,7 @@ import {
   ButtonStyle,
   ContainerBuilder,
   MessageFlags,
+  PermissionFlagsBits,
   SeparatorBuilder,
   SeparatorSpacingSize,
   SlashCommandBuilder,
@@ -18,18 +19,41 @@ const TABLE = pgConfig.tables.financial_transactions;
 const FINANCIAL_SUPPORT_ROLE_ID = '1545295139390619768';
 const FINANCIAL_LOOKUP_CHANNEL_ID = '1567242635633098842';
 const PAGE_SIZE = 6;
+const LEADERBOARD_PAGE_SIZE = 5;
 const TZ = 'Asia/Ho_Chi_Minh';
 
 export const LEDGER_EMOJIS = {
   titleLeft: '<a:trangtrig2:1546040703375904801>',
   titleRight: '<a:trangtrig3:1546040818261954610>',
   heart: '<a:heartg1:1545307544808071258>',
+  heart2: '<a:heartg2:1546031808364413019>',
   notice: '<a:bang2:1546891483250954290>',
   detail: '<a:trangtrig27:1546093546178748426>',
   expense: '<a:bang3:1546891744237461635>',
   usagi: '<:usagi9:1541422359960092813>',
+  usagi19: '<:usagi19:1542409377296683049>',
   decoration: '<a:trangtrig29:1546385117478527016>',
 };
+
+export const DIGIT_EMOJIS = {
+  '0': '<a:0_:1563547154507767890>',
+  '1': '<a:1_:1563484001765949550>',
+  '2': '<a:2_:1563484061111156828>',
+  '3': '<a:3_:1563484342779388045>',
+  '4': '<a:4_:1563484724725424209>',
+  '5': '<a:5_:1563484794623365151>',
+  '6': '<a:6_:1563546730979663982>',
+  '7': '<a:7_:1563546852928913440>',
+  '8': '<a:8_:1563546943471226930>',
+  '9': '<a:9_:1563547068948156478>',
+};
+
+export function formatRankNumber(rank) {
+  return String(rank)
+    .split('')
+    .map(d => DIGIT_EMOJIS[d] || d)
+    .join('');
+}
 
 function getPool(client) {
   const database = client?.db?.db;
@@ -83,6 +107,7 @@ function v2Payload(container, extra = {}) {
 
 export function isFinancialAdmin(member) {
   if (!member) return false;
+  if (member.permissions?.has?.(PermissionFlagsBits.Administrator)) return true;
   const roleIds = member.roles?.cache
     ? [...member.roles.cache.keys()]
     : (Array.isArray(member.roles) ? member.roles : []);
@@ -609,6 +634,30 @@ export const financialExportCommand = new SlashCommandBuilder()
   .addIntegerOption(option => option.setName('thang').setDescription('Tháng cần xuất (1-12)').setMinValue(1).setMaxValue(12))
   .addIntegerOption(option => option.setName('nam').setDescription('Năm cần xuất').setMinValue(2020).setMaxValue(2100));
 
+export const financialBxhCommand = new SlashCommandBuilder()
+  .setName('bxhdonate')
+  .setDescription('Gửi Bảng Xếp Hạng Donate vào kênh (Dành cho Support Ticket)')
+  .addStringOption(option =>
+    option.setName('kieu')
+      .setDescription('Chế độ xem Bảng Xếp Hạng')
+      .addChoices(
+        { name: 'Tháng này', value: 'month' },
+        { name: 'Toàn bộ thời gian', value: 'alltime' },
+      )
+  )
+  .addIntegerOption(option =>
+    option.setName('thang')
+      .setDescription('Tháng cần xem (1-12)')
+      .setMinValue(1)
+      .setMaxValue(12)
+  )
+  .addIntegerOption(option =>
+    option.setName('nam')
+      .setDescription('Năm cần xem')
+      .setMinValue(2020)
+      .setMaxValue(2100)
+  );
+
 export async function executeFinancialSlash(interaction, client) {
   if (!isFinancialLookupChannel(interaction)) {
     await interaction.reply({
@@ -685,6 +734,135 @@ export async function executeFinancialExport(interaction, client) {
     files: [attachment],
     allowedMentions: { parse: [] },
   });
+}
+
+async function getLeaderboardData(client, guildId, mode, month, year) {
+  const pool = requirePool(client);
+  if (mode === 'month') {
+    const range = getMonthRange(month, year);
+    const result = await pool.query(
+      'SELECT donor_id, donor_label, COALESCE(SUM(amount), 0)::bigint AS total_amount, COUNT(*)::int AS count FROM ' +
+        TABLE +
+        ' WHERE guild_id = $1 AND scope = $2 AND amount > 0 AND created_at >= $3 AND created_at < $4 GROUP BY donor_id, donor_label ORDER BY total_amount DESC, count DESC',
+      [guildId, 'personal', range.start, range.end],
+    );
+    return result.rows || [];
+  }
+
+  const result = await pool.query(
+    'SELECT donor_id, donor_label, COALESCE(SUM(amount), 0)::bigint AS total_amount, COUNT(*)::int AS count FROM ' +
+      TABLE +
+      ' WHERE guild_id = $1 AND scope = $2 AND amount > 0 GROUP BY donor_id, donor_label ORDER BY total_amount DESC, count DESC',
+    [guildId, 'personal'],
+  );
+  return result.rows || [];
+}
+
+export async function buildLeaderboardPayload(client, guildId, mode = 'month', month = null, year = null, page = 0) {
+  const current = getCurrentVietnamMonth();
+  const safeMonth = Number(month) || current.month;
+  const safeYear = Number(year) || current.year;
+  const safeMode = mode === 'alltime' ? 'alltime' : 'month';
+  const safePage = Math.max(0, Number(page) || 0);
+
+  const rows = await getLeaderboardData(client, guildId, safeMode, safeMonth, safeYear);
+  const totalRows = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / LEADERBOARD_PAGE_SIZE));
+  const currentPage = Math.min(safePage, totalPages - 1);
+
+  const timeLabel = safeMode === 'month'
+    ? 'Tháng ' + String(safeMonth).padStart(2, '0') + '/' + safeYear
+    : 'Toàn thời gian';
+
+  const container = createContainer('BẢNG XẾP HẠNG DONATE');
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      LEDGER_EMOJIS.usagi19 + ' **Bảng vinh danh các nhà hảo tâm • ' + timeLabel + '**'
+    )
+  );
+  container.addSeparatorComponents(separator());
+
+  const pageRows = rows.slice(currentPage * LEADERBOARD_PAGE_SIZE, (currentPage + 1) * LEADERBOARD_PAGE_SIZE);
+
+  if (pageRows.length) {
+    const listText = pageRows.map((row, index) => {
+      const rank = currentPage * LEADERBOARD_PAGE_SIZE + index + 1;
+      const rankEmoji = formatRankNumber(rank);
+      const donor = row.donor_id ? '<@' + row.donor_id + '>' : (row.donor_label || 'Ẩn Danh');
+      const countText = row.count ? ' *(' + row.count + ' lượt ủng hộ)*' : '';
+      return rankEmoji + ' **TOP ' + rank + '** · ' + donor + '\n' +
+        LEDGER_EMOJIS.heart2 + ' **+' + formatMoney(row.total_amount) + '**' + countText;
+    }).join('\n\n');
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(listText));
+  } else {
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent('Chưa có dữ liệu donate nào được ghi nhận trong thời gian này.')
+    );
+  }
+
+  container.addSeparatorComponents(separator());
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent('Trang **' + (currentPage + 1) + ' / ' + totalPages + '**')
+  );
+
+  const buttonRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('financial_bxh:month:' + safeMonth + ':' + safeYear + ':0')
+      .setLabel('Tháng này')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('financial_bxh:alltime:' + safeMonth + ':' + safeYear + ':0')
+      .setLabel('Toàn bộ')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('financial_bxh:' + safeMode + ':' + safeMonth + ':' + safeYear + ':' + Math.max(0, currentPage - 1))
+      .setLabel('Trước')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(currentPage <= 0),
+    new ButtonBuilder()
+      .setCustomId('financial_bxh:' + safeMode + ':' + safeMonth + ':' + safeYear + ':' + Math.min(totalPages - 1, currentPage + 1))
+      .setLabel('Tiếp')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(currentPage >= totalPages - 1),
+  );
+
+  container.addActionRowComponents(buttonRow);
+  return {
+    components: [container],
+    flags: MessageFlags.IsComponentsV2,
+    allowedMentions: { parse: [] },
+  };
+}
+
+export async function executeBxhDonate(interaction, client) {
+  if (!isFinancialAdmin(interaction.member)) {
+    await interaction.reply({
+      content: 'Chỉ thành viên có role Support Ticket mới được sử dụng lệnh này.',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+
+  const current = getCurrentVietnamMonth();
+  const mode = interaction.options.getString('kieu') || 'month';
+  const month = interaction.options.getInteger('thang') || current.month;
+  const year = interaction.options.getInteger('nam') || current.year;
+
+  await interaction.deferReply({ flags: MessageFlags.IsComponentsV2 });
+  const payload = await buildLeaderboardPayload(client, interaction.guildId, mode, month, year, 0);
+  await interaction.editReply(payload);
+}
+
+export async function handleLeaderboardButton(interaction, client, args = []) {
+  const [mode, monthText, yearText, pageText] = args;
+  const current = getCurrentVietnamMonth();
+  const month = Number(monthText) || current.month;
+  const year = Number(yearText) || current.year;
+  const page = Number(pageText) || 0;
+
+  const payload = await buildLeaderboardPayload(client, interaction.guildId, mode, month, year, page);
+  const { flags, ...updatePayload } = payload;
+  await interaction.update(updatePayload);
 }
 
 export async function initializeFinancialLedger(client) {
