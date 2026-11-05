@@ -7,3 +7,4 @@ export default {
     return executeBxhDonate(interaction, client);
   },
 };
+
