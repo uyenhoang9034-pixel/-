@@ -267,7 +267,7 @@ export async function buildHistoryMessage(client, guildId, scope, userId, page =
   const historyLines = rows.length ? rows.map(row => {
     const date = formatDate(row.created_at);
     if (Number(row.amount) > 0) {
-      const donor = row.donor_id ? '<@' + row.donor_id + '>' : (row.donor_label || 'Ẩn Danh');
+      const donor = row.donor_id ? '<@' + row.donor_id + '>' : (row.donor_label ? '**' + row.donor_label + '**' : '**Bạn ẩn danh**');
       return LEDGER_EMOJIS.heart + ' **#' + row.id + ' · ' + date + '**\n' +
         LEDGER_EMOJIS.heart + ' **Người donate:** ' + donor + '\n' +
         LEDGER_EMOJIS.heart + ' **Khoản thu:** **+' + formatMoney(row.amount) + '**';
@@ -314,23 +314,27 @@ export async function handleFinancialPrefix(message, client) {
   try {
     let result;
     if (/^&add\s/i.test(content)) {
-      const match = content.match(/^&add\s+<@!?(\d{17,20})>\s+([\d.,]+)\s*$/i);
-      if (!match) throw new Error('Cú pháp: `&add @User số_tiền`');
-      const amount = parseAmount(match[2]);
+      const userMatch = content.match(/^&add\s+<@!?(\d{17,20})>\s+([\d.,]+)\s*$/i);
+      const anonMatch = !userMatch && content.match(/^&add\s+(?:["']?(?:bạn\s+)?ẩn\s*danh["']?\s+)?([\d.,]+)\s*$/i);
+      if (!userMatch && !anonMatch) throw new Error('Cú pháp: `&add @User số_tiền` hoặc `&add [ẩn danh] số_tiền`');
+      const amount = parseAmount(userMatch ? userMatch[2] : anonMatch[1]);
+      const donorId = userMatch ? userMatch[1] : null;
+      const donorLabel = userMatch ? null : 'Bạn ẩn danh';
       result = await insertTransaction(client, {
         guildId: message.guild.id,
         scope: 'personal',
-        donorId: match[1],
-        donorLabel: null,
+        donorId,
+        donorLabel,
         amount,
         actorId: message.author.id,
         sourceMessageId: message.id,
       });
       if (result.duplicate) return true;
-      const total = await getPersonalTotal(client, message.guild.id, match[1]);
+      const total = donorId ? await getPersonalTotal(client, message.guild.id, donorId) : amount;
+      const donorText = donorId ? '<@' + donorId + '>' : '**Bạn ẩn danh**';
       const container = createContainer('Sổ ghi nhận ủng hộ');
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
-        LEDGER_EMOJIS.heart + ' **Người ủng hộ:** <@' + match[1] + '>',
+        LEDGER_EMOJIS.heart + ' **Người ủng hộ:** ' + donorText,
         LEDGER_EMOJIS.heart + ' **Số tiền ghi nhận:** **+' + formatMoney(amount) + '**',
         LEDGER_EMOJIS.heart + ' **Thời gian ghi nhận:** ' + formatDate(result.created_at),
       ].join('\n')));
@@ -338,7 +342,7 @@ export async function handleFinancialPrefix(message, client) {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '**TỔNG DONATE CÁ NHÂN**\n# ' + formatMoney(total) + '\nĐã bao gồm khoản ghi nhận mới nhất',
       ));
-      await message.channel.send(v2Payload(container, { allowedMentions: { users: [match[1]] } }));
+      await message.channel.send(v2Payload(container, { allowedMentions: donorId ? { users: [donorId] } : {} }));
       return true;
     }
 
@@ -350,14 +354,14 @@ export async function handleFinancialPrefix(message, client) {
         guildId: message.guild.id,
         scope: 'common',
         donorId: match[2] || null,
-        donorLabel: match[2] ? null : 'Ẩn Danh',
+        donorLabel: match[2] ? null : 'Bạn ẩn danh',
         amount,
         actorId: message.author.id,
         sourceMessageId: message.id,
       });
       if (result.duplicate) return true;
       const summary = await getCommonSummary(client, message.guild.id);
-      const donor = match[2] ? '<@' + match[2] + '>' : 'Ẩn Danh';
+      const donor = match[2] ? '<@' + match[2] + '>' : '**Bạn ẩn danh**';
       const container = createContainer('QUỸ CHUNG', [
         LEDGER_EMOJIS.heart + ' **Người donate:** ' + donor,
         LEDGER_EMOJIS.heart + ' **Khoản thu:** **+' + formatMoney(amount) + '**',
@@ -743,8 +747,10 @@ async function getLeaderboardData(client, guildId, mode, month, year) {
     const result = await pool.query(
       'SELECT donor_id, donor_label, COALESCE(SUM(amount), 0)::bigint AS total_amount, COUNT(*)::int AS count FROM ' +
         TABLE +
-        ' WHERE guild_id = $1 AND scope = $2 AND amount > 0 AND created_at >= $3 AND created_at < $4 GROUP BY donor_id, donor_label ORDER BY total_amount DESC, count DESC',
-      [guildId, 'personal', range.start, range.end],
+        ' WHERE guild_id = $1 AND amount > 0 AND created_at >= $2 AND created_at < $3 ' +
+        'GROUP BY (CASE WHEN donor_id IS NOT NULL AND donor_id <> \'\' THEN donor_id ELSE \'anon_\' || id::text END), donor_id, donor_label ' +
+        'ORDER BY total_amount DESC, count DESC, MAX(created_at) DESC',
+      [guildId, range.start, range.end],
     );
     return result.rows || [];
   }
@@ -752,8 +758,10 @@ async function getLeaderboardData(client, guildId, mode, month, year) {
   const result = await pool.query(
     'SELECT donor_id, donor_label, COALESCE(SUM(amount), 0)::bigint AS total_amount, COUNT(*)::int AS count FROM ' +
       TABLE +
-      ' WHERE guild_id = $1 AND scope = $2 AND amount > 0 GROUP BY donor_id, donor_label ORDER BY total_amount DESC, count DESC',
-    [guildId, 'personal'],
+      ' WHERE guild_id = $1 AND amount > 0 ' +
+      'GROUP BY (CASE WHEN donor_id IS NOT NULL AND donor_id <> \'\' THEN donor_id ELSE \'anon_\' || id::text END), donor_id, donor_label ' +
+      'ORDER BY total_amount DESC, count DESC, MAX(created_at) DESC',
+    [guildId],
   );
   return result.rows || [];
 }
@@ -788,7 +796,14 @@ export async function buildLeaderboardPayload(client, guildId, mode = 'month', m
     const listText = pageRows.map((row, index) => {
       const rank = currentPage * LEADERBOARD_PAGE_SIZE + index + 1;
       const rankEmoji = formatRankNumber(rank);
-      const donor = row.donor_id ? '<@' + row.donor_id + '>' : (row.donor_label || 'Ẩn Danh');
+      let donor;
+      if (row.donor_id && /^\d{17,20}$/.test(String(row.donor_id))) {
+        donor = '<@' + row.donor_id + '>';
+      } else if (row.donor_label && !/ẩn\s*danh/i.test(row.donor_label)) {
+        donor = '**' + row.donor_label + '**';
+      } else {
+        donor = '**Bạn ẩn danh**';
+      }
       const countText = row.count ? ' *(' + row.count + ' lượt ủng hộ)*' : '';
       return rankEmoji + ' **TOP ' + rank + '** · ' + donor + '\n' +
         LEDGER_EMOJIS.heart2 + ' **+' + formatMoney(row.total_amount) + '**' + countText;
