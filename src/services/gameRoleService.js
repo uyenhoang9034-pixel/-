@@ -2,6 +2,16 @@ import {
     AttachmentBuilder,
     EmbedBuilder,
     PermissionFlagsBits,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    MessageFlags,
 } from 'discord.js';
 
 import fs from 'fs';
@@ -15,6 +25,7 @@ import {
     GAME_ROLES,
     GAME_ROLE_NOTIFICATION_CHANNEL_ID,
     GAME_ROLE_EMBED_COLOR,
+    DEFAULT_GAME_ROLE_ID,
     getGameRoleByEmoji,
     getGameRoleByRoleId,
     getReactionToken,
@@ -1027,6 +1038,42 @@ function getRoleImagePath(
 
 /**
  * =========================================================
+ * ENSURE DEFAULT GAME ROLE
+ * =========================================================
+ * Tự động cấp role mặc định (ID: 1541431506910584934) cho thành viên
+ * khi họ chọn bất kỳ role game nào hoặc khi được Admin cấp.
+ * Nếu đã có sẵn role này rồi thì bỏ qua an toàn không cấp lại.
+ */
+export async function ensureDefaultGameRole(member) {
+    try {
+        if (!member?.guild) return false;
+        const roleId = DEFAULT_GAME_ROLE_ID;
+        if (!roleId) return false;
+
+        const hasRole =
+            member.roles?.cache?.has?.(roleId) ||
+            (Array.isArray(member._roles) && member._roles.includes(roleId)) ||
+            (Array.isArray(member.roles) && member.roles.includes(roleId));
+
+        if (hasRole) {
+            return false;
+        }
+
+        await member.roles.add(roleId, 'Game Role: Tự động cấp role game mặc định khi chọn role').catch((err) => {
+            logger.warn(`[GAME ROLE] Không thể cấp role mặc định ${roleId} cho ${member.id}:`, err.message);
+        });
+
+        logger.info(`[GAME ROLE] Đã cấp role mặc định ${roleId} cho ${member.user?.tag || member.id}`);
+        return true;
+    } catch (err) {
+        logger.warn(`[GAME ROLE] Lỗi khi cấp role mặc định ${DEFAULT_GAME_ROLE_ID} cho ${member?.id}:`, err.message);
+        return false;
+    }
+}
+
+
+/**
+ * =========================================================
  * SEND GAME ROLE NOTIFICATION
  * =========================================================
  */
@@ -1049,6 +1096,9 @@ export async function sendGameRoleNotification(
         ) {
             return false;
         }
+
+        // Tự động đảm bảo thành viên sở hữu role mặc định 1541431506910584934
+        await ensureDefaultGameRole(member);
 
 
         /**
@@ -1215,56 +1265,38 @@ export async function sendGameRoleNotification(
 
         /**
          * =============================================
-         * DESCRIPTION
+         * TITLE & DESCRIPTION
          * =============================================
          */
 
-        let description =
-            `<a:heartg5:1546906071199907972> Chúc mừng ${member} đã được cấp role <@&${config.roleId}> và nhận được những đặc quyền liên quan đến role.`;
+        const titleText = '<a:trangtrig50:1567818385306165301> **ĐÃ CẤP ROLE** <a:trangtrig51:1567818549794439229>';
 
+        let descriptionLine1 = `<a:trangtrig53:1567819189866201219> Chúc mừng ${member} đã được cấp role <@&${config.roleId}> và nhận được những đặc quyền liên quan đến role.`;
 
-        /**
-         * Role bình thường có channel.
-         */
-
-        if (
-            config.channelId
-        ) {
-            description +=
-                ` Đồng thời mở khóa kênh <#${config.channelId}>!`;
+        if (config.channelId) {
+            descriptionLine1 += ` Đồng thời mở khóa kênh <#${config.channelId}>!`;
+        } else {
+            descriptionLine1 += '!';
         }
 
-        /**
-         * Không Thích Chơi Game.
-         */
+        const descriptionLine2 = '<a:trangtrig53:1567819189866201219> Chúc bạn chơi zui zẻ ở server bọn mình và nhớ chăm chỉ up level để nhận thưởng khi đạt mốc nhé!';
 
-        else {
-            description +=
-                '!';
-        }
-
-
-        description +=
-            '\n\n<a:heartg5:1546906071199907972> Chúc bạn chơi zui zẻ ở server bọn mình và nhớ chăm chỉ up level để nhận thưởng khi đạt mốc 300 nhé!';
+        // Ghép 2 câu với nhau mà không có đường kẻ ở giữa
+        const fullDescription = `${descriptionLine1}\n\n${descriptionLine2}`;
 
 
         /**
          * =============================================
-         * EMBED
+         * LINK BUTTON (XEM HỆ THỐNG LEVEL)
          * =============================================
          */
 
-        const embed =
-            new EmbedBuilder()
-                .setTitle(
-                    '<a:trangtrig2:1546040703375904801> 𝓡𝓸𝓵𝓮𝓼 𝓱𝓪𝓿𝓮 𝓬𝓱𝓪𝓷𝓰𝓮𝓭 <a:trangtrig3:1546040818261954610>',
-                )
-                .setDescription(
-                    description,
-                )
-                .setColor(
-                    GAME_ROLE_EMBED_COLOR,
-                );
+        const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setLabel('Xem Hệ Thống Level')
+                .setStyle(ButtonStyle.Link)
+                .setURL('https://discord.com/channels/1541279801183178754/1541861950680600648'),
+        );
 
 
         /**
@@ -1274,60 +1306,109 @@ export async function sendGameRoleNotification(
          */
 
         const files = [];
-        const localImagePath =
-            getRoleImagePath(
-                config,
-            );
+        const localImagePath = getRoleImagePath(config);
+        let imageUrl = null;
 
-        if (
-            localImagePath
-        ) {
-            const attachmentName =
-                `game-role-${config.key}.png`;
+        if (localImagePath) {
+            const attachmentName = `game-role-${config.key}.png`;
 
             files.push(
                 new AttachmentBuilder(
                     localImagePath,
                     {
-                        name:
-                            attachmentName,
+                        name: attachmentName,
                     },
                 ),
             );
 
-            embed.setImage(
-                `attachment://${attachmentName}`,
-            );
-        } else if (
-            config?.imageUrl
-        ) {
-            embed.setImage(
-                config.imageUrl,
-            );
+            imageUrl = `attachment://${attachmentName}`;
+        } else if (config?.imageUrl) {
+            imageUrl = config.imageUrl;
         }
 
 
         /**
          * =============================================
-         * SEND
+         * COMPONENTS V2 CONTAINER
          * =============================================
          */
 
-        await notificationChannel.send({
-            embeds: [
-                embed,
-            ],
+        const container = new ContainerBuilder();
 
-            files,
+        // 1. Tiêu đề
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+                `# ${titleText}`,
+            ),
+        );
 
-            allowedMentions: {
-                users: [
-                    member.id,
-                ],
+        // 2. Đường kẻ sau tiêu đề
+        container.addSeparatorComponents(
+            new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+        );
 
-                roles: [],
-            },
-        });
+        // 3. Hai câu thông báo (không có đường kẻ ở giữa 2 câu này)
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+                fullDescription,
+            ),
+        );
+
+        // 4. Đường kẻ trước ảnh và ảnh minh họa Media Gallery (nếu có ảnh)
+        if (imageUrl) {
+            container.addSeparatorComponents(
+                new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+            );
+            container.addMediaGalleryComponents(
+                new MediaGalleryBuilder().addItems(
+                    new MediaGalleryItemBuilder()
+                        .setURL(imageUrl)
+                        .setDescription(config.label || 'Game Role'),
+                ),
+            );
+        }
+
+        // 5. Nút bấm link chuyển tiếp kênh Level
+        container.addActionRowComponents(actionRow);
+
+
+        /**
+         * =============================================
+         * SEND WITH V2 & FALLBACK
+         * =============================================
+         */
+
+        try {
+            await notificationChannel.send({
+                components: [container],
+                files,
+                flags: MessageFlags.IsComponentsV2,
+                allowedMentions: {
+                    users: [member.id],
+                    roles: [],
+                },
+            });
+        } catch (v2Error) {
+            logger.warn('[GAME ROLE] Gửi thông báo V2 thất bại, chuyển sang fallback embed:', v2Error);
+            const fallbackEmbed = new EmbedBuilder()
+                .setTitle(titleText)
+                .setDescription(fullDescription)
+                .setColor(GAME_ROLE_EMBED_COLOR);
+
+            if (imageUrl) {
+                fallbackEmbed.setImage(imageUrl);
+            }
+
+            await notificationChannel.send({
+                embeds: [fallbackEmbed],
+                components: [actionRow],
+                files,
+                allowedMentions: {
+                    users: [member.id],
+                    roles: [],
+                },
+            });
+        }
 
 
         logger.info(

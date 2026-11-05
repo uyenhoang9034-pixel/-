@@ -15,6 +15,9 @@ export const GAME_ROLE_NOTIFICATION_CHANNEL_ID =
 
 export const GAME_ROLE_EMBED_COLOR = 0xFF9EAF;
 
+// Role ID mặc định cấp cho tất cả thành viên khi chọn bất kỳ role game nào
+export const DEFAULT_GAME_ROLE_ID = '1541431506910584934';
+
 /**
  * =========================================================
  * GAME ROLE LIST

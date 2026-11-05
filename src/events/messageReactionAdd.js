@@ -10,6 +10,7 @@ import {
 import {
     isGameRolePanel,
     sendGameRoleNotification,
+    ensureDefaultGameRole,
 } from '../services/gameRoleService.js';
 
 import {
@@ -231,6 +232,8 @@ export default {
                     role.id,
                 )
             ) {
+                // Đảm bảo vẫn sở hữu role mặc định 1541431506910584934 nếu chưa có
+                await ensureDefaultGameRole(member);
                 return;
             }
 
@@ -243,6 +246,9 @@ export default {
                 role.id,
                 `Game Role reaction: ${config.label}`,
             );
+
+            // Tự động cấp role mặc định 1541431506910584934 khi chọn role game
+            await ensureDefaultGameRole(member);
 
 
             // =================================================

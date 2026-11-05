@@ -16,6 +16,7 @@ import {
 
 import {
     sendGameRoleNotification,
+    ensureDefaultGameRole,
 } from '../services/gameRoleService.js';
 
 import {
@@ -279,6 +280,9 @@ export default {
                     logger.info(
                         `Detected ${addedGameRoleIds.length} new Game Role(s) for ${newMember.user.tag}: ${addedGameRoleIds.join(', ')}`,
                     );
+
+                    // Tự động cấp role mặc định 1541431506910584934 khi Admin cấp role game thủ công
+                    await ensureDefaultGameRole(newMember);
 
                     for (const roleId of addedGameRoleIds) {
                         try {
