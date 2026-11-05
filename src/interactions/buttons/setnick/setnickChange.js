@@ -5,7 +5,11 @@ import {
     ActionRowBuilder,
     MessageFlags,
 } from 'discord.js';
-import { SETNICK_CONFIG, SETNICK_EMOJIS } from '../../../services/setnickService.js';
+import {
+    SETNICK_CONFIG,
+    SETNICK_EMOJIS,
+    checkSetnickCooldown,
+} from '../../../services/setnickService.js';
 
 export default {
     name: 'setnick_change',
@@ -16,6 +20,20 @@ export default {
         if (!interaction.member.manageable) {
             return interaction.reply({
                 content: `${SETNICK_EMOJIS.notice} Bot không thể thay đổi biệt danh của bạn do vai trò của bạn cao hơn hoặc ngang bằng vai trò của Bot (hoặc bạn là Chủ server).`,
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+
+        // Kiểm tra giới hạn đổi biệt danh (1 lần / 2 ngày)
+        const cooldownInfo = await checkSetnickCooldown(
+            client,
+            interaction.guild.id,
+            interaction.user.id,
+            interaction.member,
+        );
+        if (cooldownInfo.isOnCooldown) {
+            return interaction.reply({
+                content: cooldownInfo.message,
                 flags: MessageFlags.Ephemeral,
             });
         }

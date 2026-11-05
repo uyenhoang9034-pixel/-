@@ -10,6 +10,7 @@ import {
     ButtonStyle,
     EmbedBuilder,
     MessageFlags,
+    PermissionFlagsBits,
 } from 'discord.js';
 import { logger } from '../utils/logger.js';
 
@@ -21,6 +22,7 @@ export const SETNICK_CONFIG = {
     suffix: ' ♡',
     maxInputLength: 20,
     maxTotalLength: 32,
+    cooldownMs: 2 * 24 * 60 * 60 * 1000, // Giới hạn 1 lần / 2 ngày (48 giờ)
 };
 
 export const SETNICK_EMOJIS = {
@@ -33,6 +35,103 @@ export const SETNICK_EMOJIS = {
 let cachedPanelMessageId = null;
 let isRefreshing = false;
 let pendingRefresh = false;
+
+// Bộ nhớ đệm tạm thời cho Cooldown đổi tên
+const setnickCooldownCache = new Map();
+
+/**
+ * Kiểm tra xem thành viên có đang bị giới hạn thời gian đổi biệt danh (1 lần / 2 ngày) không.
+ * Miễn trừ cho Admin và vai trò Quản lý.
+ * @param {import('discord.js').Client} client
+ * @param {string} guildId
+ * @param {string} userId
+ * @param {import('discord.js').GuildMember|null} member
+ * @returns {Promise<{ isOnCooldown: boolean, remainingMs: number, nextTimestamp: number, message: string }>}
+ */
+export async function checkSetnickCooldown(client, guildId, userId, member = null) {
+    try {
+        // Kiểm tra quyền miễn trừ: Admin hoặc Role quản lý setnick
+        if (member) {
+            const isAdmin =
+                member.permissions?.has?.(PermissionFlagsBits.Administrator) ||
+                member.guild?.ownerId === member.id;
+            const hasManagementRole =
+                member.roles?.cache?.has?.(SETNICK_CONFIG.managementRoleId) ||
+                (Array.isArray(member._roles) && member._roles.includes(SETNICK_CONFIG.managementRoleId)) ||
+                (Array.isArray(member.roles) && member.roles.includes(SETNICK_CONFIG.managementRoleId));
+
+            if (isAdmin || hasManagementRole) {
+                return { isOnCooldown: false, remainingMs: 0, nextTimestamp: 0, message: '' };
+            }
+        }
+
+        const cacheKey = `${guildId}:${userId}`;
+        const dbKey = `setnick:cooldown:${guildId}:${userId}`;
+
+        let lastTime = setnickCooldownCache.get(cacheKey);
+
+        if (!lastTime && client?.db?.get) {
+            lastTime = await client.db.get(dbKey, null).catch(() => null);
+            if (lastTime) {
+                setnickCooldownCache.set(cacheKey, Number(lastTime));
+            }
+        }
+
+        if (!lastTime) {
+            return { isOnCooldown: false, remainingMs: 0, nextTimestamp: 0, message: '' };
+        }
+
+        const elapsed = Date.now() - Number(lastTime);
+        if (elapsed < SETNICK_CONFIG.cooldownMs) {
+            const remainingMs = SETNICK_CONFIG.cooldownMs - elapsed;
+            const nextTimestamp = Math.floor((Date.now() + remainingMs) / 1000);
+
+            const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+            let relativeText;
+            if (remainingHours <= 1) {
+                const remainingMinutes = Math.max(1, Math.ceil(remainingMs / (60 * 1000)));
+                relativeText = `khoảng ${remainingMinutes} phút nữa`;
+            } else {
+                relativeText = `khoảng ${remainingHours} giờ nữa`;
+            }
+
+            const message = `${SETNICK_EMOJIS.notice} Bạn đã đạt đến giới hạn đổi biệt danh. Xin vui lòng thử lại vào <t:${nextTimestamp}:f> (${relativeText})!`;
+
+            return {
+                isOnCooldown: true,
+                remainingMs,
+                nextTimestamp,
+                message,
+            };
+        }
+
+        return { isOnCooldown: false, remainingMs: 0, nextTimestamp: 0, message: '' };
+    } catch (err) {
+        logger.warn(`[SetNick] Lỗi kiểm tra cooldown cho ${userId}:`, err.message);
+        return { isOnCooldown: false, remainingMs: 0, nextTimestamp: 0, message: '' };
+    }
+}
+
+/**
+ * Ghi nhận thời điểm thành viên đổi biệt danh thành công
+ * @param {import('discord.js').Client} client
+ * @param {string} guildId
+ * @param {string} userId
+ */
+export async function recordSetnickCooldown(client, guildId, userId) {
+    try {
+        const now = Date.now();
+        setnickCooldownCache.set(`${guildId}:${userId}`, now);
+        const dbKey = `setnick:cooldown:${guildId}:${userId}`;
+        if (client?.db?.set) {
+            await client.db.set(dbKey, now).catch((err) => {
+                logger.warn(`[SetNick] Không thể lưu cooldown vào DB cho ${userId}:`, err.message);
+            });
+        }
+    } catch (err) {
+        logger.warn(`[SetNick] Lỗi ghi nhận cooldown cho ${userId}:`, err.message);
+    }
+}
 
 export function buildNickname(name) {
     return `${SETNICK_CONFIG.prefix}${name}${SETNICK_CONFIG.suffix}`;

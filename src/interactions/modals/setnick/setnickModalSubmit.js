@@ -4,6 +4,8 @@ import {
     SETNICK_EMOJIS,
     buildNickname,
     sendSetnickLog,
+    checkSetnickCooldown,
+    recordSetnickCooldown,
 } from '../../../services/setnickService.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -17,6 +19,20 @@ export default {
         if (!member.manageable) {
             return interaction.reply({
                 content: `${SETNICK_EMOJIS.notice} Bot không thể thay đổi biệt danh của bạn do vai trò của bạn cao hơn hoặc ngang bằng vai trò của Bot (hoặc bạn là Chủ server).`,
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+
+        // Kiểm tra giới hạn đổi biệt danh (1 lần / 2 ngày)
+        const cooldownInfo = await checkSetnickCooldown(
+            client,
+            interaction.guild.id,
+            interaction.user.id,
+            member,
+        );
+        if (cooldownInfo.isOnCooldown) {
+            return interaction.reply({
+                content: cooldownInfo.message,
                 flags: MessageFlags.Ephemeral,
             });
         }
@@ -48,6 +64,9 @@ export default {
 
         try {
             await member.setNickname(newNickname, 'Tự đổi nickname qua panel');
+
+            // Ghi nhận cooldown 1 lần / 2 ngày
+            await recordSetnickCooldown(client, interaction.guild.id, interaction.user.id);
 
             // Gửi log về kênh log
             await sendSetnickLog({
