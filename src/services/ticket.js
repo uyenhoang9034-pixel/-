@@ -836,6 +836,137 @@ async function fetchTicketMessage(channel, ticketData) {
 
 /**
  * =========================================================
+ * SEND TICKET TRANSCRIPT
+ * =========================================================
+ */
+
+export async function sendTicketTranscript(
+  channel,
+  ticketData,
+  executor,
+  action = 'close',
+  reason = null,
+) {
+  try {
+    const transcriptFiles = await generateTranscriptFiles(channel, ticketData);
+    if (!transcriptFiles || transcriptFiles.length === 0) {
+      logger.warn('Transcript generation returned no files', {
+        channelId: channel?.id,
+        ticketId: ticketData?.id,
+      });
+      return false;
+    }
+
+    const guildConfig = await getGuildConfig(
+      channel.client,
+      channel.guild.id,
+    );
+
+    const transcriptChannelId =
+      guildConfig.ticketTranscriptChannelId ||
+      guildConfig.ticketLogsChannelId ||
+      null;
+
+    if (!transcriptChannelId) {
+      logger.warn('No transcript channel configured, skipping transcript send', {
+        guildId: channel.guild.id,
+        channelId: channel.id,
+        ticketId: ticketData?.id,
+      });
+      return false;
+    }
+
+    const transcriptChannel =
+      channel.guild.channels.cache.get(transcriptChannelId) ||
+      await channel.client.channels.fetch(transcriptChannelId).catch(() => null);
+
+    if (!transcriptChannel) {
+      logger.error('Could not fetch transcript channel', {
+        guildId: channel.guild.id,
+        channelId: channel.id,
+        transcriptChannelId,
+      });
+      return false;
+    }
+
+    if (!transcriptChannel.isSendable()) {
+      logger.error('Transcript channel exists but is not sendable', {
+        guildId: channel.guild.id,
+        channelId: channel.id,
+        transcriptChannelId,
+      });
+      return false;
+    }
+
+    const botMember = channel.guild.members.me || await channel.guild.members.fetchMe().catch(() => null);
+    if (botMember) {
+      const permissions = transcriptChannel.permissionsFor(botMember);
+      if (permissions && !permissions.has(['ViewChannel', 'SendMessages', 'AttachFiles', 'EmbedLinks'])) {
+        logger.warn('Bot may lack permissions in transcript channel', {
+          transcriptChannelId,
+          missing: ['ViewChannel', 'SendMessages', 'AttachFiles', 'EmbedLinks'].filter(p => !permissions.has(p)),
+        });
+      }
+    }
+
+    const liveChannel = await channel.fetch().catch(() => channel);
+    const currentTicketName = liveChannel?.name || channel.name || (ticketData.number ? `ticket-${ticketData.number}` : (ticketData.id || 'ticket'));
+    const ticketDisplayName = currentTicketName.startsWith('#') ? currentTicketName : `#${currentTicketName}`;
+    const nowTs = Math.floor(Date.now() / 1000);
+    const executorMention = executor ? `<@${executor.id || executor}>` : 'Unknown';
+    const creatorMention = ticketData.userId ? `<@${ticketData.userId}>` : 'Unknown';
+
+    const transcriptLines = [
+      `<a:trangtrig31:1546905996893626440> **Ticket:** ${ticketDisplayName}`,
+      `<a:trangtrig31:1546905996893626440> **Chủ ticket:** ${creatorMention}`,
+      `<a:trangtrig31:1546905996893626440> **Thời gian xuất transcript:** <t:${nowTs}:F>`,
+      action === 'delete'
+        ? `<a:trangtrig31:1546905996893626440> **Deleted by:** ${executorMention}`
+        : `<a:trangtrig31:1546905996893626440> **Đóng bởi:** ${executorMention}`,
+    ];
+
+    if (reason && reason !== 'No reason provided' && reason !== 'Closed via ticket button without a specific reason.') {
+      transcriptLines.push(`<a:trangtrig31:1546905996893626440> **Lý do:** ${reason}`);
+    }
+
+    const transcriptEmbed = createEmbed({
+      title: 'TICKET TRANSCRIPT',
+      description: transcriptLines.join('\n'),
+      color: 0xE9B5CE,
+      footer: {
+        text: `Ticket ID: ${ticketData.id}`,
+      },
+    });
+
+    await transcriptChannel.send({
+      embeds: [transcriptEmbed],
+      files: transcriptFiles,
+    });
+
+    logger.info('✅ Ticket transcript sent successfully', {
+      channelId: channel.id,
+      ticketId: ticketData.id,
+      transcriptChannelId: transcriptChannel.id,
+      action,
+    });
+
+    ticketData.transcriptSent = true;
+    ticketData.transcriptSentAt = new Date().toISOString();
+    await saveTicketData(channel.guild.id, channel.id, ticketData).catch(() => {});
+
+    return true;
+  } catch (error) {
+    logger.error('Failed to send transcript to channel:', {
+      channelId: channel?.id,
+      ticketId: ticketData?.id,
+      error: error.message,
+    });
+    return false;
+  }
+}
+
+/**
+ * =========================================================
  * CLOSE TICKET
  * =========================================================
  */
@@ -1286,6 +1417,7 @@ export async function closeTicket(
       `Ticket này đã được đóng bởi ${closer}.`,
       `<a:trangtrig18:1546068102817775626> Lý do: ${reason}`,
       `<a:trangtrig18:1546068102817775626> Ticket ID: ${ticketData.id}`,
+      `<a:trangtrig18:1546068102817775626> Bản **Transcript HTML** đang được tự động lưu trữ về kênh lưu trữ.`,
     ].join('\n');
 
     const controlRow =
@@ -1294,6 +1426,12 @@ export async function closeTicket(
           new ButtonBuilder()
             .setCustomId('ticket_reopen')
             .setLabel('Mở lại ticket')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('<a:trangtrig20:1546092997299667055>'),
+
+          new ButtonBuilder()
+            .setCustomId('ticket_transcript')
+            .setLabel('Xuất transcript')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('<a:trangtrig20:1546092997299667055>'),
 
@@ -1381,6 +1519,23 @@ export async function closeTicket(
         },
       },
     );
+
+    /**
+     * =====================================================
+     * SEND TRANSCRIPT ON CLOSE
+     * =====================================================
+     */
+    try {
+      await sendTicketTranscript(
+        channel,
+        ticketData,
+        closer,
+        'close',
+        reason,
+      );
+    } catch (transcriptError) {
+      logger.error('Error sending ticket transcript on close:', transcriptError);
+    }
 
 
     return ticketData;
@@ -1743,6 +1898,9 @@ export async function reopenTicket(
 
     ticketData.closeReason =
       null;
+
+    ticketData.transcriptSent =
+      false;
 
 
     await saveTicketData(
@@ -2128,179 +2286,14 @@ export async function deleteTicket(
           );
 
 
-          let transcriptFiles =
-            [];
-
-
-          try {
-            transcriptFiles =
-              await generateTranscriptFiles(
-                channel,
-                ticketData,
-              );
-
-
-            if (transcriptFiles.length > 0) {
-              logger.info(
-                'Transcript generated successfully, attempting to send',
-                {
-                  channelId:
-                    channel.id,
-
-                  ticketNumber:
-                    ticketData.id,
-                },
-              );
-
-            } else {
-              logger.warn(
-                'Transcript generation returned null',
-                {
-                  channelId:
-                    channel.id,
-
-                  ticketNumber:
-                    ticketData.id,
-                },
-              );
-            }
-
-          } catch (transcriptError) {
-            logger.error(
-              'Error during transcript generation',
-              {
-                channelId:
-                  channel.id,
-
-                ticketNumber:
-                  ticketData.id,
-
-                error:
-                  transcriptError.message,
-              },
+          if (!ticketData.transcriptSent) {
+            await sendTicketTranscript(
+              channel,
+              ticketData,
+              deleter,
+              'delete',
+              ticketData.closeReason || 'Ticket deleted permanently',
             );
-          }
-
-
-          if (transcriptFiles.length > 0) {
-            try {
-              const guildConfig =
-                await getGuildConfig(
-                  channel.client,
-                  channel.guild.id,
-                );
-
-
-              if (
-                !guildConfig.ticketTranscriptChannelId
-              ) {
-                logger.warn(
-                  'No transcript channel configured, skipping transcript send',
-                  {
-                    channelId:
-                      channel.id,
-
-                    ticketNumber:
-                      ticketData.id,
-                  },
-                );
-
-              } else {
-                const transcriptChannel =
-                  await channel.client.channels
-                    .fetch(
-                      guildConfig.ticketTranscriptChannelId,
-                    )
-                    .catch(
-                      () =>
-                        null,
-                    );
-
-
-                if (
-                  !transcriptChannel
-                ) {
-                  logger.error(
-                    'Could not fetch transcript channel',
-                    {
-                      channelId:
-                        channel.id,
-
-                      transcriptChannelId:
-                        guildConfig.ticketTranscriptChannelId,
-                    },
-                  );
-
-                } else if (
-                  !transcriptChannel.isSendable()
-                ) {
-                  logger.error(
-                    'Transcript channel exists but is not sendable',
-                    {
-                      channelId:
-                        channel.id,
-
-                      transcriptChannelId:
-                        transcriptChannel.id,
-                    },
-                  );
-
-                } else {
-                  const liveChannel = await channel.fetch().catch(() => channel);
-                  const currentTicketName = liveChannel?.name || channel.name || (ticketData.number ? `ticket-${ticketData.number}` : (ticketData.id || 'ticket'));
-                  const ticketDisplayName = currentTicketName.startsWith('#') ? currentTicketName : `#${currentTicketName}`;
-                  const nowTs = Math.floor(Date.now() / 1000);
-                  const deleterMention = deleter ? `<@${deleter.id || deleter}>` : 'Unknown';
-
-                  const transcriptLines = [
-                    `<a:trangtrig31:1546905996893626440> **Ticket:** ${ticketDisplayName}`,
-                    `<a:trangtrig31:1546905996893626440> **Thời gian xuất transcript:** <t:${nowTs}:F>`,
-                    `<a:trangtrig31:1546905996893626440> **Deleted by:** ${deleterMention}`,
-                  ].join('\n');
-
-                  const transcriptEmbed = createEmbed({
-                    title: 'TICKET TRANSCRIPT',
-                    description: transcriptLines,
-                    color: 0xE9B5CE,
-                  });
-
-                  await transcriptChannel.send({
-                    embeds: [transcriptEmbed],
-                    files: transcriptFiles,
-                  });
-
-
-                  logger.info(
-                    '✅ Transcript sent successfully',
-                    {
-                      channelId:
-                        channel.id,
-
-                      ticketNumber:
-                        ticketData.id,
-
-                      transcriptChannelId:
-                        transcriptChannel.id,
-                    },
-                  );
-                }
-              }
-
-            } catch (sendError) {
-              logger.error(
-                'Failed to send transcript to channel:',
-                {
-                  channelId:
-                    channel.id,
-
-                  ticketNumber:
-                    ticketData.id,
-
-                  error:
-                    sendError.message,
-                },
-              );
-            }
           }
 
 

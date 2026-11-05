@@ -126,6 +126,18 @@ export default {
             subcommand
                 .setName("dashboard")
                 .setDescription("Open the interactive ticket system dashboard"),
+        )
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName("transcript")
+                .setDescription("Xuất và gửi bù transcript cho ticket (mặc định kênh hiện tại).")
+                .addChannelOption((option) =>
+                    option
+                        .setName("channel")
+                        .setDescription("Kênh ticket cần xuất transcript (mặc định là kênh hiện tại).")
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(false),
+                ),
         ),
     category: "ticket",
 
@@ -133,6 +145,54 @@ export default {
         const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) {
             return;
+        }
+
+        const subcommand = interaction.options.getSubcommand();
+
+        if (subcommand === "transcript") {
+            const targetChannel = interaction.options.getChannel("channel") || interaction.channel;
+            const { getTicketData } = await import('../../utils/database.js');
+            const ticketData = await getTicketData(interaction.guildId, targetChannel.id);
+
+            if (!ticketData) {
+                return await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: `Kênh ${targetChannel} không phải là một kênh ticket hợp lệ trong hệ thống.`,
+                });
+            }
+
+            const { sendTicketTranscript } = await import('../../services/ticket.js');
+            const success = await sendTicketTranscript(
+                targetChannel,
+                ticketData,
+                interaction.user,
+                'manual',
+                'Xuất bù transcript theo lệnh /ticket transcript',
+            );
+
+            if (success) {
+                const guildConfig = await getGuildConfig(client, interaction.guildId);
+                const targetChannelId = guildConfig.ticketTranscriptChannelId || guildConfig.ticketLogsChannelId;
+                const channelMention = targetChannelId ? `<#${targetChannelId}>` : 'kênh lưu trữ transcripts';
+
+                return await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [
+                        successEmbed(
+                            "Xuất Transcript Thành Công",
+                            `Đã tạo và gửi bù bản transcript HTML của ticket ${targetChannel} về ${channelMention} thành công rồi nha chị! 💕`,
+                        ),
+                    ],
+                });
+            } else {
+                return await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [
+                        warningEmbed(
+                            "Không Thể Gửi Transcript",
+                            `Không thể gửi transcript cho ticket ${targetChannel}. Vui lòng kiểm tra xem bot đã được cấu hình kênh lưu trữ transcript (\`/ticket dashboard\`) và có đủ quyền hạn trong kênh đó chưa nhé ạ!`,
+                        ),
+                    ],
+                });
+            }
         }
 
         if (

@@ -5,6 +5,7 @@ import createTicketHandler, {
   unclaimTicketHandler,
   reopenTicketHandler,
   deleteTicketHandler,
+  transcriptTicketHandler,
 } from '../../../handlers/ticketButtons.js';
 
 export default [
@@ -15,4 +16,5 @@ export default [
   unclaimTicketHandler,
   reopenTicketHandler,
   deleteTicketHandler,
+  transcriptTicketHandler,
 ];

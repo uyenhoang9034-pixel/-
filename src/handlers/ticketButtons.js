@@ -461,6 +461,51 @@ const deleteTicketHandler = {
   }
 };
 
+const transcriptTicketHandler = {
+  name: 'ticket_transcript',
+  async execute(interaction, client) {
+    try {
+      if (!(await ensureGuildContext(interaction))) return;
+
+      await assertTicketPermission(interaction, client, 'export transcripts', { allowTicketCreator: true }, 2500);
+
+      const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+      if (!deferSuccess) return;
+
+      const { sendTicketTranscript } = await import('../services/ticket.js');
+      const { getTicketData } = await import('../utils/database.js');
+      const ticketData = await getTicketData(interaction.guildId, interaction.channelId);
+
+      if (!ticketData) {
+        return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'This channel is not a valid ticket.' });
+      }
+
+      const success = await sendTicketTranscript(
+        interaction.channel,
+        ticketData,
+        interaction.user,
+        'manual',
+        'Xuất bù transcript qua nút bấm',
+      );
+
+      if (success) {
+        await interaction.editReply({
+          embeds: [successEmbed('Transcript Exported', 'Đã tạo và gửi transcript của ticket về kênh lưu trữ thành công rồi nha chị! 💕')],
+        });
+      } else {
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Không thể gửi transcript. Vui lòng kiểm tra cấu hình kênh transcript và quyền hạn của bot.' });
+      }
+    } catch (error) {
+      logger.error('Error exporting ticket transcript:', error);
+      if (!interaction.replied && !interaction.deferred) {
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while exporting the transcript.' });
+      } else if (interaction.deferred) {
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while exporting the transcript.' });
+      }
+    }
+  }
+};
+
 export default createTicketHandler;
 export { 
   createTicketModalHandler, 
@@ -469,6 +514,7 @@ export {
   claimTicketHandler, 
   pinTicketHandler,
   unclaimTicketHandler,
-  reopenTicketHandler,
-  deleteTicketHandler 
+  reopenTicketHandler, 
+  deleteTicketHandler,
+  transcriptTicketHandler
 };
