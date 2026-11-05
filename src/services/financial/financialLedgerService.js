@@ -807,20 +807,20 @@ export async function buildLeaderboardPayload(client, guildId, mode = 'month', m
 
   const buttonRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId('financial_bxh:month:' + safeMonth + ':' + safeYear + ':0')
+      .setCustomId('financial_bxh:tab_month:' + safeMonth + ':' + safeYear + ':0')
       .setLabel('Tháng này')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId('financial_bxh:alltime:' + safeMonth + ':' + safeYear + ':0')
+      .setCustomId('financial_bxh:tab_alltime:' + safeMonth + ':' + safeYear + ':0')
       .setLabel('Toàn bộ')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId('financial_bxh:' + safeMode + ':' + safeMonth + ':' + safeYear + ':' + Math.max(0, currentPage - 1))
+      .setCustomId('financial_bxh:page_prev:' + safeMode + ':' + safeMonth + ':' + safeYear + ':' + Math.max(0, currentPage - 1))
       .setLabel('Trước')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(currentPage <= 0),
     new ButtonBuilder()
-      .setCustomId('financial_bxh:' + safeMode + ':' + safeMonth + ':' + safeYear + ':' + Math.min(totalPages - 1, currentPage + 1))
+      .setCustomId('financial_bxh:page_next:' + safeMode + ':' + safeMonth + ':' + safeYear + ':' + Math.min(totalPages - 1, currentPage + 1))
       .setLabel('Tiếp')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(currentPage >= totalPages - 1),
@@ -854,11 +854,32 @@ export async function executeBxhDonate(interaction, client) {
 }
 
 export async function handleLeaderboardButton(interaction, client, args = []) {
-  const [mode, monthText, yearText, pageText] = args;
+  const [action, ...rest] = args;
   const current = getCurrentVietnamMonth();
-  const month = Number(monthText) || current.month;
-  const year = Number(yearText) || current.year;
-  const page = Number(pageText) || 0;
+  let mode = 'month';
+  let month = current.month;
+  let year = current.year;
+  let page = 0;
+
+  if (action === 'tab_month') {
+    const [monthText, yearText, pageText] = rest;
+    mode = 'month';
+    month = Number(monthText) || current.month;
+    year = Number(yearText) || current.year;
+    page = Number(pageText) || 0;
+  } else if (action === 'tab_alltime') {
+    const [monthText, yearText, pageText] = rest;
+    mode = 'alltime';
+    month = Number(monthText) || current.month;
+    year = Number(yearText) || current.year;
+    page = Number(pageText) || 0;
+  } else {
+    const [modeParam, monthText, yearText, pageText] = rest;
+    mode = modeParam === 'alltime' ? 'alltime' : 'month';
+    month = Number(monthText) || current.month;
+    year = Number(yearText) || current.year;
+    page = Number(pageText) || 0;
+  }
 
   const payload = await buildLeaderboardPayload(client, interaction.guildId, mode, month, year, page);
   const { flags, ...updatePayload } = payload;
