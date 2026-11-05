@@ -742,12 +742,14 @@ export async function executeFinancialExport(interaction, client) {
 
 async function getLeaderboardData(client, guildId, mode, month, year) {
   const pool = requirePool(client);
+  const scopeCondition = 'amount > 0 AND (scope = \'personal\' OR (scope = \'common\' AND (donor_id IS NULL OR donor_id = \'\')))';
+
   if (mode === 'month') {
     const range = getMonthRange(month, year);
     const result = await pool.query(
       'SELECT donor_id, donor_label, COALESCE(SUM(amount), 0)::bigint AS total_amount, COUNT(*)::int AS count FROM ' +
         TABLE +
-        ' WHERE guild_id = $1 AND amount > 0 AND created_at >= $2 AND created_at < $3 ' +
+        ' WHERE guild_id = $1 AND ' + scopeCondition + ' AND created_at >= $2 AND created_at < $3 ' +
         'GROUP BY (CASE WHEN donor_id IS NOT NULL AND donor_id <> \'\' THEN donor_id ELSE \'anon_\' || id::text END), donor_id, donor_label ' +
         'ORDER BY total_amount DESC, count DESC, MAX(created_at) DESC',
       [guildId, range.start, range.end],
@@ -758,7 +760,7 @@ async function getLeaderboardData(client, guildId, mode, month, year) {
   const result = await pool.query(
     'SELECT donor_id, donor_label, COALESCE(SUM(amount), 0)::bigint AS total_amount, COUNT(*)::int AS count FROM ' +
       TABLE +
-      ' WHERE guild_id = $1 AND amount > 0 ' +
+      ' WHERE guild_id = $1 AND ' + scopeCondition + ' ' +
       'GROUP BY (CASE WHEN donor_id IS NOT NULL AND donor_id <> \'\' THEN donor_id ELSE \'anon_\' || id::text END), donor_id, donor_label ' +
       'ORDER BY total_amount DESC, count DESC, MAX(created_at) DESC',
     [guildId],
