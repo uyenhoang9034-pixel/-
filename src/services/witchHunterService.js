@@ -994,6 +994,9 @@ export class WitchHunterService {
 
     // 1. TRƯỜNG HỢP ĐÃ CÓ PHE TRƯỚC ĐÓ:
     if (userData && userData.faction) {
+      // Đảm bảo thành viên đã có role tham gia chung (nếu Admin chưa cấp hoặc bị thiếu trước đó)
+      await this.ensureParticipantRole(guild, member);
+
       // Nếu là ADMIN role 1541303749916754001: Cho phép đổi role / phe!
       if (isAdmin) {
         if (userData.faction === chosenFaction) {
@@ -1017,6 +1020,7 @@ export class WitchHunterService {
 
         // Đồng bộ Role: Gỡ role phe cũ và cấp role phe mới
         const roleSyncResult = await this.syncRankRole(guild, member, calculatedRank, chosenFaction);
+        await this.ensureParticipantRole(guild, member);
 
         // Gửi thông báo nội bộ cho Admin vào kênh 1563382678378643487
         const adminLogEmbed = this.buildFactionChangeAdminLogEmbed(member, oldFaction, chosenFaction, calculatedRank, currentPumpkins);
@@ -1058,6 +1062,8 @@ export class WitchHunterService {
 
     // Đồng bộ Role bậc 1 (hoặc bậc tương ứng nếu đã tích lũy điểm từ trước)
     const roleSyncResult = await this.syncRankRole(guild, member, calculatedRank, chosenFaction);
+    // Tự động cấp role tham gia chung (1563426234787041331) nếu chưa có
+    await this.ensureParticipantRole(guild, member);
 
     // Gửi DM thông báo trao Supporter Bậc 1 khởi đầu (hoặc thức tỉnh nếu bậc cao hơn)
     await this.notifySupporterUnlock(guild.client, userId, chosenFaction, calculatedRank, calculatedRank === 1);
@@ -1136,6 +1142,9 @@ export class WitchHunterService {
       recordBotAction(userId, newRoleId, 'add');
       await member.roles.add(newRoleId, 'Witch Hunter: Cấp role phe mới do Admin thực hiện').catch(() => null);
     }
+
+    // Tự động cấp thêm role tham gia chung (1563426234787041331) nếu chưa có
+    await this.ensureParticipantRole(guild, member);
 
     const rankInfo = this.getRankInfo(newFaction, calculatedRank);
     const newFactionName = newFaction === 'witch' ? 'Hội Phù Thủy (Witches)' : 'Hiệp Hội Thợ Săn (W.H. Association)';
@@ -1742,6 +1751,9 @@ export class WitchHunterService {
         });
       }
 
+      // Tự động cấp thêm role tham gia thế giới Witch Hunter chung (1563426234787041331) nếu chưa có
+      await this.ensureParticipantRole(guild, member);
+
       return {
         success: true,
         targetRoleId,
@@ -1750,6 +1762,55 @@ export class WitchHunterService {
     } catch (error) {
       logger.error('❌ [WitchHunter] Lỗi ngoại lệ khi syncRankRole:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Tự động cấp role tham gia thế giới Witch Hunter chung (1563426234787041331) cho thành viên khi chọn phe.
+   * Nếu thành viên đã sở hữu role này (do Admin đã cấp thủ công trước đó hoặc bot đã cấp),
+   * hệ thống bỏ qua an toàn mà không cấp lại hay gây lỗi.
+   * @param {import('discord.js').Guild} guild
+   * @param {import('discord.js').GuildMember|string} memberOrId
+   * @returns {Promise<boolean>} Trả về true nếu vừa được cấp role mới, false nếu đã có sẵn hoặc lỗi
+   */
+  static async ensureParticipantRole(guild, memberOrId) {
+    try {
+      if (!guild) return false;
+      const participantRoleId = WITCH_HUNTER_CONFIG.participantRoleId || WITCH_HUNTER_CONFIG.roles?.participant || '1563426234787041331';
+      if (!participantRoleId) return false;
+
+      let member = memberOrId;
+      const memberId = typeof memberOrId === 'string' ? memberOrId : memberOrId?.id;
+      if (!memberId) return false;
+
+      // Nếu member chưa có roles.cache đầy đủ hoặc được truyền vào là string ID
+      if (typeof memberOrId === 'string' || !member?.roles?.cache) {
+        member = await guild.members.fetch({ user: memberId, cache: false }).catch(async () => {
+          return await guild.members.fetch(memberId).catch(() => null);
+        });
+      }
+      if (!member) return false;
+
+      // Kiểm tra xem member đã có role này chưa (kể cả do Admin đã cấp trước đó)
+      const hasRole =
+        member.roles?.cache?.has?.(participantRoleId) ||
+        (Array.isArray(member._roles) && member._roles.includes(participantRoleId)) ||
+        (Array.isArray(member.roles) && member.roles.includes(participantRoleId));
+
+      if (hasRole) {
+        // Đã có role rồi (ví dụ Admin đã cấp), không cần cấp lại nữa
+        return false;
+      }
+
+      // Chưa có role -> Bot auto cấp
+      recordBotAction(member.id, participantRoleId, 'add');
+      await member.roles.add(participantRoleId, 'Witch Hunter: Tự động cấp role tham gia thế giới Witch Hunter khi chọn phe').catch((err) => {
+        logger.warn(`⚠️ [WitchHunter] Không thể tự động cấp role tham gia [${participantRoleId}] cho ${member.id}:`, err.message);
+      });
+      return true;
+    } catch (err) {
+      logger.warn(`⚠️ [WitchHunter] Lỗi khi kiểm tra/cấp role tham gia cho ${memberOrId?.id || memberOrId}:`, err.message);
+      return false;
     }
   }
 
@@ -2057,6 +2118,9 @@ export class WitchHunterService {
         if (rolesToClean.length > 0) {
           await newMember.roles.remove(rolesToClean, 'Witch Hunter: Tự động dọn role phe đối lập khi admin cấp role thủ công').catch(() => null);
         }
+
+        // Tự động cấp thêm role tham gia chung (1563426234787041331) nếu chưa có
+        await this.ensureParticipantRole(guild, newMember);
 
         // Gửi thông báo riêng (DM) cho thành viên được cấp role
         try {
@@ -2577,6 +2641,12 @@ export class WitchHunterService {
           if (!hasTargetRole || hasOtherRole) {
             await this.syncRankRole(guild, member, expectedRank, user.faction);
             roleFixedCount++;
+          }
+
+          const participantRoleId = WITCH_HUNTER_CONFIG.participantRoleId || '1563426234787041331';
+          if (participantRoleId && !member.roles.cache.has(participantRoleId)) {
+            const added = await this.ensureParticipantRole(guild, member);
+            if (added) roleFixedCount++;
           }
         }
       }

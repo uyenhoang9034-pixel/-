@@ -8,6 +8,9 @@ export const WITCH_HUNTER_CONFIG = {
   // Role ID Ban Quản Trị / Admin có quyền quản lý hệ thống
   adminRoleId: process.env.WITCH_HUNTER_ADMIN_ROLE_ID || '1541303749916754001',
 
+  // Role ID Tham Gia Thế Giới Witch Hunter chung (tự động cấp khi thành viên chọn bất kỳ phe nào)
+  participantRoleId: process.env.WITCH_HUNTER_PARTICIPANT_ROLE_ID || '1563426234787041331',
+
   // ID Kênh cố định theo yêu cầu
   channels: {
     // Chỉ nhận role và bảng chọn phe xuất hiện ở kênh này
