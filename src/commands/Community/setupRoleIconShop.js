@@ -39,7 +39,7 @@ export default {
 
       return interaction.editReply({
         content:
-          `✅ Em bot Usagi múp rụp đã thiết lập bảng **Tiệm Role Icon Usagi** tại kênh <#${targetChannel.id}> thành công rực rỡ rồi nè vợ của Kim Nong ơi! 💕✨\n` +
+          `✅ Em bot Usagi múp rụp đã thiết lập bảng **Tiệm Role Icon Usagi** tại kênh <#${targetChannel.id}> thành công rực rỡ rồi nè vợ của Kim Nong ơi! ${ROLE_ICON_EMOJIS.heart}✨\n` +
           `> 🔄 **Cấp bù Role Đặc Quyền:** Đã rà soát dữ liệu và cấp bù cho **${backfillResult.synced} / ${backfillResult.total}** nhà hảo tâm đã từng donate trước đây để mở khóa kênh <#${targetChannel.id}>!\n` +
           `> ${ROLE_ICON_EMOJIS.crown} **Role ID Đặc Quyền:** <@&${ROLE_ICON_DONOR_ROLE_ID}>`,
       });

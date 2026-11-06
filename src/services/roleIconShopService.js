@@ -228,7 +228,9 @@ export function buildDetailEphemeral(iconId, member) {
   );
 
   const crownText = item.isSpecial ? `${ROLE_ICON_EMOJIS.crown} ` : '';
-  const priceDesc = item.isSpecial ? `${ROLE_ICON_EMOJIS.crown} Tích lũy tối thiểu **100.000 VNĐ**` : '💎 Tích lũy **20.000 VNĐ** (1 suất)';
+  const priceDesc = item.isSpecial
+    ? `${ROLE_ICON_EMOJIS.crown} Tích lũy tối thiểu **100.000 VNĐ**`
+    : `${ROLE_ICON_EMOJIS.donate} Tích lũy **20.000 VNĐ** (1 suất)`;
 
   const lines = [
     `> ${crownText}**Mẫu #${item.padId}: ${item.name}** ──── [${priceDesc}]`,
@@ -237,7 +239,7 @@ export function buildDetailEphemeral(iconId, member) {
     `> ${ROLE_ICON_EMOJIS.cmdTag} **Cú pháp chat đổi icon:** \`&roleicon +roleicon${item.id}\``,
     '',
     `**Hiển thị mẫu khi chat:**`,
-    `> [${member.displayName}] ${item.emoji} : Chào cả nhà nè, icon ${item.name} xinh quá! 💕`,
+    `> [${member.displayName}] ${item.emoji} : Chào cả nhà nè, icon ${item.name} xinh quá! ${ROLE_ICON_EMOJIS.heart}`,
     '',
     `*Bạn chỉ cần gõ &roleicon +roleicon${item.id} tại thanh chat kênh nhé!*`,
   ].join('\n');
@@ -370,7 +372,7 @@ export async function handleRoleIconPrefix(message, client) {
         new TextDisplayBuilder().setContent(
           `> ${ROLE_ICON_EMOJIS.error} Bạn chưa sở hữu Role Đặc Quyền <@&${ROLE_ICON_DONOR_ROLE_ID}>!\n` +
           `> Kênh tiệm và lệnh đổi Role Icon chỉ dành riêng cho các thành viên đã từng ủng hộ cho sự phát triển của máy chủ.\n` +
-          `> Vui lòng liên hệ BQT để được ghi nhận donate trước khi sử dụng tiệm nhé 💕`
+          `> Vui lòng liên hệ BQT để được ghi nhận donate trước khi sử dụng tiệm nhé ${ROLE_ICON_EMOJIS.heart}`
         )
       );
       await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -430,7 +432,7 @@ export async function handleRoleIconPrefix(message, client) {
         new TextDisplayBuilder().setContent(
           `> ${ROLE_ICON_EMOJIS.success} Đã chuyển sang trang bị **${targetItem.name} (#${targetItem.padId})** ${targetItem.emoji} thành công!\n` +
           `> ${ROLE_ICON_EMOJIS.info} **Chi phí:** **0 VNĐ (Miễn phí)** do bạn đã sở hữu vĩnh viễn trước đó.\n` +
-          `> ${ROLE_ICON_EMOJIS.roleIdTag} Role icon mới đã lập tức xuất hiện bên cạnh tên bạn trong mọi khung chat server rồi nè! 💕`
+          `> ${ROLE_ICON_EMOJIS.roleIdTag} Role icon mới đã lập tức xuất hiện bên cạnh tên bạn trong mọi khung chat server rồi nè! ${ROLE_ICON_EMOJIS.heart}`
         )
       );
       await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -451,10 +453,10 @@ export async function handleRoleIconPrefix(message, client) {
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           `> ${ROLE_ICON_EMOJIS.crown} Mẫu **Rune Affinity (#01)** là Role Icon Thượng Hạng độc quyền yêu cầu điều kiện đặc biệt!\n` +
-          `> 💎 **Điều kiện bắt buộc:** Tổng số tiền donate tích lũy phải đạt từ **100.000 VNĐ** trở lên.\n` +
-          `> 📊 **Tiến độ hiện tại của bạn:** **${formatMoney(totalDonated)}** / **100.000 VNĐ**\n` +
-          `> 🔻 **Còn thiếu:** **${formatMoney(100000 - totalDonated)}** để mở khóa biểu tượng quyền lực này.\n\n` +
-          `> Bạn có thể chọn đổi trước các mẫu #02 đến #10 (chỉ cần 20k) hoặc tích lũy thêm để rước Rune Affinity nha! 💕`
+          `> ${ROLE_ICON_EMOJIS.crown} **Điều kiện bắt buộc:** Tổng số tiền donate tích lũy phải đạt từ **100.000 VNĐ** trở lên.\n` +
+          `> ${ROLE_ICON_EMOJIS.bullet} **Tiến độ hiện tại của bạn:** **${formatMoney(totalDonated)}** / **100.000 VNĐ**\n` +
+          `> ${ROLE_ICON_EMOJIS.warning} **Còn thiếu:** **${formatMoney(100000 - totalDonated)}** để mở khóa biểu tượng quyền lực này.\n\n` +
+          `> Bạn có thể chọn đổi trước các mẫu #02 đến #10 (chỉ cần 20k) hoặc tích lũy thêm để rước Rune Affinity nha! ${ROLE_ICON_EMOJIS.heart}`
         )
       );
       await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -470,9 +472,9 @@ export async function handleRoleIconPrefix(message, client) {
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           `> ${ROLE_ICON_EMOJIS.error} Bạn chưa đủ hạn mức donate để đổi thêm Role Icon mới!\n` +
-          `> 💰 **Tổng donate tích lũy:** **${formatMoney(totalDonated)}** (tương đương **${totalSlotsEarned} suất**)\n` +
-          `> 🎒 **Số icon đã đổi:** **${slotsUsed} icon** (Đã dùng hết ${slotsUsed} / ${totalSlotsEarned} suất)\n` +
-          `> ⚠️ **Khoản còn thiếu:** Bạn cần donate thêm tối thiểu **20.000 VNĐ** để nhận thêm 1 suất đổi icon mới nhé!`
+          `> ${ROLE_ICON_EMOJIS.bullet} **Tổng donate tích lũy:** **${formatMoney(totalDonated)}** (tương đương **${totalSlotsEarned} suất**)\n` +
+          `> ${ROLE_ICON_EMOJIS.bullet} **Số icon đã đổi:** **${slotsUsed} icon** (Đã dùng hết ${slotsUsed} / ${totalSlotsEarned} suất)\n` +
+          `> ${ROLE_ICON_EMOJIS.warning} **Khoản còn thiếu:** Bạn cần donate thêm tối thiểu **20.000 VNĐ** để nhận thêm 1 suất đổi icon mới nhé!`
         )
       );
       await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -498,9 +500,9 @@ export async function handleRoleIconPrefix(message, client) {
 
     let excessNote = '';
     if (!isOwner) {
-      excessNote = `\n> 📦 **Số suất đổi còn lại:** Bạn còn nguyên **${remainingSlots} suất** nữa!`;
+      excessNote = `\n> ${ROLE_ICON_EMOJIS.bullet} **Số suất đổi còn lại:** Bạn còn nguyên **${remainingSlots} suất** nữa!`;
       if (excessMoney > 0) {
-        excessNote += `\n> 🪙 **Số tiền dư tích lũy lẻ:** **${formatMoney(excessMoney)}** (được bảo lưu cộng dồn cho lần sau).`;
+        excessNote += `\n> ${ROLE_ICON_EMOJIS.bullet} **Số tiền dư tích lũy lẻ:** **${formatMoney(excessMoney)}** (được bảo lưu cộng dồn cho lần sau).`;
       }
     } else {
       excessNote = `\n> ${ROLE_ICON_EMOJIS.crown} *(Đặc quyền Chủ Server: Miễn phí kiểm tra & test toàn bộ tính năng)*`;
@@ -510,9 +512,9 @@ export async function handleRoleIconPrefix(message, client) {
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         `> ${ROLE_ICON_EMOJIS.success} Đổi Role Icon thành công cho **${message.member.displayName}**! ${targetItem.emoji}\n` +
-        `> 🏷️ **Vật phẩm:** **${targetItem.name} (#${targetItem.padId})**\n` +
-        `> ✨ **Role được cấp:** <@&${targetItem.roleId}>\n` +
-        `> 💎 **Biểu tượng:** Đã kích hoạt icon ${targetItem.emoji} hiển thị cạnh tên bạn trong mọi khung chat!${excessNote}`
+        `> ${ROLE_ICON_EMOJIS.roleEmojiTag} **Vật phẩm:** **${targetItem.name} (#${targetItem.padId})**\n` +
+        `> ${ROLE_ICON_EMOJIS.roleIdTag} **Role được cấp:** <@&${targetItem.roleId}>\n` +
+        `> ${ROLE_ICON_EMOJIS.success} **Biểu tượng:** Đã kích hoạt icon ${targetItem.emoji} hiển thị cạnh tên bạn trong mọi khung chat!${excessNote}`
       )
     );
 

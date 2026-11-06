@@ -20,6 +20,8 @@ export const ROLE_ICON_EMOJIS = {
   info: '<a:trangtrig2:1546040703375904801>',
   usagi: '<:usagi9:1541422359960092813>',
   account: '<a:trangtrig59:1567821308077539341>',
+  heart: '<a:heartg1:1545307544808071258>',
+  donate: '<a:trangtrig58:1567821225282244648>',
 };
 
 export const ROLE_ICON_ITEMS = [
