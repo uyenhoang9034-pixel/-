@@ -160,7 +160,7 @@ async function insertTransaction(client, data) {
   }
 }
 
-async function getPersonalTotal(client, guildId, userId) {
+export async function getPersonalTotal(client, guildId, userId) {
   const pool = requirePool(client);
   const result = await pool.query(
     'SELECT COALESCE(SUM(amount), 0)::bigint AS total FROM ' + TABLE + ' WHERE guild_id = $1 AND scope = $2 AND donor_id = $3',
@@ -330,6 +330,18 @@ export async function handleFinancialPrefix(message, client) {
         sourceMessageId: message.id,
       });
       if (result.duplicate) return true;
+
+      if (donorId) {
+        try {
+          const donorRole = '1568129166979764244';
+          const member = await message.guild.members.fetch(donorId).catch(() => null);
+          if (member && !member.roles.cache.has(donorRole)) {
+            await member.roles.add(donorRole, 'Tự động cấp Role Đặc Quyền mở khóa Tiệm Role Icon khi donate lần đầu').catch(() => null);
+          }
+        } catch (roleErr) {
+          logger.warn('[Financial] Lỗi tự động cấp role donor:', roleErr);
+        }
+      }
       const total = donorId ? await getPersonalTotal(client, message.guild.id, donorId) : amount;
       const donorText = donorId ? '<@' + donorId + '>' : '**Bạn ẩn danh**';
       const container = createContainer('Sổ ghi nhận ủng hộ');

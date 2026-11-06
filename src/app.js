@@ -19,6 +19,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
 import { setupDonateWebhook } from './services/donate/donateService.js';
 import { initializeFinancialLedger } from './services/financial/financialLedgerService.js';
+import { initRoleIconStorage } from './services/roleIconShopService.js';
 
 class TitanBot extends Client {
   constructor() {
@@ -121,6 +122,7 @@ class TitanBot extends Client {
 
       try {
         await initializeFinancialLedger(this);
+        await initRoleIconStorage(this);
       } catch (ledgerError) {
         logger.error('[FinancialLedger] Could not initialize PostgreSQL ledger:', ledgerError);
       }

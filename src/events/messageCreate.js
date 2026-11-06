@@ -111,6 +111,10 @@ import {
   handleFinancialPrefix,
 } from '../services/financial/financialLedgerService.js';
 
+import {
+  handleRoleIconPrefix,
+} from '../services/roleIconShopService.js';
+
 
 
 import { pumpkinGrowthTracker } from '../services/pumpkinGrowthTracker.js';
@@ -160,6 +164,11 @@ export default {
 
       const financialProcessed = await handleFinancialPrefix(message, client);
       if (financialProcessed) {
+        return;
+      }
+
+      const roleIconProcessed = await handleRoleIconPrefix(message, client);
+      if (roleIconProcessed) {
         return;
       }
 
