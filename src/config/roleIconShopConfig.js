@@ -184,3 +184,4 @@ export function parseRoleIconInput(input) {
 
   return null;
 }
+
