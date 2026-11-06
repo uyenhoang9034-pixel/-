@@ -203,6 +203,134 @@ export function buildMainShopContainer() {
 
 /**
  * =========================================================
+ * BẢNG PANEL TỰ ĐỘNG GHIM CUỐI KÊNH (STICKY BOTTOM PANEL)
+ * =========================================================
+ */
+let isPanelRefreshing = false;
+let pendingPanelRefresh = false;
+const cachedShopPanelMessageIds = new Map();
+const cachedShopChannelIds = new Map();
+
+export async function getShopChannelId(guildId, client) {
+  if (!guildId) return null;
+  if (cachedShopChannelIds.has(guildId)) {
+    return cachedShopChannelIds.get(guildId);
+  }
+  if (client?.db?.get) {
+    const saved = await client.db.get(`roleicon:channel:${guildId}`, null).catch(() => null);
+    if (saved) {
+      cachedShopChannelIds.set(guildId, saved);
+      return saved;
+    }
+  }
+  return null;
+}
+
+export async function isRoleIconShopChannelAsync(guildId, channelId, client) {
+  if (!guildId || !channelId) return false;
+  const targetId = await getShopChannelId(guildId, client);
+  return targetId === channelId;
+}
+
+export async function refreshRoleIconShopPanel(client, guild, targetChannel = null) {
+  if (!guild) return;
+  if (isPanelRefreshing) {
+    pendingPanelRefresh = true;
+    return;
+  }
+  isPanelRefreshing = true;
+
+  try {
+    let channel = targetChannel;
+    if (!channel) {
+      const channelId = await getShopChannelId(guild.id, client);
+      if (channelId) {
+        channel =
+          guild.channels.cache.get(channelId) ||
+          (await guild.channels.fetch(channelId).catch(() => null));
+      }
+    }
+
+    if (!channel || !channel.isTextBased()) {
+      logger.warn('[RoleIconShop] Kênh shop không tìm thấy hoặc không phải text-based.');
+      return;
+    }
+
+    // Cập nhật cache & DB kênh shop
+    cachedShopChannelIds.set(guild.id, channel.id);
+    if (client?.db?.set) {
+      await client.db.set(`roleicon:channel:${guild.id}`, channel.id).catch(() => {});
+    }
+
+    // 1. Xóa panel cũ theo ID đã lưu
+    let savedPanelId = cachedShopPanelMessageIds.get(guild.id);
+    if (!savedPanelId && client?.db?.get) {
+      savedPanelId = await client.db.get(`roleicon:panel:${guild.id}`, null).catch(() => null);
+    }
+    if (savedPanelId) {
+      await channel.messages.delete(savedPanelId).catch(() => {});
+    }
+
+    // 2. Quét dọn các panel shop cũ của bot trong 25 tin nhắn gần nhất
+    const recentMessages = await channel.messages.fetch({ limit: 25 }).catch(() => null);
+    if (recentMessages) {
+      for (const msg of recentMessages.values()) {
+        if (msg.author?.id !== client.user?.id) continue;
+
+        let compsString = '';
+        try {
+          compsString = JSON.stringify(msg.components ?? []);
+        } catch {
+          compsString = '';
+        }
+
+        const isShopPanel =
+          compsString.includes('roleicon_select') ||
+          compsString.includes('roleicon_btn_guide') ||
+          compsString.includes('roleicon_btn_wardrobe');
+
+        if (isShopPanel) {
+          await msg.delete().catch(() => {});
+        }
+      }
+    }
+
+    // 3. Gửi panel mới nhất xuống đáy kênh
+    const shopContainer = buildMainShopContainer();
+    let newPanelMsg = null;
+    try {
+      newPanelMsg = await channel.send({
+        components: [shopContainer],
+        flags: MessageFlags.IsComponentsV2,
+      });
+    } catch (v2Err) {
+      logger.warn('[RoleIconShop] Lỗi khi gửi panel V2, gửi fallback:', v2Err);
+      newPanelMsg = await channel
+        .send({
+          components: [shopContainer],
+        })
+        .catch(() => null);
+    }
+
+    if (newPanelMsg) {
+      cachedShopPanelMessageIds.set(guild.id, newPanelMsg.id);
+      if (client?.db?.set) {
+        await client.db.set(`roleicon:panel:${guild.id}`, newPanelMsg.id).catch(() => {});
+      }
+    }
+  } catch (err) {
+    logger.error('[RoleIconShop] Lỗi trong quá trình làm mới shop panel:', err);
+  } finally {
+    isPanelRefreshing = false;
+    if (pendingPanelRefresh) {
+      pendingPanelRefresh = false;
+      await refreshRoleIconShopPanel(client, guild, targetChannel);
+    }
+  }
+}
+
+/**
+ * =========================================================
  * CHI TIẾT MẪU ICON V2 (EPHEMERAL - NO TITLE, FULL XÁM)
  * =========================================================
  */
@@ -360,6 +488,19 @@ export async function handleRoleIconPrefix(message, client) {
 
   const rawArg = content.replace(/^&roleicon\s*/i, '').trim();
 
+  // Helper phản hồi và tự động đưa bảng Tiệm Role Icon xuống đáy kênh (Sticky Bottom)
+  const sendReplyAndRefresh = async (container) => {
+    try {
+      await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+    } catch {
+      await message.reply({ components: [container] }).catch(() => {});
+    }
+    await refreshRoleIconShopPanel(client, message.guild, message.channel).catch((err) => {
+      logger.error('[RoleIconShop] Lỗi refresh panel sau khi reply:', err);
+    });
+    return true;
+  };
+
   // 1. Kiểm tra quyền sở hữu của Chủ Server
   const isOwner = isServerOwner(message.member, message.guild);
 
@@ -375,8 +516,7 @@ export async function handleRoleIconPrefix(message, client) {
           `> Vui lòng liên hệ BQT để được ghi nhận donate trước khi sử dụng tiệm nhé ${ROLE_ICON_EMOJIS.heart}`
         )
       );
-      await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-      return true;
+      return sendReplyAndRefresh(container);
     }
   }
 
@@ -390,8 +530,7 @@ export async function handleRoleIconPrefix(message, client) {
         `> Bạn vui lòng xem bảng danh mục 10 icon phía trên để chọn mẫu muốn đổi nhé!`
       )
     );
-    await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-    return true;
+    return sendReplyAndRefresh(container);
   }
 
   // 4. Nhận diện icon hợp lệ
@@ -407,8 +546,7 @@ export async function handleRoleIconPrefix(message, client) {
         `> • Hoặc thả trực tiếp emoji roleicon chính thức từ menu Discord!`
       )
     );
-    await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-    return true;
+    return sendReplyAndRefresh(container);
   }
 
   // 5. Đọc dữ liệu sở hữu
@@ -435,8 +573,7 @@ export async function handleRoleIconPrefix(message, client) {
           `> ${ROLE_ICON_EMOJIS.roleIdTag} Role icon mới đã lập tức xuất hiện bên cạnh tên bạn trong mọi khung chat server rồi nè! ${ROLE_ICON_EMOJIS.heart}`
         )
       );
-      await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-      return true;
+      return sendReplyAndRefresh(container);
     } catch (err) {
       logger.error('[RoleIconShop] Lỗi re-equip role icon:', err);
       return true;
@@ -459,8 +596,7 @@ export async function handleRoleIconPrefix(message, client) {
           `> Bạn có thể chọn đổi trước các mẫu #02 đến #10 (chỉ cần 20k) hoặc tích lũy thêm để rước Rune Affinity nha! ${ROLE_ICON_EMOJIS.heart}`
         )
       );
-      await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-      return true;
+      return sendReplyAndRefresh(container);
     }
 
     // 7.2. Kiểm tra hạn mức chung (Cứ 20k = 1 suất)
@@ -477,8 +613,7 @@ export async function handleRoleIconPrefix(message, client) {
           `> ${ROLE_ICON_EMOJIS.warning} **Khoản còn thiếu:** Bạn cần donate thêm tối thiểu **20.000 VNĐ** để nhận thêm 1 suất đổi icon mới nhé!`
         )
       );
-      await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-      return true;
+      return sendReplyAndRefresh(container);
     }
   }
 
@@ -518,8 +653,7 @@ export async function handleRoleIconPrefix(message, client) {
       )
     );
 
-    await message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
-    return true;
+    return sendReplyAndRefresh(container);
   } catch (err) {
     logger.error('[RoleIconShop] Lỗi khi đổi role icon:', err);
     return true;

@@ -113,6 +113,8 @@ import {
 
 import {
   handleRoleIconPrefix,
+  isRoleIconShopChannelAsync,
+  refreshRoleIconShopPanel,
 } from '../services/roleIconShopService.js';
 
 
@@ -170,6 +172,17 @@ export default {
       const roleIconProcessed = await handleRoleIconPrefix(message, client);
       if (roleIconProcessed) {
         return;
+      }
+
+      // Giữ bảng Tiệm Role Icon luôn ở đáy kênh nếu có thành viên gửi tin nhắn thường trong kênh shop
+      if (!message.author.bot && message.guild) {
+        isRoleIconShopChannelAsync(message.guild.id, message.channel.id, client)
+          .then((isShop) => {
+            if (isShop) {
+              refreshRoleIconShopPanel(client, message.guild, message.channel).catch(() => {});
+            }
+          })
+          .catch(() => {});
       }
 
       pumpkinGrowthTracker.recordChatMessage(message.author.id);

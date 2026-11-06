@@ -1,6 +1,10 @@
 import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
-import { buildMainShopContainer, backfillDonorRoles, initRoleIconStorage } from '../../services/roleIconShopService.js';
-import { ROLE_ICON_DONOR_ROLE_ID } from '../../config/roleIconShopConfig.js';
+import {
+  refreshRoleIconShopPanel,
+  backfillDonorRoles,
+  initRoleIconStorage,
+} from '../../services/roleIconShopService.js';
+import { ROLE_ICON_DONOR_ROLE_ID, ROLE_ICON_EMOJIS } from '../../config/roleIconShopConfig.js';
 import { logger } from '../../utils/logger.js';
 
 export default {
@@ -27,12 +31,8 @@ export default {
 
       const targetChannel = interaction.options.getChannel('kenh') || interaction.channel;
 
-      // 1. Dựng và gửi Container V2
-      const shopContainer = buildMainShopContainer();
-      await targetChannel.send({
-        components: [shopContainer],
-        flags: MessageFlags.IsComponentsV2,
-      });
+      // 1. Dựng và gửi Container V2 (tự động dọn dẹp panel cũ và ghim ở cuối kênh)
+      await refreshRoleIconShopPanel(client, interaction.guild, targetChannel);
 
       // 2. Chạy cấp bù tự động cho các thành viên từng donate
       const backfillResult = await backfillDonorRoles(interaction.guild, client);
@@ -40,6 +40,7 @@ export default {
       return interaction.editReply({
         content:
           `✅ Em bot Usagi múp rụp đã thiết lập bảng **Tiệm Role Icon Usagi** tại kênh <#${targetChannel.id}> thành công rực rỡ rồi nè vợ của Kim Nong ơi! ${ROLE_ICON_EMOJIS.heart}✨\n` +
+          `> 📌 **Cơ chế tự động:** Bảng shop sẽ luôn tự động dọn dẹp và xuất hiện ở vị trí tin nhắn cuối cùng của kênh mỗi khi có ai đặt role xong!\n` +
           `> 🔄 **Cấp bù Role Đặc Quyền:** Đã rà soát dữ liệu và cấp bù cho **${backfillResult.synced} / ${backfillResult.total}** nhà hảo tâm đã từng donate trước đây để mở khóa kênh <#${targetChannel.id}>!\n` +
           `> ${ROLE_ICON_EMOJIS.crown} **Role ID Đặc Quyền:** <@&${ROLE_ICON_DONOR_ROLE_ID}>`,
       });
