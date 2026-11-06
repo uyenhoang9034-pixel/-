@@ -228,7 +228,7 @@ export function buildDetailEphemeral(iconId, member) {
   );
 
   const crownText = item.isSpecial ? `${ROLE_ICON_EMOJIS.crown} ` : '';
-  const priceDesc = item.isSpecial ? '👑 Tích lũy tối thiểu **100.000 VNĐ**' : '💎 Tích lũy **20.000 VNĐ** (1 suất)';
+  const priceDesc = item.isSpecial ? `${ROLE_ICON_EMOJIS.crown} Tích lũy tối thiểu **100.000 VNĐ**` : '💎 Tích lũy **20.000 VNĐ** (1 suất)';
 
   const lines = [
     `> ${crownText}**Mẫu #${item.padId}: ${item.name}** ──── [${priceDesc}]`,
@@ -294,7 +294,16 @@ export async function buildWardrobeContainer(member, guild, client) {
   const container = new ContainerBuilder();
   const isOwner = isServerOwner(member, guild);
   const ownership = await getUserOwnership(guild.id, member.id, client);
-  const totalDonated = isOwner ? 99999999 : await getPersonalTotal(client, guild.id, member.id);
+  let totalDonated = 0;
+  if (isOwner) {
+    totalDonated = 99999999;
+  } else {
+    try {
+      totalDonated = await getPersonalTotal(client, guild.id, member.id);
+    } catch {
+      totalDonated = 0;
+    }
+  }
 
   const quota = Math.floor(totalDonated / 20000);
   const ownedCount = ownership.owned_icons.length;
@@ -316,8 +325,8 @@ export async function buildWardrobeContainer(member, guild, client) {
       : '> *(Hiện tại bạn chưa sở hữu mẫu icon nào trong kho)*';
 
   const donateInfo = isOwner
-    ? `👑 **Tài khoản:** Chủ Server *(Toàn quyền sử dụng mọi icon để kiểm tra)*`
-    : `💰 **Đã donate:** **${formatMoney(totalDonated)}**\n📦 **Hạn mức:** Đã dùng **${ownedCount} / ${quota} suất** (Còn dư **${remaining} suất**)`;
+    ? `${ROLE_ICON_EMOJIS.account} **Tài khoản:** Chủ Server *(Toàn quyền sử dụng mọi icon để kiểm tra)*`
+    : `${ROLE_ICON_EMOJIS.account} **Tài khoản:** <@${member.id}>\n${ROLE_ICON_EMOJIS.bullet} **Đã donate:** **${formatMoney(totalDonated)}**\n${ROLE_ICON_EMOJIS.bullet} **Hạn mức:** Đã dùng **${ownedCount} / ${quota} suất** (Còn dư **${remaining} suất**)`;
 
   const lines = [
     `### ${ROLE_ICON_EMOJIS.usagi} **TỦ ROLE ICON CỦA BẠN**`,
@@ -494,7 +503,7 @@ export async function handleRoleIconPrefix(message, client) {
         excessNote += `\n> 🪙 **Số tiền dư tích lũy lẻ:** **${formatMoney(excessMoney)}** (được bảo lưu cộng dồn cho lần sau).`;
       }
     } else {
-      excessNote = `\n> 👑 *(Đặc quyền Chủ Server: Miễn phí kiểm tra & test toàn bộ tính năng)*`;
+      excessNote = `\n> ${ROLE_ICON_EMOJIS.crown} *(Đặc quyền Chủ Server: Miễn phí kiểm tra & test toàn bộ tính năng)*`;
     }
 
     const container = new ContainerBuilder();

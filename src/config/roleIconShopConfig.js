@@ -19,6 +19,7 @@ export const ROLE_ICON_EMOJIS = {
   error: '<a:bang3:1546891744237461635>',
   info: '<a:trangtrig2:1546040703375904801>',
   usagi: '<:usagi9:1541422359960092813>',
+  account: '<a:trangtrig59:1567821308077539341>',
 };
 
 export const ROLE_ICON_ITEMS = [
