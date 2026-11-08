@@ -30,7 +30,7 @@ export const CONFESSION = {
   reviewerRoleId: '1545295139390619768',
   color: 0xfceec9,
   emojiMain: '<a:trangtrig30:1546905942476464178>',
-  emojiMode: '<a:trangtrig47:1547249293944029308>',
+  emojiMode: '<a:trangtrig30:1546905942476464178>',
   emojiFollow: '<a:trangtrig1:1546040442548654140>',
   emojiApproved: '<a:trangtrig31:1546905996893626440>',
   emojiHeart: '<a:heartg3:1546047728314884226>',

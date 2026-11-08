@@ -65,15 +65,15 @@ export default {
   const embed=new EmbedBuilder().setColor(CONFESSION.color).setDescription(
    '<a:trangtrig2:1546040703375904801> **𝓤𝓼𝓪𝓰𝓲 𝓒𝓸𝓷𝓯𝓮𝓼𝓼𝓲𝓸𝓷** <a:trangtrig3:1546040818261954610>\n\n'+
    'Chọn một trong hai nút bên dưới để gửi confession.\nConfession của bạn sẽ được gửi đến Ban Quản Lý để duyệt trước khi xuất hiện.\n\n'+
-   '<a:trangtrig47:1547249293944029308> **Ẩn danh**\nTên và tài khoản Discord của bạn sẽ không được hiển thị khi confession được đăng.\n'+
-   '<a:trangtrig47:1547249293944029308> **Public**\nTên của bạn sẽ được hiển thị cùng confession sau khi được duyệt.\n\n'+
-   '<a:heartg6:1546906117551030382> *Bot sẽ gửi tin nhắn riêng cho bạn khi confession được duyệt hoặc từ chối.*\n'+
-   '<a:heartg6:1546906117551030382> *Nếu gặp bất cứ vấn đề gì liên quan đến cfs, vui lòng tag <@872792190651334707> để được giải quyết nhanh chóng. Xin cảm ơn!*'
+   '<a:trangtrig30:1546905942476464178> **Ẩn danh**\nTên và tài khoản Discord của bạn sẽ không được hiển thị khi confession được đăng.\n'+
+   '<a:trangtrig30:1546905942476464178> **Public**\nTên của bạn sẽ được hiển thị cùng confession sau khi được duyệt.\n\n'+
+   '<a:heartg1:1545307544808071258> Bot sẽ gửi tin nhắn riêng cho bạn khi confession được duyệt hoặc từ chối.\n'+
+   '<a:heartg1:1545307544808071258> Nếu gặp bất cứ vấn đề gì liên quan đến cfs, vui lòng tag <@872792190651334707> để được giải quyết nhanh chóng. Xin cảm ơn!'
   );
   const files = applyConfessionImage(embed);
   const row=new ActionRowBuilder().addComponents(
-   new ButtonBuilder().setCustomId('confession_open_anonymous').setLabel('Ẩn danh').setEmoji('1547249293944029308').setStyle(ButtonStyle.Secondary),
-   new ButtonBuilder().setCustomId('confession_open_public').setLabel('Public').setEmoji('1547249293944029308').setStyle(ButtonStyle.Success)
+   new ButtonBuilder().setCustomId('confession_open_anonymous').setLabel('Ẩn danh').setEmoji('1546905942476464178').setStyle(ButtonStyle.Secondary),
+   new ButtonBuilder().setCustomId('confession_open_public').setLabel('Public').setEmoji('1546905942476464178').setStyle(ButtonStyle.Secondary)
   );
 
   const thread=await forum.threads.create({
