@@ -1,191 +1,100 @@
-# 🐰 Usagi Bot - Ultimate Community Discord Bot
+# 🐰 Usagi Bot — Discord Bot Quản Trị & Giải Trí Độc Quyền
 
 <div align="center">
 
-![Discord.js](https://img.shields.io/npm/v/discord.js?style=flat-square&labelColor=%23202225&color=%235865F2&logo=discord&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-20+-43853D?style=flat-square&logo=node.js&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
+[![Discord Server](https://img.shields.io/badge/Discord-Gia%20%C4%90%C3%ACnh%20Usagi-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/6HpRCSVj5D)
+[![Discord.js](https://img.shields.io/badge/Discord.js-v14%20Components%20V2-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.js.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Status](https://img.shields.io/badge/Status-Private%20Bot-red?style=for-the-badge)](#)
 
-**Usagi Bot** là bot Discord đa chức năng mạnh mẽ, hiện đại, được xây dựng trên nền tảng **Discord.js v14** kết hợp chuẩn giao diện **Discord Components V2** và cơ sở dữ liệu **PostgreSQL** tối ưu hóa hiệu năng cao.
+**Usagi Bot** là bot Discord độc quyền phục vụ quản trị và các hoạt động giải trí, tương tác tại máy chủ **[Gia Đình Usagi](https://discord.gg/6HpRCSVj5D)**.
 
 </div>
 
 ---
 
-## 📑 Mục Lục
-- [Tính Năng Nổi Bật](#-tính-năng-nổi-bật)
-- [Cài Đặt & Khởi Chạy](#-cài-đặt--khởi-chạy)
-  - [Chạy bằng Docker (Khuyên Dùng)](#chạy-bằng-docker)
-  - [Chạy thủ công với Node.js](#chạy-thủ-công-với-nodejs)
-- [Cấu Hình Môi Trường (.env)](#-cấu-hình-môi-trường-env)
-- [Yêu Cầu Intents & Permissions](#-yêu-cầu-intents--permissions)
-- [Bảo Mật & Đóng Góp](#-bảo-mật--đóng-góp)
+## 📌 Giới Thiệu & Bản Quyền
+
+- **Chủ sở hữu & Quản trị**: Bot thuộc quyền sở hữu, sử dụng và quản lý của **Hoàng Uyên (Em Chanh)**.
+- **Mục đích lưu trữ**: Kho mã nguồn này được duy trì cho mục đích quản lý và vận hành cá nhân cho server riêng. **Chủ sở hữu không có nhu cầu code bot hộ, không nhận yêu cầu hỗ trợ kỹ thuật bên ngoài và không có nhu cầu chia sẻ mã nguồn cho bên thứ ba.**
+- **Nguồn gốc ý tưởng (Credits)**: Dự án được tùy biến, phát triển và lấy ý tưởng từ nền tảng **Titan Bot** của tác giả gốc đã tạo ra repository ban đầu và chia sẻ.
 
 ---
 
-## ✨ Tính Năng Nổi Bật
+## ✨ Các Tính Năng Nổi Bật
 
-### 🌸 Hệ Thống Server Boost
-- **Thông báo vinh danh V2**: Giao diện Container Components V2 thiết kế riêng, hiển thị số boost hiện tại và cấp độ server.
-- **Tự động cấp & thu hồi role TỶ PHÚ**: Trao quyền lợi độc quyền ngay khi thành viên boost server và tự động thu hồi khi hết hạn.
-- **Boost Dashboard trực quan**: Quản lý kênh thông báo, chỉnh sửa nội dung, test thông báo qua `/boost testboost` và `/boost setup`.
+### 🌸 Hệ Thống Server Boost (Components V2)
+- Thông báo vinh danh thành viên boost server với giao diện **Discord Components V2** tinh giản, không viền màu.
+- Tự động gán role **TỶ PHÚ** độc quyền khi boost và tự động thu hồi khi hết hạn.
+- Hỗ trợ bảng điều khiển cấu hình và lệnh test thông báo boost.
 
-### 🎂 Hệ Thống Sinh Nhật (Birthday System)
-- **Giao diện Components V2**: Thông báo sinh nhật xinh xắn với hình ảnh Usagi độc quyền.
-- **Tự động quét hàng ngày**: Gửi lời chúc vào đúng 00:00 (Giờ Việt Nam - GMT+7).
-- **Tính tuổi & trao Role**: Tự động tính số tuổi hiện tại và cấp role chúc mừng sinh nhật trong ngày.
-- **Lệnh quản lý**: `/birthday set`, `/birthday list`, `/birthday send` (gửi thủ công/gửi bù).
+### 🎂 Hệ Thống Sinh Nhật Tự Động (Components V2)
+- Tự động gửi lời chúc mừng sinh nhật vào đúng **00:00** hằng ngày (giờ Việt Nam GMT+7).
+- Giao diện Components V2 xinh xắn kèm hình ảnh Usagi dễ thương, tự động tính tuổi và trao role chúc mừng sinh nhật trong ngày.
+- Lệnh quản lý ngày sinh và gửi thông báo bù thủ công linh hoạt.
 
-### 🔞 Kênh Riêng Tư & Xác Nhận 18+ (Private Verification)
-- **Chuẩn giao diện V2**: Bảng quy tắc `#xác-nhận-tuổi` với nút bấm màu xám chuẩn Discord.
-- **Liên kết tuổi tự động**: Tự động đối soát với ngày sinh trong hệ thống Birthday để đảm bảo thành viên đủ 18 tuổi.
-- **Tự động cấp quyền**: Phân quyền mở khóa kênh trò chuyện riêng tư chỉ với một lần xác nhận duy nhất.
+### 🔞 Xác Nhận Độ Tuổi 18+ (Tâm Sự Vùng Kín)
+- Bảng nội quy `#xác-nhận-tuổi` chuẩn giao diện V2 với nút bấm màu xám bảo mật.
+- Xác nhận một lần duy nhất để mở khóa không gian trò chuyện nhạy cảm và riêng tư.
 
-### 🛍️ Tiệm Role Icon Usagi (Role Icon Shop)
-- **Sticky Bottom Panel**: Bảng menu tự động ghim cố định ở đáy kênh shop.
-- **Menu chọn Role Icon đa dạng**: Phân cấp và bảng giá rõ ràng.
-- **Tủ Đồ Role Icon (Wardrobe)**: Giao diện xem trước, trang bị và gỡ bỏ icon cá nhân tiện lợi.
-- **Tích hợp SePay Webhook**: Tự động nhận diện thanh toán ngân hàng và cập nhật số dư cho thành viên.
+### 🏰 Witch Hunter — Thế Giới Phù Thủy & Thợ Săn RPG
+- **Bảng Ký Kết Khế Ước Chọn Phe**: Giao diện V2 hiện đại với 2 nút xám chọn phe Thợ Săn hoặc Phù Thủy.
+- **Nghi Thức Thắp Nến Cầu Nguyện Hằng Ngày**: Giao diện V2, tích lũy điểm Bí Ngô và tỷ lệ nổ hũ Trăng Máu.
+- **Thí Luyện Cuối Tuần: Giải Mã Cổ Ngữ**: Giao diện V2, bốc câu hỏi trắc nghiệm ẩn nhận thưởng Bí Ngô.
+- Hệ thống thám hiểm (Expedition), đấu phép (Duel), chợ đen (Black Market) và săn Boss thế giới.
 
-### 🏰 Witch Hunter (Thợ Săn Phù Thủy RPG)
-- **Hệ thống phe phái**: Chọn phe Phù Thủy hoặc Thợ Săn với bộ kỹ năng riêng.
-- **Đấu phép (Duel) & Thám hiểm (Expedition)**: Tranh tài kỹ năng, thu thập vật phẩm và nguyên liệu hiếm.
-- **Giải mã & Bí ngô**: Sự kiện hàng tuần, cược tài lộc, Boss thế giới (World Boss).
-- **Chợ đen (Black Market) & Tiền thưởng (Bounty)**: Giao dịch và săn lùng mục tiêu nhận thưởng.
+### 🛍️ Tiệm Role Icon & Tủ Đồ (Wardrobe)
+- Menu sticky ghim cố định ở đáy kênh shop, tự động làm mới vị trí.
+- Giao diện Tủ Đồ cá nhân giúp thành viên dễ dàng xem trước, trang bị hoặc gỡ bỏ role icon bất cứ lúc nào.
 
 ### 🎫 Hệ Thống Ticket Hỗ Trợ
-- **Giao diện Container V2**: Tạo ticket nhanh chóng, tự động phân loại phòng hỗ trợ.
-- **Quản lý Staff**: Claim ticket, phân quyền hỗ trợ viên, giới hạn số ticket chống spam.
-- **Transcript & Đánh giá**: Lưu trữ lịch sử chat hoàn chỉnh, gửi biểu mẫu đánh giá chất lượng phục vụ sau khi đóng.
-
-### 🛡️ Quản Trị Server (Moderation)
-- **Bộ công cụ xử lý vi phạm**: `/ban`, `/kick`, `/warn`, `/purge`, `/lock`, `/cases`.
-- **Tự đổi biệt danh (Set Nickname Panel)**: Bảng tự phục vụ cho thành viên đổi biệt danh theo định dạng server.
-- **Role phản ứng (Reaction Roles)**: Tự nhận vai trò qua nút bấm và select menu.
+- Giao diện tạo ticket tương tác trực quan, phân quyền hỗ trợ viên rõ ràng.
+- Tự động lưu trữ lịch sử tin nhắn (transcript) phục vụ quản lý nội bộ.
 
 ### 🔊 Auto Voice (Join to Create)
-- Tự động tạo kênh Voice tạm thời khi thành viên vào phòng chờ.
-- Bảng điều khiển tương tác trực tiếp (đổi tên phòng, khóa/mở, ẩn/hiện, giới hạn slot, kick thành viên).
-- Tự động dọn dẹp phòng khi không còn người sử dụng.
+- Tự động tạo kênh đàm thoại tạm thời khi thành viên vào phòng chờ.
+- Bảng điều khiển trực tiếp cho phép chủ phòng đổi tên, khóa/mở, ẩn/hiện, kick và giới hạn slot phòng.
+- Tự động dọn dẹp phòng trống khi không còn ai sử dụng.
 
-### 🎵 Âm Nhạc 24/7 (Music System)
-- Hỗ trợ Lavalink v4 và thư viện Riffy hiệu năng cao.
-- Phát nhạc từ YouTube, Spotify, Soundcloud, Deezer với chất lượng ổn định.
-- Bảng điều khiển phát nhạc bằng nút bấm (Pause, Resume, Skip, Queue, Volume).
-
-### 📊 Leveling & Bảng Xếp Hạng
-- Tích lũy điểm kinh nghiệm qua tin nhắn văn bản và thời gian đàm thoại voice chat.
-- Bảng xếp hạng cấp độ, bảng xếp hạng nạp thẻ (bxhdonate).
-- Tự động gán role danh hiệu khi đạt cấp độ tương ứng.
+### 🛡️ Quản Trị Server & Tiện Ích
+- Bộ lệnh kiểm duyệt và xử lý vi phạm server.
+- Bảng tự đổi biệt danh thành viên theo cú pháp quy định của server.
+- Bảng xếp hạng cấp độ, bảng xếp hạng đóng góp (donate).
 
 ---
 
-## 🚀 Cài Đặt & Khởi Chạy
+## 🛠️ Vận Hành Cơ Bản (Dành Cho Chủ Sở Hữu)
 
-### Chạy bằng Docker (Khuyên Dùng)
-
-Usagi Bot được đóng gói container đầy đủ kèm theo cơ sở dữ liệu PostgreSQL:
-
-1. **Clone mã nguồn:**
-   ```bash
-   git clone https://github.com/uyenhoang9034-pixel/-.git UsagiBot
-   cd UsagiBot
-   ```
-
-2. **Cấu hình môi trường:**
-   ```bash
-   cp .env.example .env
-   ```
-   Điền ít nhất `DISCORD_TOKEN`, `CLIENT_ID`, và `GUILD_ID` trong file `.env`.
-
-3. **Khởi chạy container:**
-   ```bash
-   docker compose up -d --build
-   ```
-
-4. **Kiểm tra trạng thái:**
-   ```bash
-   docker compose ps
-   curl http://localhost:3000/health
-   ```
-
----
-
-### Chạy thủ công với Node.js
-
-#### Yêu cầu hệ thống:
-- **Node.js**: Phiên bản 20.10.0 trở lên.
+### Yêu cầu hệ thống:
+- **Node.js**: Phiên bản 20 trở lên.
 - **PostgreSQL**: Phiên bản 15 trở lên.
 
-1. **Cài đặt thư viện phụ thuộc:**
-   ```bash
-   npm install
-   ```
+### Khởi động nhanh:
+```bash
+# 1. Cài đặt các thư viện
+npm install
 
-2. **Cấu hình database & biến môi trường:**
-   ```bash
-   cp .env.example .env
-   ```
+# 2. Cấu hình file môi trường (.env)
+cp .env.example .env
 
-3. **Kiểm tra và khởi chạy migration:**
-   ```bash
-   npm run migrate:check
-   npm run migrate
-   ```
+# 3. Chạy kiểm tra database migration
+npm run migrate:check
 
-4. **Khởi động Bot:**
-   ```bash
-   npm start
-   ```
-
----
-
-## ⚙️ Cấu Hình Môi Trường (.env)
-
-```env
-# Discord Bot
-DISCORD_TOKEN=your_bot_token_here
-CLIENT_ID=your_client_id_here
-GUILD_ID=your_guild_id_here
-
-# PostgreSQL Database
-POSTGRES_URL=postgresql://postgres:password@localhost:5432/usagibot
-POSTGRES_DB=usagibot
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
-POSTGRES_SSL=false
-
-# Web & Webhook Server
-PORT=3000
-WEB_HOST=0.0.0.0
-NODE_ENV=production
-LOG_LEVEL=warn
+# 4. Khởi động bot
+npm start
 ```
 
 ---
 
-## 🔑 Yêu Cầu Intents & Permissions
+## 💬 Kết Nối & Trải Nghiệm
 
-### Gateway Intents
-- **Guilds**
-- **Guild Members** *(Privileged)*
-- **Guild Messages**
-- **Message Content** *(Privileged)*
-- **Guild Message Reactions**
-- **Guild Voice States**
-- **Direct Messages**
-
-### Bot Permissions
-- Administrator *(hoặc tối thiểu: Manage Server, Manage Roles, Manage Channels, Kick/Ban Members, Send Messages, Embed Links, Attach Files, Read Message History)*
+Mọi hoạt động và trải nghiệm thực tế của bot đều diễn ra tại máy chủ chính thức:
+👉 **Tham gia máy chủ Discord:** **[https://discord.gg/6HpRCSVj5D](https://discord.gg/6HpRCSVj5D)**
 
 ---
 
-## 📄 License
-Phát hành theo giấy phép [MIT License](LICENSE).
-
 <div align="center">
 
-Dự án được bảo trì và phát triển bởi **Hoàng Uyên (Em Chanh)**.
+*Usagi Bot — Thiết kế riêng và đồng hành cùng Gia Đình Usagi.*
 
 </div>

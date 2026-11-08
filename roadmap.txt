@@ -1,59 +1,37 @@
-Usagi Bot Roadmap / Structure Overview
+Sơ Đồ Cấu Trúc Mã Nguồn (Codebase Overview) — Usagi Bot
 
-Goal
-- Keep this as a practical map of the codebase.
-- Show main folders and important files only (not every file).
+Mục Đích:
+- Lưu trữ sơ đồ tổng quan và cấu trúc thư mục của Usagi Bot để tra cứu khi cần.
+- Máy chủ chính thức: https://discord.gg/6HpRCSVj5D
 
-Root
-- index.js                    -> process entry point
-- package.json                -> scripts, dependencies, project metadata
-- README.md                   -> setup and usage docs
-- SECURITY.md                 -> security policy
-- scripts/                    -> utility/maintenance scripts (backup, restore, migrate)
-- logs/                       -> runtime log output
-- src/                        -> main bot application code
-- tests/                      -> unit tests (run via npm test)
+Thư Mục Gốc (Root):
+- index.js                    -> Điểm khởi chạy tiến trình chính của bot
+- package.json                -> Danh sách thư viện phụ thuộc và scripts chạy bot
+- README.md                   -> Tài liệu giới thiệu bot và hướng dẫn vận hành cơ bản
+- CONTRIBUTING.md             -> Thông báo về quyền sở hữu và chính sách đóng góp
+- SECURITY.md                 -> Chính sách bảo mật dự án
+- scripts/                    -> Các công cụ bảo trì (backup, restore, migrate database)
+- logs/                       -> Nhật ký hoạt động của bot
+- src/                        -> Toàn bộ mã nguồn cốt lõi của Usagi Bot
 
-src/
-- app.js                      -> creates client, initializes systems, starts web server
+Thư Mục src/:
+- app.js                      -> Khởi tạo Discord Client, thiết lập presence, cron jobs và web server
+- commands/                   -> Danh mục các lệnh Slash Command theo từng module:
+  - Birthday/                 -> Hệ thống chúc mừng sinh nhật tự động V2
+  - Core/                     -> Các lệnh cơ bản: ping, stats, uptime, help
+  - Leveling/                 -> Hệ thống cấp độ, Witch Hunter RPG (chọn phe, thắp nến, giải mã V2)
+  - Moderation/               -> Bộ lệnh quản trị máy chủ (ban, kick, warn, lock, mute)
+  - Ticket/                   -> Hệ thống vé hỗ trợ V2
+  - JoinToCreate/             -> Tạo và quản lý phòng Voice tạm thời tự động
+  - Reaction_roles/           -> Gán role tự động qua nút bấm
+  - Economy/, Giveaway/, Tools/, Utility/, Welcome/
+- config/                     -> Cấu hình tập trung (bot.js, witchHunterConfig.js,...)
+- events/                     -> Các bộ lắng nghe sự kiện Discord (ready, interactionCreate, messageCreate,...)
+- handlers/                   -> Điều phối tương tác nút bấm, select menu, modal popup
+- interactions/               -> Logic xử lý chi tiết cho từng nút bấm / modal
+- services/                   -> Logic nghiệp vụ chính và thao tác cơ sở dữ liệu
+- utils/                      -> Tiện ích dùng chung (database wrapper, logger, errorHandler,...)
 
-- commands/                   -> slash command categories by feature
-  - Core/                     -> help, ping, stats, uptime, invite
-  - Community/                -> application management + dashboards
-  - Logging/                  -> audit logging + event management
-    - modules/logging_dashboard.js
-    - modules/logging_setchannel.js
-  - Ticket/                   -> support ticket system + dashboard
-  - ServerStats/              -> server stats channel system
-  - Economy/                  -> economy system
-  - Moderation/               -> moderation/admin commands
-  - Verification/             -> member verification flow
-  - JoinToCreate/             -> dynamic voice channel creation
-  - Reaction_roles/           -> automatic role assignment
-  - Birthday/, Fun/, Giveaway/, Leveling/, Search/, Tools/, Utility/, Welcome/
-
-- config/                     -> centralized configuration modules
-- events/                     -> Discord event listeners
-- handlers/                   -> interaction routing and component handlers
-  - commandLoader.js          -> loads slash commands at startup
-  - events.js                 -> Discord event listener registration
-  - interactions.js           -> button/select/modal router
-  - ticketButtons.js, reactionRoles.js, etc.
-
-- interactions/               -> button, modal, and select menu handlers
-- services/                   -> business logic + data operations
-- utils/                      -> shared helpers
-  - database.js               -> facade re-exporting database modules
-  - database/wrapper.js       -> DatabaseWrapper, get/set helpers
-  - database/keys.js          -> Redis-style key builders
-  - database/tickets.js       -> ticket persistence + guild ticket stats
-  - panelStatus.js            -> shared panel message detection
-  - errorHandler.js, logger.js, embeds.js, etc.
-
-Database
-- PostgreSQL (primary) with in-memory fallback for development
-- Graceful degradation when PostgreSQL is unavailable
-
-Notes
-- Modular by feature area: commands -> handlers -> services -> utils
-- bot.js is the single source of truth for embed theming/colors and core bot config
+Cơ Sở Dữ Liệu:
+- PostgreSQL (chính thức) kèm cơ chế in-memory fallback khi cần phát triển cục bộ.
+- Dự án được tùy biến từ nền tảng Titan Bot phục vụ riêng cho máy chủ Gia Đình Usagi.
