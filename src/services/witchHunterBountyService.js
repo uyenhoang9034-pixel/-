@@ -6,6 +6,12 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
   MessageFlags,
 } from 'discord.js';
 import {
@@ -123,6 +129,25 @@ class WitchHunterBountyService {
     }
   }
 
+  isBountyMessage(msg, clientUserId) {
+    if (msg.author.id !== clientUserId) return false;
+    if (msg.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ')) return true;
+    if (msg.content?.includes('LỆNH TRUY NÃ')) return true;
+
+    const checkComponents = (components) => {
+      if (!Array.isArray(components)) return false;
+      for (const comp of components) {
+        if (comp.customId === 'witch_hunter_bounty_hunt') return true;
+        if (comp.content && comp.content.includes('LỆNH TRUY NÃ')) return true;
+        if (comp.components && checkComponents(comp.components)) return true;
+      }
+      return false;
+    };
+
+    if (checkComponents(msg.components)) return true;
+    return false;
+  }
+
   /**
    * Tìm tin nhắn bảng truy nã hiện có trong kênh (kiểm tra cả tin ghim và tin nhắn gần đây)
    */
@@ -135,10 +160,7 @@ class WitchHunterBountyService {
       const pinned = await fetchPinsFn().catch(() => null);
       if (pinned && pinned.size > 0) {
         for (const [, msg] of pinned) {
-          if (
-            msg.author.id === clientUserId &&
-            msg.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ')
-          ) {
+          if (this.isBountyMessage(msg, clientUserId)) {
             return msg;
           }
         }
@@ -148,10 +170,7 @@ class WitchHunterBountyService {
       const recent = await channel.messages.fetch({ limit: 30 }).catch(() => null);
       if (recent && recent.size > 0) {
         for (const [, msg] of recent) {
-          if (
-            msg.author.id === clientUserId &&
-            msg.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ')
-          ) {
+          if (this.isBountyMessage(msg, clientUserId)) {
             return msg;
           }
         }
@@ -289,8 +308,7 @@ class WitchHunterBountyService {
       if (recent) {
         for (const [, m] of recent) {
           if (
-            m.author.id === clientUserId &&
-            m.embeds?.[0]?.title?.includes('LỆNH TRUY NÃ') &&
+            this.isBountyMessage(m, clientUserId) &&
             m.id !== keepMsgId
           ) {
             await m.unpin().catch(() => null);
@@ -465,11 +483,11 @@ class WitchHunterBountyService {
         await oldBoardMsg.delete().catch(() => null);
       }
 
-      // Tạo Embed và Nút bấm theo đúng mẫu giao diện duyệt
+      // Tạo Container V2 và Fallback Embed
       const targetMember = await guild.members.fetch(board.target_user_id).catch(() => null);
       const targetUser = targetMember?.user || (await guild.client.users.fetch(board.target_user_id).catch(() => null));
 
-      const embed = this.buildBountyEmbed({
+      const container = this.buildBountyContainer({
         boardKey,
         targetUser,
         targetFaction,
@@ -478,11 +496,29 @@ class WitchHunterBountyService {
 
       const buttonRow = this.createBountyButtonRow();
 
-      // Gửi tin nhắn mới và ghim lên kênh
-      const newMsg = await channel.send({
-        embeds: [embed],
-        components: [buttonRow],
+      const fallbackEmbed = this.buildBountyEmbed({
+        boardKey,
+        targetUser,
+        targetFaction,
+        board,
       });
+
+      // Gửi tin nhắn mới bằng Components V2 (fallback sang embed nếu client/kênh không hỗ trợ)
+      let newMsg = null;
+      try {
+        newMsg = await channel.send({
+          content: null,
+          embeds: [],
+          components: [container],
+          flags: MessageFlags.IsComponentsV2,
+        });
+      } catch (v2Err) {
+        logger.warn('⚠️ [WitchHunterBounty] Không thể gửi bằng Components V2, thử gửi fallback embed:', v2Err.message);
+        newMsg = await channel.send({
+          embeds: [fallbackEmbed],
+          components: [buttonRow],
+        });
+      }
 
       await newMsg.pin().catch(() => null);
       board.message_id = newMsg.id;
@@ -560,10 +596,160 @@ class WitchHunterBountyService {
   }
 
   /**
+   * Dựng Container Components V2 chuẩn xác theo yêu cầu người dùng
+   * Title -> Thumbnail -> Đường kẻ V2 -> Intro -> Đường kẻ V2 -> Mục tiêu & Trang bị -> Đường kẻ V2 -> Quy tắc -> Đường kẻ V2 -> Footer -> Nút xám
+   */
+  buildBountyContainer({ boardKey, targetUser, targetFaction, board }) {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+
+    const rankNum = board.target_rank || 1;
+    const rankLetter = RANK_LETTERS[rankNum] || 'C';
+    const rankInfo = WitchHunterService.getRankInfo(targetFaction, rankNum);
+
+    const isTargetWitch = targetFaction === 'witch';
+
+    // Trang bị hiện tại
+    const supp = WitchHunterService.getEquippedSupporter(board.target_user_id) || getSupporterByRank(targetFaction, rankNum);
+    const suppTier = supp?.rank ? RANK_LETTERS[supp.rank] : rankLetter;
+    const suppName = supp?.name || 'Chưa liên kết';
+
+    const wep = WitchHunterService.getEquippedWeapon(board.target_user_id) || getWeaponByRank(targetFaction, rankNum);
+    const wepTier = wep?.rank ? RANK_LETTERS[wep.rank] : rankLetter;
+    const wepName = wep?.name || 'Vũ khí cơ bản';
+    const wepEmoji = wep?.energyEmoji || (isTargetWitch ? '<a:whg3:1564146083372990484>' : '<:wh3:1563432304179945563>');
+
+    // Kiểm tra Cộng Hưởng Đồng Bộ Khế Ước
+    const resonance = WitchHunterService.checkResonance(board.target_user_id);
+    const resonanceLine = resonance.isResonance
+      ? `\n> <a:trangtrig6:1546043036390260756> Kích hoạt: Cộng Hưởng Đồng Bộ Khế Ước (x1.5 Bạo Kích)`
+      : '';
+
+    // Dữ liệu Bí Ngô
+    const totalBounty = board.total_bounty || board.base_bounty || 30;
+    const baseBounty = board.base_bounty || 30;
+    const bonusBounty = board.bonus_bounty || 0;
+
+    let titleText = '';
+    let intro = '';
+    let conditionLine = '';
+    let factionEmoji = '';
+
+    if (boardKey === 'hunter_board') {
+      // Treo ở kênh Hiệp Hội Thợ Săn: Truy nã Cổ Thuật Sĩ (Phù Thủy)
+      titleText = 'LỆNH TRUY NÃ CỔ THUẬT SĨ: PHÙ THỦY THA HÓA';
+      intro =
+        'Hiệp Hội Thợ Săn phát lệnh truy nã đặc biệt! Mục tiêu mang theo tà thuật hắc ám đang lẩn khuất tại ranh giới chiến trường. Hãy nhanh chóng tiêu diệt để đoạt lấy chiến công Bí Ngô!';
+      conditionLine = '> • Điều kiện: Chỉ **Thần Khí Sĩ (Thợ Săn)** mới được nhận lệnh săn mục tiêu này.';
+      factionEmoji = emojis.witchButton; // Icon phù thủy cho mục tiêu
+    } else {
+      // Treo ở kênh Nghi Thức Trăng Máu: Truy nã Thần Khí Sĩ (Thợ Săn)
+      titleText = 'LỆNH TRUY NÃ THẦN KHÍ SĨ: THỢ SĂN LƯU VONG';
+      intro =
+        'Hội Phù Thủy ban chiếu treo thưởng Huyết Nguyệt! Một Thần Khí Sĩ nguy hiểm của Hiệp Hội đang thâm nhập lãnh địa cấm kỵ. Hãy dùng ma chú phong ấn kẻ này để đoạt lấy tinh hoa Bí Ngô!';
+      conditionLine = '> • Điều kiện: Chỉ **Cổ Thuật Sĩ (Phù Thủy)** mới được nhận lệnh săn mục tiêu này.';
+      factionEmoji = emojis.hunterButton; // Icon thợ săn cho mục tiêu
+    }
+
+    const avatarUrl =
+      targetUser?.displayAvatarURL?.({ extension: 'png', dynamic: true, size: 256 }) ||
+      targetUser?.avatarURL?.({ extension: 'png', dynamic: true, size: 256 }) ||
+      'https://cdn.discordapp.com/embed/avatars/0.png';
+
+    const container = new ContainerBuilder();
+
+    // 1. Title Heading V2: # (trangtrig2) **TITLE** (trangtrig3)
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${emojis.titleLeft} **${titleText}** ${emojis.titleRight}`
+      )
+    );
+
+    // 2. Thumbnail avatar mục tiêu
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(avatarUrl)
+      )
+    );
+
+    // 3. Đường kẻ V2
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 4. Nội dung mở đầu
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(intro)
+    );
+
+    // 5. Đường kẻ V2 thay thế đường kẻ thủ công
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 6. Thông tin chi tiết mục tiêu bị truy nã
+    const targetDetails =
+      `<a:trangtrig4:1546041273813827645> **MỤC TIÊU BỊ TRUY NÃ:**\n` +
+      `> <@${board.target_user_id}> (\`${targetUser?.username || 'Unknown'}\` | ID: \`${board.target_user_id}\`)\n\n` +
+      `<a:trangtrig4:1546041273813827645> **DANH VỊ & CẤP BẬC:**\n` +
+      `> ${factionEmoji} ${rankInfo?.name || `Bậc ${rankNum}`} • **Bậc ${rankLetter}**\n\n` +
+      `<a:trangtrig4:1546041273813827645> **TRANG BỊ HIỆN TẠI:**\n` +
+      `> <a:linhtocg:1563399670351536310> Supporter: ${suppName} *Cấp ${suppTier}*\n` +
+      `> ${wepEmoji} Vũ Khí: ${wepName} *Cấp ${wepTier}*${resonanceLine}\n\n` +
+      `${emojis.pumpkin} **TIỀN THƯỞNG BÍ NGÔ HIỆN TẠI:**\n` +
+      `> ${emojis.pumpkin} **${totalBounty} Bí Ngô** (Gốc ${baseBounty} ${emojis.pumpkin} + ${bonusBounty} ${emojis.pumpkin} tích lũy sống sót)`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(targetDetails)
+    );
+
+    // 7. Đường kẻ V2 thay thế đường kẻ thủ công
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 8. Quy tắc chiến đấu
+    const rulesText =
+      `<a:knifeg1:1546058092016312381> **QUY TẮC CHIẾN ĐẤU:**\n` +
+      `${conditionLine}\n` +
+      `> • Giới hạn: Mỗi chiến binh chỉ được tham gia chiến đấu **1 lần / ngày**.\n` +
+      `> • Quy luật: Hạ gục nhận trọn vẹn **${totalBounty}** ${emojis.pumpkin}. Thất bại nhận an ủi **+2** ${emojis.pumpkin}.`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(rulesText)
+    );
+
+    // 9. Đường kẻ V2 trước footer
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 10. Footer text
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# Bảng Truy Nã Chiến Trường • Cập nhật tự động • Hôm nay lúc 00:00`
+      )
+    );
+
+    // 11. ActionRow nút bấm (Secondary xám)
+    const buttonRow = this.createBountyButtonRow();
+    container.addActionRowComponents(buttonRow);
+
+    return container;
+  }
+
+  /**
    * Dựng Embed Bảng Truy Nã chuẩn xác 100% theo giao diện người dùng yêu cầu
    */
   buildBountyEmbed({ boardKey, targetUser, targetFaction, board }) {
-    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
 
     const rankNum = board.target_rank || 1;
     const rankLetter = RANK_LETTERS[rankNum] || 'C';
@@ -637,7 +823,6 @@ class WitchHunterBountyService {
       'https://cdn.discordapp.com/embed/avatars/0.png';
 
     const embed = new EmbedBuilder()
-      .setColor(colors.pastelPurple) // Màu pastel giữ nguyên
       .setTitle(title)
       .setDescription(description)
       .setThumbnail(avatarUrl)
@@ -852,7 +1037,6 @@ class WitchHunterBountyService {
 
         // Gửi thông báo vinh danh công khai tại kênh
         const winEmbed = new EmbedBuilder()
-          .setColor(colors.pastelPurple)
           .setTitle(`${emojis.titleLeft} **TRUY NÃ THÀNH CÔNG: MỤC TIÊU ĐÃ BỊ HẠ GỤC!** ${emojis.titleRight}`)
           .setDescription(
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -880,7 +1064,6 @@ class WitchHunterBountyService {
       }).catch((err) => logger.error('❌ [WitchHunterBounty] Lỗi trao Bí Ngô an ủi:', err));
 
       const lossEmbed = new EmbedBuilder()
-        .setColor(colors.pastelPurple)
         .setTitle(`${emojis.titleLeft} **TRUY NÃ THẤT BẠI: MỤC TIÊU ĐÃ TẨU THOÁT!** ${emojis.titleRight}`)
         .setDescription(
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
