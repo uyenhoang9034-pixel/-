@@ -3,7 +3,12 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
   StringSelectMenuBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
 } from 'discord.js';
 import {
   WITCH_HUNTER_CONFIG,
@@ -32,13 +37,105 @@ function parseEmoji(emojiStr) {
 
 export class WitchHunterBlackMarketService {
   /**
-   * Tạo Embed bảng Chợ Đen công cộng cố định trong kênh
+   * Dựng Container Components V2 cho Bảng Chợ Đen Hư Không
+   */
+  static buildMainMarketContainer() {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+
+    const container = new ContainerBuilder();
+
+    // 1. Heading Title V2: # (trangtrig2) **TITLE** (trangtrig3)
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${emojis.titleLeft} **CHỢ ĐEN HƯ KHÔNG: THƯƠNG ĐÀI TRAO ĐỔI KÝ ỨC** ${emojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Giới thiệu
+    const introText =
+      `> Nơi lẩn khuất giữa vết nứt không gian của thế giới ma thuật.\n\n` +
+      `Thương hội ngầm chấp nhận đổi những Mảnh Vỡ Ký Ức <a:trangtrig46:1547240249761996812> thu thập từ Viễn Chinh Hư Không để lấy các Supporter, Vũ Khí Cấm Thuật và Danh Hiệu Hắc Ám độc quyền chưa từng xuất hiện tại Tế Đàn!`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(introText)
+    );
+
+    // 4. Đường kẻ phân cách V2
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Quy tắc thương đài
+    const rulesText =
+      `<a:trangtrig18:1546068102817775626> **QUY TẮC THƯƠNG ĐÀI:**\n` +
+      `<a:trangtrig20:1546092997299667055> Đơn vị giao dịch: Mảnh Vỡ Ký Ức <a:trangtrig46:1547240249761996812>\n` +
+      `<a:trangtrig20:1546092997299667055> Giới hạn giao dịch: Không giới hạn số lần trao đổi.\n` +
+      `<a:trangtrig20:1546092997299667055> Bảo mật tuyệt đối: Toàn bộ phiên giao dịch được thực hiện qua kết giới ẩn.\n` +
+      `<a:trangtrig20:1546092997299667055> Định mệnh phe phái: Khế ước và Vũ Khí tự động tương thích theo phe (Thợ Săn / Phù Thủy).`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(rulesText)
+    );
+
+    // 6. Đường kẻ phân cách V2
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Bảng niêm yết vật phẩm độc quyền
+    const itemsText =
+      `<a:trangtrig18:1546068102817775626> **BẢNG NIÊM YẾT VẬT PHẨM ĐỘC QUYỀN:**\n` +
+      `> • Hộp Khế Ước Supporter A-Rank: **1,000** <a:trangtrig46:1547240249761996812>   \n` +
+      `> • Hộp Khí Tài Vũ Khí A-Rank: **1,000** <a:trangtrig46:1547240249761996812> \n` +
+      `> • Hộp Khế Ước Supporter S-Rank: **2,000** <a:trangtrig46:1547240249761996812>   \n` +
+      `> • Hộp Khí Tài Vũ Khí S-Rank: **2,000** <a:trangtrig46:1547240249761996812>   \n` +
+      `> • Hộp Khế Ước Supporter SS-Rank: **9,000** <a:trangtrig46:1547240249761996812> \n` +
+      `> • Hộp Khí Tài Vũ Khí SS-Rank: **9,000** <a:trangtrig46:1547240249761996812> \n` +
+      `> • Vé Triệu Gọi Tế Đàn Miễn Phí: **100** <a:trangtrig46:1547240249761996812> \n` +
+      `> • Danh Hiệu Hắc Ám Độc Quyền Kèm Role Tương Ứng: **200** <a:trangtrig46:1547240249761996812>`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(itemsText)
+    );
+
+    // 8. Đường kẻ phân cách V2
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 9. Lời nhắc & Footer
+    const footerText =
+      `Bấm vào Menu bên dưới để bắt đầu mở phiên giao dịch bí mật!\n` +
+      `-# Witch Hunter System • Chợ Đen Hư Không`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(footerText)
+    );
+
+    // 10. Select Menu Row
+    const [menuRow] = this.createMainMarketComponents();
+    container.addActionRowComponents(menuRow);
+
+    return container;
+  }
+
+  static buildMainMarketV2Payload() {
+    return {
+      content: null,
+      embeds: [],
+      components: [this.buildMainMarketContainer()],
+      flags: MessageFlags.IsComponentsV2,
+    };
+  }
+
+  /**
+   * Tạo Embed bảng Chợ Đen công cộng cố định trong kênh (Fallback)
    */
   static buildMainMarketEmbed() {
-    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **CHỢ ĐEN HƯ KHÔNG: THƯƠNG ĐÀI TRAO ĐỔI KÝ ỨC** ${emojis.titleRight}`)
       .setDescription(
         `> Nơi lẩn khuất giữa vết nứt không gian của thế giới ma thuật. \n` +

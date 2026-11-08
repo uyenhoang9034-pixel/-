@@ -64,13 +64,18 @@ export default {
           ) || interaction.channel;
       }
 
-      const embed = WitchHunterExpeditionService.buildExpeditionDashboardEmbed();
-      const components = WitchHunterExpeditionService.createExpeditionDashboardComponents();
-
-      await targetChannel.send({
-        embeds: [embed],
-        components,
-      });
+      try {
+        const payload = WitchHunterExpeditionService.buildExpeditionDashboardV2Payload();
+        await targetChannel.send(payload);
+      } catch (v2Err) {
+        logger.warn('⚠️ [SetupExpedition] Send V2 thất bại, fallback sang Embed:', v2Err.message);
+        const embed = WitchHunterExpeditionService.buildExpeditionDashboardEmbed();
+        const components = WitchHunterExpeditionService.createExpeditionDashboardComponents();
+        await targetChannel.send({
+          embeds: [embed],
+          components,
+        });
+      }
 
       return interaction.reply({
         content: `✅ Đã thiết lập bảng **Viễn Chinh: Ranh Giới Hắc Ám** tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,

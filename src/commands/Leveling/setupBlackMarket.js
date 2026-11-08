@@ -64,13 +64,18 @@ export default {
           ) || interaction.channel;
       }
 
-      const embed = WitchHunterBlackMarketService.buildMainMarketEmbed();
-      const components = WitchHunterBlackMarketService.createMainMarketComponents();
-
-      await targetChannel.send({
-        embeds: [embed],
-        components,
-      });
+      try {
+        const payload = WitchHunterBlackMarketService.buildMainMarketV2Payload();
+        await targetChannel.send(payload);
+      } catch (v2Err) {
+        logger.warn('⚠️ [SetupBlackMarket] Send V2 thất bại, fallback sang Embed:', v2Err.message);
+        const embed = WitchHunterBlackMarketService.buildMainMarketEmbed();
+        const components = WitchHunterBlackMarketService.createMainMarketComponents();
+        await targetChannel.send({
+          embeds: [embed],
+          components,
+        });
+      }
 
       return interaction.reply({
         content: `✅ Em bot Usagi múp rụp đã thiết lập bảng **Chợ Đen Hư Không: Thương Đài Trao Đổi Ký Ức** tại kênh <#${targetChannel.id}> thành công và bảo toàn 100% dữ liệu rồi nè vợ của Kim Nong ơi! 💕`,

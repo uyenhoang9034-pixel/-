@@ -3,7 +3,12 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
   StringSelectMenuBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
 } from 'discord.js';
 import {
   WITCH_HUNTER_CONFIG,
@@ -186,15 +191,128 @@ export class WitchHunterExpeditionService {
   }
 
   /**
-   * 1. BẢNG ĐIỀU KHIỂN CỐ ĐỊNH (Dashboard Embed)
+   * Dựng Container Components V2 cho Bảng Viễn Chinh Ranh Giới Hắc Ám
+   */
+  static buildExpeditionDashboardContainer() {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+    const pumpkinEmoji = emojis?.pumpkin || '<a:bingo:1563061901800243253>';
+    const shardEmoji = emojis?.memoryShard || emojis?.decor46 || '<a:trangtrig46:1547240249761996812>';
+
+    const container = new ContainerBuilder();
+
+    // 1. Heading Title V2
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# <a:trangtrig2:1546040703375904801> **VIỄN CHINH: RANH GIỚI HẮC ÁM (IDLE EXPEDITION)** <a:trangtrig3:1546040818261954610>`
+      )
+    );
+
+    // 2. Đường kẻ sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung mở đầu
+    const introText =
+      `Nơi giao thoa giữa cõi thực và vết nứt Hư Không sâu thẳm. Hãy phái các **Supporter** đồng hành cùng Thần Binh tiến vào các vùng phế tích cổ xưa để thu thập Bí Ngô, Mảnh Ký Ức và Vé Tế Đàn!`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(introText)
+    );
+
+    // 4. Đường kẻ V2
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Quy chuẩn thám hiểm
+    const rulesText =
+      `<a:trangtrig18:1546068102817775626> **QUY CHUẨN THÁM HIỂM:**\n` +
+      `• Thời gian cố định: **3 TIẾNG** cho mỗi lượt thám hiểm.\n` +
+      `• Đặc ân Viễn Chinh: Trong lúc đi viễn chinh, Supporter VẪN THAM GIA DUEL BÌNH THƯỜNG!\n` +
+      `• Hồi phục Sinh Lực: Supporter tự động hồi phục **+10% HP sau mỗi 1 giờ** (tối đa 100%).\n` +
+      `• Cơ chế Khắc Hệ Môi Trường: Mang đúng Hệ Tộc khắc chế khu vực sẽ **rút ngắn 10% thời gian** (còn **2 giờ 42 phút**)!`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(rulesText)
+    );
+
+    // 6. Đường kẻ V2
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Danh sách 3 vùng đất nguy hiểm
+    const zonesText =
+      `<a:trangtrig18:1546068102817775626> **DANH SÁCH 3 VÙNG ĐẤT NGUY HIỂM:**\n\n` +
+      `<a:whg1:1563430946835931187> 1. VỤ GIỚI PHẾ TÍCH (Mistveil Ruins)\n` +
+      `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 50% HP**\n` +
+      `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:linhtocg:1563399670351536310> Hệ Linh Tộc\n` +
+      `> Khứu giác & linh lực xua tan sương mù ➔ Giảm 10% giờ\n` +
+      `<a:giftg1:1543150714732412948> Thành công: 2 Bí Ngô ${pumpkinEmoji} + 20 Mảnh Ký Ức ${shardEmoji}\n\n` +
+      `<a:whg1:1563430946835931187> 2. VỰC CỔ KHẮC TRO TÀN (Cinder Ash Chasm)\n` +
+      `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 50% HP**\n` +
+      `<a:bang2:1546891483250954290> Tỉ lệ thành công:\n` +
+      `> Supporter Bậc A trở lên: 80% Thành công — 20% Thất bại\n` +
+      `> Supporter Bậc B - C: 20% Thành công — 80% Thất bại\n` +
+      `> ${shardEmoji} Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
+      `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:camkhig:1563399321125134346> Hệ Cấm Khí\n` +
+      `> Cơ quan cổ kháng hỏa ngục ➔ Giảm 10% giờ\n` +
+      `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
+      `> <a:giftg1:1543150714732412948> Thành công: 5 Bí Ngô ${pumpkinEmoji} + 30 Mảnh Ký Ức ${shardEmoji}\n` +
+      `> <:wh4:1564143733690204190> Thất bại: Nhận an ủi 2 Bí Ngô ${pumpkinEmoji} & **Trừ 30% Máu Supporter**\n\n` +
+      `<a:whg1:1563430946835931187> 3. VỰC THẲM HƯ VÔ TẬN (Abyssal Oblivion)\n` +
+      `<a:bang2:1546891483250954290> Yêu cầu: Supporter **Bậc C trở lên** + Sinh lực **> 90% HP**\n` +
+      `<a:bang2:1546891483250954290> Tỉ lệ thành công:\n` +
+      `> Supporter Bậc SS: 50% Thành công — 50% Thất bại\n` +
+      `> Supporter Bậc S trở lên: 10% Thành công — 90% Thất bại\n` +
+      `> Supporter Bậc A - B - C: 1% Thành công — 99% Thất bại\n` +
+      `> ${shardEmoji} Kích hoạt Cộng Hưởng Thần Binh: **+2% Tỉ lệ Thành công**\n` +
+      `<a:trangtrig29:1546385117478527016> Khắc hệ: <a:nguyentheg:1563399515732443177> Hệ Nguyền Thể\n` +
+      `> Oán niệm tương thích Hư Không ➔ Giảm 10% giờ\n` +
+      `<a:giftg1:1543150714732412948> Thu hoạch:\n` +
+      `> <a:giftg1:1543150714732412948> Thành công: 10 Bí Ngô ${pumpkinEmoji} + 100 Mảnh Ký Ức ${shardEmoji} + 2 Vé Tế Đàn\n` +
+      `> <:wh4:1564143733690204190> Thất bại: Nhận an ủi 5 Bí Ngô ${pumpkinEmoji} & **Trừ 90% Máu Supporter**`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(zonesText)
+    );
+
+    // 8. Đường kẻ V2 trước footer
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 9. Lời nhắc & Footer
+    const footerText =
+      `<a:trangtrig13:1546047657963819048> Bấm các nút bên dưới để điều phối đội ngũ thám hiểm của bạn!\n` +
+      `-# Witch Hunter Idle Expedition System • Cổng Ranh Giới Hắc Ám`;
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(footerText)
+    );
+
+    // 10. ActionRow nút bấm (Secondary xám)
+    const [row] = this.createExpeditionDashboardComponents();
+    container.addActionRowComponents(row);
+
+    return container;
+  }
+
+  static buildExpeditionDashboardV2Payload() {
+    return {
+      content: null,
+      embeds: [],
+      components: [this.buildExpeditionDashboardContainer()],
+      flags: MessageFlags.IsComponentsV2,
+    };
+  }
+
+  /**
+   * 1. BẢNG ĐIỀU KHIỂN CỐ ĐỊNH (Dashboard Embed Fallback)
    */
   static buildExpeditionDashboardEmbed() {
-    const { colors, emojis } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
     const pumpkinEmoji = emojis?.pumpkin || '<a:bingo:1563061901800243253>';
     const shardEmoji = emojis?.memoryShard || emojis?.decor46 || '<a:trangtrig46:1547240249761996812>';
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(
         '<a:trangtrig2:1546040703375904801> **VIỄN CHINH: RANH GIỚI HẮC ÁM (IDLE EXPEDITION)** <a:trangtrig3:1546040818261954610>'
       )
