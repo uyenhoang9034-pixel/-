@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from 'discord.js';
-import { CONFESSION, getConfessionByNumber, infoEmbed, applyConfessionImage } from '../../services/confessionService.js';
+import { CONFESSION, getConfessionByNumber, infoEmbed, applyConfessionImage, buildConfessionPanelContainer, getConfessionPanelFiles } from '../../services/confessionService.js';
 
 export default {
  slashOnly:true,
@@ -62,7 +62,10 @@ export default {
   const forum=await interaction.guild.channels.fetch(CONFESSION.publicForumId);
   if(!forum||forum.type!==ChannelType.GuildForum)return interaction.editReply('❌ Kênh Confession đã cấu hình không phải Forum channel.');
 
-  const embed=new EmbedBuilder().setColor(CONFESSION.color).setDescription(
+  const container = buildConfessionPanelContainer();
+  const v2Files = getConfessionPanelFiles();
+
+  const embed=new EmbedBuilder().setDescription(
    '<a:trangtrig2:1546040703375904801> **𝓤𝓼𝓪𝓰𝓲 𝓒𝓸𝓷𝓯𝓮𝓼𝓼𝓲𝓸𝓷** <a:trangtrig3:1546040818261954610>\n\n'+
    'Chọn một trong hai nút bên dưới để gửi confession.\nConfession của bạn sẽ được gửi đến Ban Quản Lý để duyệt trước khi xuất hiện.\n\n'+
    '<a:trangtrig30:1546905942476464178> **Ẩn danh**\nTên và tài khoản Discord của bạn sẽ không được hiển thị khi confession được đăng.\n'+
@@ -76,11 +79,26 @@ export default {
    new ButtonBuilder().setCustomId('confession_open_public').setLabel('Public').setEmoji('1546905942476464178').setStyle(ButtonStyle.Secondary)
   );
 
-  const thread=await forum.threads.create({
-   name:'Usagi Confession',
-   message:{embeds:[embed],files,components:[row]},
-   reason:`Confession panel created by ${interaction.user.tag}`
-  });
+  let thread;
+  try {
+   thread = await forum.threads.create({
+    name: 'Usagi Confession',
+    message: {
+     content: null,
+     embeds: [],
+     components: [container],
+     files: v2Files,
+     flags: MessageFlags.IsComponentsV2,
+    },
+    reason: `Confession panel created by ${interaction.user.tag}`
+   });
+  } catch (v2Err) {
+   thread = await forum.threads.create({
+    name: 'Usagi Confession',
+    message: { embeds: [embed], files, components: [row] },
+    reason: `Confession panel created by ${interaction.user.tag}`
+   });
+  }
   await interaction.editReply(`✅ Đã đăng panel Usagi Confession lên Forum. Bạn có thể ghim bài này:\nhttps://discord.com/channels/${interaction.guildId}/${thread.id}`);
  }
 };

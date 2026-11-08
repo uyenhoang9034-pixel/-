@@ -9,7 +9,7 @@ export default {name:'confession_approve',async execute(interaction,client,args)
  await interaction.message.edit({content:'',embeds:[infoEmbed(d)],components:[new ActionRowBuilder().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${d.guildId}/${thread.id}`).setLabel('Đi tới bài đăng').setEmoji('1546047657963819048'))]});
  try{
   const u=await client.users.fetch(d.authorId);
-  const dmEmbed=new EmbedBuilder().setColor(CONFESSION.color).setDescription(
+  const dmEmbed=new EmbedBuilder().setDescription(
    `${CONFESSION.emojiApproved} **Confession của bạn đã được duyệt!**\n\n`+
    `${CONFESSION.emojiHeart} Confession #${d.number} đã được đăng.\n\n`+
    `**Chế độ:** ${CONFESSION.emojiMode} ${d.mode==='public'?'Public':'Ẩn danh'}`+
