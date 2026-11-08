@@ -8,6 +8,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
+import { WitchHunterService } from '../../services/witchHunterService.js';
 import { WitchHunterSummonService } from '../../services/witchHunterSummonService.js';
 import { WitchHunterExpeditionService } from '../../services/witchHunterExpeditionService.js';
 import { WitchHunterBlackMarketService } from '../../services/witchHunterBlackMarketService.js';
@@ -271,7 +272,7 @@ export default {
       // SETUP CHỌN PHE
       // ────────────────────────────────────────────────────────────
       if (subcommand === 'setup-chon-phe') {
-        const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
+        const { channels } = WITCH_HUNTER_CONFIG;
 
         const chosenChannel = interaction.options.getChannel('kenh');
         const targetChannel =
@@ -279,44 +280,15 @@ export default {
           interaction.guild.channels.cache.get(channels.selectionChannelId) ||
           interaction.channel;
 
-        const embed = new EmbedBuilder()
-          .setColor(colors.pastelPurple)
-          .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC THẾ GIỚI MA THUẬT: WITCH HUNTER** ${emojis.titleRight}`)
-          .setDescription(
-            `Vòng xoay định mệnh giữa hai thế lực ngàn năm lại một lần nữa mở ra...\n` +
-            `Trước mắt lữ khách là bản **Khế Ước Cổ Đại**. Hãy chọn 1 trong 2 phe để tham chiến và dấn thân vào con đường tranh đoạt vinh quang ma thuật!\n\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-            `<a:trangtrig36:1563065680922808340> **PHE THỢ SĂN (W.H. ASSOCIATION):**\n` +
-            `> Những chiến binh quả cảm tôi luyện ý chí sắt đá, săn lùng và phong ấn hắc ma thuật. Tích lũy chiến công Bí Ngô để từng bước thăng cấp từ **C-Rank Hunter** lên huyền thoại **SS-Rank Hunter**!\n\n` +
-            `<a:trangtrig32:1546906170994856026> **PHE PHÙ THỦY (WITCHES):**\n` +
-            `> Những bậc thầy cổ thuật bí ẩn, thao túng bóng đêm và bùa chú cấm kỵ. Khởi đầu từ một **Apprentice Witch**, tích lũy tinh hoa Bí Ngô để thức tỉnh thành **Great Witch** tối cao!`
-          )
-          .setFooter({
-            text: 'Nhấn vào nút bên dưới để chính thức ký kết khế ước',
-          })
-          .setTimestamp();
-
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('witch_hunter_join:hunter')
-            .setLabel('Gia nhập Hiệp Hội Thợ Săn')
-            .setEmoji(emojis.hunterButton)
-            .setStyle(ButtonStyle.Secondary),
-
-          new ButtonBuilder()
-            .setCustomId('witch_hunter_join:witch')
-            .setLabel('Quy phục Hội Phù Thủy')
-            .setEmoji(emojis.witchButton)
-            .setStyle(ButtonStyle.Primary)
-        );
-
-        await targetChannel.send({
-          embeds: [embed],
-          components: [row],
-        });
+        try {
+          await targetChannel.send(WitchHunterService.buildFactionSelectionV2Payload());
+        } catch (v2Error) {
+          logger.warn('Failed to send V2 faction panel in whAdmin, falling back to embed:', v2Error);
+          await targetChannel.send(WitchHunterService.buildFactionSelectionFallbackPayload());
+        }
 
         return interaction.reply({
-          content: `✅ Em bot Usagi múp rụp đã thiết lập bảng chọn phe Witch Hunter tại kênh <#${targetChannel.id}> thành công và bảo toàn 100% dữ liệu rồi nè vợ của Kim Nong ơi! 💕`,
+          content: `✅ Em bot Usagi múp rụp đã thiết lập bảng chọn phe Witch Hunter giao diện V2 tại kênh <#${targetChannel.id}> thành công và bảo toàn 100% dữ liệu rồi nè vợ của Kim Nong ơi! 💕`,
           flags: MessageFlags.Ephemeral,
         });
       }

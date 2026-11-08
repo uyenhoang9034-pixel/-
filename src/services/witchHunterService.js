@@ -9,6 +9,11 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
 } from 'discord.js';
 import {
   WITCH_HUNTER_CONFIG,
@@ -646,6 +651,136 @@ export class WitchHunterService {
       logger.error('❌ [WitchHunter] Lỗi ngoại lệ khi sendAdminLog:', err);
       return false;
     }
+  }
+
+  /**
+   * Tạo payload giao diện Components V2 cho bảng Ký Kết Khế Ước Chọn Phe
+   */
+  static buildFactionSelectionV2Payload() {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+    const container = new ContainerBuilder();
+
+    // 1. Header Title
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${emojis.titleLeft} **KHẾ ƯỚC THẾ GIỚI MA THUẬT: WITCH HUNTER** ${emojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ giao diện V2 sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung mở đầu
+    const introText =
+      `Vòng xoay định mệnh giữa hai thế lực ngàn năm lại một lần nữa mở ra...\n` +
+      `Trước mắt lữ khách là bản **Khế Ước Cổ Đại**. Hãy chọn 1 trong 2 phe để tham chiến và dấn thân vào con đường tranh đoạt vinh quang ma thuật!`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(introText)
+    );
+
+    // 4. Đường kẻ giao diện V2 thay thế đường kẻ thủ công
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Nội dung mô tả 2 phe phái
+    const factionsText =
+      `${emojis.hunterBadge} **PHE THỢ SĂN (W.H. ASSOCIATION):**\n` +
+      `> Những chiến binh quả cảm tôi luyện ý chí sắt đá, săn lùng và phong ấn hắc ma thuật. Tích lũy chiến công Bí Ngô để từng bước thăng cấp từ **C-Rank Hunter** lên huyền thoại **SS-Rank Hunter**!\n\n` +
+      `${emojis.witchBadge} **PHE PHÙ THỦY (WITCHES):**\n` +
+      `> Những bậc thầy cổ thuật bí ẩn, thao túng bóng đêm và bùa chú cấm kỵ. Khởi đầu từ một **Apprentice Witch**, tích lũy tinh hoa Bí Ngô để thức tỉnh thành **Great Witch** tối cao!`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(factionsText)
+    );
+
+    // 6. Đường kẻ giao diện V2 trước chân trang
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Chân trang hướng dẫn
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# Nhấn vào nút bên dưới để chính thức ký kết khế ước`
+      )
+    );
+
+    // 8. 2 nút bấm chuyển về xám hết (ButtonStyle.Secondary), giữ nguyên emoji và custom ID
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('witch_hunter_join:hunter')
+        .setLabel('Gia nhập Hiệp Hội Thợ Săn')
+        .setEmoji(emojis.hunterButton)
+        .setStyle(ButtonStyle.Secondary),
+
+      new ButtonBuilder()
+        .setCustomId('witch_hunter_join:witch')
+        .setLabel('Quy phục Hội Phù Thủy')
+        .setEmoji(emojis.witchButton)
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    container.addActionRowComponents(row);
+
+    return {
+      content: null,
+      embeds: [],
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    };
+  }
+
+  /**
+   * Tạo payload dự phòng (Embed) khi Discord API không hỗ trợ V2 hoặc gặp lỗi
+   * Bỏ thanh màu tím (không dùng setColor), hai nút bấm màu xám (Secondary)
+   */
+  static buildFactionSelectionFallbackPayload() {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${emojis.titleLeft} **KHẾ ƯỚC THẾ GIỚI MA THUẬT: WITCH HUNTER** ${emojis.titleRight}`)
+      .setDescription(
+        `Vòng xoay định mệnh giữa hai thế lực ngàn năm lại một lần nữa mở ra...\n` +
+        `Trước mắt lữ khách là bản **Khế Ước Cổ Đại**. Hãy chọn 1 trong 2 phe để tham chiến và dấn thân vào con đường tranh đoạt vinh quang ma thuật!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${emojis.hunterBadge} **PHE THỢ SĂN (W.H. ASSOCIATION):**\n` +
+        `> Những chiến binh quả cảm tôi luyện ý chí sắt đá, săn lùng và phong ấn hắc ma thuật. Tích lũy chiến công Bí Ngô để từng bước thăng cấp từ **C-Rank Hunter** lên huyền thoại **SS-Rank Hunter**!\n\n` +
+        `${emojis.witchBadge} **PHE PHÙ THỦY (WITCHES):**\n` +
+        `> Những bậc thầy cổ thuật bí ẩn, thao túng bóng đêm và bùa chú cấm kỵ. Khởi đầu từ một **Apprentice Witch**, tích lũy tinh hoa Bí Ngô để thức tỉnh thành **Great Witch** tối cao!`
+      )
+      .setFooter({
+        text: 'Nhấn vào nút bên dưới để chính thức ký kết khế ước',
+      })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('witch_hunter_join:hunter')
+        .setLabel('Gia nhập Hiệp Hội Thợ Săn')
+        .setEmoji(emojis.hunterButton)
+        .setStyle(ButtonStyle.Secondary),
+
+      new ButtonBuilder()
+        .setCustomId('witch_hunter_join:witch')
+        .setLabel('Quy phục Hội Phù Thủy')
+        .setEmoji(emojis.witchButton)
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    return {
+      embeds: [embed],
+      components: [row],
+    };
   }
 
   /**
