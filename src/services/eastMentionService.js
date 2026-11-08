@@ -1,4 +1,9 @@
-import { EmbedBuilder } from 'discord.js';
+import {
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+  EmbedBuilder,
+} from 'discord.js';
 import { logger } from '../utils/logger.js';
 
 export const EAST_USER_ID = '872792190651334707';
@@ -54,22 +59,50 @@ export async function handleEastMention(message) {
       }
     }
 
-    // Embed màu hồng ngọt ngào chuẩn phong cách Usagi múp rụp, không title, không footer
-    const embed = new EmbedBuilder()
-      .setColor('#FFB6C1')
-      .setDescription(
-        `**Cảm ơn <@${message.author.id}> đã ping xì trum chúa của server, chúc bạn một ngày tốt lành!** <a:bunnyg4:1541439959385374760>\n` +
-        `<@${EAST_USER_ID}> sẽ phản hồi ngay khi online. <a:chiikawag12:1541429044287897632>`,
-      );
+    // Giao diện Components V2 (ContainerBuilder), không title, màu mặc định
+    const replyContent =
+      `Cảm ơn <@${message.author.id}> đã ping xì trum chúa của server, chúc bạn một ngày tốt lành! <a:bunnyg4:1541439959385374760>\n` +
+      `> <@${EAST_USER_ID}> sẽ phản hồi ngay khi online. <a:chiikawag12:1541429044287897632>`;
 
-    await message
-      .reply({
-        embeds: [embed],
-        allowedMentions: { repliedUser: false },
-      })
-      .catch(async () => {
-        await message.channel.send({ embeds: [embed] }).catch(() => {});
-      });
+    const container = new ContainerBuilder().addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(replyContent),
+    );
+
+    const fallbackEmbed = new EmbedBuilder().setDescription(replyContent);
+
+    let sent = false;
+    try {
+      await message
+        .reply({
+          content: null,
+          embeds: [],
+          components: [container],
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: { repliedUser: false },
+        })
+        .catch(async () => {
+          await message.channel.send({
+            content: null,
+            embeds: [],
+            components: [container],
+            flags: MessageFlags.IsComponentsV2,
+          });
+        });
+      sent = true;
+    } catch (v2Error) {
+      logger.warn('[EastMention] Không thể gửi bằng Components V2, dùng fallback embed:', v2Error);
+    }
+
+    if (!sent) {
+      await message
+        .reply({
+          embeds: [fallbackEmbed],
+          allowedMentions: { repliedUser: false },
+        })
+        .catch(async () => {
+          await message.channel.send({ embeds: [fallbackEmbed] }).catch(() => {});
+        });
+    }
 
     logger.info(
       `[EastMention] Đã phản hồi tự động khi ${message.author.tag} (${message.author.id}) ping East trong guild ${message.guild.id}`,
