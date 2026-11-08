@@ -1035,7 +1035,54 @@ class WitchHunterBountyService {
           }
         }
 
-        // Gửi thông báo vinh danh công khai tại kênh
+        // Gửi thông báo vinh danh công khai tại kênh bằng Components V2
+        const winContainer = new ContainerBuilder();
+
+        // 1. Heading Title V2: # (trangtrig2) **TRUY NÃ THÀNH CÔNG: MỤC TIÊU ĐÃ BỊ HẠ GỤC!** (trangtrig3)
+        winContainer.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `# ${emojis.titleLeft} **TRUY NÃ THÀNH CÔNG: MỤC TIÊU ĐÃ BỊ HẠ GỤC!** ${emojis.titleRight}`
+          )
+        );
+
+        // 2. Đường kẻ sau tiêu đề
+        winContainer.addSeparatorComponents(
+          new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+        );
+
+        // 3. Nội dung vinh danh
+        const victoryIntro =
+          `${hunterFactionEmoji} ${isHunterFaction ? 'Thợ săn' : 'Phù thủy'} <@${user.id}> đã xuất kiếm áp đảo, đánh bại hoàn toàn ${targetTitle} <@${board.target_user_id}> trong trận chiến sinh tử!`;
+        winContainer.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(victoryIntro)
+        );
+
+        // 4. Đường kẻ V2 thay thế đường kẻ thủ công
+        winContainer.addSeparatorComponents(
+          new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+        );
+
+        // 5. Chi tiết giao tranh & phần thưởng
+        const victoryDetails =
+          `> <a:trangtrig1:1546040442548654140> Tình thế giao tranh: ${situationalText}\n` +
+          `> <a:giftg1:1543150714732412948> Phần Thưởng Đoạt Được: +${totalBounty} Bí Ngô ${emojis.pumpkin} *(Đã cộng trực tiếp vào túi đồ)*\n` +
+          `> <a:knifeg1:1546058092016312381> Trạng Thái Lệnh: Mục tiêu đã bị tiêu diệt! Bảng truy nã đã hoàn thành sứ mệnh.`;
+        winContainer.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(victoryDetails)
+        );
+
+        // 6. Đường kẻ V2 trước thông báo hệ thống
+        winContainer.addSeparatorComponents(
+          new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+        );
+
+        // 7. Thông báo hệ thống & footer
+        const victoryFooter =
+          `<a:trangtrig41:1547238037832863744> Hệ thống đã gỡ ghim và xóa bảng truy nã khỏi kênh. Ngày mai (00:00) sẽ chọn mục tiêu mới!`;
+        winContainer.addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(victoryFooter)
+        );
+
         const winEmbed = new EmbedBuilder()
           .setTitle(`${emojis.titleLeft} **TRUY NÃ THÀNH CÔNG: MỤC TIÊU ĐÃ BỊ HẠ GỤC!** ${emojis.titleRight}`)
           .setDescription(
@@ -1048,7 +1095,17 @@ class WitchHunterBountyService {
           )
           .setTimestamp();
 
-        await interaction.channel.send({ embeds: [winEmbed] }).catch(() => null);
+        try {
+          await interaction.channel.send({
+            content: null,
+            embeds: [],
+            components: [winContainer],
+            flags: MessageFlags.IsComponentsV2,
+          });
+        } catch (v2Err) {
+          logger.warn('⚠️ [WitchHunterBounty] Gửi winContainer V2 thất bại, fallback sang Embed:', v2Err.message);
+          await interaction.channel.send({ embeds: [winEmbed] }).catch(() => null);
+        }
         return;
       }
 
@@ -1063,6 +1120,53 @@ class WitchHunterBountyService {
         notifyAdminLog: false,
       }).catch((err) => logger.error('❌ [WitchHunterBounty] Lỗi trao Bí Ngô an ủi:', err));
 
+      const lossContainer = new ContainerBuilder();
+
+      // 1. Heading Title V2: # (trangtrig2) **TRUY NÃ THẤT BẠI: MỤC TIÊU ĐÃ TẨU THOÁT!** (trangtrig3)
+      lossContainer.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `# ${emojis.titleLeft} **TRUY NÃ THẤT BẠI: MỤC TIÊU ĐÃ TẨU THOÁT!** ${emojis.titleRight}`
+        )
+      );
+
+      // 2. Đường kẻ sau tiêu đề
+      lossContainer.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+      );
+
+      // 3. Nội dung tình thế thất bại
+      const lossIntro =
+        `<a:shockg1:1541433028193165312> ${targetTitle} <@${board.target_user_id}> đã dựng kết giới hắc ma thuật cực mạnh, đánh bật đòn tấn công của <@${user.id}>!`;
+      lossContainer.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(lossIntro)
+      );
+
+      // 4. Đường kẻ V2
+      lossContainer.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+      );
+
+      // 5. Chi tiết giao tranh & an ủi
+      const lossDetails =
+        `> <a:trangtrig1:1546040442548654140> Tình thế giao tranh: ${situationalText}\n` +
+        `> <a:giftg1:1543150714732412948> Phần Thưởng An Ủi: +2 Bí Ngô ${emojis.pumpkin} *(Cống hiến tham gia chiến đấu)*\n` +
+        `> <a:knifeg1:1546058092016312381> Trạng Thái Lệnh: Mục tiêu vẫn sống sót! Bảng truy nã được giữ nguyên trên kênh để chiến binh khác tiếp tục săn.`;
+      lossContainer.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(lossDetails)
+      );
+
+      // 6. Đường kẻ V2
+      lossContainer.addSeparatorComponents(
+        new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+      );
+
+      // 7. Lời nhắc
+      const lossFooter =
+        `Lữ khách đã sử dụng hết **1** lượt săn của ngày hôm nay. Hãy quay lại vào 00:00 ngày mai nhé! <a:heartg1:1545307544808071258>`;
+      lossContainer.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(lossFooter)
+      );
+
       const lossEmbed = new EmbedBuilder()
         .setTitle(`${emojis.titleLeft} **TRUY NÃ THẤT BẠI: MỤC TIÊU ĐÃ TẨU THOÁT!** ${emojis.titleRight}`)
         .setDescription(
@@ -1075,10 +1179,20 @@ class WitchHunterBountyService {
         )
         .setTimestamp();
 
-      return interaction.reply({
-        embeds: [lossEmbed],
-        flags: MessageFlags.Ephemeral,
-      });
+      try {
+        return await interaction.reply({
+          content: null,
+          embeds: [],
+          components: [lossContainer],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+        });
+      } catch (v2Err) {
+        logger.warn('⚠️ [WitchHunterBounty] Gửi lossContainer V2 thất bại, fallback sang Embed:', v2Err.message);
+        return interaction.reply({
+          embeds: [lossEmbed],
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     } catch (error) {
       logger.error('❌ [WitchHunterBounty] Lỗi handleHuntInteraction:', error);
       if (!interaction.replied && !interaction.deferred) {
