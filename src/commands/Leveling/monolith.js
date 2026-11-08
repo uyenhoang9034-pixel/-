@@ -21,7 +21,7 @@ export default {
 
       if (subcommand === 'warlog') {
         const data = await WitchHunterDuelService.getMonolithData();
-        const { emojis, colors } = WITCH_HUNTER_CONFIG;
+        const { emojis } = WITCH_HUNTER_CONFIG;
 
         const hunterBar = WitchHunterDuelService.buildBar(data.hunterHp, 10);
         const witchBar = WitchHunterDuelService.buildBar(data.witchHp, 10);
@@ -45,7 +45,6 @@ export default {
             : '> *(Chưa có sự kiện chiến sự nào được ghi nhận)*';
 
         const embed = new EmbedBuilder()
-          .setColor(colors.pastelPurple)
           .setTitle(`${emojis.titleLeft} **NHẬT KÝ CHIẾN SỰ TRỤ TỔNG: WAR LOG** ${emojis.titleRight}`)
           .setDescription(
             `📊 **TÌNH TRẠNG SINH LỰC TRỤ TỔNG HIỆN TẠI:**\n` +

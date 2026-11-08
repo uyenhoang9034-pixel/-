@@ -10,6 +10,10 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
 import { SUMMON_CONFIG } from '../config/summonConfig.js';
@@ -621,7 +625,7 @@ export class WitchHunterDuelService {
   }
 
   /**
-   * Cập nhật tin nhắn Embed Trụ Tổng tại kênh cố định
+   * Cập nhật tin nhắn Trụ Tổng tại kênh cố định bằng Components V2
    */
   static async updateMonolithMessage(guild) {
     if (!guild) return;
@@ -631,18 +635,31 @@ export class WitchHunterDuelService {
       const channel = guild.channels.cache.get(channelId) || (await guild.channels.fetch(channelId).catch(() => null));
       if (!channel || !channel.isTextBased()) return;
 
-      const embed = this.buildMonolithEmbed(data);
+      const payload = this.buildMonolithV2Payload(data);
 
       if (data.messageId) {
         const msg = await channel.messages.fetch(data.messageId).catch(() => null);
         if (msg) {
-          await msg.edit({ embeds: [embed] }).catch(() => null);
-          return;
+          try {
+            await msg.edit(payload);
+            return;
+          } catch (editErr) {
+            logger.warn('⚠️ [WitchHunterDuel] Edit V2 monolith thất bại, thử xóa gửi mới:', editErr.message);
+            await msg.delete().catch(() => null);
+          }
         }
       }
 
-      // Nếu chưa có tin nhắn, gửi mới
-      const newMsg = await channel.send({ embeds: [embed] });
+      // Nếu chưa có tin nhắn hoặc vừa xóa do không edit được sang V2, gửi mới
+      let newMsg = null;
+      try {
+        newMsg = await channel.send(payload);
+      } catch (v2Err) {
+        logger.warn('⚠️ [WitchHunterDuel] Gửi V2 monolith thất bại, fallback sang Embed:', v2Err.message);
+        const fallbackEmbed = this.buildMonolithEmbed(data);
+        newMsg = await channel.send({ embeds: [fallbackEmbed] });
+      }
+
       data.messageId = newMsg.id;
       await this.saveMonolithData(data);
     } catch (e) {
@@ -656,8 +673,21 @@ export class WitchHunterDuelService {
   static async setupMonolithDashboard(channel) {
     const data = await this.getMonolithData();
     data.channelId = channel.id;
-    const embed = this.buildMonolithEmbed(data);
-    const msg = await channel.send({ embeds: [embed] });
+    if (data.messageId) {
+      const oldMsg = await channel.messages.fetch(data.messageId).catch(() => null);
+      if (oldMsg) await oldMsg.delete().catch(() => null);
+    }
+
+    let msg = null;
+    try {
+      const payload = this.buildMonolithV2Payload(data);
+      msg = await channel.send(payload);
+    } catch (v2Err) {
+      logger.warn('⚠️ [WitchHunterDuel] Gửi V2 monolith thất bại, fallback sang Embed:', v2Err.message);
+      const fallbackEmbed = this.buildMonolithEmbed(data);
+      msg = await channel.send({ embeds: [fallbackEmbed] });
+    }
+
     data.messageId = msg.id;
     await this.saveMonolithData(data);
     return msg;
@@ -700,8 +730,105 @@ export class WitchHunterDuelService {
     return text;
   }
 
+  /**
+   * Dựng Container Components V2 cho Trụ Tổng Pháo Đài (Thành Trì Huyết Thệ)
+   */
+  static buildMonolithContainer(data) {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+
+    const hunterBar = this.buildBar(data.hunterHp, 10);
+    const witchBar = this.buildBar(data.witchHp, 10);
+
+    const hunterStatusText = data.hunterHp <= 0 ? '❌ *(ĐÃ BỊ PHONG ẤN MA LỰC)*' : '';
+    const witchStatusText = data.witchHp <= 0 ? '❌ *(ĐÃ BỊ PHONG ẤN MA LỰC)*' : '';
+
+    const recentLogs = (data.logs || []).slice(0, 5).map((l) => {
+      const text = this.formatLogText(l);
+      return `> • ${text}`;
+    }).join('\n') || '> *(Chưa có biến động chấn động nào gần đây)*';
+
+    const container = new ContainerBuilder();
+
+    // 1. Heading Title V2: # (trangtrig2) **TITLE** (trangtrig3)
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${emojis.titleLeft} **TRỤ TỔNG PHÁO ĐÀI: CHIẾN TUYẾN TRANH PHÂN** ${emojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung mở đầu
+    const introText =
+      `Trạng thái toàn cảnh của hai phe trên lãnh địa. Khi Trụ của phe nào rớt về **0%**, toàn bộ cư dân phe đó sẽ rơi vào trạng thái *"Phong Ấn Ma Lực"* cho đến đợt làm mới tiếp theo!`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(introText)
+    );
+
+    // 4. Đường kẻ phân cách V2
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Tình trạng sinh lực Trụ Tổng 2 phe
+    const fortressStatus =
+      `<a:trangtrig36:1563065680922808340> **TRỤ TỔNG THỢ SĂN (W.H. Core Fortress)**\n` +
+      `• Trạng thái: \`${hunterBar} ${data.hunterHp}%\` ${hunterStatusText}\n` +
+      `• Tổng số lần tử thủ thành công: **${data.hunterDefends || 0}** trận\n\n` +
+      `                          <a:trangtrig36:1563065680922808340> VS <a:trangtrig32:1546906170994856026>\n\n` +
+      `<a:trangtrig32:1546906170994856026> **TRỤ TỔNG PHÙ THỦY (Coven Ancient Obelisk)**\n` +
+      `• Trạng thái: \`${witchBar} ${data.witchHp}%\` ${witchStatusText}\n` +
+      `• Tổng số lần tử thủ thành công: **${data.witchDefends || 0}** trận`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(fortressStatus)
+    );
+
+    // 6. Đường kẻ V2 thay thế đường kẻ thủ công -----
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Nhật ký chấn động gần nhất & ghi chú reset
+    const logsContent =
+      `<a:trangtrig1:1546040442548654140> **NHẬT KÝ CHẤN ĐỘNG GẦN NHẤT:**\n` +
+      `${recentLogs}\n\n` +
+      `*(Thanh máu sẽ được Hội Đồng reset lại 100% vào mỗi đầu tháng / mùa giải mới).*`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(logsContent)
+    );
+
+    // 8. Đường kẻ V2 trước footer
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 9. Footer text
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# Witch Hunter Monolith System • Chiến Tuyến Tranh Phân`
+      )
+    );
+
+    return container;
+  }
+
+  static buildMonolithV2Payload(data) {
+    return {
+      content: null,
+      embeds: [],
+      components: [this.buildMonolithContainer(data)],
+      flags: MessageFlags.IsComponentsV2,
+    };
+  }
+
   static buildMonolithEmbed(data) {
-    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
 
     const hunterBar = this.buildBar(data.hunterHp, 10);
     const witchBar = this.buildBar(data.witchHp, 10);
@@ -715,7 +842,6 @@ export class WitchHunterDuelService {
     }).join('\n') || '> *(Chưa có biến động chấn động nào gần đây)*';
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **TRỤ TỔNG PHÁO ĐÀI: CHIẾN TUYẾN TRANH PHÂN** ${emojis.titleRight}`)
       .setDescription(
         `Trạng thái toàn cảnh của hai phe trên lãnh địa. Khi Trụ của phe nào rớt về **0%**, toàn bộ cư dân phe đó sẽ rơi vào trạng thái *"Phong Ấn Ma Lực"* cho đến đợt làm mới tiếp theo!\n\n` +
