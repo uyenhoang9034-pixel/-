@@ -203,11 +203,10 @@ class PumpkinGiveawayService {
    * Tạo Embed Bảng Điều Khiển Cấu Hình của Admin (Sử dụng Custom Emojis máy chủ)
    */
   buildDashboardEmbed(session) {
-    const { colors, emojis } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
     const channelDisplay = session.channelId ? `<#${session.channelId}>` : '*(Kênh hiện tại)*';
 
     const embed = new EmbedBuilder()
-      .setColor(colors.pastelPurple) // Màu tím pastel chuẩn #D8B4F8
       .setTitle(`${emojis.titleLeft} **BẢNG THIẾT LẬP: ĐẠI LỄ BAN THƯỞNG BÍ NGÔ** ${emojis.titleRight}`)
       .setDescription(
         `Cấu hình thông số sự kiện chia đều Bí Ngô cho toàn thể cư dân trong máy chủ.\n\n` +
@@ -285,7 +284,7 @@ class PumpkinGiveawayService {
    * Tạo Embed Đại Lễ Ban Thưởng hiển thị công khai ở kênh
    */
   buildGiveawayEmbed(giveaway) {
-    const { colors, emojis } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
     const participantCount = giveaway.participants.length;
     const currentShare = participantCount > 0
       ? Math.max(1, Math.floor(giveaway.totalPumpkins / participantCount))
@@ -293,7 +292,6 @@ class PumpkinGiveawayService {
     const endSec = Math.floor(giveaway.endTime / 1000);
 
     const embed = new EmbedBuilder()
-      .setColor(colors.pastelPurple) // Màu tím pastel #D8B4F8
       .setTitle(`${emojis.pumpkin} **ĐẠI LỄ BAN THƯỞNG BÍ NGÔ HUYẾT NGUYỆT** ${emojis.pumpkin}`)
       .setDescription(
         `Huyết Nguyệt chiếu rọi thánh địa! Cổng Kho Báu Hoàng Gia đã chính thức mở cửa để chia sẻ phước lành Bí Ngô cho toàn bộ chiến binh Thợ Săn và Phù Thủy!\n\n` +
@@ -672,14 +670,13 @@ class PumpkinGiveawayService {
       msg = await channel.messages.fetch(giveaway.messageId).catch(() => null);
     }
 
-    const { colors, emojis } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
     const count = giveaway.participants.length;
 
     // 1. Trường hợp không có ai tham gia
     if (count === 0) {
       if (msg) {
         const endedEmbed = new EmbedBuilder()
-          .setColor(colors.pastelPurple)
           .setTitle(`${emojis.pumpkin} **ĐẠI LỄ BAN THƯỞNG BÍ NGÔ ĐÃ KẾT THÚC** ${emojis.pumpkin}`)
           .setDescription(
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -721,7 +718,6 @@ class PumpkinGiveawayService {
     // 3. Cập nhật Embed công bố kết quả hoàn tất ra kênh
     if (msg) {
       const victoryEmbed = new EmbedBuilder()
-        .setColor(colors.pastelPurple)
         .setTitle(`${emojis.pumpkin} **ĐẠI LỄ BAN THƯỞNG BÍ NGÔ HOÀN TẤT!** ${emojis.pumpkin}`)
         .setDescription(
           `Huyết Nguyệt chứng giám! Cổng Kho Báu Hoàng Gia đã đóng lại trong tiếng hò reo vang dội!\n\n` +
