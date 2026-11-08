@@ -2,6 +2,13 @@ import {
     EmbedBuilder,
     PermissionFlagsBits,
     AttachmentBuilder,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+    MessageFlags,
 } from 'discord.js';
 
 import fs from 'node:fs/promises';
@@ -97,6 +104,50 @@ async function createLevelImageAttachment(
  * =========================================================
  */
 
+export function buildNormalLevelContainer(
+    member,
+    level,
+) {
+    const displayLevel =
+        formatLevelNumber(
+            level,
+        );
+
+    const container = new ContainerBuilder();
+
+    // 1. Header Title V2
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `# ${LEVEL_EMOJIS.left} **PHÁ CẢNH** ${LEVEL_EMOJIS.right}`
+        )
+    );
+
+    // 2. Đường kẻ phân cách
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung thông báo
+    const description = [
+        `${LEVEL_EMOJIS.title} **CẢNH GIỚI ĐỘT PHÁ**`,
+        '',
+        `${LEVEL_EMOJIS.line} *Linh khí hội tụ, đạo vận tương tùy.*`,
+        `${member} đã phá tan bình cảnh, tu vi tiến thêm một tầng!`,
+        '',
+        `${LEVEL_EMOJIS.line} Cảnh giới hiện tại: **Lv.${displayLevel}**`,
+        '',
+        'Tiên lộ mênh mang, đạo hữu hãy tiếp tục tiến bước...',
+    ].join('\n');
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(description)
+    );
+
+    return container;
+}
+
 export function buildNormalLevelEmbed(
     member,
     level,
@@ -107,11 +158,8 @@ export function buildNormalLevelEmbed(
         );
 
     return new EmbedBuilder()
-        .setColor(
-            LEVEL_EMBED_COLOR,
-        )
         .setTitle(
-            `${LEVEL_EMOJIS.left} 𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 ${LEVEL_EMOJIS.right}`,
+            `${LEVEL_EMOJIS.left} **PHÁ CẢNH** ${LEVEL_EMOJIS.right}`,
         )
         .setDescription(
             [
@@ -142,6 +190,51 @@ export function buildNormalLevelEmbed(
  * =========================================================
  */
 
+export function buildVoiceLevelContainer(
+    member,
+    level,
+) {
+    const displayLevel =
+        formatLevelNumber(
+            level,
+        );
+
+    const container = new ContainerBuilder();
+
+    // 1. Header Title V2
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `# ${LEVEL_EMOJIS.left} **PHÁ CẢNH** ${LEVEL_EMOJIS.right}`
+        )
+    );
+
+    // 2. Đường kẻ phân cách
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung thông báo
+    const description = [
+        `${LEVEL_EMOJIS.title} **TU VI TINH TIẾN**`,
+        '',
+        `${LEVEL_EMOJIS.line} *Linh khí tích tụ, tu vi lại tăng.*`,
+        `${member} đã tích đủ thời gian tu luyện trong Voice, đạo hạnh tiến thêm một tầng!`,
+        '',
+        `${LEVEL_EMOJIS.line} Cảnh giới hiện tại:`,
+        `**Lv.${displayLevel}**`,
+        '',
+        'Tiên lộ mênh mang, từng bước tu hành — ắt có ngày chạm tới đại đạo.',
+    ].join('\n');
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(description)
+    );
+
+    return container;
+}
+
 export function buildVoiceLevelEmbed(
     member,
     level,
@@ -152,11 +245,8 @@ export function buildVoiceLevelEmbed(
         );
 
     return new EmbedBuilder()
-        .setColor(
-            LEVEL_EMBED_COLOR,
-        )
         .setTitle(
-            `${LEVEL_EMOJIS.left} 𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 ${LEVEL_EMOJIS.right}`,
+            `${LEVEL_EMOJIS.left} **PHÁ CẢNH** ${LEVEL_EMOJIS.right}`,
         )
         .setDescription(
             [
@@ -197,14 +287,14 @@ function getMilestoneTitle(
         case 'tien_lo':
             return (
                 `${LEVEL_EMOJIS.left} ` +
-                '𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 · 𝓣𝓲𝓮̂𝓷 𝓛𝓸̣̂ ' +
+                '**PHÁ CẢNH · TIÊN LỘ** ' +
                 `${LEVEL_EMOJIS.right}`
             );
 
         case 'cuc_canh':
             return (
                 `${LEVEL_EMOJIS.left} ` +
-                '𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 · 𝓒𝓾̛̣𝓬 𝓒𝓪̉𝓷𝓱 ' +
+                '**PHÁ CẢNH · CỰC CẢNH** ' +
                 `${LEVEL_EMOJIS.right}`
             );
 
@@ -212,7 +302,7 @@ function getMilestoneTitle(
         default:
             return (
                 `${LEVEL_EMOJIS.left} ` +
-                '𝓟𝓱𝓪́ 𝓒𝓪̉𝓷𝓱 · 𝓟𝓱𝓲 𝓣𝓱𝓪̆𝓷𝓰 ' +
+                '**PHÁ CẢNH · PHI THĂNG** ' +
                 `${LEVEL_EMOJIS.right}`
             );
     }
@@ -311,6 +401,79 @@ function buildAdvancedMilestoneDescription(
  * =========================================================
  */
 
+export function buildMilestoneLevelContainer(
+    member,
+    level,
+    imageUrl = null,
+) {
+    const milestone =
+        getExactMilestone(
+            level,
+        );
+
+    if (
+        !milestone
+    ) {
+        return null;
+    }
+
+    const description =
+        milestone.advancedStyle
+            ? buildAdvancedMilestoneDescription(
+                member,
+                level,
+                milestone,
+            )
+            : buildClassicMilestoneDescription(
+                member,
+                level,
+                milestone,
+            );
+
+    const container = new ContainerBuilder();
+
+    // 1. Header Title V2
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `# ${getMilestoneTitle(milestone)}`
+        )
+    );
+
+    // 2. Đường kẻ phân cách sau tiêu đề
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung mô tả
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(description)
+    );
+
+    // 4. Hình ảnh nếu có
+    const finalImageUrl =
+        imageUrl ||
+        (milestone.image?.name
+            ? `attachment://${milestone.image.name}`
+            : (milestone.image?.url || null));
+
+    if (finalImageUrl) {
+        container.addSeparatorComponents(
+            new SeparatorBuilder()
+                .setDivider(true)
+                .setSpacing(SeparatorSpacingSize.Small)
+        );
+        container.addMediaGalleryComponents(
+            new MediaGalleryBuilder().addItems(
+                new MediaGalleryItemBuilder().setURL(finalImageUrl)
+            )
+        );
+    }
+
+    return container;
+}
+
 export function buildMilestoneLevelEmbed(
     member,
     level,
@@ -341,9 +504,6 @@ export function buildMilestoneLevelEmbed(
 
     const embed =
         new EmbedBuilder()
-            .setColor(
-                LEVEL_EMBED_COLOR,
-            )
             .setTitle(
                 getMilestoneTitle(
                     milestone,
@@ -450,6 +610,46 @@ export function getCrossedMilestones(
  * BUILD ANNOUNCEMENT
  * =========================================================
  */
+
+export function buildLevelAnnouncementContainer({
+    member,
+    level,
+    source = 'chat',
+    forceType = null,
+    imageUrl = null,
+}) {
+    if (
+        forceType === 'milestone' ||
+        forceType === 'phi_thang' ||
+        forceType === 'tien_lo' ||
+        forceType === 'cuc_canh'
+    ) {
+        return (
+            buildMilestoneLevelContainer(member, level, imageUrl) ||
+            buildNormalLevelContainer(member, level)
+        );
+    }
+
+    if (forceType === 'pha_canh') {
+        return buildNormalLevelContainer(member, level);
+    }
+
+    const milestoneContainer = buildMilestoneLevelContainer(
+        member,
+        level,
+        imageUrl,
+    );
+
+    if (milestoneContainer) {
+        return milestoneContainer;
+    }
+
+    if (source === 'voice') {
+        return buildVoiceLevelContainer(member, level);
+    }
+
+    return buildNormalLevelContainer(member, level);
+}
 
 export function buildLevelAnnouncementEmbed({
     member,
@@ -634,20 +834,13 @@ export async function sendLevelAnnouncement({
             return false;
         }
 
-        const embed =
-            buildLevelAnnouncementEmbed({
-                member,
-                level,
-                source,
-                forceType,
-            });
-
         const milestone =
             getExactMilestone(
                 level,
             );
 
         const files = [];
+        let imageUrl = null;
 
         if (
             milestone?.image
@@ -664,54 +857,85 @@ export async function sendLevelAnnouncement({
                     attachment,
                 );
 
-                embed.setImage(
-                    `attachment://${milestone.image.name}`,
-                );
+                imageUrl = `attachment://${milestone.image.name}`;
             } else if (
                 milestone.image?.url
             ) {
-                embed.setImage(
-                    milestone.image.url,
-                );
+                imageUrl = milestone.image.url;
             } else {
-                embed.setImage(
-                    null,
-                );
-
                 logger.warn(
                     `[LEVEL] Milestone image unavailable for Lv.${level}`,
                 );
             }
         }
 
+        // Tạo giao diện Components V2
+        const container =
+            buildLevelAnnouncementContainer({
+                member,
+                level,
+                source,
+                forceType,
+                imageUrl,
+            });
+
+        // Tạo Embed fallback
+        const fallbackEmbed =
+            buildLevelAnnouncementEmbed({
+                member,
+                level,
+                source,
+                forceType,
+            });
+
+        if (imageUrl) {
+            fallbackEmbed.setImage(imageUrl);
+        }
+
         try {
             await channel.send({
-                embeds: [
-                    embed,
+                content: null,
+                embeds: [],
+                components: [
+                    container,
                 ],
-
+                flags: MessageFlags.IsComponentsV2,
                 files,
             });
-        } catch (sendError) {
-            if (files.length > 0) {
-                logger.warn(
-                    '[LEVEL] Failed sending announcement with files, retrying with direct URL or no files:',
-                    sendError,
-                );
+        } catch (v2Error) {
+            logger.warn(
+                '[LEVEL] Failed sending level announcement with V2 container, falling back to embed:',
+                v2Error,
+            );
 
-                if (milestone?.image?.url) {
-                    embed.setImage(milestone.image.url);
-                } else {
-                    embed.setImage(null);
-                }
-
+            try {
                 await channel.send({
                     embeds: [
-                        embed,
+                        fallbackEmbed,
                     ],
+                    files,
                 });
-            } else {
-                throw sendError;
+            } catch (sendError) {
+                if (files.length > 0) {
+                    logger.warn(
+                        '[LEVEL] Failed sending announcement with files, retrying with direct URL or no files:',
+                        sendError,
+                    );
+
+                    if (milestone?.image?.url) {
+                        fallbackEmbed.setImage(milestone.image.url);
+                    } else {
+                        fallbackEmbed.setImage(null);
+                    }
+
+                    await channel.send({
+                        embeds: [
+                            fallbackEmbed,
+                        ],
+                    });
+                } else {
+                    throw sendError;
+                }
             }
         }
 
