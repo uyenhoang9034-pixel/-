@@ -7,6 +7,11 @@ import {
   ButtonStyle,
   EmbedBuilder,
   StringSelectMenuBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
 } from 'discord.js';
 import {
   WITCH_HUNTER_CONFIG,
@@ -294,14 +299,123 @@ export class WitchHunterSummonService {
   }
 
   /**
+   * Dựng Container Components V2 cho Tế Đàn Triệu Gọi Huyết Nguyệt
+   */
+  static buildSummonDashboardContainer(selectedType = 'supporter') {
+    const sEmojis = SUMMON_CONFIG.emojis;
+    const container = new ContainerBuilder();
+
+    // 1. Heading Title
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${sEmojis.titleLeft} **TẾ ĐÀN TRIỆU GỌI HUYẾT NGUYỆT** ${sEmojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Quy tắc chi phí & tế đàn
+    const costRulesText =
+      `<a:trangtrig18:1546068102817775626> **QUY TẮC CHI PHÍ & TẾ ĐÀN:**\n` +
+      `> <a:bingo:1563061901800243253> Quay Lẻ: 20 Bí Ngô / lượt\n` +
+      `> <a:bingo:1563061901800243253> Quay x10: 180 Bí Ngô / 10 lượt (Tiết kiệm ngay 10%)\n` +
+      `> <a:trangtrig34:1547237010572582982> Khóa Theo Phe: Người chơi thuộc phe nào (Thợ Săn hoặc Phù Thủy) thì 100% kết quả chỉ quay ra vật phẩm độc quyền của phe đó!\n` +
+      `> <a:trangtrig34:1547237010572582982> 2 Bể Độc Lập: Bộ đếm lượt quay và bảo hiểm Pity của Bể Supporter và Bể Vũ Khí hoàn toàn độc lập với nhau.`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(costRulesText)
+    );
+
+    // 4. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Tỉ lệ triệu hồi cơ bản
+    const ratesText =
+      `<a:trangtrig18:1546068102817775626> **TỈ LỆ TRIỆU HỒI CƠ BẢN:**\n` +
+      `> <a:trangtrig14:1546047912969113622> Bậc SS-Rank: 2.5%\n` +
+      `> <a:trangtrig45:1547239010190237819> Bậc S-Rank: 12.5%\n` +
+      `> <a:trangtrig37:1547237647850807420> Bậc A-Rank: 25.0%\n` +
+      `> <a:trangtrig46:1547240249761996812> Trượt (Không ra vật phẩm): 60.0%\n` +
+      `> <a:trangtrig13:1546047657963819048> Nhận ngay 1 Mảnh Vỡ Ký Ức <a:trangtrig46:1547240249761996812> + Hoàn trả trực tiếp 5 Bí Ngô <a:bingo:1563061901800243253> mỗi lượt!`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(ratesText)
+    );
+
+    // 6. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Cơ chế bảo hiểm (Pity System)
+    const pityRulesText =
+      `<a:trangtrig18:1546068102817775626> **CƠ CHẾ BẢO HIỂM (PITY SYSTEM):**\n` +
+      `> <a:trangtrig6:1546043036390260756> Tối đa 20 lượt: Chắc chắn nổ tối thiểu 1 A-Rank trở lên.\n` +
+      `> <a:trangtrig6:1546043036390260756> Tối đa 30 lượt: Chắc chắn nổ tối thiểu 1 S-Rank trở lên.\n` +
+      `> <a:trangtrig6:1546043036390260756> Tối đa 60 lượt: Chắc chắn nổ SS-Rank Tối Cao! Khi nổ SS, reset bộ đếm phẩm cấp và chu kỳ chi phí về 0.`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(pityRulesText)
+    );
+
+    // 8. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 9. Cơ chế hoàn trả Bí Ngô khi trùng
+    const refundRulesText =
+      `<a:trangtrig21:1546093099770716213> **CƠ CHẾ HOÀN TRẢ BÍ NGÔ KHI TRÚNG:**\n` +
+      `> <a:trangtrig21:1546093099770716213> Chạm Trần Pity (Mốc 20/30/60): Hoàn lại đúng 80% tổng số Bí Ngô thực tế người chơi đã bỏ ra trong chu kỳ đó!\n` +
+      `> <a:trangtrig21:1546093099770716213> Nổ Sớm (Early Drop): Hoàn lại đúng 60% tổng số Bí Ngô thực tế đã bỏ ra từ đầu chu kỳ tính đến lượt vừa nổ!`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(refundRulesText)
+    );
+
+    // 10. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 11. Lời nhắc & Footer
+    const promptAndFooterText =
+      `Chọn tế đàn ở bên dưới và nhấn nút để bắt đầu triệu hồi!\n` +
+      `-# Witch Hunter System • Tế Đàn Triệu Gọi Huyết Nguyệt`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(promptAndFooterText)
+    );
+
+    // 12. Components (Select Menu + Buttons full xám)
+    const [rowMenu, rowButtons] = this.createSummonDashboardComponents(selectedType);
+    container.addActionRowComponents(rowMenu);
+    container.addActionRowComponents(rowButtons);
+
+    return container;
+  }
+
+  static buildSummonDashboardV2Payload(selectedType = 'supporter') {
+    return {
+      content: null,
+      embeds: [],
+      components: [this.buildSummonDashboardContainer(selectedType)],
+      flags: MessageFlags.IsComponentsV2,
+    };
+  }
+
+  /**
    * Tạo Embed cố định cho Tế Đàn Triệu Gọi Huyết Nguyệt
    */
   static buildSummonDashboardEmbed() {
-    const { emojis, colors } = WITCH_HUNTER_CONFIG;
     const sEmojis = SUMMON_CONFIG.emojis;
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${sEmojis.titleLeft} **TẾ ĐÀN TRIỆU GỌI HUYẾT NGUYỆT** ${sEmojis.titleRight}`)
       .setDescription(
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -364,13 +478,13 @@ export class WitchHunterSummonService {
     const buttonSingle = new ButtonBuilder()
       .setCustomId('btn_summon_single')
       .setLabel('Quay 1 Lần (20 Bí Ngô)')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('<a:bingo:1563061901800243253>');
 
     const buttonMulti = new ButtonBuilder()
       .setCustomId('btn_summon_multi')
       .setLabel('Quay 10 Lần (180 Bí Ngô)')
-      .setStyle(ButtonStyle.Success)
+      .setStyle(ButtonStyle.Secondary)
       .setEmoji('<a:bingo:1563061901800243253>');
 
     const buttonPity = new ButtonBuilder()
@@ -385,7 +499,7 @@ export class WitchHunterSummonService {
   }
 
   /**
-   * Tạo nút quay tiếp gắn kèm tin nhắn kết quả
+   * Tạo nút quay tiếp gắn kèm tin nhắn kết quả (toàn bộ nút xám Secondary)
    */
   static createSummonResultComponents(userId, currentType) {
     const userData = witchHunterStorage.getUser(userId);
@@ -398,7 +512,7 @@ export class WitchHunterSummonService {
         new ButtonBuilder()
           .setCustomId(`btn_summon_free_single:${userId}:${currentType}`)
           .setLabel(`Quay Free (Còn ${freeTickets} Vé)`)
-          .setStyle(ButtonStyle.Success)
+          .setStyle(ButtonStyle.Secondary)
           .setEmoji('<a:linhtocg:1563399670351536310>')
       );
     }
@@ -407,12 +521,12 @@ export class WitchHunterSummonService {
       new ButtonBuilder()
         .setCustomId(`btn_summon_again_single:${userId}:${currentType}`)
         .setLabel('Quay Tiếp 1 Lần (20 Bí Ngô)')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
         .setEmoji('<a:bingo:1563061901800243253>'),
       new ButtonBuilder()
         .setCustomId(`btn_summon_again_multi:${userId}:${currentType}`)
         .setLabel('Quay Tiếp 10 Lần (180 Bí Ngô)')
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Secondary)
         .setEmoji('<a:bingo:1563061901800243253>'),
       new ButtonBuilder()
         .setCustomId(`btn_summon_switch_type:${userId}:${currentType}`)
@@ -426,10 +540,104 @@ export class WitchHunterSummonService {
   }
 
   /**
-   * Xem tiến trình Pity của người dùng
+   * Dựng Container Components V2 xem tiến trình Pity của người dùng
+   */
+  static buildPityStatusContainer(userId) {
+    const sEmojis = SUMMON_CONFIG.emojis;
+    const tracker = witchHunterSummonStorage.getPityTracker(userId);
+    const userData = witchHunterStorage.getUser(userId);
+
+    const factionName = userData?.faction === 'witch'
+      ? 'Hội Phù Thủy (Witches)'
+      : userData?.faction === 'hunter'
+      ? 'Hiệp Hội Thợ Săn (W.H. Association)'
+      : 'Chưa Gia Nhập Phe';
+
+    const factionBadge = userData?.faction === 'witch'
+      ? WITCH_HUNTER_CONFIG.emojis.witchBadge
+      : userData?.faction === 'hunter'
+      ? WITCH_HUNTER_CONFIG.emojis.hunterBadge
+      : '⚔️';
+
+    const container = new ContainerBuilder();
+
+    // 1. Heading Title
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${sEmojis.titleLeft} **TIẾN TRÌNH BẢO HIỂM PITY HUYẾT NGUYỆT** ${sEmojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Thông tin người chơi
+    const userInfoText =
+      `<a:heartg1:1545307544808071258> Lữ Khách: <@${userId}>\n` +
+      `${factionBadge} Phe Phái: ${factionName}\n` +
+      `<a:bingo:1563061901800243253> Số Dư Bí Ngô: ${(userData?.pumpkins || 0).toLocaleString('vi-VN')} <a:bingo:1563061901800243253>\n` +
+      `<a:linhtocg:1563399670351536310> Vé Triệu Gọi Miễn Phí: ${(userData?.free_summons || 0).toLocaleString('vi-VN')} Lượt (Được tặng từ Chiến Tranh Cổ Tháp)\n` +
+      `<a:trangtrig46:1547240249761996812> Mảnh Vỡ Ký Ức: ${(tracker.memory_shards || 0).toLocaleString('vi-VN')} <a:trangtrig46:1547240249761996812>`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(userInfoText)
+    );
+
+    // 4. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Bể Triệu Hồi Supporter
+    const supporterPityText =
+      `<a:linhtocg:1563399670351536310> **BỂ TRIỆU HỒI SUPPORTER:**\n` +
+      `> <a:trangtrig14:1546047912969113622> Bảo hiểm A-Rank (Trần 20): ${tracker.supporter_pity_a || 0} / 20 lượt\n` +
+      `> <a:trangtrig45:1547239010190237819> Bảo hiểm S-Rank (Trần 30): ${tracker.supporter_pity_s || 0} / 30 lượt\n` +
+      `> <a:trangtrig37:1547237647850807420> Bảo hiểm SS-Rank (Trần 60): ${tracker.supporter_pity_ss || 0} / 60 lượt\n` +
+      `> <a:bingo:1563061901800243253> Chi phí tích lũy chu kỳ hiện tại: ${(tracker.supporter_spent_cycle || 0).toLocaleString('vi-VN')} Bí Ngô`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(supporterPityText)
+    );
+
+    // 6. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Bể Triệu Hồi Thần Khí
+    const weaponPityText =
+      `<a:trangtrig36:1563065680922808340> **BỂ TRIỆU HỒI THẦN KHÍ:**\n` +
+      `> <a:trangtrig14:1546047912969113622> Bảo hiểm A-Rank (Trần 20): ${tracker.weapon_pity_a || 0} / 20 lượt\n` +
+      `> <a:trangtrig45:1547239010190237819> Bảo hiểm S-Rank (Trần 30): ${tracker.weapon_pity_s || 0} / 30 lượt\n` +
+      `> <a:trangtrig37:1547237647850807420> Bảo hiểm SS-Rank (Trần 60): ${tracker.weapon_pity_ss || 0} / 60 lượt\n` +
+      `> <a:bingo:1563061901800243253> Chi phí tích lũy chu kỳ hiện tại: ${(tracker.weapon_spent_cycle || 0).toLocaleString('vi-VN')} Bí Ngô`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(weaponPityText)
+    );
+
+    // 8. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 9. Footer
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# Witch Hunter Pity Tracker`
+      )
+    );
+
+    return container;
+  }
+
+  /**
+   * Xem tiến trình Pity của người dùng (Fallback Embed)
    */
   static buildPityStatusEmbed(userId) {
-    const { colors } = WITCH_HUNTER_CONFIG;
     const sEmojis = SUMMON_CONFIG.emojis;
     const tracker = witchHunterSummonStorage.getPityTracker(userId);
     const userData = witchHunterStorage.getUser(userId);
@@ -447,7 +655,6 @@ export class WitchHunterSummonService {
       : '⚔️';
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${sEmojis.titleLeft} **TIẾN TRÌNH BẢO HIỂM PITY HUYẾT NGUYỆT** ${sEmojis.titleRight}`)
       .setDescription(
         `<a:heartg1:1545307544808071258> Lữ Khách: <@${userId}>\n` +
@@ -824,10 +1031,116 @@ export class WitchHunterSummonService {
   }
 
   /**
-   * Dựng Embed hiển thị kết quả triệu hồi công khai
+   * Dựng Container Components V2 hiển thị kết quả triệu hồi công khai
+   */
+  static buildSummonResultContainer(user, summonResult) {
+    const sEmojis = SUMMON_CONFIG.emojis;
+    const { pullCount, summonType, cost, totalRefundPumpkins, finalPumpkins, usedFreeTickets, results, tracker } = summonResult;
+
+    const summonTypeName = summonType === 'supporter' ? 'Khế Ước Đồng Hành (Supporter)' : 'Thần Khí Liên Kết';
+
+    let resultLines = [];
+    results.forEach((res, index) => {
+      const lineNum = results.length > 1 ? `**#${index + 1}** ` : '';
+      if (res.isMiss) {
+        resultLines.push(`> ${lineNum}${sEmojis.miss} Trượt tế đàn <a:trangtrig20:1546092997299667055> Nhận 1 Mảnh vỡ ký ức & hoàn lại **+${res.refund}** ${sEmojis.pumpkin}`);
+      } else {
+        const rankEmoji = res.rank === 'SS' ? sEmojis.rankSS : res.rank === 'S' ? sEmojis.rankS : sEmojis.rankA;
+        const rankBadge = `**[${res.rank}-Rank]**`;
+        if (res.isDuplicate) {
+          const reasonTag = res.isCeiling ? '*(Chạm Trần Pity - Hoàn 80%)*' : '*(Nổ Sớm - Hoàn 60%)*';
+          resultLines.push(`> ${lineNum}${rankEmoji} ${rankBadge} **${res.item.name}**\n> ↳ <a:shockg1:1541433028193165312> Trùng lặp ${reasonTag}: Hoàn trả ngay **+${res.refund}** ${sEmojis.pumpkin}`);
+        } else {
+          resultLines.push(`> ${lineNum}${rankEmoji} ${rankBadge} **${res.item.name}** <a:trangtrig41:1547238037832863744> **[MỚI]** <a:trangtrig20:1546092997299667055> Đã nhập kho lưu trữ!`);
+        }
+      }
+    });
+
+    const pityPrefix = summonType === 'supporter' ? 'supporter' : 'weapon';
+    const costLine = usedFreeTickets > 0
+      ? `> <a:linhtocg:1563399670351536310> Chi phí: **Miễn phí (-${usedFreeTickets} Vé Triệu Gọi Free)**\n`
+      : `> <a:trangtrig21:1546093099770716213> Chi phí: **-${cost.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n`;
+
+    const container = new ContainerBuilder();
+
+    // 1. Heading Title
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${sEmojis.titleLeft} **KẾT QUẢ TRIỆU HỒI HUYẾT NGUYỆT** ${sEmojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Đoạn dẫn
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `Lữ khách <@${user.id}> vừa hiến tế tại tế đàn **${summonTypeName}** (${pullCount} lượt)!`
+      )
+    );
+
+    // 4. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Danh sách vật phẩm
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `<a:giftg1:1543150714732412948> **DANH SÁCH VẬT PHẨM THU ĐƯỢC:**\n${resultLines.join('\n')}`
+      )
+    );
+
+    // 6. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Tổng kết tài nguyên
+    const summaryText =
+      `<a:heartg1:1545307544808071258> **TỔNG KẾT TÀI NGUYÊN:**\n` +
+      costLine +
+      `> <a:trangtrig21:1546093099770716213> Hoàn trả: **+${totalRefundPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
+      `> <a:bingo:1563061901800243253> Số dư hiện tại: **${finalPumpkins.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n` +
+      `> <a:trangtrig46:1547240249761996812> Mảnh vỡ ký ức: **${(tracker.memory_shards || 0).toLocaleString('vi-VN')}** <a:trangtrig46:1547240249761996812>\n` +
+      `> <a:trangtrig21:1546093099770716213> Bảo hiểm Pity hiện tại:\n` +
+      `> <a:trangtrig14:1546047912969113622> A: \`${tracker[`${pityPrefix}_pity_a`] || 0}/20\`\n` +
+      `> <a:trangtrig45:1547239010190237819> S: \`${tracker[`${pityPrefix}_pity_s`] || 0}/30\`\n` +
+      `> <a:trangtrig37:1547237647850807420> SS: \`${tracker[`${pityPrefix}_pity_ss`] || 0}/60\`\n` +
+      (summonResult.demoteInfo ? `> <a:bang2:1546891483250954290> **CẢNH BÁO GIÁNG CẤP:** Số dư giảm dưới mốc duy trì, lữ khách đã bị giáng danh vị xuống **${summonResult.demoteInfo.newRankInfo?.name || `Bậc ${summonResult.demoteInfo.newRank}`}**!\n` : '');
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(summaryText)
+    );
+
+    // 8. Đường kẻ phân cách
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 9. Footer
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# Witch Hunter System • Huyết Nguyệt Summon`
+      )
+    );
+
+    // 10. Buttons action row
+    const [resultRow] = this.createSummonResultComponents(user.id, summonType);
+    if (resultRow) {
+      container.addActionRowComponents(resultRow);
+    }
+
+    return container;
+  }
+
+  /**
+   * Dựng Embed hiển thị kết quả triệu hồi công khai (Fallback Embed)
    */
   static buildSummonResultEmbed(user, summonResult) {
-    const { colors } = WITCH_HUNTER_CONFIG;
     const sEmojis = SUMMON_CONFIG.emojis;
     const { pullCount, summonType, cost, totalRefundPumpkins, finalPumpkins, usedFreeTickets, results, tracker } = summonResult;
 
@@ -856,7 +1169,6 @@ export class WitchHunterSummonService {
       : `> <a:trangtrig21:1546093099770716213> Chi phí: **-${cost.toLocaleString('vi-VN')}** ${sEmojis.pumpkin}\n`;
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${sEmojis.titleLeft} **KẾT QUẢ TRIỆU HỒI HUYẾT NGUYỆT** ${sEmojis.titleRight}`)
       .setDescription(
         `Lữ khách <@${user.id}> vừa hiến tế tại tế đàn **${summonTypeName}** (${pullCount} lượt)!\n\n` +

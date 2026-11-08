@@ -61,13 +61,24 @@ export default {
           ) || interaction.channel;
       }
 
+      const container = WitchHunterSummonService.buildSummonDashboardContainer();
       const embed = WitchHunterSummonService.buildSummonDashboardEmbed();
       const components = WitchHunterSummonService.createSummonDashboardComponents();
 
-      await targetChannel.send({
-        embeds: [embed],
-        components,
-      });
+      try {
+        await targetChannel.send({
+          content: null,
+          embeds: [],
+          components: [container],
+          flags: MessageFlags.IsComponentsV2,
+        });
+      } catch (v2Err) {
+        logger.warn('⚠️ [WitchHunterSummon] Không thể gửi bằng Components V2, dùng fallback embed:', v2Err.message);
+        await targetChannel.send({
+          embeds: [embed],
+          components,
+        });
+      }
 
       return interaction.reply({
         content: `✅ Đã thiết lập bảng **Tế Đàn Triệu Gọi Huyết Nguyệt** tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,

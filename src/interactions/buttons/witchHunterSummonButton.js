@@ -24,15 +24,26 @@ async function handleSummon(interaction, pullCount, customType = null) {
       });
     }
 
+    const container = WitchHunterSummonService.buildSummonResultContainer(user, result);
     const embed = WitchHunterSummonService.buildSummonResultEmbed(user, result);
     const components = WitchHunterSummonService.createSummonResultComponents(user.id, summonType);
 
-    // Gửi phản hồi ẨN (Ephemeral) riêng cho mỗi member để tránh loãng kênh
-    return interaction.reply({
-      embeds: [embed],
-      components,
-      flags: MessageFlags.Ephemeral,
-    });
+    // Gửi phản hồi ẨN (Ephemeral) riêng cho mỗi member để tránh loãng kênh bằng Components V2 (fallback Embed)
+    try {
+      return await interaction.reply({
+        content: null,
+        embeds: [],
+        components: [container],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      });
+    } catch (v2Err) {
+      logger.warn('⚠️ [WitchHunterSummon] Không thể phản hồi bằng Components V2, dùng fallback embed:', v2Err.message);
+      return await interaction.reply({
+        embeds: [embed],
+        components,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
   } catch (error) {
     logger.error('❌ [WitchHunterSummon] Lỗi khi xử lý nút triệu hồi:', error);
     return interaction.reply({
@@ -64,11 +75,22 @@ export default [
     name: 'btn_view_pity',
     async execute(interaction) {
       try {
+        const container = WitchHunterSummonService.buildPityStatusContainer(interaction.user.id);
         const pityEmbed = WitchHunterSummonService.buildPityStatusEmbed(interaction.user.id);
-        return interaction.reply({
-          embeds: [pityEmbed],
-          flags: MessageFlags.Ephemeral,
-        });
+        try {
+          return await interaction.reply({
+            content: null,
+            embeds: [],
+            components: [container],
+            flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+          });
+        } catch (v2Err) {
+          logger.warn('⚠️ [WitchHunterSummon] Không thể phản hồi Pity bằng Components V2, dùng fallback embed:', v2Err.message);
+          return await interaction.reply({
+            embeds: [pityEmbed],
+            flags: MessageFlags.Ephemeral,
+          });
+        }
       } catch (error) {
         logger.error('❌ [WitchHunterSummon] Lỗi xem Pity:', error);
         return interaction.reply({
