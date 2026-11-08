@@ -109,7 +109,7 @@ async function handleBoostButton(
                 )
                 .setValue(
                     config.color ||
-                    '#F5A9C6',
+                    '',
                 );
 
 

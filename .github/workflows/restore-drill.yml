@@ -13,24 +13,24 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: titanbot
-          POSTGRES_PASSWORD: titanbot
-          POSTGRES_DB: titanbot
+          POSTGRES_USER: usagibot
+          POSTGRES_PASSWORD: usagibot
+          POSTGRES_DB: usagibot
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U titanbot -d titanbot"
+          --health-cmd "pg_isready -U usagibot -d usagibot"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     env:
-      POSTGRES_URL: postgresql://titanbot:titanbot@localhost:5432/titanbot
+      POSTGRES_URL: postgresql://usagibot:usagibot@localhost:5432/usagibot
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
-      POSTGRES_DB: titanbot
-      POSTGRES_USER: titanbot
-      POSTGRES_PASSWORD: titanbot
+      POSTGRES_DB: usagibot
+      POSTGRES_USER: usagibot
+      POSTGRES_PASSWORD: usagibot
       POSTGRES_SSL: "false"
       SCHEMA_VERSION: "1"
       SCHEMA_VERSION_LABEL: "baseline-v1"

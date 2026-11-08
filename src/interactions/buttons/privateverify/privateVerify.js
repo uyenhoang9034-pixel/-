@@ -20,11 +20,11 @@ export default {
                 message = '❌ Role xác nhận không còn tồn tại. Hãy báo ban quản lý.';
             } else if (result.reason === 'birthday_missing') {
                 message =
-                    '<:bunny2:1546149280463716413> Không thể xác nhận độ tuổi vì bạn chưa có đầy đủ ngày sinh trong hệ thống Birthday.\n' +
+                    '<a:trangtrig54:1567819312775823402> Không thể xác nhận độ tuổi vì bạn chưa có đầy đủ ngày sinh trong hệ thống Birthday.\n' +
                     'Vui lòng liên hệ ban quản trị để cập nhật ngày sinh trước khi xác nhận.';
             } else if (result.reason === 'underage') {
                 message =
-                    '<:bunny2:1546149280463716413> Bạn chưa đủ 18 tuổi theo ngày sinh đã lưu trong hệ thống Birthday nên chưa thể mở quyền trò chuyện tại kênh này.';
+                    '<a:trangtrig54:1567819312775823402> Bạn chưa đủ 18 tuổi theo ngày sinh đã lưu trong hệ thống Birthday nên chưa thể mở quyền trò chuyện tại kênh này.';
             }
 
             return interaction.editReply({ content: message });

@@ -58,7 +58,7 @@ export class InteractionHelper {
     }
 
     static patchInteractionResponses(interaction) {
-        if (!interaction || interaction.__titanResponsePatched) {
+        if (!interaction || interaction.__usagiResponsePatched || interaction.__titanResponsePatched) {
             return;
         }
 
@@ -116,6 +116,7 @@ export class InteractionHelper {
             };
         }
 
+        interaction.__usagiResponsePatched = true;
         interaction.__titanResponsePatched = true;
     }
 

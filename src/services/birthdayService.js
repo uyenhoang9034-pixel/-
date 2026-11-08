@@ -2,7 +2,17 @@
 
 import fs from 'fs';
 import path from 'path';
-import { AttachmentBuilder } from 'discord.js';
+import {
+  AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  MessageFlags,
+  EmbedBuilder,
+} from 'discord.js';
 import { getGuildConfig } from './config/guildConfig.js';
 import { getGuildBirthdays, setBirthday as dbSetBirthday, deleteBirthday as dbDeleteBirthday, getMonthName, getBirthdayTrackingKey } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
@@ -20,6 +30,97 @@ export function getBirthdayImageAttachment() {
     logger.warn('Failed to read birthday asset from disk:', err);
   }
   return null;
+}
+
+export const DEFAULT_BIRTHDAY_TITLE =
+  '<a:trangtrig53:1567819189866201219> **HAPPY BIRTHDAY** <a:trangtrig53:1567819189866201219>';
+
+export function buildBirthdayContainer(member, birthday) {
+  const footerTime = new Date().toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  });
+
+  const container = new ContainerBuilder();
+
+  // 1. Header Title
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(
+      `# ${DEFAULT_BIRTHDAY_TITLE}`
+    )
+  );
+
+  // 2. Đường kẻ giao diện mới
+  container.addSeparatorComponents(
+    new SeparatorBuilder()
+      .setDivider(true)
+      .setSpacing(SeparatorSpacingSize.Small)
+  );
+
+  // 3. Nội dung lời chúc (giữ nguyên emoji và text)
+  const descriptionText =
+    `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
+    `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
+    `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
+    `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
+    `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
+    `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`;
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(descriptionText)
+  );
+
+  // 4. Đường kẻ phân cách trước ảnh
+  container.addSeparatorComponents(
+    new SeparatorBuilder()
+      .setDivider(true)
+      .setSpacing(SeparatorSpacingSize.Small)
+  );
+
+  // 5. Ảnh sinh nhật Usagi
+  const imageUrl = fs.existsSync(BIRTHDAY_IMAGE_PATH)
+    ? 'attachment://birthday.jpg'
+    : BIRTHDAY_FALLBACK_URL;
+
+  container.addMediaGalleryComponents(
+    new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(imageUrl)
+    )
+  );
+
+  // 6. Đường kẻ phân cách trước footer
+  container.addSeparatorComponents(
+    new SeparatorBuilder()
+      .setDivider(true)
+      .setSpacing(SeparatorSpacingSize.Small)
+  );
+
+  // 7. Footer đổi thành Bot Usagi Birthday
+  const footerText = `-# Bot Usagi Birthday • ${footerTime}`;
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(footerText)
+  );
+
+  return container;
+}
+
+export function buildBirthdayEmbed(member, birthday, hasAttachment = false) {
+  const footerTime = new Date().toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  });
+
+  const descriptionText =
+    `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
+    `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
+    `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
+    `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
+    `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
+    `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`;
+
+  return new EmbedBuilder()
+    .setTitle(DEFAULT_BIRTHDAY_TITLE)
+    .setDescription(descriptionText)
+    .setImage(hasAttachment ? 'attachment://birthday.jpg' : BIRTHDAY_FALLBACK_URL)
+    .setFooter({ text: `Bot Usagi Birthday • ${footerTime}` });
 }
 
 export function validateBirthday(month, day) {
@@ -369,46 +470,37 @@ export async function checkBirthdays(client) {
         await client.db.set(trackingKey, updatedTrackingData);
 
         for (const { member, birthday } of birthdayMembers) {
-          const footerTime = new Date().toLocaleString('vi-VN', {
-            timeZone: 'Asia/Ho_Chi_Minh'
-          });
-
           const attachment = getBirthdayImageAttachment();
           const files = attachment ? [attachment] : [];
-          const imageUrl = attachment ? 'attachment://birthday.jpg' : BIRTHDAY_FALLBACK_URL;
-
-          const embed = {
-            description:
-              `## <a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 <a:trangtrig3:1546040818261954610>\n\n` +
-              `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
-              `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
-              `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
-              `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
-              `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
-              `Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!`,
-            color: 0xFCEEC9,
-            image: {
-              url: imageUrl
-            },
-            footer: {
-              text: `Birthday Bot • ${footerTime}`
-            }
-          };
+          const container = buildBirthdayContainer(member, birthday);
 
           try {
             await channel.send({
-              embeds: [embed],
-              files
+              content: null,
+              embeds: [],
+              components: [container],
+              flags: MessageFlags.IsComponentsV2,
+              files,
             });
-          } catch (sendError) {
-            if (files.length > 0) {
-              logger.warn('Failed sending birthday announcement with files, retrying without files:', sendError);
-              embed.image.url = BIRTHDAY_FALLBACK_URL;
+          } catch (v2Error) {
+            logger.warn('Failed sending birthday announcement with V2 container, falling back to Embed:', v2Error);
+            const embed = buildBirthdayEmbed(member, birthday, Boolean(attachment));
+
+            try {
               await channel.send({
-                embeds: [embed]
+                embeds: [embed],
+                files,
               });
-            } else {
-              throw sendError;
+            } catch (sendError) {
+              if (files.length > 0) {
+                logger.warn('Failed sending birthday announcement with files, retrying without files:', sendError);
+                embed.setImage(BIRTHDAY_FALLBACK_URL);
+                await channel.send({
+                  embeds: [embed],
+                });
+              } else {
+                throw sendError;
+              }
             }
           }
         }

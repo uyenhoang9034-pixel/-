@@ -54,7 +54,7 @@ async function handleBoostEmbedModal(
 
             color:
                 color ||
-                '#F5A9C6',
+                null,
 
             footer:
                 footer ||

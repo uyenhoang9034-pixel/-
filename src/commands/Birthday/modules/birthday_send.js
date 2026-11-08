@@ -1,7 +1,12 @@
 import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
 import { getGuildBirthdays } from '../../../utils/database.js';
-import { getBirthdayImageAttachment, BIRTHDAY_FALLBACK_URL } from '../../../services/birthdayService.js';
+import {
+    getBirthdayImageAttachment,
+    BIRTHDAY_FALLBACK_URL,
+    buildBirthdayContainer,
+    buildBirthdayEmbed,
+} from '../../../services/birthdayService.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -16,26 +21,6 @@ function getVietnamToday() {
         month: Number(parts.find(part => part.type === 'month')?.value),
         day: Number(parts.find(part => part.type === 'day')?.value)
     };
-}
-
-function buildBirthdayEmbed(member, birthday, hasAttachment = false) {
-    const footerTime = new Date().toLocaleString('vi-VN', {
-        timeZone: 'Asia/Ho_Chi_Minh'
-    });
-
-    return new EmbedBuilder()
-        .setColor(0xFCEEC9)
-        .setDescription(
-            `## <a:trangtrig2:1546040703375904801> 𝓗𝓪𝓹𝓹𝔂 𝓑𝓲𝓻𝓽𝓱𝓭𝓪𝔂 <a:trangtrig3:1546040818261954610>\n\n` +
-            `<a:giftg1:1543150714732412948> Chúc mừng sinh nhật ${member.toString()}!\n` +
-            `<a:giftg1:1543150714732412948> **生日快乐** ${member.toString()}!\n` +
-            `<a:giftg1:1543150714732412948> **お誕生日おめでとう** ${member.toString()}!\n` +
-            `<a:giftg1:1543150714732412948> **생일 축하해** ${member.toString()}!\n\n` +
-            `*Ngày ${birthday.day} tháng ${birthday.month}${birthday.year ? ` - ${new Date().getFullYear() - birthday.year} tuổi` : ''}*\n\n` +
-            'Chúc bạn có một ngày sinh nhật thật vui vẻ và tuyệt vời! Tuổi mới lúc nào cũng mạnh khỏe, vui vẻ và thành công trong mọi lĩnh vực nhé!'
-        )
-        .setImage(hasAttachment ? 'attachment://birthday.jpg' : BIRTHDAY_FALLBACK_URL)
-        .setFooter({ text: `Birthday Bot • ${footerTime}` });
 }
 
 export default {
@@ -107,21 +92,35 @@ export default {
 
                 const attachment = getBirthdayImageAttachment();
                 const files = attachment ? [attachment] : [];
-                const embed = buildBirthdayEmbed(member, birthdays[userId], Boolean(attachment));
+                const container = buildBirthdayContainer(member, birthdays[userId]);
 
                 try {
                     await channel.send({
-                        embeds: [embed],
+                        content: null,
+                        embeds: [],
+                        components: [container],
+                        flags: MessageFlags.IsComponentsV2,
                         files
                     });
-                } catch (sendError) {
-                    if (files.length > 0) {
-                        logger.warn('Failed sending manual birthday announcement with files, retrying without files:', sendError);
+                } catch (v2Error) {
+                    logger.warn('Failed sending manual birthday announcement with V2 container, falling back to Embed:', v2Error);
+                    const embed = buildBirthdayEmbed(member, birthdays[userId], Boolean(attachment));
+
+                    try {
                         await channel.send({
-                            embeds: [buildBirthdayEmbed(member, birthdays[userId], false)]
+                            embeds: [embed],
+                            files
                         });
-                    } else {
-                        throw sendError;
+                    } catch (sendError) {
+                        if (files.length > 0) {
+                            logger.warn('Failed sending manual birthday announcement with files, retrying without files:', sendError);
+                            embed.setImage(BIRTHDAY_FALLBACK_URL);
+                            await channel.send({
+                                embeds: [embed]
+                            });
+                        } else {
+                            throw sendError;
+                        }
                     }
                 }
                 sent++;

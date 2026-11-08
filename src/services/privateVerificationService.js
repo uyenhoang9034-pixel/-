@@ -3,8 +3,14 @@ import {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
+    ContainerBuilder,
+    TextDisplayBuilder,
+    SeparatorBuilder,
+    SeparatorSpacingSize,
+    MessageFlags,
 } from 'discord.js';
 import { getUserBirthday } from './birthdayService.js';
+import { logger } from '../utils/logger.js';
 
 const PRIVATE_VERIFY_ROLE_ID = '1556533290561839104';
 
@@ -24,17 +30,69 @@ export async function markPrivateVerified(client, guildId, userId) {
     await client.db.set(VERIFIED_KEY(guildId, userId), true);
 }
 
-function buildPanel() {
+export const DEFAULT_PRIVATE_VERIFY_TITLE =
+    '<a:trangtrig2:1546040703375904801> **TÂM SỰ VÙNG KÍN** <a:trangtrig3:1546040818261954610>';
+
+export function buildPanel() {
+    const container = new ContainerBuilder();
+
+    // 1. Header Title
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+            `# ${DEFAULT_PRIVATE_VERIFY_TITLE}`
+        ),
+    );
+
+    // 2. Đường kẻ giao diện V2 mới
+    container.addSeparatorComponents(
+        new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small),
+    );
+
+    // 3. Nội dung giữ nguyên, thay emoji đầu mỗi câu thành <a:trangtrig54:1567819312775823402>
+    const descriptionText =
+        'Đây là không gian dành cho những cuộc trò chuyện riêng tư và nhạy cảm.\n' +
+        'Trước khi tham gia, hãy xác nhận rằng bạn đủ điều kiện truy cập nội dung giới hạn độ tuổi của Discord và đồng ý với những điều sau:\n' +
+        '<a:trangtrig54:1567819312775823402> Tôn trọng câu chuyện và quyền riêng tư của mọi người.\n' +
+        '<a:trangtrig54:1567819312775823402> Không mang nội dung, hình ảnh hoặc câu chuyện của thành viên ra ngoài khi chưa được đồng ý.\n' +
+        '<a:trangtrig54:1567819312775823402> Tự chịu trách nhiệm với nội dung mình chia sẻ và tiếp nhận tại đây.\n' +
+        '<a:trangtrig54:1567819312775823402> Tuân thủ Nội quy Server và Điều khoản của Discord.\n\n' +
+        '**Xác nhận một lần duy nhất để mở quyền trò chuyện tại kênh.**';
+
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(descriptionText),
+    );
+
+    // 4. Nút đồng ý và tiếp tục màu xám (Secondary), emoji <a:trangtrig31:1546905996893626440>
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('private_verify_accept')
+            .setLabel('Đồng ý & tiếp tục')
+            .setEmoji('<a:trangtrig31:1546905996893626440>')
+            .setStyle(ButtonStyle.Secondary),
+    );
+
+    container.addActionRowComponents(row);
+
+    return {
+        content: null,
+        embeds: [],
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+    };
+}
+
+export function buildFallbackPanel() {
     const embed = new EmbedBuilder()
-        .setColor(0xF6B6D6)
-        .setTitle('<a:trangtrig2:1546040703375904801> 𝓣𝓪̂𝓶 𝓢𝓾̛̣ 𝓥𝓾̀𝓷𝓰 𝓚𝓲́𝓷 <a:trangtrig3:1546040818261954610>')
+        .setTitle(DEFAULT_PRIVATE_VERIFY_TITLE)
         .setDescription(
             'Đây là không gian dành cho những cuộc trò chuyện riêng tư và nhạy cảm.\n' +
             'Trước khi tham gia, hãy xác nhận rằng bạn đủ điều kiện truy cập nội dung giới hạn độ tuổi của Discord và đồng ý với những điều sau:\n' +
-            '<:bunny2:1546149280463716413> Tôn trọng câu chuyện và quyền riêng tư của mọi người.\n' +
-            '<:bunny2:1546149280463716413> Không mang nội dung, hình ảnh hoặc câu chuyện của thành viên ra ngoài khi chưa được đồng ý.\n' +
-            '<:bunny2:1546149280463716413> Tự chịu trách nhiệm với nội dung mình chia sẻ và tiếp nhận tại đây.\n' +
-            '<:bunny2:1546149280463716413> Tuân thủ Nội quy Server và Điều khoản của Discord.\n\n' +
+            '<a:trangtrig54:1567819312775823402> Tôn trọng câu chuyện và quyền riêng tư của mọi người.\n' +
+            '<a:trangtrig54:1567819312775823402> Không mang nội dung, hình ảnh hoặc câu chuyện của thành viên ra ngoài khi chưa được đồng ý.\n' +
+            '<a:trangtrig54:1567819312775823402> Tự chịu trách nhiệm với nội dung mình chia sẻ và tiếp nhận tại đây.\n' +
+            '<a:trangtrig54:1567819312775823402> Tuân thủ Nội quy Server và Điều khoản của Discord.\n\n' +
             '**Xác nhận một lần duy nhất để mở quyền trò chuyện tại kênh.**',
         );
 
@@ -42,8 +100,8 @@ function buildPanel() {
         new ButtonBuilder()
             .setCustomId('private_verify_accept')
             .setLabel('Đồng ý & tiếp tục')
-            .setEmoji({ id: '1546085874763178094', name: 'dog19' })
-            .setStyle(ButtonStyle.Success),
+            .setEmoji('<a:trangtrig31:1546905996893626440>')
+            .setStyle(ButtonStyle.Secondary),
     );
 
     return { embeds: [embed], components: [row] };
@@ -78,10 +136,24 @@ export async function setupPrivateVerification(client, guild, channel) {
         panelMessage = await channel.messages.fetch(config.panelMessageId).catch(() => null);
     }
 
-    if (panelMessage) {
-        await panelMessage.edit(buildPanel());
-    } else {
-        panelMessage = await channel.send(buildPanel());
+    try {
+        if (panelMessage) {
+            await panelMessage.edit(buildPanel());
+        } else {
+            panelMessage = await channel.send(buildPanel());
+        }
+    } catch (v2Error) {
+        logger.warn('Failed to edit/send private verification V2 panel, trying fresh send or fallback:', v2Error);
+        try {
+            if (panelMessage) {
+                await panelMessage.delete().catch(() => {});
+            }
+            panelMessage = await channel.send(buildPanel());
+        } catch (retryError) {
+            logger.warn('Failed fresh V2 send, falling back to Embed:', retryError);
+            const fallback = buildFallbackPanel();
+            panelMessage = await channel.send(fallback);
+        }
     }
 
     config = {

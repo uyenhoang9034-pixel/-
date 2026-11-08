@@ -84,7 +84,7 @@ const DEFAULT_CONFIG = {
 
     description: DEFAULT_DESCRIPTION,
 
-    color: '#F5A9C6',
+    color: null,
 
     thumbnail: 'none',
 
@@ -324,7 +324,7 @@ function resolveColor(
         typeof color !==
         'string'
     ) {
-        return 0xF5A9C6;
+        return null;
     }
 
 
@@ -342,7 +342,7 @@ function resolveColor(
             normalized,
         )
     ) {
-        return 0xF5A9C6;
+        return null;
     }
 
 
@@ -476,8 +476,11 @@ export function buildBoostContainer(
         roleId: config.tyPhuRoleId || '1541305195512856627',
     };
 
-    const container = new ContainerBuilder()
-        .setAccentColor(resolveColor(config.color));
+    const container = new ContainerBuilder();
+    const accentColor = resolveColor(config.color);
+    if (accentColor !== null) {
+        container.setAccentColor(accentColor);
+    }
 
     // 1. Header Title
     const rawTitle = replacePlaceholders(
@@ -587,11 +590,6 @@ export function buildBoostEmbed(
 
     const embed =
         new EmbedBuilder()
-            .setColor(
-                resolveColor(
-                    config.color,
-                ),
-            )
             .setTitle(
                 replacePlaceholders(
                     config.title || DEFAULT_TITLE,
@@ -609,6 +607,11 @@ export function buildBoostEmbed(
                     ? 'attachment://boost.webp'
                     : BOOST_IMAGE_URL,
             );
+
+    const embedColor = resolveColor(config.color);
+    if (embedColor !== null) {
+        embed.setColor(embedColor);
+    }
 
 
     // ========================================================
