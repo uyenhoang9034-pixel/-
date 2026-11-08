@@ -56,16 +56,15 @@ export default {
         });
       }
 
-      const embed = WitchHunterQuestService.buildDailyCandleEmbed();
-      const row = WitchHunterQuestService.buildDailyCandleButton();
-
-      await targetChannel.send({
-        embeds: [embed],
-        components: [row],
-      });
+      try {
+        await targetChannel.send(WitchHunterQuestService.buildDailyCandleV2Payload());
+      } catch (v2Error) {
+        logger.warn('Failed to send V2 candle ritual panel, falling back to embed:', v2Error);
+        await targetChannel.send(WitchHunterQuestService.buildDailyCandleFallbackPayload());
+      }
 
       return interaction.reply({
-        content: `✅ Em bot Usagi múp rụp đã thiết lập bảng Thắp Nến Cầu Nguyện tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+        content: `✅ Em bot Usagi múp rụp đã thiết lập bảng Thắp Nến Cầu Nguyện giao diện V2 tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
         flags: MessageFlags.Ephemeral,
       });
     } catch (error) {

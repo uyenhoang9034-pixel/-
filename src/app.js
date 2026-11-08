@@ -440,9 +440,11 @@ class UsagiBot extends Client {
         for (const [, guild] of this.guilds.cache) {
           const channel = guild.channels.cache.find((c) => c.name === 'giai-ma-co-ngu');
           if (channel && channel.isTextBased()) {
-            const embed = WitchHunterQuestService.buildPuzzleNoticeEmbed();
-            const row = WitchHunterQuestService.buildPuzzleNoticeButton();
-            await channel.send({ embeds: [embed], components: [row] }).catch(() => null);
+            try {
+              await channel.send(WitchHunterQuestService.buildPuzzleNoticeV2Payload());
+            } catch {
+              await channel.send(WitchHunterQuestService.buildPuzzleNoticeFallbackPayload()).catch(() => null);
+            }
           }
         }
       } catch (err) {

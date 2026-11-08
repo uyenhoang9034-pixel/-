@@ -6,6 +6,11 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
 import { WitchHunterService, witchHunterStorage } from './witchHunterService.js';
@@ -542,25 +547,105 @@ export class WitchHunterQuestService {
    * PHẦN I: THẮP NẾN CẦU NGUYỆN (DAILY RITUAL)
    * =======================================================
    */
+  static buildDailyCandleV2Payload() {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+    const container = new ContainerBuilder();
+
+    // 1. Title Heading V2: (trangtrig2) **TITLE** (trangtrig3)
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${emojis.titleLeft} **NGHI THỨC THẮP NẾN CẦU NGUYỆN** ${emojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ giao diện V2 sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung mở đầu
+    const introText =
+      `Giữa màn đêm vĩnh hằng của đại ngàn phù thủy và tiếng hú rợn người từ lũ quái thú bóng tối, ngọn nến cổ đại chính là ngọn hải đăng duy trì khế ước linh hồn của các chiến binh.`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(introText)
+    );
+
+    // 4. Đường kẻ trước quy tắc
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Quy tắc cầu nguyện hằng ngày (thêm "- " sau dấu ">" ở đầu mỗi câu)
+    const rulesText =
+      `<a:trangtrig48:1563552038883958855> **QUY TẮC CẦU NGUYỆN HẰNG NGÀY:**\n` +
+      `> - Mỗi ngày một lần, hãy thành tâm bấm nút bên dưới để thắp nến.\n` +
+      `> - Nhận ngay: +1 Bí Ngô <a:bingo:1563061901800243253>.\n` +
+      `> - May mắn **Trăng Máu Chiếu Rọi (1%)**: Nổ hũ nhận ngay **+10 Bí Ngô** <a:bingo:1563061901800243253>!\n` +
+      `> - Chuỗi 7 ngày liên tục: Thưởng chuyên cần thêm **+5 Bí Ngô** <a:bingo:1563061901800243253>.\n` +
+      `> - Lượt thắp nến làm mới tự động vào đúng 00:00 mỗi ngày.`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(rulesText)
+    );
+
+    // 6. Đường kẻ V2 thay thế đường kẻ thủ công ━━━━━
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Lời nhắc ma mị & footer
+    const footerText =
+      `*Thắp sáng hy vọng, đánh thức ma lực tiềm ẩn bên trong ngươi...*\n` +
+      `-# Witch Hunter Daily Ritual`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(footerText)
+    );
+
+    // 8. Nút bấm màu Xám (Secondary)
+    const row = this.buildDailyCandleButton();
+    container.addActionRowComponents(row);
+
+    return {
+      content: null,
+      embeds: [],
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    };
+  }
+
   static buildDailyCandleEmbed() {
-    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **NGHI THỨC THẮP NẾN CẦU NGUYỆN** ${emojis.titleRight}`)
       .setDescription(
         `Giữa màn đêm vĩnh hằng của đại ngàn phù thủy và tiếng hú rợn người từ lũ quái thú bóng tối, ngọn nến cổ đại chính là ngọn hải đăng duy trì khế ước linh hồn của các chiến binh.\n\n` +
         `<a:trangtrig48:1563552038883958855> **QUY TẮC CẦU NGUYỆN HẰNG NGÀY:**\n` +
-        `> Mỗi ngày một lần, hãy thành tâm bấm nút bên dưới để thắp nến.\n` +
-        `> Nhận ngay: +1 Bí Ngô <a:bingo:1563061901800243253>.\n` +
-        `> May mắn **Trăng Máu Chiếu Rọi (1%)**: Nổ hũ nhận ngay **+10 Bí Ngô** <a:bingo:1563061901800243253>!\n` +
-        `> Chuỗi 7 ngày liên tục: Thưởng chuyên cần thêm **+5 Bí Ngô** <a:bingo:1563061901800243253>.\n` +
-        `> Lượt thắp nến làm mới tự động vào đúng 00:00 mỗi ngày.\n` +
+        `> - Mỗi ngày một lần, hãy thành tâm bấm nút bên dưới để thắp nến.\n` +
+        `> - Nhận ngay: +1 Bí Ngô <a:bingo:1563061901800243253>.\n` +
+        `> - May mắn **Trăng Máu Chiếu Rọi (1%)**: Nổ hũ nhận ngay **+10 Bí Ngô** <a:bingo:1563061901800243253>!\n` +
+        `> - Chuỗi 7 ngày liên tục: Thưởng chuyên cần thêm **+5 Bí Ngô** <a:bingo:1563061901800243253>.\n` +
+        `> - Lượt thắp nến làm mới tự động vào đúng 00:00 mỗi ngày.\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `*Thắp sáng hy vọng, đánh thức ma lực tiềm ẩn bên trong ngươi...*`
       )
       .setFooter({ text: 'Witch Hunter Daily Ritual' })
       .setTimestamp();
+  }
+
+  static buildDailyCandleFallbackPayload() {
+    return {
+      embeds: [this.buildDailyCandleEmbed()],
+      components: [this.buildDailyCandleButton()],
+    };
   }
 
   static buildDailyCandleButton() {
@@ -855,24 +940,102 @@ export class WitchHunterQuestService {
    * PHẦN III: SỰ KIỆN CUỐI TUẦN — GIẢI MÃ CỔ NGỮ (QUICK PUZZLE)
    * =======================================================
    */
+  static buildPuzzleNoticeV2Payload() {
+    const { emojis } = WITCH_HUNTER_CONFIG;
+    const container = new ContainerBuilder();
+
+    // 1. Title Heading V2: (trangtrig2) **TITLE** (trangtrig3)
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ${emojis.titleLeft} **THÍ LUYỆN CUỐI TUẦN: GIẢI MÃ CỔ NGỮ** ${emojis.titleRight}`
+      )
+    );
+
+    // 2. Đường kẻ giao diện V2 sau tiêu đề
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 3. Nội dung mở đầu
+    const introText =
+      `Cánh cổng tàn tích ngàn năm đã hé mở! Những dòng ký tự cổ ngữ chứa đựng tri thức ma thuật tối thượng và những bí ẩn thời đại đang chờ đón những bộ óc thông tuệ nhất đến khai phá!`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(introText)
+    );
+
+    // 4. Đường kẻ trước quy tắc thi đấu
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 5. Quy tắc thi đấu (thêm "- " sau dấu ">" ở đầu mỗi câu)
+    const rulesText =
+      `<:trangtri1:1546093044535660644> **QUY TẮC THI ĐẤU:**\n` +
+      `> - Bốc ngẫu nhiên 10 câu trắc nghiệm.\n` +
+      `> - Trả lời hoàn toàn qua tin nhắn ẩn bảo mật.\n` +
+      `> - Mỗi câu đúng: Nhận ngay **+2** <a:bingo:1563061901800243253>\n` +
+      `> - Đúng tối đa **10/10 câu**: Nhận trọn vẹn **+20** <a:bingo:1563061901800243253>\n` +
+      `> - Hạn chót: Đến hết **23:59 Chủ Nhật** tuần này.`;
+
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(rulesText)
+    );
+
+    // 6. Đường kẻ V2 thay thế đường kẻ thủ công ━━━━━
+    container.addSeparatorComponents(
+      new SeparatorBuilder()
+        .setDivider(true)
+        .setSpacing(SeparatorSpacingSize.Small)
+    );
+
+    // 7. Footer text
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `-# Witch Hunter Weekend Puzzle`
+      )
+    );
+
+    // 8. Nút bấm màu Xám (Secondary)
+    const row = this.buildPuzzleNoticeButton();
+    container.addActionRowComponents(row);
+
+    return {
+      content: null,
+      embeds: [],
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    };
+  }
+
   static buildPuzzleNoticeEmbed() {
-    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **THÍ LUYỆN CUỐI TUẦN: GIẢI MÃ CỔ NGỮ** ${emojis.titleRight}`)
       .setDescription(
         `Cánh cổng tàn tích ngàn năm đã hé mở! Những dòng ký tự cổ ngữ chứa đựng tri thức ma thuật tối thượng và những bí ẩn thời đại đang chờ đón những bộ óc thông tuệ nhất đến khai phá!\n\n` +
         `<:trangtri1:1546093044535660644> **QUY TẮC THI ĐẤU:**\n` +
-        `> Bốc ngẫu nhiên 10 câu trắc nghiệm.\n` +
-        `> Trả lời hoàn toàn qua tin nhắn ẩn bảo mật.\n` +
-        `> Mỗi câu đúng: Nhận ngay **+2** <a:bingo:1563061901800243253>\n` +
-        `> Đúng tối đa **10/10 câu**: Nhận trọn vẹn **+20** <a:bingo:1563061901800243253>\n` +
-        `> Hạn chót: Đến hết **23:59 Chủ Nhật** tuần này.\n` +
+        `> - Bốc ngẫu nhiên 10 câu trắc nghiệm.\n` +
+        `> - Trả lời hoàn toàn qua tin nhắn ẩn bảo mật.\n` +
+        `> - Mỗi câu đúng: Nhận ngay **+2** <a:bingo:1563061901800243253>\n` +
+        `> - Đúng tối đa **10/10 câu**: Nhận trọn vẹn **+20** <a:bingo:1563061901800243253>\n` +
+        `> - Hạn chót: Đến hết **23:59 Chủ Nhật** tuần này.\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
       )
       .setFooter({ text: 'Witch Hunter Weekend Puzzle' })
       .setTimestamp();
+  }
+
+  static buildPuzzleNoticeFallbackPayload() {
+    return {
+      embeds: [this.buildPuzzleNoticeEmbed()],
+      components: [this.buildPuzzleNoticeButton()],
+    };
   }
 
   static buildPuzzleNoticeButton() {
@@ -881,7 +1044,7 @@ export class WitchHunterQuestService {
         .setCustomId('btn_start_puzzle')
         .setLabel('Bắt Đầu Giải Mã Cổ Ngữ')
         .setEmoji('<:trangtri1:1546093044535660644>')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     );
   }
 

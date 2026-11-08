@@ -59,16 +59,15 @@ export default {
         targetChannel = interaction.guild.channels.cache.find((c) => c.name === 'giai-ma-co-ngu') || interaction.channel;
       }
 
-      const embed = WitchHunterQuestService.buildPuzzleNoticeEmbed();
-      const row = WitchHunterQuestService.buildPuzzleNoticeButton();
-
-      await targetChannel.send({
-        embeds: [embed],
-        components: [row],
-      });
+      try {
+        await targetChannel.send(WitchHunterQuestService.buildPuzzleNoticeV2Payload());
+      } catch (v2Error) {
+        logger.warn('Failed to send V2 puzzle notice panel, falling back to embed:', v2Error);
+        await targetChannel.send(WitchHunterQuestService.buildPuzzleNoticeFallbackPayload());
+      }
 
       return interaction.reply({
-        content: `✅ Em bot Usagi múp rụp đã thiết lập bảng Thí Luyện Cuối Tuần: Giải Mã Cổ Ngữ tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
+        content: `✅ Em bot Usagi múp rụp đã thiết lập bảng Thí Luyện Cuối Tuần: Giải Mã Cổ Ngữ giao diện V2 tại kênh <#${targetChannel.id}> thành công rồi nè vợ của Kim Nong ơi! 💕`,
         flags: MessageFlags.Ephemeral,
       });
     } catch (error) {

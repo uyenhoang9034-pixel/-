@@ -3080,10 +3080,9 @@ export class WitchHunterService {
    * Tạo Embed giới thiệu bảng Giải Mã Cổ Ngữ
    */
   static buildQuickPuzzleIntroEmbed() {
-    const { emojis, colors } = WITCH_HUNTER_CONFIG;
+    const { emojis } = WITCH_HUNTER_CONFIG;
 
     return new EmbedBuilder()
-      .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **GIẢI MÃ CỔ NGỮ — QUICK PUZZLE** ${emojis.titleRight}`)
       .setDescription(
         `Nghi thức khảo nghiệm trí tuệ ma thuật cổ xưa dành cho toàn thể **Thợ Săn** và **Phù Thủy**!\n\n` +
@@ -3107,7 +3106,7 @@ export class WitchHunterService {
     const startButton = new ButtonBuilder()
       .setCustomId('witch_hunter_puzzle_start')
       .setLabel('Bắt Đầu Giải Mã')
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Secondary)
     return new ActionRowBuilder().addComponents(startButton);
   }
 
