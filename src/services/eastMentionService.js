@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 
 export const EAST_USER_ID = '872792190651334707';
 export const TE_TINH_XUAN_USER_ID = '1206193798804144169';
+export const PRINCESS_USER_ID = '852947314481299516';
 
 // Cấu hình các profile tự động phản hồi khi được ping
 export const MENTION_PROFILES = [
@@ -28,6 +29,13 @@ export const MENTION_PROFILES = [
       `Tĩnh tâm đắc ý\n` +
       `thiên hạ nghênh Xuân.\n` +
       `> <@${TE_TINH_XUAN_USER_ID}> sẽ phản hồi ngay khi online!`,
+  },
+  {
+    userId: PRINCESS_USER_ID,
+    name: 'Công chúa',
+    regex: new RegExp(`<@!?${PRINCESS_USER_ID}>`),
+    getContent: () =>
+      'Công chúa đang ngủ trên giường òi, hoàng tử đợi công chúa dậy công chúa trả lời ngay nha. <a:heartg8:1567818755793358928>',
   },
 ];
 
