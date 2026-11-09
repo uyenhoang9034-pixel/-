@@ -1,4 +1,4 @@
-import { MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { MessageFlags } from 'discord.js';
 import { successEmbed, warningEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes, handleInteractionError, replyUserError } from '../utils/errorHandler.js';
@@ -8,6 +8,11 @@ import {
     isGiveawayEnded,
     getEffectiveExcludedWinners
 } from '../utils/giveaways.js';
+import {
+    buildGiveawayPermissionDeniedMessage,
+    ensureGiveawayAdminAccess,
+    isInGuildInteraction,
+} from '../utils/giveawayPermissions.js';
 import {
     GIVEAWAY_COOLDOWN_COUNT,
     GIVEAWAY_COOLDOWN_REJECT_MESSAGE,
@@ -151,7 +156,7 @@ export const giveawayEndHandler = {
     async execute(interaction, client) {
         try {
             
-            if (!interaction.inGuild()) {
+            if (!isInGuildInteraction(interaction)) {
                 throw new TitanBotError(
                     'Button used outside guild',
                     ErrorTypes.VALIDATION,
@@ -160,8 +165,11 @@ export const giveawayEndHandler = {
                 );
             }
 
-            if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                return replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the \'Manage Server\' permission to end a giveaway.' });
+            if (!(await ensureGiveawayAdminAccess(interaction))) {
+                return replyUserError(interaction, {
+                    type: ErrorTypes.PERMISSION,
+                    message: buildGiveawayPermissionDeniedMessage('kết thúc giveaway'),
+                });
             }
 
             const guildGiveaways = await getGuildGiveaways(client, interaction.guildId);
@@ -302,7 +310,7 @@ export const giveawayRerollHandler = {
     async execute(interaction, client) {
         try {
             
-            if (!interaction.inGuild()) {
+            if (!isInGuildInteraction(interaction)) {
                 throw new TitanBotError(
                     'Button used outside guild',
                     ErrorTypes.VALIDATION,
@@ -311,8 +319,11 @@ export const giveawayRerollHandler = {
                 );
             }
 
-            if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                return replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the \'Manage Server\' permission to reroll a giveaway.' });
+            if (!(await ensureGiveawayAdminAccess(interaction))) {
+                return replyUserError(interaction, {
+                    type: ErrorTypes.PERMISSION,
+                    message: buildGiveawayPermissionDeniedMessage('quay lại (reroll) giveaway'),
+                });
             }
 
             const guildGiveaways = await getGuildGiveaways(client, interaction.guildId);

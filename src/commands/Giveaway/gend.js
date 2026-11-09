@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { 
     endGiveaway as endGiveawayService,
     createGiveawayEmbed, 
@@ -24,26 +25,10 @@ export default {
                 .setDescription("The message ID of the giveaway to end.")
                 .setRequired(true),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDMPermission(false),
 
     async execute(interaction) {
-        if (!interaction.inGuild()) {
-            throw new TitanBotError(
-                'Giveaway command used outside guild',
-                ErrorTypes.VALIDATION,
-                'This command can only be used in a server.',
-                { userId: interaction.user.id }
-            );
-        }
-
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-            throw new TitanBotError(
-                'User lacks ManageGuild permission',
-                ErrorTypes.PERMISSION,
-                "You need the 'Manage Server' permission to end a giveaway.",
-                { userId: interaction.user.id, guildId: interaction.guildId }
-            );
-        }
+        await assertGiveawayCommandAdmin(interaction, 'kết thúc giveaway');
 
         logger.info(`Giveaway end initiated by ${interaction.user.tag} in guild ${interaction.guildId}`);
 

@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { checkUserGiveawayCooldown } from '../../utils/giveawayCooldown.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -17,17 +18,10 @@ export default {
             option.setName('winner')
                 .setDescription('Choose a participant as the winner.')
                 .setRequired(true))
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDMPermission(false),
 
     async execute(interaction) {
-        if (!interaction.inGuild()) {
-            throw new TitanBotError('Giveaway command used outside guild', ErrorTypes.VALIDATION,
-                'Lệnh này chỉ dùng được trong máy chủ.', { userId: interaction.user.id });
-        }
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-            throw new TitanBotError('User lacks ManageGuild permission', ErrorTypes.PERMISSION,
-                'Bạn cần quyền Quản lý máy chủ để chọn người thắng.', { userId: interaction.user.id });
-        }
+        await assertGiveawayCommandAdmin(interaction, 'chọn người thắng giveaway');
 
         const messageId = interaction.options.getString('messageid', true).trim();
         const winner = interaction.options.getUser('winner', true);

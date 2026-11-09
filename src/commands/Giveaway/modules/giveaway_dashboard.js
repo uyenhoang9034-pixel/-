@@ -22,6 +22,11 @@ import {
 } from '../../../services/giveawayService.js';
 
 import { saveGiveaway } from '../../../utils/giveaways.js';
+import {
+    buildGiveawayPermissionDeniedMessage,
+    ensureGiveawayAdminAccess,
+    isInGuildInteraction,
+} from '../../../utils/giveawayPermissions.js';
 import { logger } from '../../../utils/logger.js';
 
 const DEFAULTS = {
@@ -465,6 +470,27 @@ function buildModal(type, session) {
 }
 
 async function showDashboard(interaction) {
+    if (!(await ensureGiveawayAdminAccess(interaction))) {
+        const deniedPayload = {
+            content: `❌ ${buildGiveawayPermissionDeniedMessage('mở bảng điều khiển giveaway')}`,
+            allowedMentions: { parse: [] },
+            flags: MessageFlags.Ephemeral,
+        };
+
+        if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({
+                content: deniedPayload.content,
+                embeds: [],
+                components: [],
+                allowedMentions: deniedPayload.allowedMentions,
+            }).catch(() => {});
+        } else {
+            await interaction.reply(deniedPayload).catch(() => {});
+        }
+
+        return false;
+    }
+
     const session = getSession(interaction);
 
     try {
@@ -920,7 +946,7 @@ async function createGiveaway(interaction) {
 }
 
 async function handleInteraction(interaction) {
-    if (!interaction.inGuild()) {
+    if (!isInGuildInteraction(interaction)) {
         return false;
     }
 
@@ -933,6 +959,22 @@ async function handleInteraction(interaction) {
 
     if (!isDashboardInteraction) {
         return false;
+    }
+
+    if (!(await ensureGiveawayAdminAccess(interaction))) {
+        const deniedPayload = {
+            content: `❌ ${buildGiveawayPermissionDeniedMessage('sử dụng bảng điều khiển giveaway')}`,
+            allowedMentions: { parse: [] },
+            flags: MessageFlags.Ephemeral,
+        };
+
+        if (interaction.deferred || interaction.replied) {
+            await interaction.followUp(deniedPayload).catch(() => {});
+        } else {
+            await interaction.reply(deniedPayload).catch(() => {});
+        }
+
+        return true;
     }
 
     try {

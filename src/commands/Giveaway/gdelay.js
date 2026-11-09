@@ -1,18 +1,17 @@
-import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
  data: new SlashCommandBuilder().setName('gdelay').setDescription('Toggle delayed giveaway announcements.')
   .addStringOption(o => o.setName('messageid').setDescription('Giveaway message ID.').setRequired(true))
   .addBooleanOption(o => o.setName('enabled').setDescription('Enable delayed announcement.').setRequired(true))
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+  .setDMPermission(false),
  async execute(interaction) {
-  if (!interaction.inGuild() || !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-   throw new TitanBotError('Permission denied', ErrorTypes.PERMISSION, 'Bạn cần quyền Quản lý máy chủ để dùng lệnh này.', { userId: interaction.user.id });
-  }
+  await assertGiveawayCommandAdmin(interaction, 'cài đặt trì hoãn thông báo giveaway');
   const messageId = interaction.options.getString('messageid', true).trim();
   const enabled = interaction.options.getBoolean('enabled', true);
   const list = await getGuildGiveaways(interaction.client, interaction.guildId);

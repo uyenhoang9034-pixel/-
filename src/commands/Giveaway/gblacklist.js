@@ -2,7 +2,6 @@ import {
     SlashCommandBuilder,
     EmbedBuilder,
     MessageFlags,
-    PermissionFlagsBits,
 } from 'discord.js';
 import { 
     getGuildGiveaways, 
@@ -12,11 +11,9 @@ import {
     addGuildGiveawayBlacklist,
     removeGuildGiveawayBlacklist
 } from '../../utils/giveaways.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { logger } from '../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { Mutex } from '../../utils/mutex.js';
-
-const GIVEAWAY_ADMIN_ROLE_ID = '1541303749916754001';
 
 export default {
     data: new SlashCommandBuilder()
@@ -85,28 +82,10 @@ export default {
                         .setRequired(false),
                 ),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDMPermission(false),
 
     async execute(interaction) {
-        if (!interaction.inGuild()) {
-            throw new TitanBotError(
-                'Giveaway blacklist command used outside guild',
-                ErrorTypes.VALIDATION,
-                'Lệnh này chỉ có thể sử dụng trong server.',
-                { userId: interaction.user.id },
-            );
-        }
-
-        const hasAdminRole = interaction.member?.roles?.cache?.has(GIVEAWAY_ADMIN_ROLE_ID);
-        const hasManageGuild = interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild);
-
-        if (!hasAdminRole && !hasManageGuild) {
-            await interaction.reply({
-                content: '❌ Bạn không có quyền sử dụng lệnh này (cần quyền Quản lý máy chủ hoặc Role Giveaway Admin).',
-                flags: MessageFlags.Ephemeral,
-            });
-            return;
-        }
+        await assertGiveawayCommandAdmin(interaction, 'quản lý danh sách loại trừ giveaway');
 
         const subcommand = interaction.options.getSubcommand();
 

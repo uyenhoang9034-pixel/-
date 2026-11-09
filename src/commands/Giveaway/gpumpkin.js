@@ -1,21 +1,19 @@
 import {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   MessageFlags,
   ChannelType,
 } from 'discord.js';
 import {
   pumpkinGiveawayService,
-  isWitchHunterAdmin,
 } from '../../services/pumpkinGiveawayService.js';
-import { WITCH_HUNTER_CONFIG } from '../../config/witchHunterConfig.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { logger } from '../../utils/logger.js';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('gpumpkin')
     .setDescription('Mở Bảng Điều Khiển Đại Lễ Ban Thưởng Bí Ngô chia đều toàn server (Chỉ Admin)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDMPermission(false)
     .addIntegerOption((opt) =>
       opt
         .setName('so-luong')
@@ -40,22 +38,10 @@ export default {
   category: 'Giveaway',
 
   async execute(interaction) {
+    await assertGiveawayCommandAdmin(interaction, 'mở Bảng Ban Thưởng Bí Ngô');
+
     try {
       const guild = interaction.guild;
-      if (!guild) {
-        return interaction.reply({
-          content: 'Lệnh này chỉ có thể sử dụng bên trong máy chủ Discord!',
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
-      // 1. Kiểm tra phân quyền Admin
-      if (!isWitchHunterAdmin(interaction)) {
-        return interaction.reply({
-          content: `❌ Bạn không có quyền sử dụng lệnh này đâu nè vợ của Kim Nong ơi! Chỉ chủ máy chủ hoặc thành viên sở hữu role <@&${WITCH_HUNTER_CONFIG.adminRoleId}> mới được phép mở Bảng Ban Thưởng Bí Ngô thôi ạ 💕`,
-          flags: MessageFlags.Ephemeral,
-        });
-      }
 
       const preAmount = interaction.options.getInteger('so-luong');
       const preDuration = interaction.options.getString('thoi-gian');

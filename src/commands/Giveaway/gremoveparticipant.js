@@ -2,9 +2,9 @@ import {
     SlashCommandBuilder,
     EmbedBuilder,
     MessageFlags,
-    PermissionFlagsBits,
 } from 'discord.js';
 import { getGuildGiveaways, saveGiveaway, isGiveawayEnded } from '../../utils/giveaways.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { Mutex } from '../../utils/mutex.js';
@@ -13,8 +13,6 @@ import {
     createGiveawayButtons,
     createGiveawayContainer,
 } from '../../services/giveawayService.js';
-
-const GIVEAWAY_ADMIN_ROLE_ID = '1541303749916754001';
 
 export default {
     data: new SlashCommandBuilder()
@@ -50,28 +48,10 @@ export default {
                 .setDescription('Lý do loại bỏ khỏi giveaway.')
                 .setRequired(false),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDMPermission(false),
 
     async execute(interaction) {
-        if (!interaction.inGuild()) {
-            throw new TitanBotError(
-                'Giveaway remove participant command used outside guild',
-                ErrorTypes.VALIDATION,
-                'Lệnh này chỉ có thể sử dụng trong server.',
-                { userId: interaction.user.id },
-            );
-        }
-
-        const hasAdminRole = interaction.member?.roles?.cache?.has(GIVEAWAY_ADMIN_ROLE_ID);
-        const hasManageGuild = interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild);
-
-        if (!hasAdminRole && !hasManageGuild) {
-            await interaction.reply({
-                content: '❌ Bạn không có quyền loại bỏ người tham gia giveaway (cần quyền Quản lý máy chủ hoặc Role Giveaway Admin).',
-                flags: MessageFlags.Ephemeral,
-            });
-            return;
-        }
+        await assertGiveawayCommandAdmin(interaction, 'loại bỏ người tham gia giveaway');
 
         const messageId = interaction.options.getString('messageid', true).trim();
         const targetUser = interaction.options.getUser('user');

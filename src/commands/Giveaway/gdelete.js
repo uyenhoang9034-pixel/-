@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildGiveaways, deleteGiveaway } from '../../utils/giveaways.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -18,26 +19,10 @@ export default {
                 .setDescription("The message ID of the giveaway to delete.")
                 .setRequired(true),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        .setDMPermission(false),
 
     async execute(interaction) {
-        if (!interaction.inGuild()) {
-            throw new TitanBotError(
-                'Giveaway command used outside guild',
-                ErrorTypes.VALIDATION,
-                'This command can only be used in a server.',
-                { userId: interaction.user.id }
-            );
-        }
-
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-            throw new TitanBotError(
-                'User lacks ManageGuild permission',
-                ErrorTypes.PERMISSION,
-                "You need the 'Manage Server' permission to delete a giveaway.",
-                { userId: interaction.user.id, guildId: interaction.guildId }
-            );
-        }
+        await assertGiveawayCommandAdmin(interaction, 'xóa giveaway');
 
         logger.info(`Giveaway deletion started by ${interaction.user.tag} in guild ${interaction.guildId}`);
 

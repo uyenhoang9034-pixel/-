@@ -18,6 +18,10 @@ import {
 import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
 import { WitchHunterService } from './witchHunterService.js';
 import { getFromDb, setInDb } from '../utils/database.js';
+import {
+  buildGiveawayPermissionDeniedMessage,
+  ensureGiveawayAdminAccess,
+} from '../utils/giveawayPermissions.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -353,6 +357,17 @@ class PumpkinGiveawayService {
       return await this.handleList(interaction, giveawayId);
     }
 
+    // Bảo vệ toàn bộ bảng điều khiển Admin Đại Lễ Ban Thưởng Bí Ngô
+    if (customId.startsWith('pgd_') || customId.startsWith('pgm_')) {
+      if (!(await ensureGiveawayAdminAccess(interaction))) {
+        return interaction.reply({
+          content: `<a:bang2:1546891483250954290> ${buildGiveawayPermissionDeniedMessage('sử dụng bảng điều khiển Đại Lễ Ban Thưởng Bí Ngô')}`,
+          allowedMentions: { parse: [] },
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+    }
+
     // 3. Admin Dashboard: Select Menu chọn thuộc tính
     if (interaction.isStringSelectMenu() && customId === 'pgd_select') {
       const selected = interaction.values[0];
@@ -458,9 +473,10 @@ class PumpkinGiveawayService {
 
     // 7. Admin Dashboard: Nút [ Phát Động Ban Thưởng ]
     if (interaction.isButton() && customId === 'pgd_launch') {
-      if (!isWitchHunterAdmin(interaction)) {
+      if (!(await ensureGiveawayAdminAccess(interaction))) {
         return interaction.reply({
-          content: '<a:bang2:1546891483250954290> Bạn không có quyền phát động sự kiện ban thưởng Bí Ngô!',
+          content: `<a:bang2:1546891483250954290> ${buildGiveawayPermissionDeniedMessage('phát động sự kiện ban thưởng Bí Ngô')}`,
+          allowedMentions: { parse: [] },
           flags: MessageFlags.Ephemeral,
         });
       }
@@ -610,10 +626,11 @@ class PumpkinGiveawayService {
    * Xử lý khi bấm nút [ Danh Sách Ghi Danh ] (CHỈ ADMIN MỚI XEM ĐƯỢC)
    */
   async handleList(interaction, giveawayId) {
-    // RÀNG BUỘC PHÂN QUYỀN: CHỈ ADMIN MỚI ĐƯỢC XEM
-    if (!isWitchHunterAdmin(interaction)) {
+    // RÀNG BUỘC PHÂN QUYỀN: CHỈ ROLE GIVEAWAY ADMIN MỚI ĐƯỢC XEM
+    if (!(await ensureGiveawayAdminAccess(interaction))) {
       return interaction.reply({
-        content: `<a:bang2:1546891483250954290> Chỉ Hội Đồng Tối Cao mới có quyền xem danh sách ghi danh ban thưởng Bí Ngô nhé Lữ Khách ơi! <a:heartg1:1545307544808071258>`,
+        content: `<a:bang2:1546891483250954290> ${buildGiveawayPermissionDeniedMessage('xem danh sách ghi danh ban thưởng Bí Ngô')} <a:heartg1:1545307544808071258>`,
+        allowedMentions: { parse: [] },
         flags: MessageFlags.Ephemeral,
       });
     }

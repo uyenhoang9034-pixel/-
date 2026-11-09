@@ -4,13 +4,9 @@ import {
     MessageFlags,
 } from 'discord.js';
 import { getGuildGiveaways } from '../../utils/giveaways.js';
+import { assertGiveawayCommandAdmin } from '../../utils/giveawayPermissions.js';
 import { logger } from '../../utils/logger.js';
-import {
-    TitanBotError,
-    ErrorTypes,
-} from '../../utils/errorHandler.js';
 
-const GIVEAWAY_ADMIN_ROLE_ID = '1541303749916754001';
 const USERS_PER_PAGE = 20;
 
 export default {
@@ -22,25 +18,11 @@ export default {
                 .setName('messageid')
                 .setDescription('Message ID của giveaway cần xem.')
                 .setRequired(true),
-        ),
+        )
+        .setDMPermission(false),
 
     async execute(interaction) {
-        if (!interaction.inGuild()) {
-            throw new TitanBotError(
-                'Giveaway participants command used outside guild',
-                ErrorTypes.VALIDATION,
-                'Lệnh này chỉ có thể sử dụng trong server.',
-                { userId: interaction.user.id },
-            );
-        }
-
-        if (!interaction.member.roles.cache.has(GIVEAWAY_ADMIN_ROLE_ID)) {
-            await interaction.reply({
-                content: '❌ Bạn không có quyền xem danh sách người tham gia giveaway.',
-                flags: MessageFlags.Ephemeral,
-            });
-            return;
-        }
+        await assertGiveawayCommandAdmin(interaction, 'xem danh sách người tham gia giveaway');
 
         const messageId = interaction.options.getString('messageid', true).trim();
 
