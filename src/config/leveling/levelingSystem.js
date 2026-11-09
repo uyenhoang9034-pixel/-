@@ -21,6 +21,137 @@ export const VOICE_LEVEL_INTERVAL_MS =
 
 /**
  * =========================================================
+ * CHAT XP & ACTIVITY FILTER CONFIG
+ * =========================================================
+ *
+ * Mỗi cấp cần cố định 4.000 XP (~200 tin nhắn hợp lệ ở mức 15–25 XP/tin, TB 20 XP/tin).
+ * Cooldown mặc định giữa các lần nhận XP là 3 giây.
+ */
+
+export const CHAT_XP_PER_LEVEL =
+    4000;
+
+export const CHAT_XP_DEFAULT_COOLDOWN_SECONDS =
+    3;
+
+export const CHAT_XP_CONFIG_VERSION =
+    2;
+
+export const CHAT_MESSAGE_MIN_LENGTH =
+    3;
+
+export const CUSTOM_AMPERSAND_COMMAND_PATTERN =
+    /^&(?:donate|add|addquychung|trutien|roleicon)(?:\s|$)/i;
+
+/**
+ * Kiểm tra nội dung có phải dạng lệnh prefix (ví dụ: !help, !ping) hay không.
+ * Tránh chặn nhầm các biểu cảm dấu câu như "!!!" hoặc "!?!".
+ */
+export function isPrefixCommandLikeContent(
+    content,
+    prefix = '!',
+) {
+    const normalizedPrefix =
+        typeof prefix === 'string'
+            ? prefix.trim()
+            : '';
+
+    if (
+        !normalizedPrefix
+    ) {
+        return false;
+    }
+
+    const trimmed =
+        typeof content === 'string'
+            ? content.trim()
+            : '';
+
+    if (
+        !trimmed.startsWith(
+            normalizedPrefix,
+        )
+    ) {
+        return false;
+    }
+
+    const withoutPrefix =
+        trimmed
+            .slice(
+                normalizedPrefix.length,
+            )
+            .trim();
+
+    return /^[a-z0-9]/i.test(
+        withoutPrefix,
+    );
+}
+
+/**
+ * Bộ lọc tin nhắn hợp lệ dùng chung cho Leveling Chat, Daily Report & Witch Hunter:
+ * - Trong guild, không phải bot hoặc system message
+ * - Không kèm sticker
+ * - Tối thiểu 3 ký tự sau khi trim
+ * - Không phải lệnh custom (&donate, &add, &roleicon...) hoặc lệnh prefix
+ */
+export function isValidChatActivityMessage(
+    message,
+    options = {},
+) {
+    if (
+        !message ||
+        !message.guild ||
+        message.author?.bot ||
+        message.system
+    ) {
+        return false;
+    }
+
+    if (
+        (message.stickers?.size ?? 0) > 0
+    ) {
+        return false;
+    }
+
+    const trimmed =
+        typeof message.content === 'string'
+            ? message.content.trim()
+            : '';
+
+    if (
+        trimmed.length <
+        CHAT_MESSAGE_MIN_LENGTH
+    ) {
+        return false;
+    }
+
+    if (
+        CUSTOM_AMPERSAND_COMMAND_PATTERN.test(
+            trimmed,
+        )
+    ) {
+        return false;
+    }
+
+    const prefix =
+        options.prefix === undefined
+            ? '!'
+            : options.prefix;
+
+    if (
+        isPrefixCommandLikeContent(
+            trimmed,
+            prefix,
+        )
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * =========================================================
  * EMOJIS
  * =========================================================
  */

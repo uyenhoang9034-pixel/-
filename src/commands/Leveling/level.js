@@ -6,6 +6,10 @@ import { botHasPermission } from '../../utils/permissionGuard.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
+import {
+    CHAT_XP_DEFAULT_COOLDOWN_SECONDS,
+    CHAT_XP_CONFIG_VERSION,
+} from '../../config/leveling/levelingSystem.js';
 import levelDashboard from './modules/level_dashboard.js';
 
 export default {
@@ -53,7 +57,7 @@ export default {
                 .addIntegerOption((option) =>
                     option
                         .setName('xp_cooldown')
-                        .setDescription('Seconds between XP grants per user (default: 60)')
+                        .setDescription(`Seconds between XP grants per user (default: ${CHAT_XP_DEFAULT_COOLDOWN_SECONDS})`)
                         .setMinValue(0)
                         .setMaxValue(3600)
                         .setRequired(false),
@@ -89,7 +93,7 @@ export default {
             const message =
                 interaction.options.getString('message') ??
                 '{user} has leveled up to level {level}!';
-            const xpCooldown = interaction.options.getInteger('xp_cooldown') ?? 60;
+            const xpCooldown = interaction.options.getInteger('xp_cooldown') ?? CHAT_XP_DEFAULT_COOLDOWN_SECONDS;
 
             if (xpMin > xpMax) {
                 return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: `Minimum XP (**${xpMin}**) cannot be greater than maximum XP (**${xpMax}**).` });
@@ -116,6 +120,7 @@ export default {
                 levelUpChannel: channel.id,
                 xpRange: { min: xpMin, max: xpMax },
                 xpCooldown: xpCooldown,
+                xpSystemVersion: CHAT_XP_CONFIG_VERSION,
                 levelUpMessage: message,
                 announceLevelUp: true,
             };

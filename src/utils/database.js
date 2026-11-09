@@ -3,6 +3,7 @@
 import { pgDb } from './postgresDatabase.js';
 import { logger } from './logger.js';
 import { BotConfig } from '../config/bot.js';
+import { CHAT_XP_PER_LEVEL } from '../config/leveling/levelingSystem.js';
 
 export {
     db,
@@ -494,7 +495,7 @@ export async function saveUserLevelData(client, guildId, userId, data) {
 }
 
 export function getXpForLevel(level) {
-    return 5 * Math.pow(level, 2) + 50 * level + 50;
+    return CHAT_XP_PER_LEVEL;
 }
 
 export async function getLeaderboard(client, guildId, limit = 10) {

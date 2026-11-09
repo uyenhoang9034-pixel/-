@@ -14,7 +14,13 @@ import {
 
 import {
   PRISON_ROLE_ID,
+  CHAT_XP_DEFAULT_COOLDOWN_SECONDS,
+  isValidChatActivityMessage,
 } from '../config/leveling/levelingSystem.js';
+
+import {
+  Mutex,
+} from '../utils/mutex.js';
 
 import {
   checkRateLimit,
@@ -160,7 +166,7 @@ export default {
         return;
       }
 
-      if (message.author.bot) {
+      if (message.author?.bot || message.system) {
         return;
       }
 
@@ -185,21 +191,9 @@ export default {
           .catch(() => {});
       }
 
-      pumpkinGrowthTracker.recordChatMessage(message.author.id);
-
-      // Ghi nhận nhiệm vụ tuần Witch Hunter: Mật Thư Chiến Trường (Chat)
-      try {
-        const { WitchHunterQuestService } = await import('../services/witchHunterQuestService.js');
-        WitchHunterQuestService.onChatMessage(message);
-      } catch (questChatErr) {
-        logger.warn('⚠️ [WitchHunterQuest] Lỗi ghi nhận tin nhắn:', questChatErr.message);
-      }
-
       await handleAutoReact(message, client);
 
       await handleEastMention(message);
-
-
 
       logger.debug(
         `Message received from ${message.author.tag}: ${message.content}`,
@@ -210,41 +204,84 @@ export default {
         client,
       );
 
-      if (!wordChainProcessed) {
-        const donateProcessed = await handleDonateKeyword(message, client);
-        if (donateProcessed) {
-          return;
-        }
-
-        const autoresponderProcessed = await handleAutoresponder(
-          message,
-          client,
-        );
-
-        if (!autoresponderProcessed) {
-          await handlePrefixCommand(message, client);
-        }
-
-        await handleLeveling(message, client);
+      if (wordChainProcessed) {
+        return;
       }
+
+      const donateProcessed = await handleDonateKeyword(message, client);
+      if (donateProcessed) {
+        return;
+      }
+
+      const guildConfig = await getGuildConfig(
+        client,
+        message.guild.id,
+      );
+      const prefix = guildConfig?.prefix || getCommandPrefix();
+
+      const autoresponderProcessed = await handleAutoresponder(
+        message,
+        client,
+      );
+
+      let prefixCommandProcessed = false;
+      if (!autoresponderProcessed) {
+        prefixCommandProcessed = await handlePrefixCommand(message, client, {
+          guildConfig,
+          prefix,
+        });
+      }
+
+      const isValidChatActivity =
+        !prefixCommandProcessed &&
+        isValidChatActivityMessage(message, { prefix });
+
+      if (!isValidChatActivity) {
+        return;
+      }
+
+      const member =
+        message.member ||
+        (await message.guild.members.fetch(message.author.id).catch(() => null));
+
+      if (member?.roles?.cache?.has(PRISON_ROLE_ID)) {
+        return;
+      }
+
+      // Ghi nhận nhiệm vụ tuần Witch Hunter: Mật Thư Chiến Trường (Chat)
+      try {
+        const { WitchHunterQuestService } = await import('../services/witchHunterQuestService.js');
+        WitchHunterQuestService.onChatMessage(message, { prefix });
+      } catch (questChatErr) {
+        logger.warn('⚠️ [WitchHunterQuest] Lỗi ghi nhận tin nhắn:', questChatErr.message);
+      }
+
+      await handleLeveling(message, client, {
+        member,
+        prefix,
+        alreadyValidated: true,
+      });
     } catch (error) {
       logger.error('Error in messageCreate event:', error);
     }
   },
 };
 
-async function handlePrefixCommand(message, client) {
+async function handlePrefixCommand(message, client, context = {}) {
   try {
-    const guildConfig = await getGuildConfig(
-      client,
-      message.guild.id,
-    );
+    const guildConfig =
+      context.guildConfig ||
+      (await getGuildConfig(
+        client,
+        message.guild.id,
+      ));
 
-    const prefix = guildConfig?.prefix || getCommandPrefix();
+    const prefix =
+      context.prefix || guildConfig?.prefix || getCommandPrefix();
     const parsed = parsePrefixCommand(message.content, prefix);
 
     if (!parsed) {
-      return;
+      return false;
     }
 
     let { commandName, args } = parsed;
@@ -272,7 +309,7 @@ async function handlePrefixCommand(message, client) {
 
     if (!command) {
       logger.warn(`Command not found: ${resolvedCommandName}`);
-      return;
+      return false;
     }
 
     if (isMaintenanceMode() && !isBotOwner(message.author.id)) {
@@ -287,7 +324,7 @@ async function handlePrefixCommand(message, client) {
           ],
         })
         .catch(() => {});
-      return;
+      return true;
     }
 
     if (!isCommandCategoryEnabled(command.category)) {
@@ -302,7 +339,7 @@ async function handlePrefixCommand(message, client) {
           ],
         })
         .catch(() => {});
-      return;
+      return true;
     }
 
     const restriction = getPrefixRestriction(
@@ -325,7 +362,7 @@ async function handlePrefixCommand(message, client) {
           })
           .catch(() => {});
       }
-      return;
+      return true;
     }
 
     if (
@@ -347,7 +384,7 @@ async function handlePrefixCommand(message, client) {
           ],
         })
         .catch(() => {});
-      return;
+      return true;
     }
 
     const mockInteractionForProtection = {
@@ -377,7 +414,7 @@ async function handlePrefixCommand(message, client) {
           ],
         })
         .catch(() => {});
-      return;
+      return true;
     }
 
     await executePrefixCommand(
@@ -388,8 +425,10 @@ async function handlePrefixCommand(message, client) {
       prefix,
       guildConfig,
     );
+    return true;
   } catch (error) {
     logger.error('Error handling prefix command:', error);
+    return false;
   }
 }
 
@@ -713,16 +752,35 @@ async function handleWordChain(message, client) {
   }
 }
 
-async function handleLeveling(message, client) {
+async function handleLeveling(message, client, options = {}) {
   try {
-    const rateLimitKey = `xp-event:${message.guild.id}:${message.author.id}`;
-    const canProcess = await checkRateLimit(
-      rateLimitKey,
-      MESSAGE_XP_RATE_LIMIT_ATTEMPTS,
-      MESSAGE_XP_RATE_LIMIT_WINDOW_MS,
-    );
+    let {
+      member = message.member || null,
+      prefix = null,
+      alreadyValidated = false,
+    } = options;
 
-    if (!canProcess) {
+    if (!alreadyValidated) {
+      if (prefix === null) {
+        const guildConfig = await getGuildConfig(
+          client,
+          message.guild.id,
+        );
+        prefix = guildConfig?.prefix || getCommandPrefix();
+      }
+
+      if (!isValidChatActivityMessage(message, { prefix })) {
+        return;
+      }
+    }
+
+    if (!member) {
+      member = await message.guild.members
+        .fetch(message.author.id)
+        .catch(() => null);
+    }
+
+    if (!member || member.roles?.cache?.has(PRISON_ROLE_ID)) {
       return;
     }
 
@@ -735,27 +793,17 @@ async function handleLeveling(message, client) {
       return;
     }
 
-    if (message.member?.roles?.cache?.has(PRISON_ROLE_ID)) {
-      return;
-    }
-
     if (levelingConfig.ignoredChannels?.includes(message.channel.id)) {
       return;
     }
 
-    if (levelingConfig.ignoredRoles?.length > 0) {
-      const member = await message.guild.members
-        .fetch(message.author.id)
-        .catch(() => null);
-
-      if (
-        member &&
-        member.roles.cache.some(role =>
-          levelingConfig.ignoredRoles.includes(role.id),
-        )
-      ) {
-        return;
-      }
+    if (
+      levelingConfig.ignoredRoles?.length > 0 &&
+      member.roles.cache.some(role =>
+        levelingConfig.ignoredRoles.includes(role.id),
+      )
+    ) {
+      return;
     }
 
     if (
@@ -764,64 +812,82 @@ async function handleLeveling(message, client) {
       return;
     }
 
-    if (!message.content || message.content.trim().length === 0) {
-      return;
-    }
+    const cooldownTime =
+      levelingConfig.xpCooldown ?? CHAT_XP_DEFAULT_COOLDOWN_SECONDS;
 
-    const userData = await getUserLevelData(
-      client,
-      message.guild.id,
-      message.author.id,
-    );
+    const chatLockKey = `chat-xp:${message.guild.id}:${message.author.id}`;
 
-    const cooldownTime = levelingConfig.xpCooldown || 60;
-    const now = Date.now();
-    const timeSinceLastMessage = now - (userData.lastMessage || 0);
-
-    if (timeSinceLastMessage < cooldownTime * 1000) {
-      return;
-    }
-
-    const minXP =
-      levelingConfig.xpRange?.min ||
-      levelingConfig.xpPerMessage?.min ||
-      15;
-    const maxXP =
-      levelingConfig.xpRange?.max ||
-      levelingConfig.xpPerMessage?.max ||
-      25;
-
-    const safeMinXP = Math.max(1, minXP);
-    const safeMaxXP = Math.max(safeMinXP, maxXP);
-    const xpToGive =
-      Math.floor(
-        Math.random() * (safeMaxXP - safeMinXP + 1),
-      ) + safeMinXP;
-
-    let finalXP = xpToGive;
-
-    if (
-      levelingConfig.xpMultiplier &&
-      levelingConfig.xpMultiplier > 1
-    ) {
-      finalXP = Math.floor(
-        finalXP * levelingConfig.xpMultiplier,
+    await Mutex.runExclusive(chatLockKey, async () => {
+      const userData = await getUserLevelData(
+        client,
+        message.guild.id,
+        message.author.id,
       );
-    }
 
-    const result = await addXp(
-      client,
-      message.guild,
-      message.member,
-      finalXP,
-      { source: 'chat' },
-    );
+      const now = Date.now();
+      const timeSinceLastMessage = now - (userData.lastMessage || 0);
 
-    if (result?.leveledUp) {
-      logger.info(
-        `${message.author.tag} leveled up to level ${result.level} in ${message.guild.name}`,
+      if (timeSinceLastMessage < cooldownTime * 1000) {
+        return;
+      }
+
+      const rateLimitKey = `xp-event:${message.guild.id}:${message.author.id}`;
+      const canProcess = await checkRateLimit(
+        rateLimitKey,
+        MESSAGE_XP_RATE_LIMIT_ATTEMPTS,
+        MESSAGE_XP_RATE_LIMIT_WINDOW_MS,
       );
-    }
+
+      if (!canProcess) {
+        return;
+      }
+
+      const minXP =
+        levelingConfig.xpRange?.min ||
+        levelingConfig.xpPerMessage?.min ||
+        15;
+      const maxXP =
+        levelingConfig.xpRange?.max ||
+        levelingConfig.xpPerMessage?.max ||
+        25;
+
+      const safeMinXP = Math.max(1, minXP);
+      const safeMaxXP = Math.max(safeMinXP, maxXP);
+      const xpToGive =
+        Math.floor(
+          Math.random() * (safeMaxXP - safeMinXP + 1),
+        ) + safeMinXP;
+
+      let finalXP = xpToGive;
+
+      if (
+        levelingConfig.xpMultiplier &&
+        levelingConfig.xpMultiplier > 1
+      ) {
+        finalXP = Math.floor(
+          finalXP * levelingConfig.xpMultiplier,
+        );
+      }
+
+      const result = await addXp(
+        client,
+        message.guild,
+        member,
+        finalXP,
+        { source: 'chat' },
+      );
+
+      // Đồng bộ Daily Report với đúng những tin nhắn hợp lệ được tính XP
+      if (result) {
+        pumpkinGrowthTracker.recordChatMessage(message.author.id);
+      }
+
+      if (result?.leveledUp) {
+        logger.info(
+          `${message.author.tag} leveled up to level ${result.level} in ${message.guild.name}`,
+        );
+      }
+    });
   } catch (error) {
     logger.error('Error handling leveling for message:', error);
   }

@@ -21,6 +21,7 @@ import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getLevelingConfig, saveLevelingConfig } from '../../../services/leveling/leveling.js';
+import { CHAT_XP_DEFAULT_COOLDOWN_SECONDS } from '../../../config/leveling/levelingSystem.js';
 import { botHasPermission } from '../../../utils/permissionGuard.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
 
@@ -28,7 +29,7 @@ function buildDashboardEmbed(cfg, guild) {
     const channel = cfg.levelUpChannel ? `<#${cfg.levelUpChannel}>` : '`Not set`';
     const xpMin = cfg.xpRange?.min ?? cfg.xpPerMessage?.min ?? 15;
     const xpMax = cfg.xpRange?.max ?? cfg.xpPerMessage?.max ?? 25;
-    const cooldown = cfg.xpCooldown ?? 60;
+    const cooldown = cfg.xpCooldown ?? CHAT_XP_DEFAULT_COOLDOWN_SECONDS;
     const rawMsg = cfg.levelUpMessage || '{user} has leveled up to level {level}!';
     const msgPreview = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
 
@@ -676,11 +677,11 @@ async function handleXpCooldown(selectInteraction, rootInteraction, cfg, guildId
                     .setCustomId('cooldown_input')
                     .setLabel('Cooldown in seconds (0–3600)')
                     .setStyle(TextInputStyle.Short)
-                    .setValue(String(cfg.xpCooldown ?? 60))
+                    .setValue(String(cfg.xpCooldown ?? CHAT_XP_DEFAULT_COOLDOWN_SECONDS))
                     .setMaxLength(4)
                     .setMinLength(1)
                     .setRequired(true)
-                    .setPlaceholder('60'),
+                    .setPlaceholder(String(CHAT_XP_DEFAULT_COOLDOWN_SECONDS)),
             ),
         );
 

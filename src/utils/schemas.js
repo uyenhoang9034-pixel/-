@@ -42,7 +42,7 @@ export const GuildConfigSchema = z
     ticketPanelChannelId: z.string().nullable().optional(),
     ticketPanelMessageId: z.string().nullable().optional(),
     ticketPanelMessage: z.string().nullable().optional(),
-    ticketPanelTitle: z.string().max(256).optional(),
+    ticketPanelTitle: z.string().max(256).nullable().optional(),
     ticketPanelColor: z.string().nullable().optional(),
     ticketImage: z.string().nullable().optional(),
 

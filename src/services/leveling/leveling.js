@@ -8,7 +8,7 @@ import {
 
 import {
     getGuildConfig,
-    setGuildConfig,
+    updateGuildConfig,
 } from '../config/guildConfig.js';
 
 import {
@@ -17,11 +17,18 @@ import {
 } from '../../utils/errorHandler.js';
 
 import {
+    Mutex,
+} from '../../utils/mutex.js';
+
+import {
     getUserLevelKey,
 } from '../../utils/database/keys.js';
 
 import {
     LEVELING_MAX_LEVEL,
+    CHAT_XP_PER_LEVEL,
+    CHAT_XP_DEFAULT_COOLDOWN_SECONDS,
+    CHAT_XP_CONFIG_VERSION,
     formatLevelNumber,
 } from '../../config/leveling/levelingSystem.js';
 
@@ -39,11 +46,10 @@ const MIN_LEVEL =
  * XP REQUIRED FOR NEXT LEVEL
  * =========================================================
  *
- * Giữ nguyên công thức level cũ:
+ * Mỗi cấp cần cố định 4.000 XP
+ * (~200 tin nhắn hợp lệ ở mức 15–25 XP/tin, TB 20 XP/tin).
  *
- * XP = 5(level²) + 50(level) + 50
- *
- * Chỉ mở giới hạn từ 999 -> 9999.
+ * Giới hạn cấp tối đa giữ nguyên 9.999.
  */
 
 export function getXpForLevel(
@@ -65,16 +71,7 @@ export function getXpForLevel(
         );
     }
 
-    return (
-        5 *
-            Math.pow(
-                level,
-                2,
-            ) +
-        50 *
-            level +
-        50
-    );
+    return CHAT_XP_PER_LEVEL;
 }
 
 /**
@@ -99,36 +96,16 @@ export function getLevelFromXp(
         );
     }
 
-    let level =
-        0;
-
-    let remainingXp =
+    const totalFlooredXp =
         Math.floor(
             xp,
         );
 
-    while (
-        level <
-            LEVELING_MAX_LEVEL
-    ) {
-        const needed =
-            getXpForLevel(
-                level,
-            );
-
-        if (
-            remainingXp <
-            needed
-        ) {
-            break;
-        }
-
-        remainingXp -=
-            needed;
-
-        level +=
-            1;
-    }
+    const level =
+        Math.floor(
+            totalFlooredXp /
+                CHAT_XP_PER_LEVEL,
+        );
 
     /**
      * Lv.9.999 là cap.
@@ -154,7 +131,9 @@ export function getLevelFromXp(
         level,
 
         currentXp:
-            remainingXp,
+            totalFlooredXp -
+            level *
+                CHAT_XP_PER_LEVEL,
 
         xpNeeded:
             getXpForLevel(
@@ -194,28 +173,22 @@ export function calculateTotalXp(
             ),
         );
 
-    let total =
-        Math.max(
-            0,
-            Number(
-                currentXp,
-            ) || 0,
-        );
+    const safeCurrentXp =
+        safeLevel >=
+        LEVELING_MAX_LEVEL
+            ? 0
+            : Math.max(
+                  0,
+                  Number(
+                      currentXp,
+                  ) || 0,
+              );
 
-    for (
-        let i = 0;
-        i <
-        safeLevel;
-        i +=
-        1
-    ) {
-        total +=
-            getXpForLevel(
-                i,
-            );
-    }
-
-    return total;
+    return (
+        safeLevel *
+            CHAT_XP_PER_LEVEL +
+        safeCurrentXp
+    );
 }
 
 /**
@@ -536,7 +509,10 @@ function getDefaultLevelingConfig() {
         },
 
         xpCooldown:
-            20,
+            CHAT_XP_DEFAULT_COOLDOWN_SECONDS,
+
+        xpSystemVersion:
+            CHAT_XP_CONFIG_VERSION,
 
         levelUpMessage:
             '{user} has leveled up to level {level}!',
@@ -581,10 +557,108 @@ export async function getLevelingConfig(
                 guildId,
             );
 
-        return (
-            guildConfig.leveling ||
-            getDefaultLevelingConfig()
-        );
+        const rawConfig =
+            guildConfig?.leveling;
+
+        if (
+            !rawConfig ||
+            typeof rawConfig !==
+                'object'
+        ) {
+            return getDefaultLevelingConfig();
+        }
+
+        if (
+            (Number(
+                rawConfig.xpSystemVersion,
+            ) || 0) <
+            CHAT_XP_CONFIG_VERSION
+        ) {
+            return Mutex.runExclusive(
+                `leveling-config:${guildId}`,
+                async () => {
+                    const latestGuildConfig =
+                        await getGuildConfig(
+                            client,
+                            guildId,
+                        );
+
+                    const latestRaw =
+                        latestGuildConfig?.leveling;
+
+                    if (
+                        !latestRaw ||
+                        typeof latestRaw !==
+                            'object'
+                    ) {
+                        return getDefaultLevelingConfig();
+                    }
+
+                    if (
+                        (Number(
+                            latestRaw.xpSystemVersion,
+                        ) || 0) >=
+                        CHAT_XP_CONFIG_VERSION
+                    ) {
+                        return latestRaw;
+                    }
+
+                    const shouldResetLegacyCooldown =
+                        latestRaw.xpCooldown ===
+                            undefined ||
+                        latestRaw.xpCooldown ===
+                            null ||
+                        latestRaw.xpCooldown ===
+                            60 ||
+                        latestRaw.xpCooldown ===
+                            20;
+
+                    const migrated = {
+                        ...latestRaw,
+
+                        xpCooldown:
+                            shouldResetLegacyCooldown
+                                ? CHAT_XP_DEFAULT_COOLDOWN_SECONDS
+                                : latestRaw.xpCooldown,
+
+                        xpSystemVersion:
+                            CHAT_XP_CONFIG_VERSION,
+                    };
+
+                    const dbReady =
+                        client?.db &&
+                        typeof client.db.set ===
+                            'function' &&
+                        (typeof client.db.isAvailable !==
+                            'function' ||
+                            client.db.isAvailable());
+
+                    if (
+                        dbReady
+                    ) {
+                        await updateGuildConfig(
+                            client,
+                            guildId,
+                            {
+                                leveling:
+                                    migrated,
+                            },
+                        ).catch(
+                            error => {
+                                logger.warn(
+                                    `Failed persisting migrated leveling config for guild ${guildId}:`,
+                                    error,
+                                );
+                            },
+                        );
+                    }
+
+                    return migrated;
+                },
+            );
+        }
+
+        return rawConfig;
     } catch (
         error
     ) {
@@ -651,14 +725,45 @@ export async function getUserLevelData(
             };
         }
 
+        const clampedLevel =
+            Math.max(
+                MIN_LEVEL,
+                Math.min(
+                    Math.floor(
+                        Number(
+                            data.level,
+                        ) || 0,
+                    ),
+                    LEVELING_MAX_LEVEL,
+                ),
+            );
+
+        const rawXp =
+            Math.max(
+                0,
+                Number(
+                    data.xp,
+                ) || 0,
+            );
+
+        /**
+         * Chuẩn hóa XP dư theo ngưỡng mới 4.000 XP/cấp:
+         * Tránh thành viên cấp cao có XP cũ >= 4.000 nhảy nhiều cấp cùng lúc
+         * khi gửi 1 tin nhắn hoặc hiển thị lệch trên /leaderboard.
+         */
+        const normalizedXp =
+            clampedLevel >=
+            LEVELING_MAX_LEVEL
+                ? 0
+                : rawXp >=
+                    CHAT_XP_PER_LEVEL
+                  ? CHAT_XP_PER_LEVEL -
+                    1
+                  : rawXp;
+
         return {
             xp:
-                Math.max(
-                    0,
-                    Number(
-                        data.xp,
-                    ) || 0,
-                ),
+                normalizedXp,
 
             /**
              * QUAN TRỌNG:
@@ -668,17 +773,7 @@ export async function getUserLevelData(
              * Cap mới = 9999.
              */
             level:
-                Math.max(
-                    MIN_LEVEL,
-                    Math.min(
-                        Math.floor(
-                            Number(
-                                data.level,
-                            ) || 0,
-                        ),
-                        LEVELING_MAX_LEVEL,
-                    ),
-                ),
+                clampedLevel,
 
             totalXp:
                 Math.max(
@@ -868,12 +963,6 @@ export async function saveLevelingConfig(
             );
         }
 
-        const guildConfig =
-            await getGuildConfig(
-                client,
-                guildId,
-            );
-
         if (
             config.xpCooldown !==
                 undefined &&
@@ -913,20 +1002,35 @@ export async function saveLevelingConfig(
             );
         }
 
-        guildConfig.leveling =
-            config;
+        const configToSave = {
+            ...config,
 
-        await setGuildConfig(
-            client,
-            guildId,
-            guildConfig,
+            xpSystemVersion:
+                CHAT_XP_CONFIG_VERSION,
+        };
+
+        config.xpSystemVersion =
+            CHAT_XP_CONFIG_VERSION;
+
+        await Mutex.runExclusive(
+            `leveling-config:${guildId}`,
+            async () => {
+                await updateGuildConfig(
+                    client,
+                    guildId,
+                    {
+                        leveling:
+                            configToSave,
+                    },
+                );
+            },
         );
 
         logger.info(
             `Leveling config updated for guild ${guildId}`,
         );
 
-        return config;
+        return configToSave;
     } catch (
         error
     ) {

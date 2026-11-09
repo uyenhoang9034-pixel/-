@@ -14,6 +14,11 @@ import {
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
 import { WitchHunterService, witchHunterStorage } from './witchHunterService.js';
+import {
+  PRISON_ROLE_ID,
+  CHAT_XP_DEFAULT_COOLDOWN_SECONDS,
+  isValidChatActivityMessage,
+} from '../config/leveling/levelingSystem.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -850,20 +855,20 @@ export class WitchHunterQuestService {
   }
 
   // Hook 2: Chat Activity (≥ 30 tin nhắn trong ngày)
-  static async onChatMessage(message) {
+  static async onChatMessage(message, options = {}) {
     try {
-      if (!message || message.author.bot || !message.guild) return;
-      const content = message.content ? message.content.trim() : '';
+      if (!message || message.author?.bot || !message.guild) return;
+      if (message.member?.roles?.cache?.has(PRISON_ROLE_ID)) return;
 
-      // Điều kiện lọc spam: độ dài >= 3, không phải chỉ sticker/emoji
-      if (content.length < 3 || message.stickers?.size > 0) return;
+      // Đồng bộ bộ lọc hợp lệ: >= 3 ký tự, không tính sticker, không tính lệnh prefix/&
+      if (!isValidChatActivityMessage(message, options)) return;
 
       const userId = message.author.id;
       const now = Date.now();
       const lastChat = this.chatCooldowns.get(userId) || 0;
 
-      // Cooldown chống spam 3s/tin
-      if (now - lastChat < 3000) return;
+      // Cooldown chống spam 3s/tin (đồng bộ với cooldown nhận XP chat)
+      if (now - lastChat < CHAT_XP_DEFAULT_COOLDOWN_SECONDS * 1000) return;
       this.chatCooldowns.set(userId, now);
 
       const today = getVietnamDate();

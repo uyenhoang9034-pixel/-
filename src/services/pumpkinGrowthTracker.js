@@ -240,13 +240,13 @@ class PumpkinGrowthTracker {
             }
 
             const voiceMinMatch = block.match(/Voice:\s*`?([\d.,]+)\s*phút/i);
-            const voiceLvlMatch =
-              block.match(/Voice:.*?->\s*\*\*?\+?(\d+)\s*cấp/i) ||
-              block.match(/Voice:.*?\$\\rightarrow\$\s*\*\*?\+?(\d+)\s*cấp/i);
+            const voiceLvlMatch = block.match(
+              /Voice:.*?(?:➔|→|->|\$\\rightarrow\$)\s*\*\*?\+?(\d+)\s*cấp/i
+            );
             const chatMsgMatch = block.match(/Chat:\s*`?([\d.,]+)\s*tin/i);
-            const chatLvlMatch =
-              block.match(/Chat:.*?->\s*\*\*?\+?(\d+)\s*cấp/i) ||
-              block.match(/Chat:.*?\$\\rightarrow\$\s*\*\*?\+?(\d+)\s*cấp/i);
+            const chatLvlMatch = block.match(
+              /Chat:.*?(?:➔|→|->|\$\\rightarrow\$)\s*\*\*?\+?(\d+)\s*cấp/i
+            );
             const totalLvlMatch = block.match(/Tổng cấp tăng hôm nay:\s*\*\*?\+?(\d+)\s*cấp/i);
 
             const voiceMinutes = voiceMinMatch ? parseInt(voiceMinMatch[1].replace(/[.,]/g, ''), 10) : 0;
@@ -570,8 +570,8 @@ class PumpkinGrowthTracker {
 
               return (
                 `**#${index + 1}.** <@${item.userId}> ${factionTag}\n` +
-                `> 🎙️ Voice: \`${(item.voiceMinutes || 0).toLocaleString('vi-VN')} phút\` $\\rightarrow$ **+${item.voiceLevels || 0} cấp**\n` +
-                `> 💬 Chat: \`${(item.messageCount || 0).toLocaleString('vi-VN')} tin nhắn\` $\\rightarrow$ **+${item.chatLevels || 0} cấp thực tế**\n` +
+                `> 🎙️ Voice: \`${(item.voiceMinutes || 0).toLocaleString('vi-VN')} phút\` ➔ **+${item.voiceLevels || 0} cấp**\n` +
+                `> 💬 Chat: \`${(item.messageCount || 0).toLocaleString('vi-VN')} tin nhắn\` ➔ **+${item.chatLevels || 0} cấp thực tế**\n` +
                 `> ⭐ **Tổng cấp tăng hôm nay: +${item.totalLevels || 0} cấp**`
               );
             });
