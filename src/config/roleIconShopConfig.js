@@ -22,6 +22,7 @@ export const ROLE_ICON_EMOJIS = {
   account: '<a:trangtrig59:1567821308077539341>',
   heart: '<a:heartg1:1545307544808071258>',
   donate: '<a:trangtrig58:1567821225282244648>',
+  equipped: '<a:heartg8:1567818755793358928>',
 };
 
 export const ROLE_ICON_ITEMS = [

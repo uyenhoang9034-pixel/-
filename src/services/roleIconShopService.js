@@ -448,7 +448,7 @@ export async function buildWardrobeContainer(member, guild, client) {
       ? ownedItems
           .map((item) => {
             const isEquipped = ownership.active_icon === item.id;
-            const status = isEquipped ? '✨ **Đang đeo trên tên**' : 'Trong kho';
+            const status = isEquipped ? `${ROLE_ICON_EMOJIS.equipped} **Đang đeo trên tên**` : 'Trong kho';
             return `> • ${item.emoji} **${item.name} (#${item.padId})** ──── ${status}`;
           })
           .join('\n')
