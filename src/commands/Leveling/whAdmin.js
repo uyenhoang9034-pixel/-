@@ -252,7 +252,9 @@ export default {
       sub
         .setName('bounty-refresh')
         .setDescription('Làm mới và ghim Bảng Truy Nã Chiến Trường cho cả 2 phe ngay lập tức (Chỉ Admin)')
-    ),
+    )
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false),
 
   category: 'Leveling',
 

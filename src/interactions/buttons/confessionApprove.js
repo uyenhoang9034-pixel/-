@@ -1,7 +1,8 @@
 import { MessageFlags,ActionRowBuilder,ButtonBuilder,ButtonStyle,EmbedBuilder } from 'discord.js';
 import { CONFESSION,getConfession,saveConfession,publishConfession,infoEmbed,applyConfessionImage } from '../../services/confessionService.js';
+import { hasRole, hasRoleTier } from '../../config/commands/roleAccess.js';
 export default {name:'confession_approve',async execute(interaction,client,args){
- if(!interaction.member?.roles?.cache?.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Bạn không có role duyệt confession.',flags:MessageFlags.Ephemeral});
+ if(!((CONFESSION.reviewerRoleId&&hasRole(interaction.member,CONFESSION.reviewerRoleId,interaction.guild))||hasRoleTier(interaction.member,'STAFF_TICKET',interaction.guild,interaction.user)))return interaction.reply({content:'❌ Bạn không có role duyệt confession.',flags:MessageFlags.Ephemeral});
  const d=await getConfession(client,args[0]);if(!d||d.status!=='pending')return interaction.reply({content:'ℹ️ Confession này đã được xử lý hoặc không tồn tại.',flags:MessageFlags.Ephemeral});
  await interaction.deferReply({flags:MessageFlags.Ephemeral});
  const thread=await publishConfession(client,interaction.guild,d);

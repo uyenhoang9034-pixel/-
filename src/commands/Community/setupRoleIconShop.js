@@ -1,17 +1,19 @@
-import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
+import { ChannelType, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import {
   refreshRoleIconShopPanel,
   backfillDonorRoles,
   initRoleIconStorage,
 } from '../../services/roleIconShopService.js';
 import { ROLE_ICON_DONOR_ROLE_ID, ROLE_ICON_EMOJIS } from '../../config/roleIconShopConfig.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 import { logger } from '../../utils/logger.js';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('setup-role-icon-shop')
     .setDescription('Thiết lập bảng Tiệm Role Icon V2 cố định và cấp bù role cho donor (Chỉ Admin)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addChannelOption((option) =>
       option
         .setName('kenh')
@@ -24,6 +26,13 @@ export default {
 
   async execute(interaction, config, client) {
     try {
+      if (!interaction.inGuild() || !hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
+        return interaction.reply({
+          content: `❌ ${buildRoleDeniedMessage('setup-role-icon-shop')}`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       // Khởi tạo storage DB

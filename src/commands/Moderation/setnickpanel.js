@@ -1,6 +1,5 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     ChannelType,
     MessageFlags,
 } from 'discord.js';
@@ -23,6 +22,11 @@ import {
     refreshSetnickPanel,
 } from '../../services/setnickService.js';
 
+import {
+    hasRoleTier,
+    buildRoleDeniedMessage,
+} from '../../config/commands/roleAccess.js';
+
 export default {
     data: new SlashCommandBuilder()
         .setName('setnickpanel')
@@ -34,7 +38,7 @@ export default {
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(false),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames)
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     category: 'moderation',
@@ -50,14 +54,10 @@ export default {
                 });
             }
 
-            // Kiểm tra role quản lý hoặc quyền Admin
-            const hasRole = interaction.member.roles.cache.has(SETNICK_CONFIG.managementRoleId);
-            const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
-
-            if (!hasRole && !isAdmin) {
+            if (!hasRoleTier(interaction.member, 'TOP_ADMIN', guild, interaction.user)) {
                 return replyUserError(interaction, {
                     type: ErrorTypes.PERMISSION,
-                    message: 'Bạn không có role quản lý để gửi bảng tự đổi nickname.',
+                    message: buildRoleDeniedMessage('setnickpanel'),
                 });
             }
 

@@ -1,9 +1,9 @@
 // moderationService.js
 
-import { PermissionFlagsBits } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logModerationAction } from '../../utils/moderation.js';
+import { hasRoleTier } from '../../config/commands/roleAccess.js';
 
 function getTargetLabel(target) {
   return target.user?.tag ?? target.displayName ?? 'this user';
@@ -159,17 +159,11 @@ export class ModerationService {
         this.assertModerationHierarchy(moderator, targetMember, 'ban');
       } else {
 
-        const isOwner = guild.ownerId === moderator.id;
-        const hasHighPerms = moderator.permissions.has([
-            PermissionFlagsBits.ManageGuild,
-            PermissionFlagsBits.Administrator
-        ]);
-
-        if (!isOwner && !hasHighPerms) {
+        if (!hasRoleTier(moderator, 'MID_ADMIN', guild)) {
             throw new TitanBotError(
                 'You do not have sufficient permissions to ban users who are not in the server.',
                 ErrorTypes.PERMISSION,
-                'You need "Manage Server" or "Administrator" permissions to ban users not currently in the guild.'
+                'Bạn cần role Quản trị cấp cao trở lên để ban người dùng không còn trong máy chủ.'
             );
         }
       }

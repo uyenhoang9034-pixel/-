@@ -9,6 +9,7 @@ export default {
  data: new SlashCommandBuilder().setName('gdelay').setDescription('Toggle delayed giveaway announcements.')
   .addStringOption(o => o.setName('messageid').setDescription('Giveaway message ID.').setRequired(true))
   .addBooleanOption(o => o.setName('enabled').setDescription('Enable delayed announcement.').setRequired(true))
+  .setDefaultMemberPermissions(0n)
   .setDMPermission(false),
  async execute(interaction) {
   await assertGiveawayCommandAdmin(interaction, 'cài đặt trì hoãn thông báo giveaway');

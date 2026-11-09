@@ -36,6 +36,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('thu-hoi-bi-ngo')
     .setDescription('Thu hồi Bí Ngô Witch Hunter từ thành viên (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addUserOption((opt) =>
       opt
         .setName('nguoi-bi-thu-hoi')

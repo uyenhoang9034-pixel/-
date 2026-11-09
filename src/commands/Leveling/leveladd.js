@@ -1,6 +1,5 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
 } from 'discord.js';
 
 import {
@@ -75,7 +74,7 @@ export default {
             )
 
             .setDefaultMemberPermissions(
-                PermissionFlagsBits.ManageGuild,
+                0n,
             )
 
             .setDMPermission(

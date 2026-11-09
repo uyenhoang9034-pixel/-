@@ -25,6 +25,7 @@ import {
 
 import { getPersonalTotal } from './financial/financialLedgerService.js';
 import { logger } from '../utils/logger.js';
+import { hasRoleTier } from '../config/commands/roleAccess.js';
 
 const inMemoryOwnership = new Map();
 
@@ -56,14 +57,7 @@ export async function initRoleIconStorage(client) {
 }
 
 export function isServerOwner(member, guild) {
-  if (!member || !guild) return false;
-  if (member.id === guild.ownerId) return true;
-  const configuredOwnerIds = (process.env.OWNER_IDS || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (configuredOwnerIds.includes(member.id)) return true;
-  return false;
+  return hasRoleTier(member, 'TOP_ADMIN', guild);
 }
 
 export async function getUserOwnership(guildId, userId, client) {

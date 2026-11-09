@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ModerationService } from '../../services/moderation/moderationService.js';
@@ -17,7 +17,8 @@ export default {
         .addStringOption((option) =>
             option.setName("reason").setDescription("Reason for the kick"),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false),
     category: "moderation",
 
     async execute(interaction, config, client) {

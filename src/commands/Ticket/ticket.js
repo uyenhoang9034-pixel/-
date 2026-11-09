@@ -1,7 +1,6 @@
 import { getColor } from '../../config/bot.js';
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     PermissionsBitField,
     ChannelType,
     ActionRowBuilder,
@@ -15,6 +14,7 @@ import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfi
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 import ticketConfig, {
     buildPanelEmbed,
@@ -30,7 +30,8 @@ export default {
     data: new SlashCommandBuilder()
         .setName("ticket")
         .setDescription("Manages the server's ticket system.")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("setup")
@@ -147,6 +148,22 @@ export default {
             return;
         }
 
+        if (
+            !hasRoleTier(
+                interaction.member,
+                'STAFF_TICKET',
+                interaction.guild,
+                interaction.user,
+            )
+        ) {
+            logger.warn('Ticket command permission denied', {
+                userId: interaction.user.id,
+                guildId: interaction.guildId,
+                commandName: 'ticket'
+            });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: buildRoleDeniedMessage('ticket') });
+        }
+
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === "transcript") {
@@ -194,21 +211,6 @@ export default {
                 });
             }
         }
-
-        if (
-            !interaction.member.permissions.has(
-                PermissionFlagsBits.ManageChannels,
-            )
-        ) {
-            logger.warn('Ticket command permission denied', {
-                userId: interaction.user.id,
-                guildId: interaction.guildId,
-                commandName: 'ticket'
-            });
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission for this action.' });
-        }
-
-        const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === "dashboard") {
             return ticketConfig.execute(interaction, config, client);

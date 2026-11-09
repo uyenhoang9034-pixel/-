@@ -18,6 +18,7 @@ export default {
             option.setName('winner')
                 .setDescription('Choose a participant as the winner.')
                 .setRequired(true))
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

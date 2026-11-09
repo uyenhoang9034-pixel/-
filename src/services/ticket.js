@@ -42,6 +42,10 @@ import {
 } from '../utils/logger.js';
 
 import {
+  hasRoleTier,
+} from '../config/commands/roleAccess.js';
+
+import {
   createEmbed,
   errorEmbed,
 } from '../utils/embeds.js';
@@ -473,11 +477,11 @@ export async function createTicket(
       config.maxTicketsPerUser ??
       3;
 
-    const UNLIMITED_TICKET_ROLE_ID = '1545295139390619768';
-    const isUnlimitedTicketMember =
-      member?.roles?.cache?.has?.(UNLIMITED_TICKET_ROLE_ID) ||
-      (Array.isArray(member?.roles) && member.roles.includes(UNLIMITED_TICKET_ROLE_ID)) ||
-      (guild?.members?.cache?.get?.(member?.id)?.roles?.cache?.has?.(UNLIMITED_TICKET_ROLE_ID));
+    const isUnlimitedTicketMember = hasRoleTier(
+      member,
+      'STAFF_TICKET',
+      guild,
+    );
 
     if (!isUnlimitedTicketMember) {
       const currentTicketCount =
@@ -2443,6 +2447,11 @@ export async function unclaimTicket(
     if (
       ticketData.claimedBy !==
         unclaimer.id &&
+      !hasRoleTier(
+        unclaimer,
+        'STAFF_TICKET',
+        channel.guild,
+      ) &&
       !unclaimer.permissions.has(
         PermissionFlagsBits.ManageChannels,
       )

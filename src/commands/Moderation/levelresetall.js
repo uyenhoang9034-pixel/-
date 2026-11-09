@@ -1,6 +1,5 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     MessageFlags,
 } from 'discord.js';
 
@@ -16,6 +15,11 @@ import {
     logger,
 } from '../../utils/logger.js';
 
+import {
+    hasRoleTier,
+    buildRoleDeniedMessage,
+} from '../../config/commands/roleAccess.js';
+
 export default {
     data:
         new SlashCommandBuilder()
@@ -26,7 +30,10 @@ export default {
                 'Reset toàn bộ hệ thống level của server về Lv.0.',
             )
             .setDefaultMemberPermissions(
-                PermissionFlagsBits.Administrator,
+                0n,
+            )
+            .setDMPermission(
+                false,
             ),
 
     category:
@@ -38,14 +45,16 @@ export default {
         client,
     ) {
         if (
-            !interaction.memberPermissions
-                ?.has(
-                    PermissionFlagsBits.Administrator,
-                )
+            !hasRoleTier(
+                interaction.member,
+                'TOP_ADMIN',
+                interaction.guild,
+                interaction.user,
+            )
         ) {
             await interaction.reply({
                 content:
-                    '❌ Bạn không có quyền sử dụng lệnh này.',
+                    `❌ ${buildRoleDeniedMessage('levelresetall')}`,
 
                 flags:
                     MessageFlags.Ephemeral,

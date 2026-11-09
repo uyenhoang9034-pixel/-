@@ -1,6 +1,5 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     EmbedBuilder,
     AttachmentBuilder,
     ContainerBuilder,
@@ -227,7 +226,10 @@ export default {
                         ),
             )
             .setDefaultMemberPermissions(
-                PermissionFlagsBits.BanMembers,
+                0n,
+            )
+            .setDMPermission(
+                false,
             ),
 
     category:

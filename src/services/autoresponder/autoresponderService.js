@@ -3,8 +3,9 @@ import {
 } from '../../utils/database/keys.js';
 
 import {
-    PermissionFlagsBits,
-} from 'discord.js';
+    hasRole,
+    hasRoleTier,
+} from '../../config/commands/roleAccess.js';
 
 import {
     logger,
@@ -23,13 +24,7 @@ export const AUTORESPONDER_ADMIN_ROLES = [
     WITCH_HUNTER_ADMIN_ROLE_ID,
 ];
 
-export function hasRole(member, roleId) {
-    if (!member || !roleId) return false;
-    if (member.roles?.cache?.has?.(roleId)) return true;
-    if (Array.isArray(member._roles) && member._roles.includes(roleId)) return true;
-    if (Array.isArray(member.roles) && member.roles.includes(roleId)) return true;
-    return false;
-}
+export { hasRole };
 
 const DEFAULT_CONFIG = {
     managerRoleId: AUTORESPONDER_ADMIN_ROLE_ID,
@@ -245,26 +240,7 @@ export function canManageAutoresponder(
         return false;
     }
 
-    if (
-        member.guild?.ownerId ===
-        member.id
-    ) {
-        return true;
-    }
-
-    if (
-        member.permissions?.has?.(
-            PermissionFlagsBits.Administrator,
-        )
-    ) {
-        return true;
-    }
-
-    if (
-        member.permissions?.has?.(
-            PermissionFlagsBits.ManageGuild,
-        )
-    ) {
+    if (hasRoleTier(member, 'STAFF_TICKET', member.guild)) {
         return true;
     }
 

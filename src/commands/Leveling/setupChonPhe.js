@@ -34,7 +34,9 @@ function isWitchHunterAdmin(interaction) {
 export default {
   data: new SlashCommandBuilder()
     .setName('setup-chon-phe')
-    .setDescription('Tạo hộp thoại ký kết khế ước chọn phe Witch Hunter (Chỉ Admin)'),
+    .setDescription('Tạo hộp thoại ký kết khế ước chọn phe Witch Hunter (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false),
 
   category: 'Leveling',
 

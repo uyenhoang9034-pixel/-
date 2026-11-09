@@ -16,6 +16,10 @@ import {
     InteractionHelper,
 } from '../../utils/interactionHelper.js';
 
+import {
+    buildRoleDeniedMessage,
+} from '../../config/commands/roleAccess.js';
+
 export default {
     slashOnly: true,
 
@@ -26,6 +30,8 @@ export default {
         .setDescription(
             'Manage automatic emoji reactions',
         )
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
 
         .addSubcommand(sub =>
             sub
@@ -138,7 +144,7 @@ export default {
                 interaction,
                 {
                     content:
-                        '❌ Bạn cần quyền **Manage Server** để quản lý Auto React.',
+                        `❌ ${buildRoleDeniedMessage('autoreact')}`,
 
                     flags:
                         MessageFlags.Ephemeral,

@@ -1,12 +1,12 @@
 import {
   SlashCommandBuilder,
-  PermissionFlagsBits,
   MessageFlags,
 } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 import {
   disableCategory,
   enableCategory,
@@ -37,8 +37,8 @@ function buildCategoryChoices(client) {
 }
 
 async function ensureManageGuild(interaction) {
-  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-    await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to manage commands.' });
+  if (!hasRoleTier(interaction.member, 'TOP_ADMIN', interaction.guild, interaction.user)) {
+    await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: buildRoleDeniedMessage('commands') });
     return false;
   }
 
@@ -49,7 +49,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName('commands')
     .setDescription('Enable or disable bot commands and categories for this server')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(0n)
     .setDMPermission(false)
     .addSubcommand((subcommand) =>
       subcommand

@@ -1,7 +1,8 @@
-import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 import greetDashboard from './modules/greet_dashboard.js';
 
 export default {
@@ -9,7 +10,8 @@ export default {
     data: new SlashCommandBuilder()
         .setName('greet')
         .setDescription('Manage welcome & goodbye settings')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('dashboard')
@@ -18,8 +20,8 @@ export default {
 
     async execute(interaction, config, client) {
         try {
-            if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-                return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/greet`.' });
+            if (!hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
+                return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: buildRoleDeniedMessage('greet') });
             }
 
             const subcommand = interaction.options.getSubcommand();

@@ -1,8 +1,9 @@
 // giveawayPermissions.js
 
 import { TitanBotError, ErrorTypes } from './errorHandler.js';
+import { ROLE_IDS, hasRoleTier } from '../config/commands/roleAccess.js';
 
-export const GIVEAWAY_ADMIN_ROLE_ID = '1541303749916754001';
+export const GIVEAWAY_ADMIN_ROLE_ID = ROLE_IDS.TOP_ADMIN;
 
 export function isInGuildInteraction(interaction) {
     if (!interaction) {
@@ -21,33 +22,24 @@ export function buildGiveawayPermissionDeniedMessage(action = 'sử dụng tính
 }
 
 export function hasGiveawayAdminRole(memberOrInteraction) {
-    const member =
-        memberOrInteraction && typeof memberOrInteraction === 'object' && 'member' in memberOrInteraction
-            ? memberOrInteraction.member
-            : memberOrInteraction;
-
-    if (!member) {
+    if (!memberOrInteraction) {
         return false;
     }
 
-    const roles = member.roles;
-    if (!roles) {
-        return false;
-    }
+    const isInteraction =
+        typeof memberOrInteraction === 'object' &&
+        'member' in memberOrInteraction;
+    const member = isInteraction
+        ? memberOrInteraction.member
+        : memberOrInteraction;
+    const guild = isInteraction
+        ? (memberOrInteraction.guild || member?.guild || null)
+        : (member?.guild || null);
+    const user = isInteraction
+        ? (memberOrInteraction.user || member?.user || null)
+        : (member?.user || null);
 
-    if (typeof roles.cache?.has === 'function' && roles.cache.has(GIVEAWAY_ADMIN_ROLE_ID)) {
-        return true;
-    }
-
-    if (Array.isArray(member._roles) && member._roles.includes(GIVEAWAY_ADMIN_ROLE_ID)) {
-        return true;
-    }
-
-    if (Array.isArray(roles) && roles.includes(GIVEAWAY_ADMIN_ROLE_ID)) {
-        return true;
-    }
-
-    return false;
+    return hasRoleTier(member, 'TOP_ADMIN', guild, user);
 }
 
 export async function ensureGiveawayAdminAccess(interaction) {

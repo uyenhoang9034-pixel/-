@@ -2,9 +2,9 @@
 
 import { logger } from '../../utils/logger.js';
 import { getGuildConfig, setGuildConfig } from './guildConfig.js';
-import { PermissionFlagsBits } from 'discord.js';
 import { createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { wrapServiceClassMethods } from '../../utils/serviceErrorBoundary.js';
+import { hasRoleTier } from '../../config/commands/roleAccess.js';
 import { z } from 'zod';
 import { LogIgnoreSchema, LoggingConfigSchema } from '../../utils/schemas.js';
 
@@ -602,10 +602,7 @@ class ConfigService {
     }
 
     static verifyPermission(member) {
-        return member.permissions.has([
-            PermissionFlagsBits.Administrator,
-            PermissionFlagsBits.ManageGuild
-        ]);
+        return hasRoleTier(member, 'TOP_ADMIN', member?.guild);
     }
 }
 

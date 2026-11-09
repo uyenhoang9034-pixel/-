@@ -32,6 +32,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('setup-giai-ma')
     .setDescription('Tạo hộp thoại Thí Luyện Cuối Tuần: Giải Mã Cổ Ngữ (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addChannelOption((opt) =>
       opt
         .setName('kenh')

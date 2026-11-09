@@ -32,6 +32,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('setup-summon')
     .setDescription('Tạo bảng cố định Tế Đàn Triệu Gọi Huyết Nguyệt: Supporter & Thần Khí (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addChannelOption((opt) =>
       opt
         .setName('kenh')

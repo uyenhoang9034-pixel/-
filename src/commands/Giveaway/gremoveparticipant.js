@@ -48,6 +48,7 @@ export default {
                 .setDescription('Lý do loại bỏ khỏi giveaway.')
                 .setRequired(false),
         )
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

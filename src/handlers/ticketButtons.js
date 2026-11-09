@@ -8,6 +8,7 @@ import { InteractionHelper } from '../utils/interactionHelper.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { replyUserError, ErrorTypes, handleInteractionError, createError } from '../utils/errorHandler.js';
 import { getTicketPermissionContext } from '../utils/ticket/ticketPermissions.js';
+import { hasRoleTier } from '../config/commands/roleAccess.js';
 
 function escapeHtml(text) {
   if (!text) return '';
@@ -137,10 +138,12 @@ const createTicketModalHandler = {
       const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
       if (!deferSuccess) return;
 
-      const UNLIMITED_TICKET_ROLE_ID = '1545295139390619768';
-      const isUnlimitedTicketMember =
-        interaction.member?.roles?.cache?.has?.(UNLIMITED_TICKET_ROLE_ID) ||
-        (Array.isArray(interaction.member?.roles) && interaction.member.roles.includes(UNLIMITED_TICKET_ROLE_ID));
+      const isUnlimitedTicketMember = hasRoleTier(
+        interaction.member,
+        'STAFF_TICKET',
+        interaction.guild,
+        interaction.user,
+      );
 
       const rateLimitKey = `${interaction.user.id}:create_ticket`;
       const allowed = isUnlimitedTicketMember ? true : await checkRateLimit(rateLimitKey, 3, 60000);

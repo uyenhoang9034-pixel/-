@@ -31,7 +31,9 @@ function isWitchHunterAdmin(interaction) {
 export default {
   data: new SlashCommandBuilder()
     .setName('reset-witch-hunter')
-    .setDescription('Xóa 1 lần duy nhất toàn bộ bí ngô và gỡ sạch role phe cũ của tất cả member (Chỉ Admin)'),
+    .setDescription('Xóa 1 lần duy nhất toàn bộ bí ngô và gỡ sạch role phe cũ của tất cả member (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false),
 
   category: 'Leveling',
 

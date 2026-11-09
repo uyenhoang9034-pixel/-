@@ -1,8 +1,8 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     MessageFlags,
 } from 'discord.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 export default {
     slashOnly: true,
@@ -10,6 +10,8 @@ export default {
     data: new SlashCommandBuilder()
         .setName('channelguide')
         .setDescription('Manage the server Channel Guide')
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
         .addSubcommand(sub =>
             sub
                 .setName('setup')
@@ -26,18 +28,9 @@ export default {
             });
         }
 
-        const hasPermission =
-            interaction.member.permissions.has(
-                PermissionFlagsBits.Administrator,
-            ) ||
-            interaction.member.permissions.has(
-                PermissionFlagsBits.ManageGuild,
-            );
-
-        if (!hasPermission) {
+        if (!hasRoleTier(interaction.member, 'TOP_ADMIN', interaction.guild, interaction.user)) {
             return interaction.reply({
-                content:
-                    '❌ Bạn cần quyền Administrator hoặc Manage Server.',
+                content: `❌ ${buildRoleDeniedMessage('channelguide')}`,
                 flags: MessageFlags.Ephemeral,
             });
         }

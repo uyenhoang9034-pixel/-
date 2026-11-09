@@ -10,9 +10,9 @@ import {
     ButtonStyle,
     EmbedBuilder,
     MessageFlags,
-    PermissionFlagsBits,
 } from 'discord.js';
 import { logger } from '../utils/logger.js';
+import { hasRoleTier } from '../config/commands/roleAccess.js';
 
 export const SETNICK_CONFIG = {
     channelId: '1541364885789745213',
@@ -50,19 +50,9 @@ const setnickCooldownCache = new Map();
  */
 export async function checkSetnickCooldown(client, guildId, userId, member = null) {
     try {
-        // Kiểm tra quyền miễn trừ: Admin hoặc Role quản lý setnick
-        if (member) {
-            const isAdmin =
-                member.permissions?.has?.(PermissionFlagsBits.Administrator) ||
-                member.guild?.ownerId === member.id;
-            const hasManagementRole =
-                member.roles?.cache?.has?.(SETNICK_CONFIG.managementRoleId) ||
-                (Array.isArray(member._roles) && member._roles.includes(SETNICK_CONFIG.managementRoleId)) ||
-                (Array.isArray(member.roles) && member.roles.includes(SETNICK_CONFIG.managementRoleId));
-
-            if (isAdmin || hasManagementRole) {
-                return { isOnCooldown: false, remainingMs: 0, nextTimestamp: 0, message: '' };
-            }
+        // Kiểm tra quyền miễn trừ: Hỗ trợ / Quản trị viên
+        if (member && hasRoleTier(member, 'STAFF_TICKET', member.guild)) {
+            return { isOnCooldown: false, remainingMs: 0, nextTimestamp: 0, message: '' };
         }
 
         const cacheKey = `${guildId}:${userId}`;

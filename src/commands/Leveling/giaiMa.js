@@ -9,6 +9,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('giai-ma')
     .setDescription('Mở bảng tham gia khảo nghiệm Giải Mã Cổ Ngữ (Chỉ mở vào Thứ 7 & Chủ Nhật)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addBooleanOption((option) =>
       option
         .setName('gui-bang-cong-khai')

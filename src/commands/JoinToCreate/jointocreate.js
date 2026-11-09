@@ -16,12 +16,13 @@ import {
 import {
   createJoinToCreateControlPanel,
 } from '../../services/joinToCreateControlPanel.js';
+import { buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName("jointocreate")
         .setDescription("Manage Join to Create voice channels system.")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false)
         .addSubcommand((subcommand) =>
             subcommand
@@ -92,9 +93,9 @@ export default {
             
             if (!hasManageGuildPermission(interaction.member)) {
                 throw new TitanBotError(
-                    'User lacks ManageGuild permission',
+                    'User lacks required role tier',
                     ErrorTypes.PERMISSION,
-                    'You need **Manage Server** permission to use this command.'
+                    buildRoleDeniedMessage('jointocreate')
                 );
             }
 

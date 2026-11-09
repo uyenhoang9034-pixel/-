@@ -1,6 +1,5 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     MessageFlags,
     EmbedBuilder,
 } from 'discord.js';
@@ -11,6 +10,11 @@ import {
     sendTestBoost,
     DEFAULT_BOOST_CHANNEL_ID,
 } from '../../services/boost/boostService.js';
+
+import {
+    hasRoleTier,
+    buildRoleDeniedMessage,
+} from '../../config/commands/roleAccess.js';
 
 
 export default {
@@ -23,7 +27,10 @@ export default {
                 'Quản lý hệ thống Server Boost',
             )
             .setDefaultMemberPermissions(
-                PermissionFlagsBits.ManageGuild,
+                0n,
+            )
+            .setDMPermission(
+                false,
             )
 
             // =================================================
@@ -186,6 +193,23 @@ export default {
     async execute(
         interaction,
     ) {
+        if (
+            !interaction.inGuild() ||
+            !hasRoleTier(
+                interaction.member,
+                'MID_ADMIN',
+                interaction.guild,
+                interaction.user,
+            )
+        ) {
+            return interaction.reply({
+                content:
+                    `❌ ${buildRoleDeniedMessage('boost')}`,
+                flags:
+                    MessageFlags.Ephemeral,
+            });
+        }
+
         const subcommand =
             interaction.options.getSubcommand();
 

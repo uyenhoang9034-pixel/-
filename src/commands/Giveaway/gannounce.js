@@ -14,6 +14,7 @@ export default {
             option.setName('messageid')
                 .setDescription('The giveaway message ID.')
                 .setRequired(true))
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

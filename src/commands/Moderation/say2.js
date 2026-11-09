@@ -147,7 +147,7 @@ export default {
                 .setRequired(false)
                 .setMaxLength(128),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
     category: 'moderation',
     abuseProtection: { maxAttempts: 8, windowMs: 60_000 },

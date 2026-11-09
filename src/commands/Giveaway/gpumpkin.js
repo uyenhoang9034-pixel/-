@@ -13,6 +13,7 @@ export default {
   data: new SlashCommandBuilder()
     .setName('gpumpkin')
     .setDescription('Mở Bảng Điều Khiển Đại Lễ Ban Thưởng Bí Ngô chia đều toàn server (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
     .setDMPermission(false)
     .addIntegerOption((opt) =>
       opt

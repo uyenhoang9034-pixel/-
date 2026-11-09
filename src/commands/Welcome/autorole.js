@@ -1,9 +1,10 @@
 import { getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 function createAutoroleInfoEmbed(description) {
     return new EmbedBuilder()
@@ -16,7 +17,8 @@ export default {
     data: new SlashCommandBuilder()
         .setName('autorole')
         .setDescription('Manage roles that are automatically assigned to new members')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('add')
@@ -49,8 +51,8 @@ export default {
             return;
         }
 
-        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/autorole`.' });
+        if (!hasRoleTier(interaction.member, 'TOP_ADMIN', interaction.guild, interaction.user)) {
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: buildRoleDeniedMessage('autorole') });
         }
 
         const { options, guild, client } = interaction;

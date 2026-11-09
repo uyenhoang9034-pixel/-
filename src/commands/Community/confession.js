@@ -1,9 +1,11 @@
 import { SlashCommandBuilder, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from 'discord.js';
 import { CONFESSION, getConfessionByNumber, infoEmbed, applyConfessionImage, buildConfessionPanelContainer, getConfessionPanelFiles } from '../../services/confessionService.js';
+import { hasRole, hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 export default {
  slashOnly:true,
  data:new SlashCommandBuilder().setName('confession').setDescription('Usagi Confession.')
+  .setDefaultMemberPermissions(0n)
   .setDMPermission(false)
   .addSubcommand(s=>s.setName('panel').setDescription('Đăng bài panel Usagi Confession lên forum.'))
   .addSubcommand(s=>s.setName('info').setDescription('Xem thông tin confession dành cho BQL.')
@@ -14,10 +16,11 @@ export default {
  category:'Community',
  async execute(interaction){
   if(!interaction.inGuild())return interaction.reply({content:'❌ Lệnh này chỉ dùng trong server.',flags:MessageFlags.Ephemeral});
+  const canUseConfession=(CONFESSION.reviewerRoleId&&hasRole(interaction.member,CONFESSION.reviewerRoleId,interaction.guild))||hasRoleTier(interaction.member,'STAFF_TICKET',interaction.guild,interaction.user);
   const sub=interaction.options.getSubcommand();
 
   if(sub==='trace'){
-   if(!interaction.member.roles.cache.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Bạn không có role BQL để tra mã ẩn danh.',flags:MessageFlags.Ephemeral});
+   if(!canUseConfession)return interaction.reply({content:`❌ ${buildRoleDeniedMessage('confession')}`,flags:MessageFlags.Ephemeral});
    const number=interaction.options.getInteger('confession');
    const code=interaction.options.getString('code').trim().toUpperCase();
    const d=await getConfessionByNumber(interaction.client,interaction.guildId,number);
@@ -47,7 +50,7 @@ export default {
   }
 
   if(sub==='info'){
-   if(!interaction.member.roles.cache.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Bạn không có role duyệt confession.',flags:MessageFlags.Ephemeral});
+   if(!canUseConfession)return interaction.reply({content:`❌ ${buildRoleDeniedMessage('confession')}`,flags:MessageFlags.Ephemeral});
    const number=interaction.options.getInteger('id');
    const d=await getConfessionByNumber(interaction.client,interaction.guildId,number);
    if(!d)return interaction.reply({content:`❌ Không tìm thấy Confession #${number}.`,flags:MessageFlags.Ephemeral});
@@ -56,7 +59,7 @@ export default {
    return interaction.reply({embeds:[infoEmbed(d)],components:rows,flags:MessageFlags.Ephemeral});
   }
 
-  if(!interaction.member.roles.cache.has(CONFESSION.reviewerRoleId))return interaction.reply({content:'❌ Chỉ Ban Quản Lý mới có thể đăng panel Confession.',flags:MessageFlags.Ephemeral});
+  if(!canUseConfession)return interaction.reply({content:`❌ ${buildRoleDeniedMessage('confession')}`,flags:MessageFlags.Ephemeral});
   await interaction.deferReply({flags:MessageFlags.Ephemeral});
 
   const forum=await interaction.guild.channels.fetch(CONFESSION.publicForumId);

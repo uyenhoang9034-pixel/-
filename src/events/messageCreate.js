@@ -328,6 +328,11 @@ async function handlePrefixCommand(message, client, context = {}) {
       firstArgSubcommand === 'test'
     ) {
       resolvedCommandName = 'duel-admin';
+    } else if (
+      resolvedCommandName === 'noitu' &&
+      ['setup', 'mode', 'disable'].includes(firstArgSubcommand)
+    ) {
+      resolvedCommandName = 'noitu-admin';
     }
 
     const command = client.commands.get(resolvedCommandName);

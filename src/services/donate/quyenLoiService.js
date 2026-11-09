@@ -8,8 +8,9 @@ import {
   TextDisplayBuilder,
 } from 'discord.js';
 import { logger } from '../../utils/logger.js';
+import { ROLE_IDS, hasRoleTier } from '../../config/commands/roleAccess.js';
 
-export const QUYEN_LOI_ADMIN_ROLE_ID = '1545295139390619768';
+export const QUYEN_LOI_ADMIN_ROLE_ID = ROLE_IDS.MID_ADMIN;
 const MAX_COMPONENTS_V2_MESSAGE_CHARS = 4000;
 
 export const QUYEN_LOI_EMOJIS = {
@@ -81,16 +82,12 @@ function createDivider() {
 }
 
 /**
- * Kiểm tra quyền sử dụng lệnh &quyenloi (chỉ role Admin Support Ticket).
+ * Kiểm tra quyền sử dụng lệnh &quyenloi (chỉ role Tier 2 trở lên).
  * @param {import('discord.js').GuildMember | null | undefined} member
  * @returns {boolean}
  */
 export function hasQuyenLoiPermission(member) {
-  if (!member) return false;
-  if (member.roles?.cache?.has?.(QUYEN_LOI_ADMIN_ROLE_ID)) return true;
-  if (Array.isArray(member._roles) && member._roles.includes(QUYEN_LOI_ADMIN_ROLE_ID)) return true;
-  if (Array.isArray(member.roles) && member.roles.includes(QUYEN_LOI_ADMIN_ROLE_ID)) return true;
-  return false;
+  return hasRoleTier(member, 'MID_ADMIN', member?.guild);
 }
 
 /**

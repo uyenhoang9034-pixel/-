@@ -6,7 +6,9 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
     .setName("stats")
-    .setDescription("View bot statistics"),
+    .setDescription("View bot statistics")
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false),
 
   async execute(interaction) {
     try {

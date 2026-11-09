@@ -6,10 +6,13 @@ import { getColor } from '../../config/bot.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 export default {
     data: new SlashCommandBuilder()
     .setName("clear")
     .setDescription("Delete a specific amount of messages")
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addIntegerOption((option) =>
       option
         .setName("amount")
@@ -20,20 +23,10 @@ export default {
   abuseProtection: { maxAttempts: 5, windowMs: 60_000 },
 
   async execute(interaction, config, client) {
-    const allowedRoleIds = new Set([
-      '1541303749916754001',
-      '1541304185100701696',
-      '1542537515037233172',
-    ]);
-
-    const hasAllowedRole = interaction.member?.roles?.cache?.some(
-      role => allowedRoleIds.has(role.id),
-    );
-
-    if (!hasAllowedRole) {
+    if (!hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
       await replyUserError(interaction, {
         type: ErrorTypes.PERMISSION,
-        message: 'Bạn không có quyền sử dụng lệnh này.',
+        message: buildRoleDeniedMessage('clear'),
       });
       return;
     }

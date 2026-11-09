@@ -36,6 +36,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('phat-manh-vo-ky-uc')
     .setDescription('Ban thưởng Mảnh Vỡ Ký Ức Chợ Đen Hư Không cho thành viên hoặc Admin (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addUserOption((opt) =>
       opt
         .setName('nguoi-nhan')

@@ -7,6 +7,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('monolith')
     .setDescription('Hệ thống Trụ Tổng Pháo Đài Witch Hunter')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addSubcommand((sub) =>
       sub
         .setName('warlog')

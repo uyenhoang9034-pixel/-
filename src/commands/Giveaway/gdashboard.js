@@ -18,6 +18,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('gdashboard')
         .setDescription('Open the giveaway dashboard.')
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

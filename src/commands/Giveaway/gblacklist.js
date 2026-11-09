@@ -82,6 +82,7 @@ export default {
                         .setRequired(false),
                 ),
         )
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

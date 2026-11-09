@@ -36,6 +36,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('chot-bxh')
     .setDescription('Chốt Bảng Xếp Hạng tháng và phát thưởng Bí Ngô thăng cấp (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addStringOption((opt) =>
       opt
         .setName('thang')

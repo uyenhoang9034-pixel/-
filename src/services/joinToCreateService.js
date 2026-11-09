@@ -12,6 +12,7 @@ import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
 import { formatLogLine } from '../utils/logging/logEmbeds.js';
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
+import { hasRoleTier } from '../config/commands/roleAccess.js';
 
 const CHANNEL_NAME_MAX_LENGTH = 100;
 const CHANNEL_VARIABLE_MAX_LENGTH = 32;
@@ -449,10 +450,7 @@ export async function getChannelConfiguration(client, guildId, channelId) {
 
 export function hasManageGuildPermission(member) {
     try {
-        if (!member || !member.permissions) {
-            return false;
-        }
-        return member.permissions.has(PermissionFlagsBits.ManageGuild);
+        return hasRoleTier(member, 'TOP_ADMIN', member?.guild);
     } catch (error) {
         logger.error('Error checking ManageGuild permission:', error);
         return false;

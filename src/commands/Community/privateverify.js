@@ -1,16 +1,18 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     ChannelType,
     MessageFlags,
 } from 'discord.js';
 import { setupPrivateVerification } from '../../services/privateVerificationService.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 export default {
     slashOnly: true,
     data: new SlashCommandBuilder()
         .setName('privateverify')
         .setDescription('Thiết lập xác nhận trước khi trò chuyện trong kênh riêng tư')
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
         .addSubcommand(sub =>
             sub
                 .setName('setup')
@@ -33,12 +35,9 @@ export default {
             });
         }
 
-        if (
-            !interaction.member.permissions.has(PermissionFlagsBits.Administrator) &&
-            !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)
-        ) {
+        if (!hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
             return interaction.reply({
-                content: '❌ Bạn cần quyền Administrator hoặc Manage Server.',
+                content: `❌ ${buildRoleDeniedMessage('privateverify')}`,
                 flags: MessageFlags.Ephemeral,
             });
         }

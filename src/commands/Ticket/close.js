@@ -1,5 +1,5 @@
 import { getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, ChannelType, MessageFlags } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -10,6 +10,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName("close")
         .setDescription("Closes the current ticket.")
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false)
         .addStringOption((option) =>
             option

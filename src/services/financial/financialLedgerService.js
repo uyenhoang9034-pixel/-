@@ -14,6 +14,7 @@ import {
 import { deflateRawSync } from 'node:zlib';
 import { pgConfig } from '../../config/database/postgres.js';
 import { logger } from '../../utils/logger.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 const TABLE = pgConfig.tables.financial_transactions;
 const FINANCIAL_SUPPORT_ROLE_ID = '1545295139390619768';
@@ -108,10 +109,7 @@ function v2Payload(container, extra = {}) {
 export function isFinancialAdmin(member) {
   if (!member) return false;
   if (member.permissions?.has?.(PermissionFlagsBits.Administrator)) return true;
-  const roleIds = member.roles?.cache
-    ? [...member.roles.cache.keys()]
-    : (Array.isArray(member.roles) ? member.roles : []);
-  return roleIds.some(roleId => String(roleId) === FINANCIAL_SUPPORT_ROLE_ID);
+  return hasRoleTier(member, 'STAFF_TICKET', member?.guild);
 }
 
 function isFinancialLookupChannel(interaction) {
@@ -647,12 +645,16 @@ export const financialLedgerCommand = new SlashCommandBuilder()
 export const financialExportCommand = new SlashCommandBuilder()
   .setName('xuatbaocao')
   .setDescription('Xuất file Excel Bảng Tổng Kết Tháng')
+  .setDefaultMemberPermissions(0n)
+  .setDMPermission(false)
   .addIntegerOption(option => option.setName('thang').setDescription('Tháng cần xuất (1-12)').setMinValue(1).setMaxValue(12))
   .addIntegerOption(option => option.setName('nam').setDescription('Năm cần xuất').setMinValue(2020).setMaxValue(2100));
 
 export const financialBxhCommand = new SlashCommandBuilder()
   .setName('bxhdonate')
-  .setDescription('Gửi Bảng Xếp Hạng Donate vào kênh (Dành cho Support Ticket)')
+  .setDescription('Gửi Bảng Xếp Hạng Donate vào kênh (Dành cho Quản Trị)')
+  .setDefaultMemberPermissions(0n)
+  .setDMPermission(false)
   .addStringOption(option =>
     option.setName('kieu')
       .setDescription('Chế độ xem Bảng Xếp Hạng')
@@ -734,8 +736,8 @@ async function buildMonthlySummaryContainer(report, month, year) {
 }
 
 export async function executeFinancialExport(interaction, client) {
-  if (!isFinancialAdmin(interaction.member)) {
-    await interaction.reply({ content: 'Chỉ thành viên có role Support Ticket mới được xuất báo cáo Quỹ chung.', flags: MessageFlags.Ephemeral });
+  if (!hasRoleTier(interaction.member, 'TOP_ADMIN', interaction.guild, interaction.user)) {
+    await interaction.reply({ content: buildRoleDeniedMessage('xuatbaocao'), flags: MessageFlags.Ephemeral });
     return;
   }
   const current = getCurrentVietnamMonth();
@@ -864,9 +866,9 @@ export async function buildLeaderboardPayload(client, guildId, mode = 'month', m
 }
 
 export async function executeBxhDonate(interaction, client) {
-  if (!isFinancialAdmin(interaction.member)) {
+  if (!hasRoleTier(interaction.member, 'TOP_ADMIN', interaction.guild, interaction.user)) {
     await interaction.reply({
-      content: 'Chỉ thành viên có role Support Ticket mới được sử dụng lệnh này.',
+      content: buildRoleDeniedMessage('bxhdonate'),
       flags: MessageFlags.Ephemeral,
     });
     return;

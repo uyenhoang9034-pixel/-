@@ -36,6 +36,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('preview-bxh')
     .setDescription('[Admin] Xem trước Bảng Xếp Hạng Level (Chat + Voice) Top 20 để chuẩn bị chốt tháng')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addStringOption((opt) =>
       opt
         .setName('chu-ky')

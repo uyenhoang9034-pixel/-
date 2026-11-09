@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, ChannelType, MessageFlags } from 'discord.js';
 import { successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -12,6 +12,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName("transcript")
         .setDescription("Xuất và gửi bù transcript cho ticket (mặc định kênh hiện tại).")
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false)
         .addChannelOption((option) =>
             option

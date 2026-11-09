@@ -10,12 +10,14 @@ import {
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('goodbye')
         .setDescription('Configure the goodbye message system')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setup')
@@ -75,8 +77,8 @@ export default {
 
         const { options, guild, client } = interaction;
 
-        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/goodbye`.' });
+        if (!hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: buildRoleDeniedMessage('goodbye') });
         }
 
         const subcommand = options.getSubcommand();

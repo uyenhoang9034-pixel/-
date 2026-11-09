@@ -13,7 +13,6 @@ import {
   TextInputStyle,
   StringSelectMenuBuilder,
   MessageFlags,
-  PermissionFlagsBits,
 } from 'discord.js';
 import { WITCH_HUNTER_CONFIG } from '../config/witchHunterConfig.js';
 import { WitchHunterService } from './witchHunterService.js';
@@ -22,6 +21,7 @@ import {
   buildGiveawayPermissionDeniedMessage,
   ensureGiveawayAdminAccess,
 } from '../utils/giveawayPermissions.js';
+import { hasRoleTier } from '../config/commands/roleAccess.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,42 +33,12 @@ const PUMPKIN_GIVEAWAYS_JSON_PATH = path.join(DATA_DIR, 'pumpkin_giveaways.json'
  * Kiểm tra quyền hạn Ban Quản Trị Witch Hunter & Giveaway
  */
 export function isWitchHunterAdmin(interaction) {
-  const member = interaction.member;
-  if (!member) return false;
-
-  const ownerId = interaction.guild?.ownerId;
-  if (ownerId && (interaction.user?.id === ownerId || member.id === ownerId)) {
-    return true;
-  }
-
-  const configuredOwnerIds = (process.env.OWNER_IDS || '')
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean);
-  if (configuredOwnerIds.includes(interaction.user?.id) || configuredOwnerIds.includes(member.id)) {
-    return true;
-  }
-
-  const adminRoles = [
-    WITCH_HUNTER_CONFIG.adminRoleId,
-    '1545295139390619768',
-    '1541303749916754001',
-  ];
-
-  for (const roleId of adminRoles) {
-    if (member.roles?.cache?.has?.(roleId)) return true;
-    if (Array.isArray(member._roles) && member._roles.includes(roleId)) return true;
-    if (Array.isArray(member.roles) && member.roles.includes(roleId)) return true;
-  }
-
-  if (
-    member.permissions?.has?.(PermissionFlagsBits.Administrator) ||
-    member.permissions?.has?.(PermissionFlagsBits.ManageGuild)
-  ) {
-    return true;
-  }
-
-  return false;
+  return hasRoleTier(
+    interaction?.member,
+    'TOP_ADMIN',
+    interaction?.guild,
+    interaction?.user,
+  );
 }
 
 /**

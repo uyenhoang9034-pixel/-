@@ -25,6 +25,7 @@ import {
     GAME_ROLE_EMBED_COLOR,
     getEmojiDisplay,
 } from '../../config/gameRoles.js';
+import { hasRoleTier, buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 import {
     addAllGameRoleReactions,
@@ -449,7 +450,10 @@ export default {
                 'Quản lý hệ thống Game Roles',
             )
             .setDefaultMemberPermissions(
-                PermissionFlagsBits.Administrator,
+                0n,
+            )
+            .setDMPermission(
+                false,
             )
             .addSubcommand(
                 (
@@ -493,6 +497,26 @@ export default {
     async execute(
         interaction,
     ) {
+        if (
+            !interaction.inGuild() ||
+            !hasRoleTier(
+                interaction.member,
+                'MID_ADMIN',
+                interaction.guild,
+                interaction.user,
+            )
+        ) {
+            return await InteractionHelper.safeReply(
+                interaction,
+                {
+                    content:
+                        `❌ ${buildRoleDeniedMessage('reactroles')}`,
+                    flags:
+                        MessageFlags.Ephemeral,
+                },
+            );
+        }
+
         const subcommand =
             interaction.options.getSubcommand();
 

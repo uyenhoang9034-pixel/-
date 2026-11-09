@@ -19,6 +19,7 @@ export default {
                 .setDescription('Message ID của giveaway cần xem.')
                 .setRequired(true),
         )
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

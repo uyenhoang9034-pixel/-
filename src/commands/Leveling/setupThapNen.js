@@ -31,7 +31,9 @@ function isWitchHunterAdmin(interaction) {
 export default {
   data: new SlashCommandBuilder()
     .setName('setup-thap-nen')
-    .setDescription('Tạo hộp thoại Thắp Nến Cầu Nguyện cố định tại kênh 1562351868888354816 (Chỉ Admin)'),
+    .setDescription('Tạo hộp thoại Thắp Nến Cầu Nguyện cố định tại kênh 1562351868888354816 (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false),
 
   category: 'Leveling',
 

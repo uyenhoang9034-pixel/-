@@ -1,6 +1,5 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     MessageFlags,
     ModalBuilder,
     ActionRowBuilder,
@@ -38,6 +37,8 @@ export default {
         .setDescription(
             'Manage automatic responses',
         )
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false)
 
         .addSubcommand(sub =>
             sub

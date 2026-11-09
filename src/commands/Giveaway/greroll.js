@@ -23,6 +23,7 @@ export default {
                 .setDescription("The message ID of the ended giveaway.")
                 .setRequired(true),
         )
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

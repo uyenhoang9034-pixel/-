@@ -141,7 +141,9 @@ export default {
     slashOnly: true,
     data: new SlashCommandBuilder()
         .setName("help")
-        .setDescription("Displays the help menu with all available commands"),
+        .setDescription("Displays the help menu with all available commands")
+        .setDefaultMemberPermissions(0n)
+        .setDMPermission(false),
 
     async execute(interaction, guildConfig, client) {
 

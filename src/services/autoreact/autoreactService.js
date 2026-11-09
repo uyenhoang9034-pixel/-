@@ -1,8 +1,10 @@
-import { PermissionFlagsBits } from 'discord.js';
-
 import {
     getAutoReactsKey,
 } from '../../utils/database/keys.js';
+
+import {
+    hasRoleTier,
+} from '../../config/commands/roleAccess.js';
 
 import {
     logger,
@@ -333,46 +335,11 @@ export async function saveAutoReactConfig(
 export function canManageAutoReact(
     member,
 ) {
-    if (!member) {
-        return false;
-    }
-
-    /**
-     * Server Owner.
-     */
-
-    if (
-        member.guild?.ownerId ===
-        member.id
-    ) {
-        return true;
-    }
-
-    /**
-     * Administrator.
-     */
-
-    if (
-        member.permissions.has(
-            PermissionFlagsBits.Administrator,
-        )
-    ) {
-        return true;
-    }
-
-    /**
-     * Manage Server.
-     */
-
-    if (
-        member.permissions.has(
-            PermissionFlagsBits.ManageGuild,
-        )
-    ) {
-        return true;
-    }
-
-    return false;
+    return hasRoleTier(
+        member,
+        'MID_ADMIN',
+        member?.guild,
+    );
 }
 
 /**

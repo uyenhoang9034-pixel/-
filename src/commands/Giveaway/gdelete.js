@@ -19,6 +19,7 @@ export default {
                 .setDescription("The message ID of the giveaway to delete.")
                 .setRequired(true),
         )
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
 
     async execute(interaction) {

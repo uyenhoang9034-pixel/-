@@ -36,6 +36,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('phat-bi-ngo')
     .setDescription('Ban thưởng Bí Ngô Witch Hunter cho thành viên hoặc Admin (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addUserOption((opt) =>
       opt
         .setName('nguoi-nhan')

@@ -11,14 +11,14 @@ import {
     getDashboardSession,
 } from '../../../commands/Community/modules/channelguide_dashboard.js';
 
+import { hasRoleTier } from '../../../config/commands/roleAccess.js';
+
 function hasAdminPermission(interaction) {
-    return (
-        interaction.member?.permissions?.has(
-            'Administrator',
-        ) ||
-        interaction.member?.permissions?.has(
-            'ManageGuild',
-        )
+    return hasRoleTier(
+        interaction.member,
+        'TOP_ADMIN',
+        interaction.guild,
+        interaction.user,
     );
 }
 

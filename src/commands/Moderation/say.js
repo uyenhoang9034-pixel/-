@@ -82,7 +82,7 @@ export default {
                 .setDescription('Ảnh hoặc tệp đính kèm gửi cùng tin nhắn (tùy chọn)')
                 .setRequired(false),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
     category: 'moderation',
     abuseProtection: { maxAttempts: 8, windowMs: 60_000 },

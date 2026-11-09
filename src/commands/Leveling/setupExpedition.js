@@ -32,6 +32,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('setup-expedition')
     .setDescription('Tạo bảng cố định Viễn Chinh: Ranh Giới Hắc Ám (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addChannelOption((opt) =>
       opt
         .setName('kenh')

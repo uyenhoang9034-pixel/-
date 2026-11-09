@@ -21,6 +21,11 @@ import {
     sendSetnickLog,
 } from '../../services/setnickService.js';
 
+import {
+    hasRoleTier,
+    buildRoleDeniedMessage,
+} from '../../config/commands/roleAccess.js';
+
 
 /*
  * ============================================================
@@ -169,6 +174,7 @@ export default {
                         .setMaxLength(28),
             )
 
+            .setDefaultMemberPermissions(0n)
             .setDMPermission(false),
 
     category:
@@ -222,16 +228,16 @@ export default {
              * MANAGEMENT ROLE CHECK
              * ------------------------------------------------
              *
-             * Chỉ role:
-             *
-             * 1545295139390619768
-             *
+             * Chỉ role Tier 1 (1545295139390619768) trở lên
              * được sử dụng /setnick.
              */
 
             if (
-                !interaction.member.roles.cache.has(
-                    SETNICK_MANAGEMENT_ROLE_ID,
+                !hasRoleTier(
+                    interaction.member,
+                    'STAFF_TICKET',
+                    guild,
+                    interaction.user,
                 )
             ) {
                 return replyUserError(
@@ -241,7 +247,7 @@ export default {
                             ErrorTypes.PERMISSION,
 
                         message:
-                            'Bạn không có role quản lý để sử dụng lệnh này.',
+                            buildRoleDeniedMessage('setnick'),
                     },
                 );
             }

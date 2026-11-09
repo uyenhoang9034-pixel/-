@@ -1,6 +1,5 @@
 import {
     SlashCommandBuilder,
-    PermissionFlagsBits,
     EmbedBuilder,
     MessageFlags,
     AttachmentBuilder,
@@ -134,7 +133,7 @@ export default {
                 .setDescription('Ảnh hoặc tệp đính kèm gửi cùng tin nhắn (tùy chọn)')
                 .setRequired(false),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+        .setDefaultMemberPermissions(0n)
         .setDMPermission(false),
     category: 'moderation',
 

@@ -36,6 +36,8 @@ export default {
   data: new SlashCommandBuilder()
     .setName('doi-phe')
     .setDescription('Đổi phe phái Witch Hunter cho thành viên (Chỉ Admin)')
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addUserOption((opt) =>
       opt
         .setName('thanh-vien')
