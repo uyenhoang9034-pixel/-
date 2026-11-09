@@ -114,6 +114,10 @@ import {
 } from '../services/donate/donateService.js';
 
 import {
+  handleQuyenLoiCommand,
+} from '../services/donate/quyenLoiService.js';
+
+import {
   handleFinancialPrefix,
 } from '../services/financial/financialLedgerService.js';
 
@@ -177,6 +181,11 @@ export default {
 
       const roleIconProcessed = await handleRoleIconPrefix(message, client);
       if (roleIconProcessed) {
+        return;
+      }
+
+      const quyenLoiProcessed = await handleQuyenLoiCommand(message);
+      if (quyenLoiProcessed) {
         return;
       }
 
