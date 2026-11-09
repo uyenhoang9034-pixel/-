@@ -1,6 +1,7 @@
-import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
 import { getGuildBirthdays } from '../../../utils/database.js';
+import { hasRoleTier } from '../../../config/commands/roleAccess.js';
 import {
     getBirthdayImageAttachment,
     BIRTHDAY_FALLBACK_URL,
@@ -25,10 +26,10 @@ function getVietnamToday() {
 
 export default {
     async execute(interaction, config, client) {
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+        if (!hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
             const embed = new EmbedBuilder()
                 .setColor(0xFCEEC9)
-                .setDescription('Bạn cần quyền **Manage Server** để gửi thông báo sinh nhật thủ công.');
+                .setDescription('Bạn không có quyền gửi thông báo sinh nhật thủ công.');
             return InteractionHelper.safeReply(interaction, {
                 embeds: [embed],
                 flags: MessageFlags.Ephemeral
@@ -43,7 +44,7 @@ export default {
 
             if (!birthdayChannelId) {
                 return InteractionHelper.safeEditReply(interaction, {
-                    content: 'Chưa thiết lập kênh thông báo sinh nhật. Hãy dùng `/birthday setchannel` trước.'
+                    content: 'Chưa thiết lập kênh thông báo sinh nhật. Hãy dùng `/birthday-admin setchannel` trước.'
                 });
             }
 

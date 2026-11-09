@@ -313,7 +313,23 @@ async function handlePrefixCommand(message, client, context = {}) {
       `Prefix command detected: ${commandName}, args: ${args.join(', ')}`,
     );
 
-    const resolvedCommandName = resolveCommandAlias(commandName);
+    let resolvedCommandName = resolveCommandAlias(commandName);
+    const firstArgSubcommand = args[0]
+      ? resolveSubcommandAlias(String(args[0]).toLowerCase())
+      : null;
+
+    if (
+      resolvedCommandName === 'birthday' &&
+      ['set', 'remove', 'send', 'setchannel'].includes(firstArgSubcommand)
+    ) {
+      resolvedCommandName = 'birthday-admin';
+    } else if (
+      resolvedCommandName === 'duel' &&
+      firstArgSubcommand === 'test'
+    ) {
+      resolvedCommandName = 'duel-admin';
+    }
+
     const command = client.commands.get(resolvedCommandName);
 
     if (!command) {

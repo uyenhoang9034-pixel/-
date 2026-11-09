@@ -18,6 +18,7 @@ import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
+import { isMemberAllowedCommand } from '../config/commands/roleAccess.js';
 import giveawayDashboard from '../commands/Giveaway/modules/giveaway_dashboard.js';
 import {
   handleJoinToCreateControl,
@@ -233,6 +234,18 @@ if (
             }, interactionTraceContext));
           }
         } else if (interaction.isAutocomplete()) {
+          if (
+            !isMemberAllowedCommand(
+              interaction.member,
+              interaction.commandName,
+              interaction.guild,
+              interaction.user,
+            )
+          ) {
+            await interaction.respond([]).catch(() => {});
+            return;
+          }
+
           const autocompleteCommand = client.commands.get(interaction.commandName);
           if (autocompleteCommand?.autocomplete) {
             try {

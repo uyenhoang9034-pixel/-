@@ -1,15 +1,16 @@
-import { PermissionsBitField, EmbedBuilder, MessageFlags } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGuildConfig, setGuildConfig } from '../../../services/config/guildConfig.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
+import { hasRoleTier } from '../../../config/commands/roleAccess.js';
 
 export default {
     async execute(interaction, config, client) {
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+        if (!hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
             const embed = new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setTitle('Permission Denied')
-                .setDescription('You need **Manage Server** permissions to configure the birthday channel.');
+                .setDescription('Bạn không có quyền cấu hình kênh thông báo sinh nhật.');
             return InteractionHelper.safeReply(interaction, {
                 embeds: [embed],
                 flags: MessageFlags.Ephemeral,

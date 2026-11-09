@@ -4,6 +4,12 @@ import { PermissionFlagsBits } from 'discord.js';
 import { logger } from './logger.js';
 import { replyUserError, ErrorTypes } from './errorHandler.js';
 import { isBotOwner, getBotMessage } from '../config/bot.js';
+import {
+  ROLE_TIERS,
+  getRequiredTierForCommand,
+  hasRoleTier,
+  buildRoleDeniedMessage,
+} from '../config/commands/roleAccess.js';
 
 /**
  * Read default_member_permissions from a SlashCommandBuilder (or its JSON).
@@ -144,11 +150,55 @@ export async function checkModerationPermissions(
 }
 
 /**
- * Enforce a command's default_member_permissions for prefix (and other non-Discord-gated) invocations.
- * Slash commands are gated by Discord, but prefix commands must mirror the same requirement in code.
+ * Enforce hierarchical role permissions (and fallback default_member_permissions) for slash and prefix commands.
  * @returns {Promise<boolean>} true when the member may proceed
  */
 export async function enforceDefaultCommandPermissions(interaction, command, context = {}) {
+  const commandName = command?.data?.name ?? interaction.commandName ?? 'command';
+  const requiredTier = getRequiredTierForCommand(commandName);
+
+  if (requiredTier !== null) {
+    if (requiredTier <= ROLE_TIERS.EVERYONE) {
+      return true;
+    }
+
+    if (!interaction.guild && !interaction.guildId && !isBotOwner(interaction.user?.id)) {
+      await replyUserError(interaction, {
+        type: ErrorTypes.VALIDATION,
+        message: 'Lệnh này chỉ có thể sử dụng trong máy chủ Discord.',
+        context: {
+          source: context.source ?? 'permissionGuard.enforceDefaultCommandPermissions',
+          commandName,
+        },
+      });
+      return false;
+    }
+
+    if (hasRoleTier(interaction.member, requiredTier, interaction.guild, interaction.user)) {
+      return true;
+    }
+
+    await replyUserError(interaction, {
+      type: ErrorTypes.PERMISSION,
+      message: buildRoleDeniedMessage(commandName, requiredTier),
+      context: {
+        source: context.source ?? 'permissionGuard.enforceDefaultCommandPermissions',
+        commandName,
+        requiredTier,
+      },
+    });
+
+    logger.warn('[PERMISSION_DENIED] Command blocked by roleAccess tier check', {
+      userId: interaction.user?.id,
+      guildId: interaction.guildId,
+      command: commandName,
+      requiredTier,
+      source: context.source ?? 'unknown',
+    });
+
+    return false;
+  }
+
   if (isBotOwner(interaction.user?.id)) {
     return true;
   }
@@ -166,7 +216,6 @@ export async function enforceDefaultCommandPermissions(interaction, command, con
     return true;
   }
 
-  const commandName = command?.data?.name ?? interaction.commandName ?? 'command';
   await replyUserError(interaction, {
     type: ErrorTypes.PERMISSION,
     message: getBotMessage('noPermission'),

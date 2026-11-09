@@ -19,7 +19,7 @@ export default {
                 .setColor(0xFCEEC9)
                 .setDescription(
                     targetUser.id === interaction.user.id
-                        ? '<a:heartg1:1545307544808071258> Bạn chưa lưu ngày sinh nhật. Hãy dùng `/birthday set` để thêm.'
+                        ? '<a:heartg1:1545307544808071258> Bạn chưa lưu ngày sinh nhật. Hãy nhờ quản trị viên dùng `/birthday-admin set` để thêm.'
                         : `<a:heartg1:1545307544808071258> Chưa có ngày sinh nhật được lưu cho ${targetUser.toString()}.`
                 );
             return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });

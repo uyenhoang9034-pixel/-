@@ -1,9 +1,9 @@
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { setBirthday, getUserBirthday } from '../../../services/birthdayService.js';
+import { hasRoleTier } from '../../../config/commands/roleAccess.js';
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
-const BIRTHDAY_ADMIN_ROLE_ID = '1545305594712432640';
 export default {
     async execute(interaction, config, client) {
         await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
@@ -15,7 +15,7 @@ export default {
         const userId = targetUser.id;
         const guildId = interaction.guildId;
 
-        if (!interaction.member?.roles?.cache?.has(BIRTHDAY_ADMIN_ROLE_ID)) {
+        if (!hasRoleTier(interaction.member, 'MID_ADMIN', interaction.guild, interaction.user)) {
             const embed = new EmbedBuilder()
                 .setColor(0xFCEEC9)
                 .setDescription('Bạn không có quyền sử dụng lệnh này.');
@@ -32,7 +32,7 @@ export default {
                 .setColor(0xFCEEC9)
                 .setDescription(
                     `<a:heartg1:1545307544808071258> **${userId}** đã có ngày sinh **${existingDate}** trong hệ thống.\n` +
-                    'Muốn đổi ngày sinh, hãy dùng `/birthday remove` trước rồi mới `/birthday set` lại.'
+                    'Muốn đổi ngày sinh, hãy dùng `/birthday-admin remove` trước rồi mới `/birthday-admin set` lại.'
                 );
             return await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
         }

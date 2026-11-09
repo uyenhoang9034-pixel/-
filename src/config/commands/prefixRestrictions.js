@@ -31,7 +31,7 @@ export const COMMAND_BLOCKED_SUBCOMMANDS = {
     'clear',
     '247',
   ]),
-  birthday: new Set(['setchannel']),
+  'birthday-admin': new Set(['setchannel']),
   report: new Set(['setchannel']),
 };
 
