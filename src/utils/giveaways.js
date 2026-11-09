@@ -9,6 +9,7 @@ import {
     createGiveawayButtons as createGiveawayButtonsService,
     selectWinners as selectWinnersService
 } from '../services/giveawayService.js';
+import { getCooldownExcludedWinners } from './giveawayCooldown.js';
 
 export function giveawayKey(guildId) {
     return `guild:${guildId}:giveaways`;
@@ -84,6 +85,13 @@ export async function getEffectiveExcludedWinners(client, guildId, giveaway = nu
                 : [];
             for (const id of giveawayBlacklist) {
                 if (id) excluded.add(id);
+            }
+
+            if (client?.db && guildId) {
+                const cooldownExcluded = await getCooldownExcludedWinners(client, guildId, giveaway);
+                for (const id of cooldownExcluded) {
+                    if (id) excluded.add(id);
+                }
             }
         }
         return Array.from(excluded);

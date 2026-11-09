@@ -1,5 +1,5 @@
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
-import { successEmbed } from '../utils/embeds.js';
+import { successEmbed, warningEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes, handleInteractionError, replyUserError } from '../utils/errorHandler.js';
 import { 
@@ -8,6 +8,11 @@ import {
     isGiveawayEnded,
     getEffectiveExcludedWinners
 } from '../utils/giveaways.js';
+import {
+    GIVEAWAY_COOLDOWN_COUNT,
+    GIVEAWAY_COOLDOWN_REJECT_MESSAGE,
+    checkUserGiveawayCooldown,
+} from '../utils/giveawayCooldown.js';
 import { Mutex } from '../utils/mutex.js';
 import { 
     selectWinners,
@@ -64,6 +69,35 @@ export const giveawayJoinHandler = {
 
                 if (participants.includes(userId)) {
                     return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You have already entered this giveaway! 🎉' });
+                }
+
+                const cooldownStatus = await checkUserGiveawayCooldown(
+                    client,
+                    interaction.guildId,
+                    giveaway,
+                    userId,
+                    { giveaways: guildGiveaways },
+                );
+
+                if (cooldownStatus.blocked) {
+                    const wonPrize = cooldownStatus.winningGiveaway?.prize || 'giveaway trước đó';
+                    const pos = cooldownStatus.positionInCooldown || 1;
+                    const gap = cooldownStatus.cooldownGap || GIVEAWAY_COOLDOWN_COUNT;
+                    const waitNote = pos >= gap
+                        ? `Đây là giveaway thứ **${pos}/${gap}** cần đợi — **giveaway tiếp theo** là bạn có thể tham gia lại rồi nè!`
+                        : `Đây là giveaway thứ **${pos}/${gap}** cần đợi — hãy đợi đủ ${gap} giveaway sau khi trúng rồi tham gia lại nhé!`;
+
+                    return await interaction.reply({
+                        embeds: [
+                            warningEmbed(
+                                '🎉 Chưa thể tham gia giveaway này!',
+                                `${GIVEAWAY_COOLDOWN_REJECT_MESSAGE}\n\n` +
+                                `> • **Giveaway vừa trúng gần nhất:** ${wonPrize}\n` +
+                                `> • **Tiến độ lượt chờ:** ${waitNote}`,
+                            ),
+                        ],
+                        flags: MessageFlags.Ephemeral,
+                    });
                 }
 
                 participants.push(userId);

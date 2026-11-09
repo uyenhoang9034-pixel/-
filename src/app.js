@@ -20,6 +20,7 @@ import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/databas
 import { setupDonateWebhook } from './services/donate/donateService.js';
 import { initializeFinancialLedger } from './services/financial/financialLedgerService.js';
 import { initRoleIconStorage } from './services/roleIconShopService.js';
+import { initializeGiveawayCooldownEpoch } from './utils/giveawayCooldown.js';
 
 class UsagiBot extends Client {
   constructor() {
@@ -125,6 +126,12 @@ class UsagiBot extends Client {
         await initRoleIconStorage(this);
       } catch (ledgerError) {
         logger.error('[FinancialLedger] Could not initialize PostgreSQL ledger:', ledgerError);
+      }
+
+      try {
+        await initializeGiveawayCooldownEpoch(this);
+      } catch (cooldownEpochError) {
+        logger.warn('⚠️ [GiveawayCooldown] Không thể khởi tạo mốc thời gian lọc giveaway:', cooldownEpochError.message);
       }
 
       // Check database status and report

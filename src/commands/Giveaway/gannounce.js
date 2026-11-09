@@ -1,8 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
-import { getGuildGiveaways, saveGiveaway } from '../../utils/giveaways.js';
-import { createGiveawayEmbed, createGiveawayButtons, createGiveawayContainer } from '../../services/giveawayService.js';
+import { getGuildGiveaways, saveGiveaway, getEffectiveExcludedWinners } from '../../utils/giveaways.js';
+import { createGiveawayEmbed, createGiveawayButtons, createGiveawayContainer, selectWinners } from '../../services/giveawayService.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
@@ -40,12 +40,8 @@ export default {
 
         let winners = Array.isArray(giveaway.pendingWinnerIds) ? giveaway.pendingWinnerIds : [];
         if (!winners.length && giveaway.announcementPending) {
-            const participants = [...new Set(giveaway.participants || [])];
-            for (let i = participants.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [participants[i], participants[j]] = [participants[j], participants[i]];
-            }
-            winners = participants.slice(0, Math.min(giveaway.winnerCount || 1, participants.length));
+            const excludedUserIds = await getEffectiveExcludedWinners(interaction.client, interaction.guildId, giveaway);
+            winners = selectWinners(giveaway.participants || [], giveaway.winnerCount || 1, excludedUserIds);
         }
         if (!winners.length) {
             throw new TitanBotError('No winner available', ErrorTypes.VALIDATION,
