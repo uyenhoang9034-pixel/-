@@ -35,7 +35,7 @@ export const MENTION_PROFILES = [
     name: 'Công chúa',
     regex: new RegExp(`<@!?${PRINCESS_USER_ID}>`),
     getContent: () =>
-      'Công chúa đang ngủ trên giường òi, hoàng tử đợi công chúa dậy công chúa trả lời ngay nha. <a:heartg8:1567818755793358928>',
+      `Công chúa <@${PRINCESS_USER_ID}> đang ngủ trên giường òi, hoàng tử đợi công chúa dậy công chúa trả lời ngay nha. <a:heartg8:1567818755793358928>`,
   },
 ];
 
