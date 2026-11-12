@@ -47,7 +47,7 @@ function buildDonationThanksContainer(donorMention, formattedAmount) {
     new TextDisplayBuilder().setContent([
       `${DONATE_EMOJIS.heart} **Người ủng hộ:** ${donorMention}`,
       `${DONATE_EMOJIS.heart} **Số tiền donate:** **+${formattedAmount} VNĐ**`,
-    ].join('\\n'))
+    ].join('\n'))
   );
 
   container.addSeparatorComponents(
@@ -66,7 +66,7 @@ function buildDonationThanksContainer(donorMention, formattedAmount) {
       '> - Mỗi đóng góp, dù lớn hay nhỏ, đều là nguồn động lực quý giá giúp chúng mình tiếp tục xây dựng và phát triển server.',
       '',
       `**Chúc bạn luôn vui vẻ, hạnh phúc và có thật nhiều khoảnh khắc đáng nhớ tại Serendipity!** ${DONATE_EMOJIS.heart}`,
-    ].join('\\n'))
+    ].join('\n'))
   );
 
   container.addSeparatorComponents(
