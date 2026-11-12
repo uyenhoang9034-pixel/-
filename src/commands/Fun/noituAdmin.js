@@ -22,6 +22,9 @@ import {
   WORD_CHAIN_MODES,
   getWordChainGame,
   getWordChainConfig,
+  getWordChainNow,
+  isWordChainNightLock,
+  buildWordChainNightLockPayloadV2,
   activateWordChain,
   disableWordChain,
   isValidWord,
@@ -254,6 +257,29 @@ export default {
 
       const guildId =
         interaction.guildId;
+
+      const nightStatus =
+        isWordChainNightLock(
+          getWordChainNow(
+            interaction.client,
+          ),
+        );
+
+      if (
+        nightStatus.locked &&
+        (subcommand === 'setup' ||
+          subcommand === 'mode')
+      ) {
+        return await InteractionHelper.safeEditReply(
+          interaction,
+          buildWordChainNightLockPayloadV2({
+            currentTimeText: nightStatus.currentTimeText,
+            startHour: nightStatus.startHour,
+            endHour: nightStatus.endHour,
+            ephemeral: true,
+          }),
+        );
+      }
 
       const config =
         await getWordChainConfig(

@@ -22,6 +22,9 @@ import {
   getWordChainModeForChannel,
   getWordChainGame,
   getWordChainConfig,
+  getWordChainNow,
+  isWordChainNightLock,
+  buildWordChainNightLockPayloadV2,
   resetWordChainGame,
   buildWordChainLeaderboard,
   isValidWord,
@@ -241,8 +244,15 @@ export default {
         interaction.options
           .getSubcommand();
 
+      const nightStatus =
+        isWordChainNightLock(
+          getWordChainNow(
+            interaction.client,
+          ),
+        );
+
       /**
-       * Các lệnh xem/reset hiện công khai.
+       * Các lệnh xem/reset hiện công khai; trong khung giờ nghỉ 00:00 - 08:00, goiy cũng hiện công khai.
        */
       const isPublicView =
         subcommand ===
@@ -252,7 +262,10 @@ export default {
         subcommand ===
           'restart' ||
         subcommand ===
-          'reset';
+          'reset' ||
+        (subcommand ===
+          'goiy' &&
+          nightStatus.locked);
 
       const deferSuccess =
         await InteractionHelper.safeDefer(
@@ -366,6 +379,14 @@ export default {
               WORD_CHAIN_COLOR,
           });
 
+        if (nightStatus.locked) {
+          embed.addFields({
+            name: '🌙 Khung giờ nghỉ ban đêm (00:00 - 08:00)',
+            value: `Hiện đang là **${nightStatus.currentTimeText}** (giờ Việt Nam) — nối từ tạm nghỉ để tiết kiệm RAM và sẽ mở lại lúc **${String(nightStatus.endHour).padStart(2, '0')}:00 sáng**.`,
+            inline: false,
+          });
+        }
+
         return await InteractionHelper.safeEditReply(
           interaction,
           {
@@ -424,6 +445,18 @@ export default {
               message:
                 `Chế độ ${mode === 'pvp' ? 'PvP' : 'PvE'} hiện chưa được bật. Hãy nhờ quản lý dùng \`/noitu-admin setup\`.`,
             },
+          );
+        }
+
+        if (nightStatus.locked) {
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            buildWordChainNightLockPayloadV2({
+              currentTimeText: nightStatus.currentTimeText,
+              startHour: nightStatus.startHour,
+              endHour: nightStatus.endHour,
+              ephemeral: false,
+            }),
           );
         }
 
@@ -546,6 +579,18 @@ export default {
               message:
                 'Chế độ này hiện chưa được bật.',
             },
+          );
+        }
+
+        if (nightStatus.locked) {
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            buildWordChainNightLockPayloadV2({
+              currentTimeText: nightStatus.currentTimeText,
+              startHour: nightStatus.startHour,
+              endHour: nightStatus.endHour,
+              ephemeral: false,
+            }),
           );
         }
 
@@ -786,6 +831,18 @@ export default {
               message:
                 'Chế độ Nối Từ tại kênh này hiện chưa được bật.',
             },
+          );
+        }
+
+        if (nightStatus.locked) {
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            buildWordChainNightLockPayloadV2({
+              currentTimeText: nightStatus.currentTimeText,
+              startHour: nightStatus.startHour,
+              endHour: nightStatus.endHour,
+              ephemeral: false,
+            }),
           );
         }
 

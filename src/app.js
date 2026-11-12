@@ -10,6 +10,7 @@ import { getGuildConfig } from './services/config/guildConfig.js';
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
+import { announceWordChainNightLock } from './services/wordChainService.js';
 import { pumpkinGrowthTracker } from './services/pumpkinGrowthTracker.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
 import { runSafeTask, handleTaskError, ErrorCodes } from './utils/errorHandler.js';
@@ -403,6 +404,7 @@ class UsagiBot extends Client {
   setupCronJobs() {
     cron.schedule('0 0 * * *', runSafeTask('birthday_check', () => checkBirthdays(this)), { timezone: 'Asia/Ho_Chi_Minh' });
     cron.schedule('0 0 * * *', runSafeTask('pumpkin_daily_flush', () => pumpkinGrowthTracker.flushDailyReport(this)), { timezone: 'Asia/Ho_Chi_Minh' });
+    cron.schedule('0 0 * * *', runSafeTask('word_chain_night_lock', () => announceWordChainNightLock(this)), { timezone: 'Asia/Ho_Chi_Minh' });
     // Cron job reset Bảng Truy Nã Chiến Trường (00:00 hằng ngày)
     cron.schedule('0 0 * * *', runSafeTask('witch_hunter_bounty_daily', async () => {
       try {

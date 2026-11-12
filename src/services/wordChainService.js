@@ -1,8 +1,25 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 
 import { logger } from '../utils/logger.js';
+
+export const IS_COMPONENTS_V2 = MessageFlags.IsComponentsV2 || (1 << 15);
+
+export const WORD_CHAIN_NIGHT_LOCK = Object.freeze({
+  START_HOUR: 0,
+  END_HOUR: 8,
+  TIMEZONE: 'Asia/Ho_Chi_Minh',
+});
+
+export const WORD_CHAIN_NIGHT_EMOJIS = Object.freeze({
+  TITLE_LEFT: '<a:trangtrig2:1546040703375904801>',
+  TITLE_RIGHT: '<a:trangtrig3:1546040818261954610>',
+  TIME: '<:trangtri2:1567819836279492652>',
+  ADMIN_DISABLE: '<a:bang3:1546891744237461635>',
+  NOTEBOOK: '<a:trangtrig18:1546068102817775626>',
+});
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -79,7 +96,11 @@ function resetDictionaryIdleTimer() {
   }
 }
 
-export function unloadDictionary() {
+export function isDictionaryLoaded() {
+  return dictionaryLoaded;
+}
+
+export function unloadDictionary(reason = 'idle') {
   if (!dictionaryLoaded && validWordsSet.size === 0) {
     return;
   }
@@ -95,9 +116,15 @@ export function unloadDictionary() {
     dictionaryIdleTimer = null;
   }
 
-  logger.info(
-    '[WordChain] Không có lượt chơi nối từ trong 2 giờ. Đã giải phóng từ điển khỏi RAM (~30MB - 50MB) để dọn dẹp bộ nhớ.',
-  );
+  if (reason === 'night_lock') {
+    logger.info(
+      '[WordChain] Bước vào khung giờ nghỉ ban đêm (00:00 - 08:00). Đã giải phóng từ điển khỏi RAM (~30MB - 50MB).',
+    );
+  } else {
+    logger.info(
+      '[WordChain] Không có lượt chơi nối từ trong 2 giờ. Đã giải phóng từ điển khỏi RAM (~30MB - 50MB) để dọn dẹp bộ nhớ.',
+    );
+  }
 
   if (typeof global.gc === 'function') {
     try {
@@ -1912,4 +1939,276 @@ export function buildWordChainLeaderboard(
         );
       },
     );
+}
+
+// =========================================================================
+// KHÓA NGHỈ BAN ĐÊM (00:00 - 08:00 SÁNG GIỜ VIỆT NAM)
+// =========================================================================
+
+const NIGHT_LOCK_NOTICE_COOLDOWN_MS = 60 * 1000;
+const announcedNightLockDates = new Map();
+const channelNightLockNoticeAt = new Map();
+
+export function resetWordChainNightLockState() {
+  announcedNightLockDates.clear();
+  channelNightLockNoticeAt.clear();
+}
+
+export function getWordChainNow(client = null, overrideNow = undefined) {
+  if (typeof overrideNow === 'number' && Number.isFinite(overrideNow)) {
+    return overrideNow;
+  }
+  if (typeof client?._wordChainNow === 'function') {
+    const mocked = client._wordChainNow();
+    if (typeof mocked === 'number' && Number.isFinite(mocked)) {
+      return mocked;
+    }
+  }
+  return Date.now();
+}
+
+export function getVietnamTimeParts(nowMs = Date.now()) {
+  const date = new Date(nowMs);
+  try {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: WORD_CHAIN_NIGHT_LOCK.TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    });
+    const parts = formatter.formatToParts(date);
+    const pickInt = (type) => Number.parseInt(parts.find((p) => p.type === type)?.value || '0', 10);
+    const pickStr = (type) => parts.find((p) => p.type === type)?.value || '00';
+    return {
+      year: pickStr('year'),
+      month: pickStr('month'),
+      day: pickStr('day'),
+      dateKey: `${pickStr('year')}-${pickStr('month')}-${pickStr('day')}`,
+      hour: pickInt('hour') % 24,
+      minute: pickInt('minute'),
+      second: pickInt('second'),
+    };
+  } catch {
+    const vnDate = new Date(nowMs + 7 * 60 * 60 * 1000);
+    const year = String(vnDate.getUTCFullYear());
+    const month = String(vnDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(vnDate.getUTCDate()).padStart(2, '0');
+    return {
+      year,
+      month,
+      day,
+      dateKey: `${year}-${month}-${day}`,
+      hour: vnDate.getUTCHours(),
+      minute: vnDate.getUTCMinutes(),
+      second: vnDate.getUTCSeconds(),
+    };
+  }
+}
+
+export function isWordChainNightLock(nowMs = Date.now()) {
+  const { hour, minute, second, dateKey } = getVietnamTimeParts(nowMs);
+  const startHour = WORD_CHAIN_NIGHT_LOCK.START_HOUR;
+  const endHour = WORD_CHAIN_NIGHT_LOCK.END_HOUR;
+  const locked = hour >= startHour && hour < endHour;
+  return {
+    locked,
+    hour,
+    minute,
+    second,
+    dateKey,
+    startHour,
+    endHour,
+    currentTimeText: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+  };
+}
+
+export function formatWordChainNightTitle(title) {
+  const upperTitle = String(title || '').trim().toUpperCase();
+  return `${WORD_CHAIN_NIGHT_EMOJIS.TITLE_LEFT} **${upperTitle}** ${WORD_CHAIN_NIGHT_EMOJIS.TITLE_RIGHT}`;
+}
+
+export function buildWordChainNightLockPayloadV2({
+  currentTimeText = null,
+  startHour = WORD_CHAIN_NIGHT_LOCK.START_HOUR,
+  endHour = WORD_CHAIN_NIGHT_LOCK.END_HOUR,
+  ephemeral = false,
+  configSavedNotice = false,
+} = {}) {
+  const startLabel = `${String(startHour).padStart(2, '0')}:00`;
+  const endLabel = `${String(endHour).padStart(2, '0')}:00`;
+  const timeInfo = currentTimeText
+    ? `Hiện đang là **${currentTimeText}** — nối từ tạm nghỉ ban đêm để tiết kiệm RAM.`
+    : 'Nối từ đang tạm nghỉ ban đêm để tiết kiệm RAM.';
+  const footerLine = configSavedNotice
+    ? `Đã lưu cấu hình nối từ • Sẽ tự mở lại sau ${endLabel} sáng (chuỗi & BXH vẫn bảo lưu)`
+    : `Từ hiện tại, chuỗi Streak & BXH vẫn bảo lưu nguyên vẹn • Mở lại lúc ${endLabel} sáng`;
+
+  const children = [
+    {
+      type: 10,
+      content: formatWordChainNightTitle('NỐI TỪ ĐANG NGHỈ BAN ĐÊM'),
+    },
+    {
+      type: 14,
+      divider: true,
+      spacing: 1,
+    },
+    {
+      type: 10,
+      content: [
+        `${WORD_CHAIN_NIGHT_EMOJIS.TIME} **Khung giờ nghỉ nối từ:** **${startLabel} - ${endLabel} sáng** (giờ Việt Nam)`,
+        `${WORD_CHAIN_NIGHT_EMOJIS.ADMIN_DISABLE} **Trạng thái:** ${timeInfo}`,
+        `${WORD_CHAIN_NIGHT_EMOJIS.NOTEBOOK} **Gợi ý:** Thành viên vẫn có thể gõ **/noitu leaderboard** để xem BXH hoặc quay lại chơi sau **${endLabel} sáng** nha~`,
+      ].join('\n'),
+    },
+    {
+      type: 14,
+      divider: true,
+      spacing: 1,
+    },
+    {
+      type: 10,
+      content: `-# ${footerLine}`,
+    },
+  ];
+
+  return {
+    flags: ephemeral ? (MessageFlags.Ephemeral | IS_COMPONENTS_V2) : IS_COMPONENTS_V2,
+    allowedMentions: { parse: [] },
+    components: [
+      {
+        type: 17,
+        components: children,
+      },
+    ],
+  };
+}
+
+export function tryConsumeNightLockNoticeCooldown(
+  channelId,
+  nowMs = Date.now(),
+  cooldownMs = NIGHT_LOCK_NOTICE_COOLDOWN_MS,
+) {
+  if (!channelId) {
+    return false;
+  }
+  const key = String(channelId);
+  const lastAt = channelNightLockNoticeAt.get(key) || 0;
+  if (nowMs - lastAt < cooldownMs) {
+    return false;
+  }
+  channelNightLockNoticeAt.set(key, nowMs);
+  return true;
+}
+
+function hasBotChannelSendPermission(channel, guild) {
+  const botMember = guild?.members?.me || channel?.guild?.members?.me;
+  if (!botMember || typeof channel?.permissionsFor !== 'function') {
+    return true;
+  }
+  const perms = channel.permissionsFor(botMember);
+  return Boolean(
+    perms?.has?.(PermissionFlagsBits.ViewChannel) &&
+      perms?.has?.(PermissionFlagsBits.SendMessages),
+  );
+}
+
+async function resolveWordChainChannel(client, guild, channelId) {
+  if (!channelId) {
+    return null;
+  }
+  let channel = guild?.channels?.cache?.get?.(channelId) || null;
+  if (!channel && typeof guild?.channels?.fetch === 'function') {
+    channel = await guild.channels.fetch(channelId).catch(() => null);
+  }
+  if (!channel && typeof client?.channels?.cache?.get === 'function') {
+    channel = client.channels.cache.get(channelId) || null;
+  }
+  if (!channel && typeof client?.channels?.fetch === 'function') {
+    channel = await client.channels.fetch(channelId).catch(() => null);
+  }
+  return channel;
+}
+
+export async function announceWordChainNightLock(client, options = {}) {
+  const { force = false } = options;
+  const nowMs = getWordChainNow(client, options.now);
+  const nightStatus = isWordChainNightLock(nowMs);
+
+  unloadDictionary('night_lock');
+
+  if (!nightStatus.locked && !force) {
+    return { announcedChannels: 0, skippedGuilds: 0, errors: 0 };
+  }
+
+  const guilds = client?.guilds?.cache ? Array.from(client.guilds.cache.values()) : [];
+  let announcedChannels = 0;
+  let skippedGuilds = 0;
+  let errors = 0;
+
+  const payload = buildWordChainNightLockPayloadV2({
+    currentTimeText: nightStatus.currentTimeText,
+    startHour: nightStatus.startHour,
+    endHour: nightStatus.endHour,
+    ephemeral: false,
+  });
+
+  for (const guild of guilds) {
+    try {
+      const config = await getWordChainConfig(client, guild.id);
+      if (!config?.enabled) {
+        skippedGuilds += 1;
+        continue;
+      }
+
+      const targetChannelIds = new Set();
+      for (const mode of ['pvp', 'bot']) {
+        const game = getWordChainGame(config, mode);
+        if (game.enabled) {
+          const chId = game.channelId || WORD_CHAIN_CHANNELS[mode];
+          if (chId) {
+            targetChannelIds.add(String(chId));
+          }
+        }
+      }
+
+      if (targetChannelIds.size === 0) {
+        skippedGuilds += 1;
+        continue;
+      }
+
+      for (const channelId of targetChannelIds) {
+        const announcementKey = `${guild.id}:${channelId}`;
+        if (!force && announcedNightLockDates.get(announcementKey) === nightStatus.dateKey) {
+          continue;
+        }
+
+        const channel = await resolveWordChainChannel(client, guild, channelId);
+        if (!channel || typeof channel.send !== 'function') {
+          continue;
+        }
+        if (!hasBotChannelSendPermission(channel, guild)) {
+          continue;
+        }
+
+        await channel.send(payload);
+        announcedNightLockDates.set(announcementKey, nightStatus.dateKey);
+        channelNightLockNoticeAt.set(channelId, nowMs);
+        announcedChannels += 1;
+      }
+    } catch (error) {
+      errors += 1;
+      logger.warn(`[WordChain] Lỗi thông báo khóa ban đêm cho guild ${guild?.id}:`, error?.message || error);
+    }
+  }
+
+  logger.info(
+    `[WordChain] Thông báo khóa ban đêm 00:00 (${nightStatus.currentTimeText} VN): đã gửi ${announcedChannels} kênh, bỏ qua ${skippedGuilds} server, lỗi ${errors}.`,
+  );
+
+  return { announcedChannels, skippedGuilds, errors };
 }

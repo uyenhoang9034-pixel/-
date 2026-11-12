@@ -88,6 +88,10 @@ import {
   getWordChainModeForChannel,
   getWordChainGame,
   getWordChainConfig,
+  getWordChainNow,
+  isWordChainNightLock,
+  buildWordChainNightLockPayloadV2,
+  tryConsumeNightLockNoticeCooldown,
   isValidWord,
   canChain,
   normalizeWord,
@@ -463,7 +467,7 @@ async function handlePrefixCommand(message, client, context = {}) {
 }
 
 
-async function handleWordChain(message, client) {
+export async function handleWordChain(message, client) {
   try {
     const mode = getWordChainModeForChannel(message.channel.id);
 
@@ -508,6 +512,24 @@ async function handleWordChain(message, client) {
       !parts.every(part => /^\p{L}+$/u.test(part))
     ) {
       return false;
+    }
+
+    const nowMs = getWordChainNow(client);
+    const nightStatus = isWordChainNightLock(nowMs);
+    if (nightStatus.locked) {
+      if (tryConsumeNightLockNoticeCooldown(message.channel.id, nowMs)) {
+        await message.channel
+          .send(
+            buildWordChainNightLockPayloadV2({
+              currentTimeText: nightStatus.currentTimeText,
+              startHour: nightStatus.startHour,
+              endHour: nightStatus.endHour,
+              ephemeral: false,
+            }),
+          )
+          .catch(() => {});
+      }
+      return true;
     }
 
     const needed = getLastSyllable(game.currentWord);
@@ -686,6 +708,10 @@ async function handleWordChain(message, client) {
 
     setTimeout(async () => {
       try {
+        if (isWordChainNightLock(getWordChainNow(client)).locked) {
+          return;
+        }
+
         const latestConfig = await getWordChainConfig(
           client,
           message.guild.id,
