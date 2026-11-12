@@ -26,7 +26,7 @@ export const DONATE_EMOJIS = {
   titleLeft: '<a:trangtrig2:1546040703375904801>',
   titleRight: '<a:trangtrig3:1546040818261954610>',
   heart: '<a:heartg1:1545307544808071258>',
-  thanksLeft: '<a:heartg3:1546047728314884226>',
+  thanksLeft: '<a:heartg8:1567818755793358928>',
   thanksRight: '<a:heartg8:1567818755793358928>',
   notice: '<a:bang2:1546891483250954290>',
 };
@@ -541,7 +541,7 @@ export async function sendDonationNotification(client, transaction) {
   );
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `${DONATE_EMOJIS.notice} *Cảm ơn bạn rất nhiều vì đã ủng hộ server! Mọi đóng góp đều là động lực to lớn.*`
+      `<a:trangtrig60:1569558191551942696> *Cảm ơn bạn rất nhiều vì đã ủng hộ server! Mọi đóng góp đều là động lực to lớn.*`
     )
   );
 
