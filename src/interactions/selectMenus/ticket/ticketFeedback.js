@@ -3,6 +3,7 @@ import { getTicketData, saveTicketData } from '../../../utils/database.js';
 import { logger } from '../../../utils/logger.js';
 import { getColor } from '../../../config/bot.js';
 import { logTicketFeedback } from '../../../utils/ticket/ticketLogging.js';
+import { buildDefaultTicketChannelName } from '../../../services/ticket.js';
 
 const STAR_LABELS = {
     '1': '⭐ 1 — Poor',
@@ -92,7 +93,7 @@ export default {
         }
 
         try {
-            const ticketName = interaction.client.channels.cache.get(channelId)?.name || (ticketData.number ? `ticket-${ticketData.number}` : ticketData.id);
+            const ticketName = interaction.client.channels.cache.get(channelId)?.name || (ticketData.number ? buildDefaultTicketChannelName(ticketData.number) : ticketData.id);
             await logTicketFeedback({
                 client: interaction.client,
                 guildId,

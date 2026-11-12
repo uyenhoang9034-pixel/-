@@ -79,6 +79,13 @@ const TICKET_DELETE_DELAY_SECONDS =
 const TICKET_SERVICE =
   'ticketService';
 
+export const TICKET_CHANNEL_PREFIX = '𓂃⋆';
+
+export function buildDefaultTicketChannelName(ticketNumber) {
+  const normalizedNumber = String(ticketNumber ?? '').trim() || '001';
+  return `${TICKET_CHANNEL_PREFIX}ticket-${normalizedNumber}`;
+}
+
 
 /**
  * =========================================================
@@ -567,8 +574,9 @@ export async function createTicket(
       );
 
 
-    let channelName =
-      `ticket-${ticketNumber}`;
+    const channelName = buildDefaultTicketChannelName(
+      ticketNumber,
+    );
 
 
 
@@ -914,7 +922,7 @@ export async function sendTicketTranscript(
     }
 
     const liveChannel = await channel.fetch().catch(() => channel);
-    const currentTicketName = liveChannel?.name || channel.name || (ticketData.number ? `ticket-${ticketData.number}` : (ticketData.id || 'ticket'));
+    const currentTicketName = liveChannel?.name || channel.name || (ticketData.number ? buildDefaultTicketChannelName(ticketData.number) : (ticketData.id || 'ticket'));
     const ticketDisplayName = currentTicketName.startsWith('#') ? currentTicketName : `#${currentTicketName}`;
     const nowTs = Math.floor(Date.now() / 1000);
     const executorMention = executor ? `<@${executor.id || executor}>` : 'Unknown';
