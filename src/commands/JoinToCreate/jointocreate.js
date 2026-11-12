@@ -16,6 +16,10 @@ import {
 import {
   createJoinToCreateControlPanel,
 } from '../../services/joinToCreateControlPanel.js';
+import {
+  DEFAULT_JTC_NAME_TEMPLATE,
+  resolveJtcNameTemplate,
+} from '../../utils/joinToCreateName.js';
 import { buildRoleDeniedMessage } from '../../config/commands/roleAccess.js';
 
 export default {
@@ -39,16 +43,16 @@ export default {
                         .setName("channel_name")
                         .setDescription("Select a template for naming temporary voice channels.")
                         .addChoices(
-                            { name: "{username}'s Room (Default)", value: "{username}'s Room" },
-                            { name: "{username}'s Channel", value: "{username}'s Channel" },
-                            { name: "{username}'s Lounge", value: "{username}'s Lounge" },
-                            { name: "{username}'s Space", value: "{username}'s Space" },
-                            { name: "{displayName}'s Room", value: "{displayName}'s Room" },
-                            { name: "{username}'s VC", value: "{username}'s VC" },
-                            { name: "{username}'s Music Room", value: "{username}'s Music Room" },
-                            { name: "{username}'s Gaming Room", value: "{username}'s Gaming Room" },
-                            { name: "{username}'s Chat Room", value: "{username}'s Chat Room" },
-                            { name: "{username}'s Private Room", value: "{username}'s Private Room" }
+                            { name: "𓂃⋆{username}'s Room (Mặc định)", value: "𓂃⋆{username}'s Room" },
+                            { name: "𓂃⋆{username}", value: "𓂃⋆{username}" },
+                            { name: "𓂃⋆{username}'s Channel", value: "𓂃⋆{username}'s Channel" },
+                            { name: "𓂃⋆{username}'s Lounge", value: "𓂃⋆{username}'s Lounge" },
+                            { name: "𓂃⋆{username}'s Space", value: "𓂃⋆{username}'s Space" },
+                            { name: "𓂃⋆{displayName}'s Room", value: "𓂃⋆{displayName}'s Room" },
+                            { name: "𓂃⋆{username}'s VC", value: "𓂃⋆{username}'s VC" },
+                            { name: "𓂃⋆{username}'s Music Room", value: "𓂃⋆{username}'s Music Room" },
+                            { name: "𓂃⋆{username}'s Gaming Room", value: "𓂃⋆{username}'s Gaming Room" },
+                            { name: "𓂃⋆{username}'s Chat Room", value: "𓂃⋆{username}'s Chat Room" }
                         )
                 )
                 .addIntegerOption((option) =>
@@ -138,7 +142,7 @@ export default {
 async function handleSetupSubcommand(interaction, client) {
     try {
         const category = interaction.options.getChannel('category');
-        const nameTemplate = interaction.options.getString('channel_name') || "{username}'s Room";
+        const nameTemplate = interaction.options.getString('channel_name') || DEFAULT_JTC_NAME_TEMPLATE;
         const userLimit = interaction.options.getInteger('user_limit') || 0;
         const bitrate = interaction.options.getInteger('bitrate') || 64;
         const guildId = interaction.guild.id;
@@ -296,7 +300,7 @@ async function handleConfigSubcommand(interaction, client) {
             .addFields(
                 {
                     name: 'Channel Name Template',
-                    value: `\`${channelConfig.nameTemplate || currentConfig.channelNameTemplate || "{username}'s Room"}\``,
+                    value: `\`${resolveJtcNameTemplate(channelConfig.nameTemplate || currentConfig.channelNameTemplate)}\``,
                     inline: false
                 },
                 {
@@ -446,21 +450,21 @@ async function handleConfigSubcommand(interaction, client) {
 async function handleNameTemplateModal(interaction, triggerChannel, currentConfig, client) {
     try {
         const TEMPLATE_OPTIONS = [
-            { label: "{username}'s Room (Default)", value: "{username}'s Room" },
-            { label: "{username}'s Channel",        value: "{username}'s Channel" },
-            { label: "{username}'s Lounge",         value: "{username}'s Lounge" },
-            { label: "{username}'s Space",          value: "{username}'s Space" },
-            { label: "{displayName}'s Room",        value: "{displayName}'s Room" },
-            { label: "{username}'s VC",             value: "{username}'s VC" },
-            { label: "{username}'s Music Room",  value: "{username}'s Music Room" },
-            { label: "{username}'s Gaming Room", value: "{username}'s Gaming Room" },
-            { label: "{username}'s Chat Room",   value: "{username}'s Chat Room" },
-            { label: "{username}'s Private Room",   value: "{username}'s Private Room" },
+            { label: "𓂃⋆{username}'s Room (Mặc định)", value: "𓂃⋆{username}'s Room" },
+            { label: "𓂃⋆{username}",                 value: "𓂃⋆{username}" },
+            { label: "𓂃⋆{username}'s Channel",        value: "𓂃⋆{username}'s Channel" },
+            { label: "𓂃⋆{username}'s Lounge",         value: "𓂃⋆{username}'s Lounge" },
+            { label: "𓂃⋆{username}'s Space",          value: "𓂃⋆{username}'s Space" },
+            { label: "𓂃⋆{displayName}'s Room",        value: "𓂃⋆{displayName}'s Room" },
+            { label: "𓂃⋆{username}'s VC",             value: "𓂃⋆{username}'s VC" },
+            { label: "𓂃⋆{username}'s Music Room",     value: "𓂃⋆{username}'s Music Room" },
+            { label: "𓂃⋆{username}'s Gaming Room",    value: "𓂃⋆{username}'s Gaming Room" },
+            { label: "𓂃⋆{username}'s Chat Room",      value: "𓂃⋆{username}'s Chat Room" },
         ];
 
-        const currentTemplate = currentConfig.channelConfig?.nameTemplate
-            || currentConfig.channelNameTemplate
-            || "{username}'s Room";
+        const currentTemplate = resolveJtcNameTemplate(
+            currentConfig.channelConfig?.nameTemplate || currentConfig.channelNameTemplate
+        );
 
         const templateSelect = new StringSelectMenuBuilder()
             .setCustomId('template')

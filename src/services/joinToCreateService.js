@@ -7,6 +7,11 @@ import {
     getTemporaryChannelInfo,
     formatChannelName as formatChannelNameUtil
 } from '../utils/database.js';
+import {
+    DEFAULT_JTC_NAME_TEMPLATE,
+    buildPrefixedVoiceChannelName,
+    resolveJtcNameTemplate,
+} from '../utils/joinToCreateName.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
@@ -503,12 +508,19 @@ export async function createTemporaryChannel(guild, member, options = {}) {
             validateBitrate(bitrate / 1000);
         }
 
-        const channelName = formatChannelName(nameTemplate || '{username}\'s Room', {
+        const resolvedTemplate = resolveJtcNameTemplate(
+            nameTemplate || DEFAULT_JTC_NAME_TEMPLATE
+        );
+        const formattedChannelName = formatChannelName(resolvedTemplate, {
             username: member.user.username,
             displayName: member.displayName,
             userTag: member.user.tag,
             guildName: guild.name
         });
+        const channelName = buildPrefixedVoiceChannelName(
+            formattedChannelName,
+            member.user.username || member.displayName || 'user'
+        );
 
         const tempChannel = await guild.channels.create({
             name: channelName,

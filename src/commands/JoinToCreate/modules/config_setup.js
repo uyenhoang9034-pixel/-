@@ -20,6 +20,7 @@ import {
     removeJoinToCreateTrigger,
     addJoinToCreateTrigger
 } from '../../../utils/database.js';
+import { resolveJtcNameTemplate } from '../../../utils/joinToCreateName.js';
 
 export default {
     async execute(interaction, config, client) {
@@ -44,7 +45,7 @@ export default {
             .addFields(
                 {
                     name: 'Current Channel Name Template',
-                    value: `\`${currentConfig.channelOptions?.[triggerChannel.id]?.nameTemplate || currentConfig.channelNameTemplate}\``,
+                    value: `\`${resolveJtcNameTemplate(currentConfig.channelOptions?.[triggerChannel.id]?.nameTemplate || currentConfig.channelNameTemplate)}\``,
                     inline: false
                 },
                 {
@@ -180,7 +181,7 @@ async function handleNameTemplateChange(interaction, triggerChannel, currentConf
             },
             {
                 name: 'Current Template',
-                value: `\`${currentConfig.channelOptions?.[triggerChannel.id]?.nameTemplate || currentConfig.channelNameTemplate}\``,
+                value: `\`${resolveJtcNameTemplate(currentConfig.channelOptions?.[triggerChannel.id]?.nameTemplate || currentConfig.channelNameTemplate)}\``,
                 inline: false
             }
         )
@@ -511,7 +512,7 @@ async function handleViewSettings(interaction, triggerChannel, currentConfig, cl
             },
             {
                 name: 'Channel Name Template',
-                value: `\`${channelConfig.nameTemplate || currentConfig.channelNameTemplate}\``,
+                value: `\`${resolveJtcNameTemplate(channelConfig.nameTemplate || currentConfig.channelNameTemplate)}\``,
                 inline: false
             },
             {

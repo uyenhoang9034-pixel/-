@@ -8,8 +8,14 @@ import {
     registerTemporaryChannel,
     unregisterTemporaryChannel,
     getTemporaryChannelInfo,
-    formatChannelName,
 } from '../utils/database.js';
+
+import {
+    DEFAULT_JTC_NAME_TEMPLATE,
+    buildPrefixedVoiceChannelName,
+    clampUtf16Safe,
+    resolveTemporaryVoiceChannelName,
+} from '../utils/joinToCreateName.js';
 
 import {
     sanitizeInput,
@@ -47,7 +53,9 @@ const MAX_CHANNEL_NAME_LENGTH =
     100;
 
 const FALLBACK_CHANNEL_NAME =
-    'Voice Room';
+    buildPrefixedVoiceChannelName(
+        'Voice Room',
+    );
 
 const PRISON_ROLE_ID =
     '1541818610639446066';
@@ -579,7 +587,7 @@ export default {
                         .nameTemplate ||
                     config
                         .channelNameTemplate ||
-                    "{username}'s Room";
+                    DEFAULT_JTC_NAME_TEMPLATE;
 
                 /**
                  * =================================================
@@ -675,58 +683,48 @@ export default {
                         )
                         .size;
 
-                let finalName;
+                const finalName =
+                    resolveTemporaryVoiceChannelName({
+                        savedRoomName,
+                        nameTemplate,
+                        triggerChannelName:
+                            triggerChannel
+                                .name,
+                        existingChannelsCount:
+                            existingChannels,
+                        variables: {
+                            username:
+                                member
+                                    .user
+                                    .username,
 
-                if (
-                    savedRoomName
-                ) {
-                    finalName =
-                        savedRoomName;
-                } else if (
-                    nameTemplate
-                        .includes(
-                            '{username}',
-                        ) ||
-                    nameTemplate
-                        .includes(
-                            '{displayName}',
-                        )
-                ) {
-                    finalName =
-                        formatChannelName(
-                            nameTemplate,
-                            {
-                                username:
-                                    member
-                                        .user
-                                        .username,
+                            userTag:
+                                member
+                                    .user
+                                    .tag,
 
-                                userTag:
-                                    member
-                                        .user
-                                        .tag,
+                            displayName:
+                                member
+                                    .displayName,
 
-                                displayName:
-                                    member
-                                        .displayName,
+                            guildName:
+                                guild
+                                    .name,
 
-                                guildName:
-                                    guild
-                                        .name,
-
-                                channelName:
-                                    triggerChannel
-                                        .name,
-                            },
-                        );
-                } else {
-                    finalName =
-                        `${triggerChannel.name} ${existingChannels + 1}`;
-                }
+                            channelName:
+                                triggerChannel
+                                    .name,
+                        },
+                    });
 
                 const channelName =
                     sanitizeVoiceChannelName(
                         finalName,
+                        member
+                            .user
+                            .username ||
+                            member.displayName ||
+                            'user',
                     );
 
                 if (
@@ -1077,48 +1075,76 @@ export default {
                             .nameTemplate ||
                         config
                             .channelNameTemplate ||
-                        "{username}'s Room";
+                        DEFAULT_JTC_NAME_TEMPLATE;
+
+                    const newOwnerPreferences =
+                        config
+                            .userPreferences?.[
+                            newOwnerId
+                        ] || {};
+
+                    const triggerName =
+                        channel.guild
+                            .channels
+                            .cache
+                            .get(
+                                tempChannelInfo
+                                    .triggerChannelId,
+                            )
+                            ?.name ||
+                        'Voice Channel';
+
+                    const resolvedTransferName =
+                        resolveTemporaryVoiceChannelName({
+                            savedRoomName:
+                                newOwnerPreferences
+                                    .name ||
+                                null,
+                            nameTemplate,
+                            triggerChannelName:
+                                triggerName,
+                            variables: {
+                                username:
+                                    newOwner
+                                        .user
+                                        .username,
+
+                                userTag:
+                                    newOwner
+                                        .user
+                                        .tag,
+
+                                displayName:
+                                    newOwner
+                                        .displayName,
+
+                                guildName:
+                                    channel.guild
+                                        .name,
+
+                                channelName:
+                                    triggerName,
+                            },
+                        });
 
                     const newChannelName =
                         sanitizeVoiceChannelName(
-                            formatChannelName(
-                                nameTemplate,
-                                {
-                                    username:
-                                        newOwner
-                                            .user
-                                            .username,
-
-                                    userTag:
-                                        newOwner
-                                            .user
-                                            .tag,
-
-                                    displayName:
-                                        newOwner
-                                            .displayName,
-
-                                    guildName:
-                                        channel.guild
-                                            .name,
-
-                                    channelName:
-                                        channel.guild
-                                            .channels
-                                            .cache
-                                            .get(
-                                                tempChannelInfo
-                                                    .triggerChannelId,
-                                            )
-                                            ?.name ||
-                                        'Voice Channel',
-                                },
-                            ),
+                            resolvedTransferName,
+                            newOwner
+                                .user
+                                .username ||
+                                newOwner.displayName ||
+                                'user',
                         );
 
-                    await channel.setName(
-                        newChannelName,
-                    );
+                    if (
+                        channel.name !==
+                        newChannelName
+                    ) {
+                        await channel.setName(
+                            newChannelName,
+                        );
+                    }
                 }
 
                 logger.info(
@@ -1169,12 +1195,16 @@ export default {
 
 function sanitizeVoiceChannelName(
     inputName,
+    fallbackSuffix = 'Voice Room',
 ) {
-    const safeName =
+    const safeRaw =
         sanitizeInput(
-            String(
-                inputName ||
-                '',
+            clampUtf16Safe(
+                String(
+                    inputName ||
+                    '',
+                ),
+                MAX_CHANNEL_NAME_LENGTH,
             ),
             MAX_CHANNEL_NAME_LENGTH,
         )
@@ -1189,7 +1219,10 @@ function sanitizeVoiceChannelName(
             .trim();
 
     return (
-        safeName ||
+        buildPrefixedVoiceChannelName(
+            safeRaw,
+            fallbackSuffix,
+        ) ||
         FALLBACK_CHANNEL_NAME
     );
 }

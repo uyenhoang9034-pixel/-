@@ -4,6 +4,11 @@ import { pgDb } from './postgresDatabase.js';
 import { logger } from './logger.js';
 import { BotConfig } from '../config/bot.js';
 import { CHAT_XP_PER_LEVEL } from '../config/leveling/levelingSystem.js';
+import {
+    DEFAULT_JTC_NAME_TEMPLATE,
+    formatJtcChannelName,
+    resolveJtcNameTemplate,
+} from './joinToCreateName.js';
 
 export {
     db,
@@ -563,7 +568,7 @@ export async function getJoinToCreateConfig(client, guildId) {
             enabled: false,
             triggerChannels: [],
             categoryId: null,
-            channelNameTemplate: "{username}'s Room",
+            channelNameTemplate: DEFAULT_JTC_NAME_TEMPLATE,
             userLimit: 0,
             bitrate: 64000,
             temporaryChannels: {}
@@ -579,11 +584,11 @@ export async function getJoinToCreateConfig(client, guildId) {
             enabled: unwrapped.enabled || false,
             triggerChannels: unwrapped.triggerChannels || [],
             categoryId: unwrapped.categoryId || null,
-            channelNameTemplate: unwrapped.channelNameTemplate || "{username}'s Room",
             userLimit: unwrapped.userLimit || 0,
             bitrate: unwrapped.bitrate || 64000,
             temporaryChannels: unwrapped.temporaryChannels || {},
-            ...unwrapped
+            ...unwrapped,
+            channelNameTemplate: resolveJtcNameTemplate(unwrapped.channelNameTemplate),
         };
     } catch (error) {
         logger.error(`Error getting Join to Create config for guild ${guildId}:`, error);
@@ -591,7 +596,7 @@ export async function getJoinToCreateConfig(client, guildId) {
             enabled: false,
             triggerChannels: [],
             categoryId: null,
-            channelNameTemplate: "{username}'s Room",
+            channelNameTemplate: DEFAULT_JTC_NAME_TEMPLATE,
             userLimit: 0,
             bitrate: 64000,
             temporaryChannels: {}
@@ -722,27 +727,7 @@ export async function getTemporaryChannelInfo(client, guildId, channelId) {
 }
 
 export function formatChannelName(template, variables) {
-    let formatted = template;
-    
-    const replacements = {
-        '{username}': variables.username || 'User',
-        '{user_tag}': variables.userTag || 'User#0000',
-        '{display_name}': variables.displayName || 'User',
-        '{guild_name}': variables.guildName || 'Server',
-        '{channel_name}': variables.channelName || 'Voice Channel'
-    };
-    
-    for (const [placeholder, value] of Object.entries(replacements)) {
-        formatted = formatted.replace(
-            new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'),
-            value
-        );
-    }
-    
-    formatted = formatted.replace(/[^\w\s-]/g, '').trim();
-    formatted = formatted.substring(0, 100);
-    
-    return formatted || 'Voice Channel';
+    return formatJtcChannelName(template, variables);
 }
 
 function generateCaseId() {

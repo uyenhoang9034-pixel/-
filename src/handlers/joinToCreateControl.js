@@ -1,9 +1,11 @@
 import {
   ActionRowBuilder,
   ChannelType,
+  LabelBuilder,
   MessageFlags,
   ModalBuilder,
   StringSelectMenuBuilder,
+  TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
@@ -13,6 +15,13 @@ import {
   saveJoinToCreateConfig,
   unregisterTemporaryChannel,
 } from '../utils/database.js';
+
+import {
+  JTC_NAME_PREFIX,
+  JTC_NAME_SUFFIX_MAX_LENGTH,
+  buildRequiredVoiceChannelName,
+  extractVoiceChannelSuffix,
+} from '../utils/joinToCreateName.js';
 
 import {
   logger,
@@ -362,17 +371,17 @@ async function handleButton(
           .setCustomId(
             'name',
           )
-          .setLabel(
-            'Tên phòng mới',
-          )
           .setPlaceholder(
-            'Ví dụ: 🌸・Phòng của Usagi',
+            'Ví dụ: emchanh.9 hoặc Phòng của Usagi',
           )
           .setStyle(
             TextInputStyle.Short,
           )
+          .setMinLength(
+            1,
+          )
           .setMaxLength(
-            100,
+            JTC_NAME_SUFFIX_MAX_LENGTH,
           )
           .setRequired(
             true,
@@ -380,23 +389,39 @@ async function handleButton(
 
       /**
        * Nếu từng lưu tên rồi
-       * thì hiện tên cũ trong modal.
+       * thì chỉ hiện phần tên phía sau 𓂃⋆ trong modal.
        */
 
-      if (
+      const savedSuffix =
         typeof preferences.name ===
-          'string' &&
-        preferences.name.trim()
-      ) {
+        'string'
+          ? extractVoiceChannelSuffix(
+              preferences.name,
+            )
+          : '';
+
+      if (savedSuffix) {
         input.setValue(
-          preferences.name
-            .trim()
-            .slice(
-              0,
-              100,
-            ),
+          savedSuffix,
         );
       }
+
+      const prefixNotice =
+        new TextDisplayBuilder().setContent(
+          `Tiền tố **${JTC_NAME_PREFIX}** luôn được giữ cố định ở đầu tên phòng. Bạn chỉ thay đổi được phần phía sau.`,
+        );
+
+      const nameLabel =
+        new LabelBuilder()
+          .setLabel(
+            `Phần tên phía sau ${JTC_NAME_PREFIX}`,
+          )
+          .setDescription(
+            `Ví dụ nhập emchanh.9 → phòng thành ${JTC_NAME_PREFIX}emchanh.9`,
+          )
+          .setTextInputComponent(
+            input,
+          );
 
       const modal =
         new ModalBuilder()
@@ -406,11 +431,11 @@ async function handleButton(
           .setTitle(
             '🐰 Đổi tên phòng',
           )
-          .addComponents(
-            new ActionRowBuilder()
-              .addComponents(
-                input,
-              ),
+          .addTextDisplayComponents(
+            prefixNotice,
+          )
+          .addLabelComponents(
+            nameLabel,
           );
 
       await interaction.showModal(
@@ -943,42 +968,43 @@ async function handleModal(
     action ===
     'name'
   ) {
-    const name =
-      interaction.fields
-        .getTextInputValue(
-          'name',
-        )
-        .replace(
-          /[\r\n\t]/g,
-          ' ',
-        )
-        .replace(
-          /\s+/g,
-          ' ',
-        )
-        .trim()
-        .slice(
-          0,
-          100,
-        );
+    const rawSuffix =
+      interaction.fields.getTextInputValue(
+        'name',
+      );
 
-    if (!name) {
+    const parsedName =
+      buildRequiredVoiceChannelName(
+        rawSuffix,
+      );
+
+    if (
+      !parsedName.ok
+    ) {
       await replyEphemeral(
         interaction,
-        '❌ Tên phòng không hợp lệ.',
+        `❌ Tên phòng không hợp lệ. Vui lòng nhập phần tên phía sau \`${JTC_NAME_PREFIX}\` (ví dụ: \`emchanh.9\`).`,
       );
 
       return true;
     }
 
-    await channel.setName(
-      name,
-      `Temporary voice room renamed by ${interaction.user.id}`,
-    );
+    const name =
+      parsedName.fullName;
+
+    if (
+      channel.name !==
+      name
+    ) {
+      await channel.setName(
+        name,
+        `Temporary voice room renamed by ${interaction.user.id}`,
+      );
+    }
 
     /**
      * Lưu lâu dài tên phòng
-     * của user.
+     * của user (kèm tiền tố 𓂃⋆).
      */
 
     await saveUserPreferences(
@@ -993,7 +1019,7 @@ async function handleModal(
 
     await replyEphemeral(
       interaction,
-      `✏️ Đã đổi tên phòng thành **${name}**.`,
+      `✏️ Đã đổi tên phòng thành **${name}** (phần đầu \`${JTC_NAME_PREFIX}\` được giữ cố định).`,
     );
 
     return true;
