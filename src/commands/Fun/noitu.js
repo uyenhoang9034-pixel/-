@@ -409,7 +409,8 @@ export default {
       ) {
         const mode =
           getWordChainModeForChannel(
-            interaction.channelId,
+            interaction.channelId ??
+              interaction.channel?.id,
           );
 
         if (
@@ -543,7 +544,8 @@ export default {
       ) {
         const mode =
           getWordChainModeForChannel(
-            interaction.channelId,
+            interaction.channelId ??
+              interaction.channel?.id,
           );
 
         if (
@@ -795,7 +797,8 @@ export default {
       ) {
         const mode =
           getWordChainModeForChannel(
-            interaction.channelId,
+            interaction.channelId ??
+              interaction.channel?.id,
           );
 
         if (

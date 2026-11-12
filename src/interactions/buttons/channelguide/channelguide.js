@@ -233,6 +233,9 @@ export default [
                     panelSlot,
                 );
 
+            delete payload.content;
+            delete payload.embeds;
+
             return interaction.editReply(
                 payload,
             );

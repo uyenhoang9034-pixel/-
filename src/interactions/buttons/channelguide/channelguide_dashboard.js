@@ -651,8 +651,13 @@ export default {
             }
 
             if (message) {
+                const editPayload = { ...payload };
+                if (message.flags?.has?.(MessageFlags.IsComponentsV2)) {
+                    delete editPayload.content;
+                    delete editPayload.embeds;
+                }
                 await message.edit(
-                    payload,
+                    editPayload,
                 );
             } else {
                 const sendPayload = { ...payload };
