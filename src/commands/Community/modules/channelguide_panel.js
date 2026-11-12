@@ -13,6 +13,7 @@ import {
 } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
+import { normalizePanelSlot } from '../../../services/channelguide/channelGuideService.js';
 
 const PAGE_SIZE = 20;
 
@@ -40,7 +41,13 @@ function resolveButtonEmoji(value) {
     return { name: value };
 }
 
-export function buildChannelGuidePanel(config, page = 0, guild = null) {
+export function buildChannelGuidePanel(
+    config,
+    page = 0,
+    guild = null,
+    panelSlot = 1,
+) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const guides = config.guides.filter(
         guide => guide.enabled !== false,
     );
@@ -84,7 +91,10 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
     // Ảnh bên dưới văn bản (sử dụng assets/channelguide/channelguide.png)
     const channelGuideImgPath = path.resolve(process.cwd(), 'assets/channelguide/channelguide.png');
     const hasLocalImage = fs.existsSync(channelGuideImgPath);
-    const imageUrl = hasLocalImage ? 'attachment://channelguide.png' : config.panelImage;
+    const imageUrl =
+        resolvedSlot === 2
+            ? (config.panelImage || (hasLocalImage ? 'attachment://channelguide.png' : null))
+            : (hasLocalImage ? 'attachment://channelguide.png' : config.panelImage);
 
     if (imageUrl) {
         container.addMediaGalleryComponents(
@@ -110,7 +120,7 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
 
         pageGuides.slice(i, i + 5).forEach((guide, index) => {
             const button = new ButtonBuilder()
-                .setCustomId(`channelguide:${guide.id}`)
+                .setCustomId(`channelguide:${guide.id}:${resolvedSlot}`)
                 .setLabel(guide.label.slice(0, 80))
                 .setStyle(
                     BUTTON_STYLES[
@@ -131,18 +141,18 @@ export function buildChannelGuidePanel(config, page = 0, guild = null) {
         components.push(
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`channelguide_nav:${safePage - 1}`)
+                    .setCustomId(`channelguide_nav:${safePage - 1}:${resolvedSlot}`)
                     .setLabel('Previous')
                     .setEmoji('◀️')
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(safePage <= 0),
                 new ButtonBuilder()
-                    .setCustomId(`channelguide_nav:${safePage}`)
+                    .setCustomId(`channelguide_nav:${safePage}:${resolvedSlot}`)
                     .setLabel(`Page ${safePage + 1}/${totalPages}`)
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(true),
                 new ButtonBuilder()
-                    .setCustomId(`channelguide_nav:${safePage + 1}`)
+                    .setCustomId(`channelguide_nav:${safePage + 1}:${resolvedSlot}`)
                     .setLabel('Next')
                     .setEmoji('▶️')
                     .setStyle(ButtonStyle.Secondary)

@@ -15,7 +15,12 @@ export default {
         .addSubcommand(sub =>
             sub
                 .setName('setup')
-                .setDescription('Open the Channel Guide Dashboard'),
+                .setDescription('Open the Channel Guide Dashboard (Panel 1)'),
+        )
+        .addSubcommand(sub =>
+            sub
+                .setName('setup2')
+                .setDescription('Open the Channel Guide 2 Dashboard (Panel 2)'),
         ),
 
     category: 'Community',
@@ -35,6 +40,9 @@ export default {
             });
         }
 
+        const subcommand = interaction.options?.getSubcommand?.(false) || 'setup';
+        const panelSlot = subcommand === 'setup2' ? 2 : 1;
+
         const { showChannelGuideDashboard } = await import(
             './modules/channelguide_dashboard.js'
         );
@@ -42,6 +50,8 @@ export default {
         await showChannelGuideDashboard(
             interaction,
             interaction.client,
+            null,
+            { panelSlot },
         );
     },
 };

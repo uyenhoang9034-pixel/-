@@ -11,7 +11,8 @@ import {
 
 import {
     getChannelGuideConfig,
-    getGuideItem,
+    findGuideAcrossPanels,
+    normalizePanelSlot,
 } from '../../../services/channelguide/channelGuideService.js';
 
 import {
@@ -134,20 +135,24 @@ export default [
                 flags: MessageFlags.Ephemeral,
             }).catch(() => null);
 
-            const config =
-                await getChannelGuideConfig(
-                    client,
-                    interaction.guild.id,
-                );
-
             const guideId =
                 args[0];
 
-            const guide =
-                getGuideItem(
-                    config,
+            const preferredSlot =
+                args[1] !== undefined
+                    ? normalizePanelSlot(args[1])
+                    : null;
+
+            const found =
+                await findGuideAcrossPanels(
+                    client,
+                    interaction.guild.id,
                     guideId,
+                    preferredSlot,
                 );
+
+            const guide =
+                found?.guide || null;
 
             if (!guide) {
                 return interaction.editReply({
@@ -198,10 +203,16 @@ export default [
             // Defer update ngay lập tức để tránh timeout 3s
             await interaction.deferUpdate().catch(() => null);
 
+            const panelSlot =
+                args[1] !== undefined
+                    ? normalizePanelSlot(args[1])
+                    : 1;
+
             const config =
                 await getChannelGuideConfig(
                     client,
                     interaction.guild.id,
+                    panelSlot,
                 );
 
             const page =
@@ -219,6 +230,7 @@ export default [
                         ? page
                         : 0,
                     interaction.guild,
+                    panelSlot,
                 );
 
             return interaction.editReply(

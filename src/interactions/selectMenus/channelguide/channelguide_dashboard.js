@@ -2,6 +2,7 @@ import { MessageFlags } from 'discord.js';
 
 import {
     getChannelGuideConfig,
+    normalizePanelSlot,
 } from '../../../services/channelguide/channelGuideService.js';
 
 import {
@@ -19,7 +20,7 @@ export default {
         if (!session) {
             return interaction.reply({
                 content:
-                    '❌ Phiên Channel Guide đã hết hạn. Hãy chạy lại `/channelguide setup`.',
+                    '❌ Phiên Channel Guide đã hết hạn. Hãy chạy lại `/channelguide setup` hoặc `/channelguide setup2`.',
                 flags: MessageFlags.Ephemeral,
             });
         }
@@ -32,14 +33,24 @@ export default {
             });
         }
 
+        const panelSlot = normalizePanelSlot(session.panelSlot);
         const config =
             await getChannelGuideConfig(
                 client,
                 interaction.guild.id,
+                panelSlot,
             );
 
         const guideId =
             interaction.values[0];
+
+        if (guideId === '__empty__') {
+            return interaction.reply({
+                content:
+                    '❌ Chưa có guide nào. Hãy bấm **➕ Add Guide** trước.',
+                flags: MessageFlags.Ephemeral,
+            });
+        }
 
         const guide =
             config.guides.find(

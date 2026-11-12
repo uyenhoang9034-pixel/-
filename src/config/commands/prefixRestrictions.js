@@ -13,6 +13,7 @@ export const SLASH_ONLY_COMMANDS = new Set([
 export const GLOBAL_BLOCKED_SUBCOMMANDS = new Set([
   'dashboard',
   'setup',
+  'setup2',
 ]);
 
 /** Subcommand groups blocked for every command when invoked via prefix. */

@@ -1,5 +1,19 @@
-const STORAGE_KEY = guildId =>
-    `guild:${guildId}:channelguide`;
+export function normalizePanelSlot(panelSlot = 1) {
+    return String(panelSlot) === '2' || Number(panelSlot) === 2 ? 2 : 1;
+}
+
+export function getChannelGuideStorageKey(
+    guildId,
+    panelSlot = 1,
+) {
+    const slot = normalizePanelSlot(panelSlot);
+    return slot === 2
+        ? `guild:${guildId}:channelguide:2`
+        : `guild:${guildId}:channelguide`;
+}
+
+const STORAGE_KEY = (guildId, panelSlot = 1) =>
+    getChannelGuideStorageKey(guildId, panelSlot);
 
 const DEFAULT_GUIDES = [
     {
@@ -266,7 +280,9 @@ function migrateLegacyGuides(
     );
 }
 
-function normalizeConfig(data) {
+function normalizeConfig(data, panelSlot = 1) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
+
     if (
         !data ||
         typeof data !== 'object'
@@ -274,7 +290,9 @@ function normalizeConfig(data) {
         return {
             ...DEFAULT_CONFIG,
             guides:
-                cloneDefaultGuides(),
+                resolvedSlot === 1
+                    ? cloneDefaultGuides()
+                    : [],
         };
     }
 
@@ -293,12 +311,13 @@ function normalizeConfig(data) {
                 .filter(Boolean);
     } else {
         guides =
-            migrateLegacyGuides(
-                data,
-            );
+            resolvedSlot === 1
+                ? migrateLegacyGuides(data)
+                : [];
     }
 
     if (
+        resolvedSlot === 1 &&
         guides.length === 0
     ) {
         guides =
@@ -343,15 +362,18 @@ function normalizeConfig(data) {
 export async function getChannelGuideConfig(
     client,
     guildId,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const data =
         await client.db.get(
-            STORAGE_KEY(guildId),
+            STORAGE_KEY(guildId, resolvedSlot),
             null,
         );
 
     return normalizeConfig(
         data,
+        resolvedSlot,
     );
 }
 
@@ -359,14 +381,17 @@ export async function saveChannelGuideConfig(
     client,
     guildId,
     config,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const normalized =
         normalizeConfig(
             config,
+            resolvedSlot,
         );
 
     await client.db.set(
-        STORAGE_KEY(guildId),
+        STORAGE_KEY(guildId, resolvedSlot),
         normalized,
     );
 
@@ -377,11 +402,14 @@ export async function setChannelGuideConfig(
     client,
     guildId,
     patch,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const current =
         await getChannelGuideConfig(
             client,
             guildId,
+            resolvedSlot,
         );
 
     return saveChannelGuideConfig(
@@ -398,6 +426,7 @@ export async function setChannelGuideConfig(
                     ? patch.guides
                     : current.guides,
         },
+        resolvedSlot,
     );
 }
 
@@ -413,15 +442,42 @@ export function getGuideItem(
     );
 }
 
+export async function findGuideAcrossPanels(
+    client,
+    guildId,
+    guideId,
+    preferredSlot = null,
+) {
+    if (preferredSlot !== null && preferredSlot !== undefined) {
+        const slot = normalizePanelSlot(preferredSlot);
+        const config = await getChannelGuideConfig(client, guildId, slot);
+        const guide = getGuideItem(config, guideId);
+        return guide ? { config, guide, panelSlot: slot } : null;
+    }
+
+    for (const slot of [1, 2]) {
+        const config = await getChannelGuideConfig(client, guildId, slot);
+        const guide = getGuideItem(config, guideId);
+        if (guide) {
+            return { config, guide, panelSlot: slot };
+        }
+    }
+
+    return null;
+}
+
 export async function createGuide(
     client,
     guildId,
     guide,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const config =
         await getChannelGuideConfig(
             client,
             guildId,
+            resolvedSlot,
         );
 
     const newGuide =
@@ -444,6 +500,7 @@ export async function createGuide(
         client,
         guildId,
         config,
+        resolvedSlot,
     );
 }
 
@@ -452,11 +509,14 @@ export async function updateGuide(
     guildId,
     guideId,
     patch,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const config =
         await getChannelGuideConfig(
             client,
             guildId,
+            resolvedSlot,
         );
 
     const index =
@@ -480,6 +540,7 @@ export async function updateGuide(
         client,
         guildId,
         config,
+        resolvedSlot,
     );
 
     return config.guides[index];
@@ -489,11 +550,14 @@ export async function deleteGuide(
     client,
     guildId,
     guideId,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const config =
         await getChannelGuideConfig(
             client,
             guildId,
+            resolvedSlot,
         );
 
     config.guides =
@@ -506,6 +570,7 @@ export async function deleteGuide(
         client,
         guildId,
         config,
+        resolvedSlot,
     );
 }
 
@@ -513,11 +578,14 @@ export async function toggleGuide(
     client,
     guildId,
     guideId,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const config =
         await getChannelGuideConfig(
             client,
             guildId,
+            resolvedSlot,
         );
 
     const guide =
@@ -537,6 +605,7 @@ export async function toggleGuide(
         client,
         guildId,
         config,
+        resolvedSlot,
     );
 
     return guide;
@@ -547,11 +616,14 @@ export async function moveGuide(
     guildId,
     guideId,
     direction,
+    panelSlot = 1,
 ) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const config =
         await getChannelGuideConfig(
             client,
             guildId,
+            resolvedSlot,
         );
 
     const index =
@@ -589,6 +661,7 @@ export async function moveGuide(
         client,
         guildId,
         config,
+        resolvedSlot,
     );
 
     return config.guides[target];

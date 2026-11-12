@@ -5,6 +5,7 @@ import {
 import {
     getChannelGuideConfig,
     saveChannelGuideConfig,
+    normalizePanelSlot,
 } from '../../../services/channelguide/channelGuideService.js';
 
 import {
@@ -68,17 +69,29 @@ const guideHandler = {
             });
         }
 
-        const config =
-            await getChannelGuideConfig(
-                client,
-                interaction.guild.id,
-            );
-
         const guideId =
             args[0];
 
         const sessionId =
             args[1];
+
+        const session =
+            sessionId
+                ? getDashboardSession(
+                    sessionId,
+                )
+                : null;
+
+        const panelSlot = normalizePanelSlot(
+            args[2] ?? session?.panelSlot ?? 1,
+        );
+
+        const config =
+            await getChannelGuideConfig(
+                client,
+                interaction.guild.id,
+                panelSlot,
+            );
 
         const label =
             interaction.fields
@@ -188,12 +201,8 @@ const guideHandler = {
             client,
             interaction.guild.id,
             config,
+            panelSlot,
         );
-
-        const session =
-            getDashboardSession(
-                sessionId,
-            );
 
         if (session) {
             session.selectedGuideId =
@@ -202,7 +211,9 @@ const guideHandler = {
 
         return interaction.reply({
             content:
-                '✅ Đã lưu Channel Guide.',
+                panelSlot === 2
+                    ? '✅ Đã lưu Channel Guide 2.'
+                    : '✅ Đã lưu Channel Guide.',
             flags:
                 MessageFlags.Ephemeral,
         });
@@ -216,6 +227,7 @@ const panelHandler = {
     async execute(
         interaction,
         client,
+        args = [],
     ) {
         if (
             !interaction.guild ||
@@ -231,10 +243,25 @@ const panelHandler = {
             });
         }
 
+        const sessionId =
+            args[0];
+
+        const session =
+            sessionId
+                ? getDashboardSession(
+                    sessionId,
+                )
+                : null;
+
+        const panelSlot = normalizePanelSlot(
+            args[1] ?? session?.panelSlot ?? 1,
+        );
+
         const config =
             await getChannelGuideConfig(
                 client,
                 interaction.guild.id,
+                panelSlot,
             );
 
         const panelChannelId =
@@ -302,11 +329,14 @@ const panelHandler = {
             client,
             interaction.guild.id,
             config,
+            panelSlot,
         );
 
         return interaction.reply({
             content:
-                '✅ Panel Settings đã được lưu.',
+                panelSlot === 2
+                    ? '✅ Panel 2 Settings đã được lưu.'
+                    : '✅ Panel Settings đã được lưu.',
             flags:
                 MessageFlags.Ephemeral,
         });

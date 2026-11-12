@@ -10,11 +10,12 @@ import {
 import {
     getChannelGuideConfig,
     getGuideItem,
+    normalizePanelSlot,
 } from '../../../services/channelguide/channelGuideService.js';
 
 const sessions = new Map();
 
-function createSession(interaction) {
+function createSession(interaction, panelSlot = 1) {
     const sessionId =
         `${Date.now()}_${Math.random()
             .toString(36)
@@ -24,6 +25,7 @@ function createSession(interaction) {
         sessionId,
         guildId: interaction.guild.id,
         userId: interaction.user.id,
+        panelSlot: normalizePanelSlot(panelSlot),
         selectedGuideId: null,
         page: 0,
     };
@@ -129,23 +131,35 @@ function buildDashboardEmbed(config, session) {
         fields.push({
             name: '💡 Hướng dẫn',
             value:
-                'Chọn một guide bên dưới để chỉnh sửa.',
+                config.guides.length === 0
+                    ? 'Chưa có danh mục nào. Bấm **➕ Add Guide** bên dưới để thêm mới.'
+                    : 'Chọn một guide bên dưới để chỉnh sửa.',
             inline: false,
         });
     }
 
+    const panelSlot = normalizePanelSlot(session.panelSlot);
+    const dashboardTitle =
+        panelSlot === 2
+            ? '🌸 Channel Guide 2 Dashboard'
+            : '🌸 Channel Guide Dashboard';
+    const commandHint =
+        panelSlot === 2
+            ? '/channelguide setup2 (Panel 2)'
+            : '/channelguide setup (Panel 1)';
+
     return new EmbedBuilder()
         .setColor(0xf6b6d6)
         .setTitle(
-            '🌸 Channel Guide Dashboard',
+            dashboardTitle,
         )
         .setDescription(
-            'Quản lý các danh mục Channel Guide. Muốn gắn kênh: chọn danh mục → Edit Guide → nhập Channel IDs (các ID cách nhau bằng dấu phẩy) → Save.',
+            `Quản lý các danh mục Channel Guide (${commandHint}). Muốn gắn kênh: chọn danh mục → Edit Guide → nhập Channel IDs (các ID cách nhau bằng dấu phẩy) → Save.`,
         )
         .addFields(fields)
         .setFooter({
             text:
-                'Chỉ Administrator / Manage Server có thể sử dụng.',
+                `Panel ${panelSlot} • Chỉ Administrator / Manage Server có thể sử dụng.`,
         });
 }
 
@@ -171,7 +185,13 @@ function buildGuideSelect(config, session) {
             );
 
     if (guides.length === 0) {
-        menu.setDisabled(true);
+        menu
+            .setDisabled(true)
+            .addOptions({
+                label: 'Chưa có guide nào',
+                description: 'Bấm ➕ Add Guide bên dưới để thêm mới.',
+                value: '__empty__',
+            });
         return menu;
     }
 
@@ -375,16 +395,30 @@ export async function showChannelGuideDashboard(
     interaction,
     client,
     session = null,
+    options = {},
 ) {
+    const panelSlot = normalizePanelSlot(
+        session?.panelSlot ?? options?.panelSlot ?? 1,
+    );
+
     const currentSession =
         session ||
-        createSession(interaction);
+        createSession(interaction, panelSlot);
+
+    currentSession.panelSlot = normalizePanelSlot(
+        currentSession.panelSlot ?? panelSlot,
+    );
 
     const config =
         await getChannelGuideConfig(
             client,
             interaction.guild.id,
+            currentSession.panelSlot,
         );
+
+    const maxPage = Math.max(0, Math.ceil(config.guides.length / 20) - 1);
+    const parsedPage = Number.isInteger(currentSession.page) ? currentSession.page : 0;
+    currentSession.page = Math.max(0, Math.min(parsedPage, maxPage));
 
     const payload = {
         embeds: [

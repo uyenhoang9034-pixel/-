@@ -12,6 +12,7 @@ import {
     toggleGuide,
     moveGuide,
     deleteGuide,
+    normalizePanelSlot,
 } from '../../../services/channelguide/channelGuideService.js';
 
 import {
@@ -62,19 +63,21 @@ function buildGuideModal(
     config,
     guide = null,
     sessionId = '',
+    panelSlot = 1,
 ) {
     const isEdit =
         Boolean(guide);
+    const resolvedSlot = normalizePanelSlot(panelSlot);
 
     const modal =
         new ModalBuilder()
             .setCustomId(
-                `channelguide_dashboard_guide:${isEdit ? guide.id : 'new'}:${sessionId}`,
+                `channelguide_dashboard_guide:${isEdit ? guide.id : 'new'}:${sessionId}:${resolvedSlot}`,
             )
             .setTitle(
-                isEdit
-                    ? 'Edit Channel Guide'
-                    : 'Add Channel Guide',
+                resolvedSlot === 2
+                    ? (isEdit ? 'Edit Channel Guide 2' : 'Add Channel Guide 2')
+                    : (isEdit ? 'Edit Channel Guide' : 'Add Channel Guide'),
             );
 
     const labelInput =
@@ -192,14 +195,17 @@ function buildGuideModal(
     return modal;
 }
 
-function buildPanelModal(config) {
+function buildPanelModal(config, sessionId = '', panelSlot = 1) {
+    const resolvedSlot = normalizePanelSlot(panelSlot);
     const modal =
         new ModalBuilder()
             .setCustomId(
-                'channelguide_dashboard_panel',
+                `channelguide_dashboard_panel:${sessionId}:${resolvedSlot}`,
             )
             .setTitle(
-                'Channel Guide Panel Settings',
+                resolvedSlot === 2
+                    ? 'Channel Guide 2 Panel Settings'
+                    : 'Channel Guide Panel Settings',
             );
 
     const channelInput =
@@ -343,6 +349,8 @@ export default {
 
         const guildId =
             interaction.guild.id;
+        const panelSlot =
+            normalizePanelSlot(session.panelSlot);
 
         if (
             action === 'close'
@@ -353,7 +361,9 @@ export default {
 
             return interaction.update({
                 content:
-                    '🌸 Channel Guide Dashboard đã đóng.',
+                    panelSlot === 2
+                        ? '🌸 Channel Guide 2 Dashboard đã đóng.'
+                        : '🌸 Channel Guide Dashboard đã đóng.',
                 embeds: [],
                 components: [],
             });
@@ -367,6 +377,7 @@ export default {
                 await getChannelGuideConfig(
                     client,
                     guildId,
+                    panelSlot,
                 );
 
             const maxPage =
@@ -402,6 +413,7 @@ export default {
             await getChannelGuideConfig(
                 client,
                 guildId,
+                panelSlot,
             );
 
         const selected =
@@ -430,6 +442,7 @@ export default {
                     config,
                     selected,
                     sessionId,
+                    panelSlot,
                 ),
             );
         }
@@ -442,6 +455,7 @@ export default {
                     config,
                     null,
                     sessionId,
+                    panelSlot,
                 ),
             );
         }
@@ -462,6 +476,7 @@ export default {
                 client,
                 guildId,
                 selected.id,
+                panelSlot,
             );
 
             await interaction.deferUpdate();
@@ -491,6 +506,7 @@ export default {
                 guildId,
                 selected.id,
                 action,
+                panelSlot,
             );
 
             await interaction.deferUpdate();
@@ -518,6 +534,7 @@ export default {
                 client,
                 guildId,
                 selected.id,
+                panelSlot,
             );
 
             session.selectedGuideId =
@@ -538,6 +555,8 @@ export default {
             return interaction.showModal(
                 buildPanelModal(
                     config,
+                    sessionId,
+                    panelSlot,
                 ),
             );
         }
@@ -545,12 +564,27 @@ export default {
         if (
             action === 'preview'
         ) {
-            return interaction.reply({
-                content:
-                    '👀 Preview sẽ được lấy từ Panel hiện tại sau khi cài Panel Settings.',
-                flags:
-                    MessageFlags.Ephemeral,
+            await interaction.deferReply({
+                flags: MessageFlags.Ephemeral,
             });
+
+            const { buildChannelGuidePanel } =
+                await import(
+                    '../../../commands/Community/modules/channelguide_panel.js'
+                );
+
+            const previewPayload =
+                buildChannelGuidePanel(
+                    config,
+                    0,
+                    interaction.guild,
+                    panelSlot,
+                );
+
+            delete previewPayload.content;
+            delete previewPayload.embeds;
+
+            return interaction.editReply(previewPayload);
         }
 
         if (
@@ -567,6 +601,10 @@ export default {
                 });
             }
 
+            await interaction.deferReply({
+                flags: MessageFlags.Ephemeral,
+            });
+
             const channel =
                 await interaction.guild.channels.fetch(
                     config.panelChannelId,
@@ -578,11 +616,9 @@ export default {
                 !channel ||
                 !channel.isTextBased()
             ) {
-                return interaction.reply({
+                return interaction.editReply({
                     content:
                         '❌ Panel Channel không hợp lệ hoặc bot không thể truy cập.',
-                    flags:
-                        MessageFlags.Ephemeral,
                 });
             }
 
@@ -596,6 +632,7 @@ export default {
         config,
         0,
         interaction.guild,
+        panelSlot,
     );
 
             let message = null;
@@ -618,9 +655,13 @@ export default {
                     payload,
                 );
             } else {
+                const sendPayload = { ...payload };
+                delete sendPayload.content;
+                delete sendPayload.embeds;
+
                 message =
                     await channel.send(
-                        payload,
+                        sendPayload,
                     );
 
                 config.panelMessageId =
@@ -630,14 +671,15 @@ export default {
                     client,
                     guildId,
                     config,
+                    panelSlot,
                 );
             }
 
-            return interaction.reply({
+            return interaction.editReply({
                 content:
-                    '✅ Channel Guide Panel đã được Publish / Update.',
-                flags:
-                    MessageFlags.Ephemeral,
+                    panelSlot === 2
+                        ? '✅ Channel Guide Panel 2 đã được Publish / Update.'
+                        : '✅ Channel Guide Panel đã được Publish / Update.',
             });
         }
 
