@@ -30,6 +30,7 @@ import {
     CHAT_XP_DEFAULT_COOLDOWN_SECONDS,
     CHAT_XP_CONFIG_VERSION,
     formatLevelNumber,
+    isLeaderboardExcludedUser,
 } from '../../config/leveling/levelingSystem.js';
 
 /**
@@ -274,7 +275,10 @@ export async function getLeaderboard(
             of members
         ) {
             if (
-                member.user.bot
+                member.user.bot ||
+                isLeaderboardExcludedUser(
+                    userId,
+                )
             ) {
                 continue;
             }

@@ -23,6 +23,7 @@ import {
     getHighestMilestone,
     LEVELING_MAX_LEVEL,
     formatLevelNumber,
+    isLeaderboardExcludedUser,
 } from '../../config/leveling/levelingSystem.js';
 
 import {
@@ -196,12 +197,22 @@ export default {
          * =====================================================
          */
 
-        const leaderboard =
+        const rawLeaderboard =
             await getLeaderboard(
                 client,
                 interaction.guildId,
                 20,
             );
+
+        const leaderboard =
+            rawLeaderboard
+                .filter(
+                    entry =>
+                        !isLeaderboardExcludedUser(
+                            entry?.userId,
+                        ),
+                )
+                .slice(0, 20);
 
         if (
             leaderboard.length ===

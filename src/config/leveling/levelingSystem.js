@@ -985,3 +985,29 @@ export const LEVEL_MILESTONE_LEVELS =
             ) =>
                 a - b,
         );
+
+/**
+ * =========================================================
+ * LEADERBOARD EXCLUSIONS
+ * =========================================================
+ *
+ * Các userId vẫn giữ nguyên dữ liệu level/XP trong DB
+ * nhưng ẩn khỏi bảng xếp hạng /leaderboard để đảm bảo công bằng.
+ */
+
+export const LEADERBOARD_EXCLUDED_USER_IDS =
+    Object.freeze([
+        '872792190651334707',
+    ]);
+
+export function isLeaderboardExcludedUser(
+    userId,
+) {
+    if (!userId) {
+        return false;
+    }
+
+    return LEADERBOARD_EXCLUDED_USER_IDS.includes(
+        String(userId).trim(),
+    );
+}
