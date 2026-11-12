@@ -591,8 +591,18 @@ export async function sendDonationNotification(client, transaction) {
     try {
       await channel.send({
         embeds: [fallbackEmbed],
-        allowedMentions: donorId ? { users: [String(donorId)] } : { parse: [] },
+        allowedMentions: resolvedDonorId ? { users: [resolvedDonorId] } : { parse: [] },
       });
+      try {
+        const thanksContainer = buildDonationThanksContainer(donorMention, formattedAmount);
+        await channel.send({
+          components: [thanksContainer],
+          flags: MessageFlags.IsComponentsV2,
+          allowedMentions: resolvedDonorId ? { users: [resolvedDonorId] } : { parse: [] },
+        });
+      } catch (thanksError) {
+        logger.error('[Donate] Could not send the follow-up thank-you message:', thanksError);
+      }
       return true;
     } catch (fallbackError) {
       logger.error('[Donate] Failed to send fallback notification embed:', fallbackError);
