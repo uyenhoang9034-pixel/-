@@ -133,6 +133,7 @@ export const PREFIX_ONLY_ACCESS = Object.freeze({
   donate: 'EVERYONE',
   roleicon: 'DONOR_OR_OWNER',
   quyenloi: 'MID_ADMIN',
+  setupdichvu: 'MID_ADMIN',
   add: 'FINANCIAL_ADMIN',
   addquychung: 'FINANCIAL_ADMIN',
   trutien: 'FINANCIAL_ADMIN',

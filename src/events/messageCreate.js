@@ -122,6 +122,10 @@ import {
 } from '../services/donate/quyenLoiService.js';
 
 import {
+  handleDichVuSetupCommand,
+} from '../services/dichVuService.js';
+
+import {
   handleFinancialPrefix,
 } from '../services/financial/financialLedgerService.js';
 
@@ -190,6 +194,11 @@ export default {
 
       const quyenLoiProcessed = await handleQuyenLoiCommand(message);
       if (quyenLoiProcessed) {
+        return;
+      }
+
+      const dichVuProcessed = await handleDichVuSetupCommand(message);
+      if (dichVuProcessed) {
         return;
       }
 
