@@ -488,13 +488,14 @@ export default {
              * ------------------------------------------------
              */
 
-            await sendSetnickLog({
+            sendSetnickLog({
                 client,
                 guild,
                 targetMember,
                 nickname,
+            }).catch((err) => {
+                logger.error('[SetNick] Error sending setnick log:', err);
             });
-
 
             /*
              * ------------------------------------------------

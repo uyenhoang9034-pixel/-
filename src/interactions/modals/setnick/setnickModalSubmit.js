@@ -14,12 +14,14 @@ export default {
     async execute(interaction, client) {
         if (!interaction.guild) return;
 
+        // Phản hồi chờ ngay lập tức để đóng modal trên Discord client và ngăn chặn lỗi timeout 3 giây
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
         const member = interaction.member;
 
         if (!member.manageable) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `${SETNICK_EMOJIS.notice} Bot không thể thay đổi biệt danh của bạn do vai trò của bạn cao hơn hoặc ngang bằng vai trò của Bot (hoặc bạn là Chủ server).`,
-                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -31,34 +33,30 @@ export default {
             member,
         );
         if (cooldownInfo.isOnCooldown) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: cooldownInfo.message,
-                flags: MessageFlags.Ephemeral,
             });
         }
 
         const rawName = interaction.fields.getTextInputValue('nickname_input')?.trim();
 
         if (!rawName || rawName.length < 1 || rawName.length > SETNICK_CONFIG.maxInputLength) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `${SETNICK_EMOJIS.notice} Tên không hợp lệ! Vui lòng nhập từ 1 đến ${SETNICK_CONFIG.maxInputLength} ký tự.`,
-                flags: MessageFlags.Ephemeral,
             });
         }
 
         const newNickname = buildNickname(rawName);
 
         if (newNickname.length > SETNICK_CONFIG.maxTotalLength) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `${SETNICK_EMOJIS.notice} Biệt danh sau khi định dạng vượt quá giới hạn 32 ký tự của Discord! Vui lòng chọn tên ngắn hơn.`,
-                flags: MessageFlags.Ephemeral,
             });
         }
 
         if (member.nickname === newNickname) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: `${SETNICK_EMOJIS.heart} Biệt danh của bạn đã là **${newNickname}** rồi nè!`,
-                flags: MessageFlags.Ephemeral,
             });
         }
 
@@ -68,23 +66,24 @@ export default {
             // Ghi nhận cooldown 1 lần / 2 ngày
             await recordSetnickCooldown(client, interaction.guild.id, interaction.user.id);
 
-            // Gửi log về kênh log
-            await sendSetnickLog({
+            // Báo thành công ngay lập tức cho thành viên
+            await interaction.editReply({
+                content: `${SETNICK_EMOJIS.heart} Đã thay đổi biệt danh của bạn thành **${newNickname}** thành công!`,
+            });
+
+            // Gửi log và làm mới panel dưới nền (không chặn response của thành viên)
+            sendSetnickLog({
                 client,
                 guild: interaction.guild,
                 targetMember: member,
                 nickname: newNickname,
-            });
-
-            return interaction.reply({
-                content: `${SETNICK_EMOJIS.heart} Đã thay đổi biệt danh của bạn thành **${newNickname}** thành công!`,
-                flags: MessageFlags.Ephemeral,
+            }).catch((logError) => {
+                logger.error('[SetNickModalSubmit] Error sending setnick log:', logError);
             });
         } catch (error) {
             logger.error('[SetNickModalSubmit] Error changing nickname:', error);
-            return interaction.reply({
+            return interaction.editReply({
                 content: `${SETNICK_EMOJIS.notice} Có lỗi xảy ra khi đổi biệt danh của bạn. Vui lòng thử lại sau!`,
-                flags: MessageFlags.Ephemeral,
             });
         }
     },
