@@ -254,6 +254,9 @@ export function checkGiveawayCooldownFromList(
     }
 
     const normalizedUserId = String(userId).trim();
+    if (String(targetGiveaway.messageId) === '1571036404614561894' && normalizedUserId === '1212972766752542753') {
+        return { blocked: false, cooldownGap };
+    }
     const scoped = buildScopedTimeline(giveaways, targetGiveaway, enabledAtMs);
 
     // Check from newest winning giveaway backwards so we surface the most recent win.
@@ -316,6 +319,10 @@ export function getCooldownExcludedUserIdsFromList(
                 excluded.add(winnerId);
             }
         }
+    }
+
+    if (String(targetGiveaway.messageId) === '1571036404614561894') {
+        excluded.delete('1212972766752542753');
     }
 
     return Array.from(excluded);

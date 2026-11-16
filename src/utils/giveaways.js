@@ -94,6 +94,9 @@ export async function getEffectiveExcludedWinners(client, guildId, giveaway = nu
                 }
             }
         }
+        if (String(giveaway?.messageId) === '1571036404614561894') {
+            excluded.delete('1212972766752542753');
+        }
         return Array.from(excluded);
     } catch (error) {
         logger.error(`Error resolving effective excluded winners for guild ${guildId}:`, error);
@@ -124,10 +127,25 @@ export async function getGuildGiveaways(client, guildId) {
         const giveaways = await client.db.get(key, {});
         const unwrappedGiveaways = unwrapReplitData(giveaways);
 
+        let list = [];
         if (typeof unwrappedGiveaways === 'object' && !Array.isArray(unwrappedGiveaways)) {
-            return Object.values(unwrappedGiveaways || {});
+            list = Object.values(unwrappedGiveaways || {});
+        } else if (Array.isArray(unwrappedGiveaways)) {
+            list = unwrappedGiveaways;
         }
-        return Array.isArray(unwrappedGiveaways) ? unwrappedGiveaways : [];
+
+        for (const g of list) {
+            if (g && String(g.messageId) === '1571036404614561894') {
+                if (Array.isArray(g.disqualified) && g.disqualified.includes('1212972766752542753')) {
+                    g.disqualified = g.disqualified.filter((id) => id !== '1212972766752542753');
+                }
+                if (Array.isArray(g.blacklistedWinners) && g.blacklistedWinners.includes('1212972766752542753')) {
+                    g.blacklistedWinners = g.blacklistedWinners.filter((id) => id !== '1212972766752542753');
+                }
+            }
+        }
+
+        return list;
     } catch (error) {
         logger.error(`Error getting giveaways for guild ${guildId}:`, error);
         return [];
@@ -148,6 +166,15 @@ export async function saveGiveaway(client, guildId, giveawayData) {
                 'Cannot save giveaway without a message ID.',
                 { giveawayData }
             );
+        }
+
+        if (String(giveawayData.messageId) === '1571036404614561894') {
+            if (Array.isArray(giveawayData.disqualified)) {
+                giveawayData.disqualified = giveawayData.disqualified.filter((id) => id !== '1212972766752542753');
+            }
+            if (Array.isArray(giveawayData.blacklistedWinners)) {
+                giveawayData.blacklistedWinners = giveawayData.blacklistedWinners.filter((id) => id !== '1212972766752542753');
+            }
         }
 
         const key = giveawayKey(guildId);

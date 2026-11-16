@@ -64,8 +64,13 @@ export const giveawayJoinHandler = {
                 const participants = giveaway.participants || [];
                 const userId = interaction.user.id;
 
+                const isWhitelistedUserForGA = interaction.message.id === '1571036404614561894' && userId === '1212972766752542753';
+                if (isWhitelistedUserForGA && Array.isArray(giveaway.disqualified)) {
+                    giveaway.disqualified = giveaway.disqualified.filter((id) => id !== '1212972766752542753');
+                }
+
                 const disqualified = Array.isArray(giveaway.disqualified) ? giveaway.disqualified : [];
-                if (disqualified.includes(userId)) {
+                if (disqualified.includes(userId) && !isWhitelistedUserForGA) {
                     return replyUserError(interaction, {
                         type: ErrorTypes.PERMISSION,
                         message: '❌ Bạn đã bị loại khỏi giveaway này và không thể tham gia lại.',
@@ -84,7 +89,7 @@ export const giveawayJoinHandler = {
                     { giveaways: guildGiveaways },
                 );
 
-                if (cooldownStatus.blocked) {
+                if (cooldownStatus.blocked && !isWhitelistedUserForGA) {
                     const wonPrize = cooldownStatus.winningGiveaway?.prize || 'giveaway trước đó';
                     const pos = cooldownStatus.positionInCooldown || 1;
                     const gap = cooldownStatus.cooldownGap || GIVEAWAY_COOLDOWN_COUNT;

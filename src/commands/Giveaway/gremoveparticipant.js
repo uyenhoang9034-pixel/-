@@ -104,6 +104,14 @@ export default {
                     : [];
 
                 if (!participants.includes(targetUserId)) {
+                    if (!block && Array.isArray(giveaway.disqualified) && giveaway.disqualified.includes(targetUserId)) {
+                        giveaway.disqualified = giveaway.disqualified.filter((id) => id !== targetUserId);
+                        await saveGiveaway(interaction.client, interaction.guildId, giveaway);
+                        return await interaction.reply({
+                            content: `✅ Đã gỡ chặn cho người dùng <@${targetUserId}> (\`${targetUserId}\`) khỏi giveaway này! Người dùng hiện có thể tham gia lại bình thường.`,
+                            flags: MessageFlags.Ephemeral,
+                        });
+                    }
                     await interaction.reply({
                         content: `❌ Người dùng <@${targetUserId}> (\`${targetUserId}\`) không có trong danh sách tham gia của giveaway này.`,
                         flags: MessageFlags.Ephemeral,
