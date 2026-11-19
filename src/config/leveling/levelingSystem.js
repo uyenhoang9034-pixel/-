@@ -998,6 +998,7 @@ export const LEVEL_MILESTONE_LEVELS =
 export const LEADERBOARD_EXCLUDED_USER_IDS =
     Object.freeze([
         '872792190651334707',
+        '1569205715292127303',
     ]);
 
 export function isLeaderboardExcludedUser(
