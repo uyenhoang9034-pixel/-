@@ -9,6 +9,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName("shorten")
         .setDescription("Shorten a URL using is.gd")
+        .setDefaultMemberPermissions(0n)
         .addStringOption(option =>
             option
                 .setName("url")

@@ -134,6 +134,9 @@ export default {
       .setDescription(
         'Quản lý minigame Nối từ Tiếng Việt',
       )
+      .setDefaultMemberPermissions(
+        0n,
+      )
       .setDMPermission(
         false,
       )

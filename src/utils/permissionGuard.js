@@ -155,7 +155,20 @@ export async function checkModerationPermissions(
  */
 export async function enforceDefaultCommandPermissions(interaction, command, context = {}) {
   const commandName = command?.data?.name ?? interaction.commandName ?? 'command';
-  const requiredTier = getRequiredTierForCommand(commandName);
+  const subcommand = typeof interaction.options?.getSubcommand === 'function'
+    ? (() => {
+        try {
+          return interaction.options.getSubcommand(false);
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  const accessKey = subcommand ? `${commandName} ${subcommand}` : null;
+  const subcommandTier = accessKey ? getRequiredTierForCommand(accessKey) : null;
+  const requiredTier = subcommandTier !== null ? subcommandTier : getRequiredTierForCommand(commandName);
+  const checkedCommandName = subcommandTier !== null ? accessKey : commandName;
 
   if (requiredTier !== null) {
     if (requiredTier <= ROLE_TIERS.EVERYONE) {
@@ -168,7 +181,7 @@ export async function enforceDefaultCommandPermissions(interaction, command, con
         message: 'Lệnh này chỉ có thể sử dụng trong máy chủ Discord.',
         context: {
           source: context.source ?? 'permissionGuard.enforceDefaultCommandPermissions',
-          commandName,
+          commandName: checkedCommandName,
         },
       });
       return false;
@@ -180,10 +193,10 @@ export async function enforceDefaultCommandPermissions(interaction, command, con
 
     await replyUserError(interaction, {
       type: ErrorTypes.PERMISSION,
-      message: buildRoleDeniedMessage(commandName, requiredTier),
+      message: buildRoleDeniedMessage(checkedCommandName, requiredTier),
       context: {
         source: context.source ?? 'permissionGuard.enforceDefaultCommandPermissions',
-        commandName,
+        commandName: checkedCommandName,
         requiredTier,
       },
     });
@@ -191,7 +204,7 @@ export async function enforceDefaultCommandPermissions(interaction, command, con
     logger.warn('[PERMISSION_DENIED] Command blocked by roleAccess tier check', {
       userId: interaction.user?.id,
       guildId: interaction.guildId,
-      command: commandName,
+      command: checkedCommandName,
       requiredTier,
       source: context.source ?? 'unknown',
     });

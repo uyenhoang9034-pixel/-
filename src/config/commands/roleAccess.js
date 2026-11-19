@@ -24,11 +24,9 @@ export const TIER_NAMES = Object.freeze({
 });
 
 export const COMMAND_MIN_TIER = Object.freeze({
-  // Tier 0: Everyone (18 commands)
+  // Tier 0: Everyone (15 commands)
   audio: ROLE_TIERS.EVERYONE,
   calculate: ROLE_TIERS.EVERYONE,
-  shorten: ROLE_TIERS.EVERYONE,
-  avatar: ROLE_TIERS.EVERYONE,
   userinfo: ROLE_TIERS.EVERYONE,
   serverinfo: ROLE_TIERS.EVERYONE,
   tracuu: ROLE_TIERS.EVERYONE,
@@ -41,7 +39,6 @@ export const COMMAND_MIN_TIER = Object.freeze({
   supporter: ROLE_TIERS.EVERYONE,
   vukhi: ROLE_TIERS.EVERYONE,
   birthday: ROLE_TIERS.EVERYONE,
-  noitu: ROLE_TIERS.EVERYONE,
   duel: ROLE_TIERS.EVERYONE,
 
   // Tier 1: Support Ticket + Mid Admin + Top Admin (9 commands)
@@ -55,9 +52,13 @@ export const COMMAND_MIN_TIER = Object.freeze({
   say2: ROLE_TIERS.STAFF_TICKET,
   autoresponder: ROLE_TIERS.STAFF_TICKET,
 
-  // Tier 2: Mid Admin + Top Admin (23 commands)
+  // Tier 2: Mid Admin + Top Admin (27 commands)
   'birthday-admin': ROLE_TIERS.MID_ADMIN,
   'noitu-admin': ROLE_TIERS.MID_ADMIN,
+  avatar: ROLE_TIERS.MID_ADMIN,
+  shorten: ROLE_TIERS.MID_ADMIN,
+  noitu: ROLE_TIERS.MID_ADMIN,
+  'noitu status': ROLE_TIERS.MID_ADMIN,
   ban: ROLE_TIERS.MID_ADMIN,
   unban: ROLE_TIERS.MID_ADMIN,
   testban: ROLE_TIERS.MID_ADMIN,

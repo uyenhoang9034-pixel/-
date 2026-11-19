@@ -7,6 +7,8 @@ export default {
     data: new SlashCommandBuilder()
     .setName("avatar")
     .setDescription("Display a user's avatar image")
+    .setDefaultMemberPermissions(0n)
+    .setDMPermission(false)
     .addUserOption((option) =>
       option
         .setName("target")
