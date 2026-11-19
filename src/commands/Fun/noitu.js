@@ -134,28 +134,8 @@ export default {
       .setDescription(
         'Quản lý minigame Nối từ Tiếng Việt',
       )
-      .setDefaultMemberPermissions(
-        0n,
-      )
       .setDMPermission(
         false,
-      )
-
-      /**
-       * =====================================================
-       * STATUS
-       * =====================================================
-       */
-
-      .addSubcommand(
-        subcommand =>
-          subcommand
-            .setName(
-              'status',
-            )
-            .setDescription(
-              'Xem trạng thái Nối Từ',
-            ),
       )
 
       /**
@@ -259,8 +239,6 @@ export default {
        */
       const isPublicView =
         subcommand ===
-          'status' ||
-        subcommand ===
           'leaderboard' ||
         subcommand ===
           'restart' ||
@@ -306,99 +284,6 @@ export default {
           interaction.client,
           guildId,
         );
-
-      /**
-       * =====================================================
-       * STATUS
-       * =====================================================
-       */
-
-      if (
-        subcommand ===
-        'status'
-      ) {
-        const pvpGame =
-          getWordChainGame(
-            config,
-            'pvp',
-          );
-
-        const botGame =
-          getWordChainGame(
-            config,
-            'bot',
-          );
-
-        const embed =
-          createEmbed({
-            title:
-              '⋆.ೃ࿔🌸*:･𝓣𝓻𝓪̣𝓷𝓰 𝓣𝓱𝓪́𝓲 𝓝𝓸̂́𝓲 𝓣𝓾̛̀',
-
-            fields: [
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.mode} PvP`,
-
-                value:
-                  pvpGame.enabled
-                    ? [
-                        `Kênh: <#${WORD_CHAIN_CHANNELS.pvp}>`,
-
-                        `Từ hiện tại: **${pvpGame.currentWord || 'Chưa có'}**`,
-
-                        `Chuỗi: **${pvpGame.currentStreak || 0}**`,
-                      ].join(
-                        '\n',
-                      )
-                    : 'Đang tắt',
-
-                inline:
-                  false,
-              },
-
-              {
-                name:
-                  `${WORD_CHAIN_EMOJIS.mode} PvE — Bot`,
-
-                value:
-                  botGame.enabled
-                    ? [
-                        `Kênh: <#${WORD_CHAIN_CHANNELS.bot}>`,
-
-                        `Từ hiện tại: **${botGame.currentWord || 'Chưa có'}**`,
-
-                        'Chuỗi cá nhân: **được lưu riêng theo người chơi**',
-                      ].join(
-                        '\n',
-                      )
-                    : 'Đang tắt',
-
-                inline:
-                  false,
-              },
-            ],
-
-            color:
-              WORD_CHAIN_COLOR,
-          });
-
-        if (nightStatus.locked) {
-          embed.addFields({
-            name: '🌙 Khung giờ nghỉ ban đêm (00:00 - 08:00)',
-            value: `Hiện đang là **${nightStatus.currentTimeText}** (giờ Việt Nam) — nối từ tạm nghỉ để tiết kiệm RAM và sẽ mở lại lúc **${String(nightStatus.endHour).padStart(2, '0')}:00 sáng**.`,
-            inline: false,
-          });
-        }
-
-        return await InteractionHelper.safeEditReply(
-          interaction,
-          {
-            embeds: [
-              embed,
-            ],
-          },
-        );
-      }
 
       /**
        * =====================================================
