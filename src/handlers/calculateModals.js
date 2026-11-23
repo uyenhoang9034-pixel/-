@@ -11,26 +11,32 @@ function evaluate(expression) {
 async function calculateModalHandler(interaction, client, args) {
     try {
         const operation = args[0];
-        const operandInput = interaction.fields.first();
-        const contextKey = operandInput?.customId?.split(':')[1];
+        const operandField =
+            interaction.fields.fields?.first?.() ||
+            interaction.fields.components?.[0]?.components?.[0];
+        const contextKey =
+            operandField?.customId?.split(':')[1] ||
+            `${interaction.user.id}_${operation}`;
         
         if (!contextKey) {
             return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Failed to retrieve calculation context.' });
         }
 
-        const { calculationContexts } = await import('../commands/Tools/calculate.js');
+        const { calculationContexts, calculationHistory, MAX_HISTORY } = await import('../commands/Tools/calculate.js');
         const context = calculationContexts.get(contextKey);
         
         if (!context) {
-            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This calculation has expired. Please start a new calculation.' });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Phép tính này đã hết hạn. Vui lòng thực hiện phép tính mới.' });
         }
 
         await interaction.deferReply({ ephemeral: false });
 
-        const operand = interaction.fields.getTextInputValue(operandInput.customId);
+        const operand =
+            operandField?.value ||
+            (operandField?.customId ? interaction.fields.getTextInputValue(operandField.customId) : null);
         
         if (!operand || isNaN(operand)) {
-            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid number.' });
+            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Vui lòng nhập một con số hợp lệ.' });
         }
 
         const { expression, formattedResult, operator } = context;
@@ -74,6 +80,25 @@ async function calculateModalHandler(interaction, client, args) {
                 }
             } catch (editError) {
                 logger.warn('Could not edit original message:', editError.message);
+            }
+
+            if (context.currentCalculation) {
+                context.currentCalculation.expression = newExpression;
+                context.currentCalculation.formattedResult = formattedNewResult;
+            }
+
+            if (calculationHistory) {
+                const userHistory = calculationHistory.get(interaction.user.id);
+                if (userHistory) {
+                    userHistory.unshift({
+                        expression: newExpression,
+                        result: formattedNewResult,
+                        timestamp: Date.now(),
+                    });
+                    if (userHistory.length > (MAX_HISTORY || 5)) {
+                        userHistory.pop();
+                    }
+                }
             }
 
             calculationContexts.delete(contextKey);

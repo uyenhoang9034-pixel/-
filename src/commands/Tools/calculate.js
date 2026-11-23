@@ -14,7 +14,7 @@ function evaluate(expression) {
 const calculationHistory = new Map();
 const MAX_HISTORY = 5;
 
-export { calculationContexts };
+export { calculationContexts, calculationHistory, MAX_HISTORY };
 
 export default {
     data: new SlashCommandBuilder()
@@ -123,6 +123,11 @@ export default {
                 history.pop();
             }
 
+            const currentCalculation = {
+                expression,
+                formattedResult,
+            };
+
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`calc_${interaction.id}_add`)
@@ -228,8 +233,9 @@ export default {
                             if (oldestKey) calculationContexts.delete(oldestKey);
                         }
                         calculationContexts.set(contextKey, {
-                            expression,
-                            formattedResult,
+                            currentCalculation,
+                            get expression() { return currentCalculation.expression; },
+                            get formattedResult() { return currentCalculation.formattedResult; },
                             operator,
                             messageId: i.message?.id || interaction.message?.id,
                             channelId: i.channelId || interaction.channelId,
@@ -239,7 +245,7 @@ export default {
 
                         await i.showModal({
                             customId: `calc_modal:${operation}`,
-                            title: `Enter a number to ${operation}`,
+                            title: `Phép tính: ${operator}`,
                             components: [
                                 {
                                     type: 1,
@@ -247,8 +253,8 @@ export default {
                                         {
                                             type: 4,
                                             customId: `operand:${contextKey}`,
-                                            label: `Number to ${operator} with ${formattedResult}`,
-                                            placeholder: "Enter a number...",
+                                            label: `Số cần ${operator} với ${currentCalculation.formattedResult}`,
+                                            placeholder: "Nhập một con số...",
                                             style: 1,
                                             required: true,
                                             maxLength: 50,
