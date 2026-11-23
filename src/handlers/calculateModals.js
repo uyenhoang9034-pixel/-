@@ -1,3 +1,4 @@
+import { EmbedBuilder } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { evaluateMathExpression } from '../utils/safeMathParser.js';
@@ -55,12 +56,13 @@ async function calculateModalHandler(interaction, client, args) {
                 formattedNewResult = String(newResult);
             }
 
-            const updatedEmbed = successEmbed(
-                "🧮 Calculation Result",
-                `**Expression:** \`${newExpression.replace(/`/g, "\`")}\`\n` +
-                    `**Result:** \`${formattedNewResult}\`\n\n` +
-                    `*Use the buttons in the channel message to perform more operations.*`,
-            );
+            const updatedEmbed = new EmbedBuilder()
+                .setTitle("CALCULATION RESULT")
+                .setDescription(
+                    `<a:linhtocg:1563399670351536310> **Biểu thức:** \`${newExpression.replace(/`/g, "\`")}\`\n` +
+                        `<a:linhtocg:1563399670351536310> **Kết quả:** \`${formattedNewResult}\`\n\n` +
+                        `*Sử dụng các nút bên dưới để thực hiện các thao tác tính toán.*`,
+                );
 
             try {
                 if (context.messageId && context.channelId) {

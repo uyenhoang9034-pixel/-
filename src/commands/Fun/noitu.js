@@ -2,6 +2,11 @@ import {
   SlashCommandBuilder,
   MessageFlags,
   AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  EmbedBuilder,
 } from 'discord.js';
 
 import fs from 'fs';
@@ -524,17 +529,54 @@ export default {
             () => {},
           );
 
-        return await InteractionHelper.safeEditReply(
+        const container = new ContainerBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              '# **ĐÃ BẮT ĐẦU LƯỢT MỚI**',
+            ),
+          )
+          .addSeparatorComponents(
+            new SeparatorBuilder()
+              .setDivider(true)
+              .setSpacing(SeparatorSpacingSize.Small),
+          )
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `<a:catg12:1546093741620723762> Lượt mới bắt đầu với **${nextStart}**`,
+            ),
+          );
+
+        const sent = await InteractionHelper.safeEditReply(
           interaction,
           {
-            embeds: [
-              successEmbed(
-                'Đã Bắt Đầu Lượt Mới',
-                `Lượt mới bắt đầu với **${nextStart}**.`,
-              ),
-            ],
+            content: null,
+            embeds: [],
+            components: [container],
+            flags: MessageFlags.IsComponentsV2,
           },
         );
+
+        if (!sent) {
+          logger.warn(
+            '[Noitu] safeEditReply với Components V2 thất bại, chuyển sang fallback embed',
+          );
+
+          const fallbackEmbed = new EmbedBuilder()
+            .setTitle('ĐÃ BẮT ĐẦU LƯỢT MỚI')
+            .setDescription(
+              `<a:catg12:1546093741620723762> Lượt mới bắt đầu với **${nextStart}**`,
+            );
+
+          return await InteractionHelper.safeEditReply(
+            interaction,
+            {
+              embeds: [fallbackEmbed],
+              components: [],
+            },
+          );
+        }
+
+        return sent;
       }
 
       /**

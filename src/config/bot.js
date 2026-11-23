@@ -24,7 +24,7 @@ export const botConfig = {
     activities: [
       {
         name: "Custom Status", // required by Discord API, not shown in the client
-        state: "36 thì có nem chua, em Nâu thì biết trời mưa vào nhà!", // this is what people actually see
+        state: "Trời sinh bản tính dịu hiền,\nĐể che bớt vẻ thiếu tiền bên trong.", // this is what people actually see
         type: 4,               // Custom
       },
     ],

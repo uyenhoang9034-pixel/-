@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
+import { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -127,31 +127,32 @@ export default {
                 new ButtonBuilder()
                     .setCustomId(`calc_${interaction.id}_add`)
                     .setLabel("+")
-                    .setStyle(ButtonStyle.Primary),
+                    .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`calc_${interaction.id}_subtract`)
                     .setLabel("-")
-                    .setStyle(ButtonStyle.Primary),
+                    .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`calc_${interaction.id}_multiply`)
                     .setLabel("×")
-                    .setStyle(ButtonStyle.Primary),
+                    .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`calc_${interaction.id}_divide`)
                     .setLabel("÷")
-                    .setStyle(ButtonStyle.Primary),
+                    .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`calc_${interaction.id}_history`)
-                    .setLabel("History")
+                    .setLabel("Lịch Sử")
                     .setStyle(ButtonStyle.Secondary),
             );
 
-            const embed = successEmbed(
-                "🧮 Calculation Result",
-                `**Expression:** \`${expression.replace(/`/g, "\`")}\`\n` +
-                    `**Result:** \`${formattedResult}\`\n\n` +
-                    `*Use the buttons below to perform operations with the result.*`,
-            );
+            const embed = new EmbedBuilder()
+                .setTitle("CALCULATION RESULT")
+                .setDescription(
+                    `<a:linhtocg:1563399670351536310> **Biểu thức:** \`${expression.replace(/`/g, "\`")}\`\n` +
+                    `<a:linhtocg:1563399670351536310> **Kết quả:** \`${formattedResult}\`\n\n` +
+                    `*Sử dụng các nút bên dưới để thực hiện các thao tác tính toán.*`,
+                );
 
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [embed],
@@ -182,7 +183,7 @@ export default {
 
                         if (userHistory.length === 0) {
                             await i.followUp({
-                                content: "No calculation history found.",
+                                content: "Không tìm thấy lịch sử tính toán.",
                                 flags: ["Ephemeral"],
                             });
                             return;
@@ -197,7 +198,7 @@ export default {
                             .join("\n\n");
 
                         await i.followUp({
-                            content: `📜 **Your Calculation History**\n\n${historyText}`,
+                            content: `📜 **Lịch Sử Tính Toán Của Bạn**\n\n${historyText}`,
                             flags: ["Ephemeral"],
                         });
                         return;
@@ -230,8 +231,8 @@ export default {
                             expression,
                             formattedResult,
                             operator,
-                            messageId: interaction.message?.id,
-                            channelId: interaction.channelId,
+                            messageId: i.message?.id || interaction.message?.id,
+                            channelId: i.channelId || interaction.channelId,
                             userId: i.user.id
                         });
                         setTimeout(() => calculationContexts.delete(contextKey), 5 * 60 * 1000);
