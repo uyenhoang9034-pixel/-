@@ -7,6 +7,46 @@ import { WITCH_HUNTER_CONFIG, formatRankEmoji } from '../../config/witchHunterCo
 import { WitchHunterService } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
+function safeAddChunkedFields(embed, title, fullText, inline = false) {
+  if (!fullText || typeof fullText !== 'string' || fullText.trim().length === 0) {
+    embed.addFields({
+      name: title.slice(0, 256),
+      value: '*Không có thành viên*',
+      inline,
+    });
+    return;
+  }
+
+  const lines = fullText.split('\n');
+  let currentChunk = '';
+  let partIndex = 1;
+
+  for (const line of lines) {
+    const safeLine = line.length > 1000 ? line.slice(0, 1000) + '...' : line;
+    if (currentChunk.length + safeLine.length + 1 > 1000) {
+      if (currentChunk.trim().length > 0) {
+        embed.addFields({
+          name: (partIndex === 1 ? title : `${title} (Tiếp theo)`).slice(0, 256),
+          value: currentChunk.trim().slice(0, 1024),
+          inline,
+        });
+        partIndex++;
+      }
+      currentChunk = safeLine + '\n';
+    } else {
+      currentChunk += safeLine + '\n';
+    }
+  }
+
+  if (currentChunk.trim().length > 0) {
+    embed.addFields({
+      name: (partIndex === 1 ? title : `${title} (Tiếp theo)`).slice(0, 256),
+      value: currentChunk.trim().slice(0, 1024),
+      inline,
+    });
+  }
+}
+
 function isWitchHunterAdmin(interaction) {
   const member = interaction.member;
   if (!member) return false;
@@ -184,38 +224,42 @@ export default {
             `*(Dữ liệu tổng hợp từ toàn bộ các Báo Cáo Hoạt Động Hằng Ngày, ẩn ở chế độ xem trước dành riêng cho Admin)*\n` +
             hintLine +
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-        )
-        .addFields(
-          {
-            name: `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 (+100 Bí Ngô ${emojis.pumpkin}):**`,
-            value: top1_3Formatted,
-            inline: false,
-          },
-          {
-            name: `⚔️ **TOP 4 - 10 (+50 Bí Ngô ${emojis.pumpkin}):**`,
-            value: top4_10Formatted,
-            inline: false,
-          },
-          {
-            name: `🔮 **TOP 11 - 20 (+25 Bí Ngô ${emojis.pumpkin}):**`,
-            value: top11_20Formatted,
-            inline: false,
-          }
         );
+
+      safeAddChunkedFields(
+        embed,
+        `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 (+100 Bí Ngô ${emojis.pumpkin}):**`,
+        top1_3Formatted,
+        false
+      );
+
+      safeAddChunkedFields(
+        embed,
+        `⚔️ **TOP 4 - 10 (+50 Bí Ngô ${emojis.pumpkin}):**`,
+        top4_10Formatted,
+        false
+      );
+
+      safeAddChunkedFields(
+        embed,
+        `🔮 **TOP 11 - 20 (+25 Bí Ngô ${emojis.pumpkin}):**`,
+        top11_20Formatted,
+        false
+      );
 
       // Chuỗi Mentions để Admin copy nhanh vào lệnh /chot-bxh
       const top1_3Mentions = top1_3.map((u) => `<@${u.userId}>`).join(' ') || 'Không có';
       const top4_10Mentions = top4_10.map((u) => `<@${u.userId}>`).join(' ') || 'Không có';
       const top11_20Mentions = top11_20.map((u) => `<@${u.userId}>`).join(' ') || 'Không có';
 
-      embed.addFields({
-        name: `📋 MENTIONS ĐỂ COPY NHANH VÀO LỆNH /chot-bxh:`,
-        value:
-          `**top_1_3:**\n\`${top1_3Mentions}\`\n\n` +
+      safeAddChunkedFields(
+        embed,
+        `📋 MENTIONS ĐỂ COPY NHANH VÀO LỆNH /chot-bxh:`,
+        `**top_1_3:**\n\`${top1_3Mentions}\`\n\n` +
           `**top_4_10:**\n\`${top4_10Mentions}\`\n\n` +
           `**top_11_20:**\n\`${top11_20Mentions}\``,
-        inline: false,
-      });
+        false
+      );
 
       embed
         .setFooter({

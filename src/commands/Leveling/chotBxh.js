@@ -7,6 +7,46 @@ import { WITCH_HUNTER_CONFIG, formatRankEmoji } from '../../config/witchHunterCo
 import { WitchHunterService } from '../../services/witchHunterService.js';
 import { logger } from '../../utils/logger.js';
 
+function safeAddChunkedFields(embed, title, fullText, inline = false) {
+  if (!fullText || typeof fullText !== 'string' || fullText.trim().length === 0) {
+    embed.addFields({
+      name: title.slice(0, 256),
+      value: '*Không có thành viên*',
+      inline,
+    });
+    return;
+  }
+
+  const lines = fullText.split('\n');
+  let currentChunk = '';
+  let partIndex = 1;
+
+  for (const line of lines) {
+    const safeLine = line.length > 1000 ? line.slice(0, 1000) + '...' : line;
+    if (currentChunk.length + safeLine.length + 1 > 1000) {
+      if (currentChunk.trim().length > 0) {
+        embed.addFields({
+          name: (partIndex === 1 ? title : `${title} (Tiếp theo)`).slice(0, 256),
+          value: currentChunk.trim().slice(0, 1024),
+          inline,
+        });
+        partIndex++;
+      }
+      currentChunk = safeLine + '\n';
+    } else {
+      currentChunk += safeLine + '\n';
+    }
+  }
+
+  if (currentChunk.trim().length > 0) {
+    embed.addFields({
+      name: (partIndex === 1 ? title : `${title} (Tiếp theo)`).slice(0, 256),
+      value: currentChunk.trim().slice(0, 1024),
+      inline,
+    });
+  }
+}
+
 function isWitchHunterAdmin(interaction) {
   const member = interaction.member;
   if (!member) return false;
@@ -165,54 +205,60 @@ export default {
                 ? `[⚔️ Thợ Săn]`
                 : `[🔮 Phù Thủy]`
               : `*(Chưa chọn phe)*`;
-            return `${formatRankEmoji(rank)} <@${item.userId}> ${factionTag} • Tổng: **${item.pumpkins.toLocaleString('vi-VN')}** ${emojis.pumpkin}`;
+            const pumpkinsCount = Number(item.pumpkins || 0).toLocaleString('vi-VN');
+            return `${formatRankEmoji(rank)} <@${item.userId}> ${factionTag} • Tổng: **${pumpkinsCount}** ${emojis.pumpkin || '🎃'}`;
           })
           .join('\n');
       };
 
       // Top 1 - 3 (+100 Bí Ngô)
-      embed.addFields({
-        name: `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**`,
-        value: formatUserList(results.top1_3, 1),
-        inline: false,
-      });
+      safeAddChunkedFields(
+        embed,
+        `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**`,
+        formatUserList(results.top1_3, 1),
+        false
+      );
 
       // Top 4 - 10 (+50 Bí Ngô)
       if (results.top4_10.length > 0) {
-        embed.addFields({
-          name: `⚔️ **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**`,
-          value: formatUserList(results.top4_10, 4),
-          inline: false,
-        });
+        safeAddChunkedFields(
+          embed,
+          `⚔️ **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**`,
+          formatUserList(results.top4_10, 4),
+          false
+        );
       }
 
       // Top 11 - 20 (+25 Bí Ngô)
       if (results.top11_20.length > 0) {
-        embed.addFields({
-          name: `🔮 **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**`,
-          value: formatUserList(results.top11_20, 11),
-          inline: false,
-        });
+        safeAddChunkedFields(
+          embed,
+          `🔮 **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**`,
+          formatUserList(results.top11_20, 11),
+          false
+        );
       }
 
       // Đánh dấu đặc biệt những thành viên THĂNG CẤP VƯỢT BẬC kèm câu thoại chuẩn
       if (results.rankUps.length > 0) {
         const rankUpLines = results.rankUps.map((r) => r.quote).join('\n\n');
-
-        embed.addFields({
-          name: `✨ DANH SÁCH THĂNG CẤP VƯỢT BẬC KỲ NÀY:`,
-          value: rankUpLines,
-          inline: false,
-        });
+        safeAddChunkedFields(
+          embed,
+          `✨ DANH SÁCH THĂNG CẤP VƯỢT BẬC KỲ NÀY:`,
+          rankUpLines,
+          false
+        );
       }
 
       // Ghi chú nếu có người nhận được điểm nhưng chưa chọn phe
       if (results.dmReminded.length > 0) {
-        embed.addFields({
-          name: `📩 LƯU Ý CHO THÀNH VIÊN CHƯA CHỌN PHE:`,
-          value: `Có **${results.dmReminded.length}** thành viên trong danh sách chưa chọn phe. Em bot Usagi múp rụp đã gửi thư riêng nhắc nhở ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role rồi nha! 💕`,
-          inline: false,
-        });
+        const reminderText = `Có **${results.dmReminded.length}** thành viên trong danh sách chưa chọn phe. Em bot Usagi múp rụp đã gửi thư riêng nhắc nhở ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role rồi nha! 💕`;
+        safeAddChunkedFields(
+          embed,
+          `📩 LƯU Ý CHO THÀNH VIÊN CHƯA CHỌN PHE:`,
+          reminderText,
+          false
+        );
       }
 
       embed
