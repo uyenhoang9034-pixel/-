@@ -1052,7 +1052,7 @@ function safeAddChunkedFields(embed, title, fullText, inline = false) {
 export async function resendUpdatedThang11Announcement(client) {
   if (!client) return;
   try {
-    const alreadyResent = await getFromDb('temp:witch_hunter:auto_resent_v3_11_2026').catch(() => null);
+    const alreadyResent = await getFromDb('temp:witch_hunter:auto_resent_v6_11_2026').catch(() => null);
     if (alreadyResent) {
       return;
     }
@@ -1087,6 +1087,26 @@ export async function resendUpdatedThang11Announcement(client) {
                 top4_10Lines.push(...lines);
               } else if (fname.includes('TOP 11 - 20')) {
                 top11_20Lines.push(...lines);
+              }
+            }
+
+            if (top1_3Lines.length === 0 && desc) {
+              const lines = desc.split('\n').filter(Boolean);
+              let currentSection = null;
+              for (const line of lines) {
+                if (line.includes('TOP 1 - 3')) {
+                  currentSection = 'top1_3';
+                } else if (line.includes('TOP 4 - 10')) {
+                  currentSection = 'top4_10';
+                } else if (line.includes('TOP 11 - 20')) {
+                  currentSection = 'top11_20';
+                } else if (line.includes('Lưu ý') || line.includes('━━━') || line.includes('DANH SÁCH THĂNG CẤP')) {
+                  currentSection = null;
+                } else if (currentSection && line.includes('<@')) {
+                  if (currentSection === 'top1_3') top1_3Lines.push(line);
+                  else if (currentSection === 'top4_10') top4_10Lines.push(line);
+                  else if (currentSection === 'top11_20') top11_20Lines.push(line);
+                }
               }
             }
             break;
@@ -1149,50 +1169,30 @@ export async function resendUpdatedThang11Announcement(client) {
     const allText = `${newTop1_3Text}\n${newTop4_10Text}\n${newTop11_20Text}`;
     const unchosenMatches = allText.match(/Chưa chọn phe/g);
     const unchosenCount = unchosenMatches ? unchosenMatches.length : 6;
+    const linhtocEmoji = emojis.linhtoc || '<a:linhtocg:1563399670351536310>';
+
+    let fullDescription =
+      `Trải qua những ngày đêm rèn luyện ma thuật và giao chiến khốc liệt, Bảng Xếp Hạng vinh quang **11/2026** đã chính thức khép lại!\n` +
+      `Hội Đồng Tối Cao xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `${linhtocEmoji} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**\n` +
+      `${newTop1_3Text}\n\n` +
+      `${linhtocEmoji} **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**\n` +
+      `${newTop4_10Text}\n\n` +
+      `${linhtocEmoji} **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**\n` +
+      `${newTop11_20Text}\n\n`;
+
+    if (unchosenCount > 0) {
+      fullDescription +=
+        `<a:trangtrig49:1567818140375851018> **Lưu ý**:\n` +
+        `- Hiện có **${unchosenCount}** thành viên trong danh sách chưa chọn phe. Em Phù Thủy Usagi đã gửi thư riêng (qua dm) cho từng Lữ Khách rồi nha.\n` +
+        `- Các Lữ Khách mau chóng ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role nhé!\n\n`;
+    }
 
     const embed = new EmbedBuilder()
       .setColor(colors.pastelPurple)
       .setTitle(`${emojis.titleLeft} **VINH DANH BẢNG XẾP HẠNG MA THUẬT - 11/2026** ${emojis.titleRight}`)
-      .setDescription(
-        `Trải qua những ngày đêm rèn luyện ma thuật và giao chiến khốc liệt, Bảng Xếp Hạng vinh quang **11/2026** đã chính thức khép lại!\n` +
-        `Hội Đồng Tối Cao xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-      );
-
-    safeAddChunkedFields(
-      embed,
-      `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**`,
-      newTop1_3Text,
-      false
-    );
-
-    safeAddChunkedFields(
-      embed,
-      `⚔️ **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**`,
-      newTop4_10Text,
-      false
-    );
-
-    safeAddChunkedFields(
-      embed,
-      `🔮 **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**`,
-      newTop11_20Text,
-      false
-    );
-
-    if (unchosenCount > 0) {
-      const reminderText =
-        `- Hiện có **${unchosenCount}** thành viên trong danh sách chưa chọn phe. Em Phù Thủy Usagi đã gửi thư riêng (qua dm) cho từng Lữ Khách rồi nha.\n` +
-        `- Các Lữ Khách mau chóng ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role nhé!`;
-      safeAddChunkedFields(
-        embed,
-        `<a:trangtrig49:1567818140375851018> **Lưu ý**:`,
-        reminderText,
-        false
-      );
-    }
-
-    embed
+      .setDescription(fullDescription.trim())
       .setFooter({
         text: 'Witch Hunter System',
       })
@@ -1203,7 +1203,7 @@ export async function resendUpdatedThang11Announcement(client) {
     }
 
     await channel.send({ embeds: [embed] });
-    await setInDb('temp:witch_hunter:auto_resent_v3_11_2026', true);
+    await setInDb('temp:witch_hunter:auto_resent_v6_11_2026', true);
     logger.info('🎃 [WitchHunter] Đã tự động gửi lại BXH Vinh Danh tháng 11 theo giao diện mới thành công.');
   } catch (err) {
     logger.error('❌ [WitchHunter] Lỗi trong resendUpdatedThang11Announcement:', err);

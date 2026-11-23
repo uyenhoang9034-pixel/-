@@ -185,16 +185,6 @@ export default {
 
       const { emojis, colors, channels } = WITCH_HUNTER_CONFIG;
 
-      // 3. Xây dựng Embed Vinh Danh Hoàng Kim (Màu tím pastel nhạt nhạt cố định)
-      const embed = new EmbedBuilder()
-        .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
-        .setTitle(`${emojis.titleLeft} **VINH DANH BẢNG XẾP HẠNG MA THUẬT - ${thang.toUpperCase()}** ${emojis.titleRight}`)
-        .setDescription(
-          `Trải qua những ngày đêm rèn luyện ma thuật và giao chiến khốc liệt, Bảng Xếp Hạng vinh quang **${thang}** đã chính thức khép lại!\n` +
-          `Hội Đồng Tối Cao xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-        );
-
       const formatUserList = (items, startRank = 1) => {
         if (!items || items.length === 0) return '*Không có thành viên*';
         return items
@@ -210,33 +200,39 @@ export default {
           .join('\n');
       };
 
-      // Top 1 - 3 (+100 Bí Ngô)
-      safeAddChunkedFields(
-        embed,
-        `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**`,
-        formatUserList(results.top1_3, 1),
-        false
-      );
+      const linhtocEmoji = emojis.linhtoc || '<a:linhtocg:1563399670351536310>';
 
-      // Top 4 - 10 (+50 Bí Ngô)
+      let fullDescription =
+        `Trải qua những ngày đêm rèn luyện ma thuật và giao chiến khốc liệt, Bảng Xếp Hạng vinh quang **${thang}** đã chính thức khép lại!\n` +
+        `Hội Đồng Tối Cao xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${linhtocEmoji} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**\n` +
+        `${formatUserList(results.top1_3, 1)}\n\n`;
+
       if (results.top4_10.length > 0) {
-        safeAddChunkedFields(
-          embed,
-          `⚔️ **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**`,
-          formatUserList(results.top4_10, 4),
-          false
-        );
+        fullDescription +=
+          `${linhtocEmoji} **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**\n` +
+          `${formatUserList(results.top4_10, 4)}\n\n`;
       }
 
-      // Top 11 - 20 (+25 Bí Ngô)
       if (results.top11_20.length > 0) {
-        safeAddChunkedFields(
-          embed,
-          `🔮 **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**`,
-          formatUserList(results.top11_20, 11),
-          false
-        );
+        fullDescription +=
+          `${linhtocEmoji} **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**\n` +
+          `${formatUserList(results.top11_20, 11)}\n\n`;
       }
+
+      if (results.dmReminded.length > 0) {
+        fullDescription +=
+          `<a:trangtrig49:1567818140375851018> **Lưu ý**:\n` +
+          `- Hiện có **${results.dmReminded.length}** thành viên trong danh sách chưa chọn phe. Em Phù Thủy Usagi đã gửi thư riêng (qua dm) cho từng Lữ Khách rồi nha.\n` +
+          `- Các Lữ Khách mau chóng ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role nhé!\n\n`;
+      }
+
+      // 3. Xây dựng Embed Vinh Danh Hoàng Kim (Màu tím pastel nhạt nhạt cố định)
+      const embed = new EmbedBuilder()
+        .setColor(colors.pastelPurple) // Cố định màu tím pastel nhạt nhạt
+        .setTitle(`${emojis.titleLeft} **VINH DANH BẢNG XẾP HẠNG MA THUẬT - ${thang.toUpperCase()}** ${emojis.titleRight}`)
+        .setDescription(fullDescription.trim());
 
       // Đánh dấu đặc biệt những thành viên THĂNG CẤP VƯỢT BẬC kèm câu thoại chuẩn
       if (results.rankUps.length > 0) {
@@ -245,19 +241,6 @@ export default {
           embed,
           `✨ DANH SÁCH THĂNG CẤP VƯỢT BẬC KỲ NÀY:`,
           rankUpLines,
-          false
-        );
-      }
-
-      // Ghi chú nếu có người nhận được điểm nhưng chưa chọn phe
-      if (results.dmReminded.length > 0) {
-        const reminderText =
-          `- Hiện có **${results.dmReminded.length}** thành viên trong danh sách chưa chọn phe. Em Phù Thủy Usagi đã gửi thư riêng (qua dm) cho từng Lữ Khách rồi nha.\n` +
-          `- Các Lữ Khách mau chóng ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role nhé!`;
-        safeAddChunkedFields(
-          embed,
-          `<a:trangtrig49:1567818140375851018> **Lưu ý**:`,
-          reminderText,
           false
         );
       }
