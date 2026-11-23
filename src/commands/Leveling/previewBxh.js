@@ -184,8 +184,8 @@ export default {
 
             const factionTag = faction
               ? faction === 'hunter'
-                ? `[${emojis.hunterButton} Thợ Săn]`
-                : `[${emojis.witchButton} Phù Thủy]`
+                ? `[<a:trangtrig36:1563065680922808340> Thợ Săn]`
+                : `[<a:trangtrig32:1546906170994856026> Phù Thủy]`
               : `*(Chưa chọn phe)*`;
 
             return (
@@ -216,6 +216,8 @@ export default {
         hintLine = `> 💡 *Đang xem chu kỳ mới. Chọn \`/preview-bxh chu-ky: Tháng trước\` nếu cần xem lại chu kỳ chờ chốt.*\n`;
       }
 
+      const linhtocEmoji = emojis.linhtoc || '<a:linhtocg:1563399670351536310>';
+
       const embed = new EmbedBuilder()
         .setColor(colors.pastelPurple) // Cố định tím pastel nhạt nhạt
         .setTitle(`${emojis.titleLeft} **PREVIEW BẢNG XẾP HẠNG LEVEL THÁNG** ${emojis.titleRight}`)
@@ -228,21 +230,21 @@ export default {
 
       safeAddChunkedFields(
         embed,
-        `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 (+100 Bí Ngô ${emojis.pumpkin}):**`,
+        `${linhtocEmoji} **TOP 1 - 3 (+100 Bí Ngô ${emojis.pumpkin}):**`,
         top1_3Formatted,
         false
       );
 
       safeAddChunkedFields(
         embed,
-        `⚔️ **TOP 4 - 10 (+50 Bí Ngô ${emojis.pumpkin}):**`,
+        `${linhtocEmoji} **TOP 4 - 10 (+50 Bí Ngô ${emojis.pumpkin}):**`,
         top4_10Formatted,
         false
       );
 
       safeAddChunkedFields(
         embed,
-        `🔮 **TOP 11 - 20 (+25 Bí Ngô ${emojis.pumpkin}):**`,
+        `${linhtocEmoji} **TOP 11 - 20 (+25 Bí Ngô ${emojis.pumpkin}):**`,
         top11_20Formatted,
         false
       );

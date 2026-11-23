@@ -127,21 +127,33 @@ export default {
 
       let targetCycleKey = null;
 
-      // Phân tích tên tháng để tìm cycleKey tương ứng (ví dụ: "Tháng 11/2026", "11/2026", "Tháng 11", "2026-11")
+      // Phân tích tên tháng để tìm cycleKey tương ứng (ví dụ: "Tháng 11/2026", "11/2026", "Tháng 11", "2026-11", "12", "Tháng 12")
       const resolveCycleKey = (input) => {
         if (!input) return null;
-        const matchFull = input.match(/(\d{1,2})[\/\-](\d{4})/);
+        const trimmed = input.trim();
+        const matchFull = trimmed.match(/(\d{1,2})[\/\-](\d{4})/);
         if (matchFull) {
           return `${matchFull[2]}-${String(matchFull[1]).padStart(2, '0')}`;
         }
-        const matchIso = input.match(/(\d{4})[\/\-](\d{1,2})/);
+        const matchIso = trimmed.match(/(\d{4})[\/\-](\d{1,2})/);
         if (matchIso) {
           return `${matchIso[1]}-${String(matchIso[2]).padStart(2, '0')}`;
         }
-        const matchMonth = input.match(/(?:tháng\s*|thang\s*|t\s*)(\d{1,2})/i);
+        const matchMonth = trimmed.match(/(?:tháng\s*|thang\s*|t\s*)(\d{1,2})/i);
         if (matchMonth) {
-          const currentYear = new Date().getFullYear();
-          return `${currentYear}-${String(matchMonth[1]).padStart(2, '0')}`;
+          const m = parseInt(matchMonth[1], 10);
+          const now = new Date();
+          const currentMonth = now.getMonth() + 1;
+          const year = (m > currentMonth + 1) ? now.getFullYear() - 1 : now.getFullYear();
+          return `${year}-${String(m).padStart(2, '0')}`;
+        }
+        const matchJustNum = trimmed.match(/^(\d{1,2})$/);
+        if (matchJustNum) {
+          const m = parseInt(matchJustNum[1], 10);
+          const now = new Date();
+          const currentMonth = now.getMonth() + 1;
+          const year = (m > currentMonth + 1) ? now.getFullYear() - 1 : now.getFullYear();
+          return `${year}-${String(m).padStart(2, '0')}`;
         }
         return null;
       };
@@ -152,11 +164,20 @@ export default {
       if (!top1_3Raw) {
         try {
           const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
-          const lbResult = await pumpkinGrowthTracker.getMonthlyLeaderboard({
+          let lbResult = await pumpkinGrowthTracker.getMonthlyLeaderboard({
             cycleKey: requestedCycleKey,
             cycleMode: 'auto',
             client: botClient,
           });
+
+          // Fallback: Nếu chu kỳ requestedCycleKey không có dữ liệu, thử fallback sang chu kỳ auto (đang chờ chốt)
+          if ((!lbResult?.leaderboard || lbResult.leaderboard.length === 0) && requestedCycleKey) {
+            lbResult = await pumpkinGrowthTracker.getMonthlyLeaderboard({
+              cycleMode: 'auto',
+              client: botClient,
+            });
+          }
+
           targetCycleKey = lbResult?.targetCycleKey;
           const monthlyLb = lbResult?.leaderboard || [];
           if (monthlyLb && monthlyLb.length > 0) {
