@@ -747,11 +747,7 @@ export async function executeFinancialExport(interaction, client) {
   const report = await buildMonthlyReport(client, interaction.guildId, month, year);
   const attachment = await exportMonthlyWorkbook(client, interaction.guildId, month, year, report);
   const container = await buildMonthlySummaryContainer(report, month, year);
-  await interaction.editReply({
-    components: [container],
-    files: [attachment],
-    allowedMentions: { parse: [] },
-  });
+  await interaction.editReply(v2Payload(container, { files: [attachment] }));
 }
 
 async function getLeaderboardData(client, guildId, mode, month, year) {
