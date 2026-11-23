@@ -80,6 +80,10 @@ export class InteractionHelper {
                     const cleanPayload = stripInvalidComponentEmojis(payload);
                     return await fn(cleanPayload);
                 }
+                if (error?.code === 10062 || error?.code === 40060) {
+                    logger.warn(`⚠️ [InteractionHelper] Interaction đã hết hạn (>3s) hoặc đã được phản hồi trước đó (${error.code}), bỏ qua an toàn.`);
+                    return null;
+                }
                 throw error;
             }
         };
