@@ -191,7 +191,7 @@ export default {
         .setTitle(`${emojis.titleLeft} **VINH DANH BẢNG XẾP HẠNG MA THUẬT - ${thang.toUpperCase()}** ${emojis.titleRight}`)
         .setDescription(
           `Trải qua những ngày đêm rèn luyện ma thuật và giao chiến khốc liệt, Bảng Xếp Hạng vinh quang **${thang}** đã chính thức khép lại!\n` +
-          `Ban Quản Trị xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +
+          `Hội Đồng Tối Cao xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         );
 
@@ -202,11 +202,10 @@ export default {
             const rank = startRank + idx;
             const factionTag = item.faction
               ? item.faction === 'hunter'
-                ? `[⚔️ Thợ Săn]`
-                : `[🔮 Phù Thủy]`
+                ? `[<a:trangtrig36:1563065680922808340> Thợ Săn]`
+                : `[<a:trangtrig32:1546906170994856026> Phù Thủy]`
               : `*(Chưa chọn phe)*`;
-            const pumpkinsCount = Number(item.pumpkins || 0).toLocaleString('vi-VN');
-            return `${formatRankEmoji(rank)} <@${item.userId}> ${factionTag} • Tổng: **${pumpkinsCount}** ${emojis.pumpkin || '🎃'}`;
+            return `${formatRankEmoji(rank)} <@${item.userId}> ${factionTag}`;
           })
           .join('\n');
       };
@@ -252,10 +251,12 @@ export default {
 
       // Ghi chú nếu có người nhận được điểm nhưng chưa chọn phe
       if (results.dmReminded.length > 0) {
-        const reminderText = `Có **${results.dmReminded.length}** thành viên trong danh sách chưa chọn phe. Em bot Usagi múp rụp đã gửi thư riêng nhắc nhở ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role rồi nha! 💕`;
+        const reminderText =
+          `- Hiện có **${results.dmReminded.length}** thành viên trong danh sách chưa chọn phe. Em Phù Thủy Usagi đã gửi thư riêng (qua dm) cho từng Lữ Khách rồi nha.\n` +
+          `- Các Lữ Khách mau chóng ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role nhé!`;
         safeAddChunkedFields(
           embed,
-          `📩 LƯU Ý CHO THÀNH VIÊN CHƯA CHỌN PHE:`,
+          `<a:trangtrig49:1567818140375851018> **Lưu ý**:`,
           reminderText,
           false
         );

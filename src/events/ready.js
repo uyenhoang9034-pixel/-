@@ -184,6 +184,14 @@ export default {
         logger.warn('⚠️ [WitchHunter] Không thể tự động đồng bộ Rank/Role:', rankErr.message);
       }
 
+      // Tự động cập nhật và gửi lại BXH Vinh Danh Tháng 11 theo giao diện mới (Hội Đồng Tối Cao & emoji chuẩn)
+      try {
+        const { resendUpdatedThang11Announcement } = await import('../services/pumpkinGrowthTracker.js');
+        await resendUpdatedThang11Announcement(client);
+      } catch (resendErr) {
+        logger.warn('⚠️ [WitchHunter] Không thể tự động gửi lại BXH tháng 11:', resendErr.message);
+      }
+
 
     } catch (
       error

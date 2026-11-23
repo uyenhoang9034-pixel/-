@@ -883,6 +883,51 @@ class PumpkinGrowthTracker {
           }
         }
       }
+
+      // Nếu vẫn rỗng, kiểm tra xem chu kỳ này đã từng được lưu archive trong PostgreSQL chưa
+      if (leaderboard.length === 0) {
+        try {
+          const archived = await getFromDb(`temp:witch_hunter:archived_cycles:${targetCycleKey}`);
+          if (archived?.records && Array.isArray(archived.records) && archived.records.length > 0) {
+            const userAggregates = new Map();
+            for (const record of archived.records) {
+              const userId = record.userId;
+              if (!userId) continue;
+
+              const existing = userAggregates.get(userId) || {
+                userId,
+                voiceMinutes: 0,
+                voiceLevels: 0,
+                messageCount: 0,
+                chatLevels: 0,
+                totalLevels: 0,
+              };
+
+              existing.voiceMinutes += Number(record.voiceMinutes) || 0;
+              existing.voiceLevels += Number(record.voiceLevels) || 0;
+              existing.messageCount += Number(record.messageCount) || 0;
+              existing.chatLevels += Number(record.chatLevels) || 0;
+              existing.totalLevels += Number(record.totalLevels) || 0;
+
+              userAggregates.set(userId, existing);
+            }
+
+            const list = Array.from(userAggregates.values());
+            list.sort((a, b) => {
+              if (b.totalLevels !== a.totalLevels) {
+                return b.totalLevels - a.totalLevels;
+              }
+              return b.voiceMinutes + b.messageCount - (a.voiceMinutes + a.messageCount);
+            });
+
+            if (list.length > 0) {
+              leaderboard = list;
+            }
+          }
+        } catch (archivedErr) {
+          logger.warn('⚠️ [PumpkinTracker] Không thể nạp archived cycle từ DB:', archivedErr?.message);
+        }
+      }
     }
 
     return {
@@ -963,3 +1008,204 @@ class PumpkinGrowthTracker {
 
 export const pumpkinGrowthTracker = new PumpkinGrowthTracker();
 export default pumpkinGrowthTracker;
+
+function safeAddChunkedFields(embed, title, fullText, inline = false) {
+  if (!fullText || typeof fullText !== 'string' || fullText.trim().length === 0) {
+    embed.addFields({
+      name: title.slice(0, 256),
+      value: '*Không có thành viên*',
+      inline,
+    });
+    return;
+  }
+
+  const lines = fullText.split('\n');
+  let currentChunk = '';
+  let partIndex = 1;
+
+  for (const line of lines) {
+    const safeLine = line.length > 1000 ? line.slice(0, 1000) + '...' : line;
+    if (currentChunk.length + safeLine.length + 1 > 1000) {
+      if (currentChunk.trim().length > 0) {
+        embed.addFields({
+          name: (partIndex === 1 ? title : `${title} (Tiếp theo)`).slice(0, 256),
+          value: currentChunk.trim().slice(0, 1024),
+          inline,
+        });
+        partIndex++;
+      }
+      currentChunk = safeLine + '\n';
+    } else {
+      currentChunk += safeLine + '\n';
+    }
+  }
+
+  if (currentChunk.trim().length > 0) {
+    embed.addFields({
+      name: (partIndex === 1 ? title : `${title} (Tiếp theo)`).slice(0, 256),
+      value: currentChunk.trim().slice(0, 1024),
+      inline,
+    });
+  }
+}
+
+export async function resendUpdatedThang11Announcement(client) {
+  if (!client) return;
+  try {
+    const alreadyResent = await getFromDb('temp:witch_hunter:auto_resent_v3_11_2026').catch(() => null);
+    if (alreadyResent) {
+      return;
+    }
+
+    const { WITCH_HUNTER_CONFIG, formatRankEmoji } = await import('../config/witchHunterConfig.js');
+    const { channels, emojis, colors } = WITCH_HUNTER_CONFIG;
+    const channelId = channels.announcementChannelId;
+    const channel = client.channels.cache.get(channelId) || (await client.channels.fetch(channelId).catch(() => null));
+    if (!channel || !channel.isTextBased()) return;
+
+    const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+    let oldAnnouncementMessage = null;
+    let top1_3Lines = [];
+    let top4_10Lines = [];
+    let top11_20Lines = [];
+
+    if (messages) {
+      for (const msg of messages.values()) {
+        if (msg.author?.id === client.user?.id && msg.embeds && msg.embeds.length > 0) {
+          const emb = msg.embeds[0];
+          const title = emb.title || '';
+          const desc = emb.description || '';
+          if (title.includes('BẢNG XẾP HẠNG MA THUẬT') || desc.includes('khép lại') || desc.includes('Bí Ngô')) {
+            oldAnnouncementMessage = msg;
+            for (const f of emb.fields || []) {
+              const fname = f.name || '';
+              const fval = f.value || '';
+              const lines = fval.split('\n').filter(Boolean);
+              if (fname.includes('TOP 1 - 3')) {
+                top1_3Lines.push(...lines);
+              } else if (fname.includes('TOP 4 - 10')) {
+                top4_10Lines.push(...lines);
+              } else if (fname.includes('TOP 11 - 20')) {
+                top11_20Lines.push(...lines);
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    const transformLine = (line) => {
+      const userMatch = line.match(/<@!?(\d+)>/);
+      if (!userMatch) return null;
+      const userId = userMatch[1];
+
+      let factionTag = '*(Chưa chọn phe)*';
+      if (line.includes('Thợ Săn')) {
+        factionTag = '[<a:trangtrig36:1563065680922808340> Thợ Săn]';
+      } else if (line.includes('Phù Thủy')) {
+        factionTag = '[<a:trangtrig32:1546906170994856026> Phù Thủy]';
+      }
+
+      const prefixMatch = line.match(/^(.*?)(?=<@)/);
+      const rankPrefix = prefixMatch ? prefixMatch[1].trim() : '';
+
+      return `${rankPrefix} <@${userId}> ${factionTag}`;
+    };
+
+    let newTop1_3Text = top1_3Lines.map(transformLine).filter(Boolean).join('\n');
+    let newTop4_10Text = top4_10Lines.map(transformLine).filter(Boolean).join('\n');
+    let newTop11_20Text = top11_20Lines.map(transformLine).filter(Boolean).join('\n');
+
+    if (!newTop1_3Text) {
+      const lbResult = await pumpkinGrowthTracker.getMonthlyLeaderboard({ cycleKey: '2026-11', client });
+      const lb = lbResult?.leaderboard || [];
+      if (lb.length > 0) {
+        const { WitchHunterService } = await import('./witchHunterService.js');
+        const formatLb = (items, startRank) => {
+          return items.map((u, idx) => {
+            const rank = startRank + idx;
+            const profile = WitchHunterService.getUserProfile(u.userId);
+            const faction = profile?.faction;
+            const factionTag = faction
+              ? faction === 'hunter'
+                ? `[<a:trangtrig36:1563065680922808340> Thợ Săn]`
+                : `[<a:trangtrig32:1546906170994856026> Phù Thủy]`
+              : `*(Chưa chọn phe)*`;
+            return `${formatRankEmoji(rank)} <@${u.userId}> ${factionTag}`;
+          }).join('\n');
+        };
+        newTop1_3Text = formatLb(lb.slice(0, 3), 1);
+        newTop4_10Text = formatLb(lb.slice(3, 10), 4);
+        newTop11_20Text = formatLb(lb.slice(10, 20), 11);
+      }
+    }
+
+    if (!newTop1_3Text) {
+      logger.warn('⚠️ [WitchHunter] Không tìm thấy dữ liệu BXH tháng 11 để gửi lại.');
+      return;
+    }
+
+    const allText = `${newTop1_3Text}\n${newTop4_10Text}\n${newTop11_20Text}`;
+    const unchosenMatches = allText.match(/Chưa chọn phe/g);
+    const unchosenCount = unchosenMatches ? unchosenMatches.length : 6;
+
+    const embed = new EmbedBuilder()
+      .setColor(colors.pastelPurple)
+      .setTitle(`${emojis.titleLeft} **VINH DANH BẢNG XẾP HẠNG MA THUẬT - 11/2026** ${emojis.titleRight}`)
+      .setDescription(
+        `Trải qua những ngày đêm rèn luyện ma thuật và giao chiến khốc liệt, Bảng Xếp Hạng vinh quang **11/2026** đã chính thức khép lại!\n` +
+        `Hội Đồng Tối Cao xin trân trọng trao tặng tinh hoa Bí Ngô ${emojis.pumpkin} cho những bậc kỳ tài xuất sắc nhất:\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+      );
+
+    safeAddChunkedFields(
+      embed,
+      `${emojis.linhtoc || '<a:linhtocg:1563399670351536310>'} **TOP 1 - 3 THÁNG (+100 Bí Ngô ${emojis.pumpkin}):**`,
+      newTop1_3Text,
+      false
+    );
+
+    safeAddChunkedFields(
+      embed,
+      `⚔️ **TOP 4 - 10 THÁNG (+50 Bí Ngô ${emojis.pumpkin}):**`,
+      newTop4_10Text,
+      false
+    );
+
+    safeAddChunkedFields(
+      embed,
+      `🔮 **TOP 11 - 20 THÁNG (+25 Bí Ngô ${emojis.pumpkin}):**`,
+      newTop11_20Text,
+      false
+    );
+
+    if (unchosenCount > 0) {
+      const reminderText =
+        `- Hiện có **${unchosenCount}** thành viên trong danh sách chưa chọn phe. Em Phù Thủy Usagi đã gửi thư riêng (qua dm) cho từng Lữ Khách rồi nha.\n` +
+        `- Các Lữ Khách mau chóng ghé qua kênh <#${channels.selectionChannelId}> để ký khế ước nhận role nhé!`;
+      safeAddChunkedFields(
+        embed,
+        `<a:trangtrig49:1567818140375851018> **Lưu ý**:`,
+        reminderText,
+        false
+      );
+    }
+
+    embed
+      .setFooter({
+        text: 'Witch Hunter System',
+      })
+      .setTimestamp();
+
+    if (oldAnnouncementMessage) {
+      await oldAnnouncementMessage.delete().catch(() => null);
+    }
+
+    await channel.send({ embeds: [embed] });
+    await setInDb('temp:witch_hunter:auto_resent_v3_11_2026', true);
+    logger.info('🎃 [WitchHunter] Đã tự động gửi lại BXH Vinh Danh tháng 11 theo giao diện mới thành công.');
+  } catch (err) {
+    logger.error('❌ [WitchHunter] Lỗi trong resendUpdatedThang11Announcement:', err);
+  }
+}
