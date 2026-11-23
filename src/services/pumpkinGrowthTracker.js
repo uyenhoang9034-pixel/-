@@ -209,7 +209,7 @@ class PumpkinGrowthTracker {
       const channel = client.channels.cache.get(channelId) || (await client.channels.fetch(channelId).catch(() => null));
       if (!channel || !channel.isTextBased()) return;
 
-      const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+      const messages = await channel.messages.fetch({ limit: 100 }).catch(() => null);
       if (!messages || messages.size === 0) return;
 
       let recoveredCount = 0;
@@ -223,15 +223,20 @@ class PumpkinGrowthTracker {
             footer.includes('Daily Tracker') ||
             title.includes('𝓑𝓪́𝓸 𝓒𝓪́𝓸') ||
             title.includes('Báo Cáo') ||
+            title.includes('BÁO CÁO') ||
             desc.includes('rèn luyện ma thuật');
           if (!isDailyReport) continue;
-          const matchDate = (title + ' ' + desc).match(/(\d{2}\/\d{2}\/\d{4})/);
+          const matchDate = (title + ' ' + desc).match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/);
           if (!matchDate) continue;
-          const reportDate = matchDate[1];
+          let reportDate = matchDate[1].replace(/-/g, '/');
+          const dateParts = reportDate.split('/').map(Number);
+          if (dateParts.length === 3) {
+            reportDate = `${String(dateParts[0]).padStart(2, '0')}/${String(dateParts[1]).padStart(2, '0')}/${dateParts[2]}`;
+          }
 
-          const userBlocks = desc.split(/\*\*#\d+\.\*\*/);
+          const userBlocks = desc.split(/(?:\*\*|\b)#\s*\d+\.?\s*(?:\*\*|\b)/);
           for (const block of userBlocks) {
-            const userMatch = block.match(/<@(\d+)>/);
+            const userMatch = block.match(/<@!?(\d+)>/);
             if (!userMatch) continue;
             const userId = userMatch[1];
 
@@ -241,13 +246,13 @@ class PumpkinGrowthTracker {
 
             const voiceMinMatch = block.match(/Voice:\s*`?([\d.,]+)\s*phút/i);
             const voiceLvlMatch = block.match(
-              /Voice:.*?(?:➔|→|->|\$\\rightarrow\$)\s*\*\*?\+?(\d+)\s*cấp/i
+              /Voice:.*?(?:➔|→|->|\$\\rightarrow\$|➜|»)\s*\*\*?\+?(\d+)\s*cấp/i
             );
             const chatMsgMatch = block.match(/Chat:\s*`?([\d.,]+)\s*tin/i);
             const chatLvlMatch = block.match(
-              /Chat:.*?(?:➔|→|->|\$\\rightarrow\$)\s*\*\*?\+?(\d+)\s*cấp/i
+              /Chat:.*?(?:➔|→|->|\$\\rightarrow\$|➜|»)\s*\*\*?\+?(\d+)\s*cấp/i
             );
-            const totalLvlMatch = block.match(/Tổng cấp tăng hôm nay:\s*\*\*?\+?(\d+)\s*cấp/i);
+            const totalLvlMatch = block.match(/(?:Tổng cấp tăng|Tổng cấp).*?(?:➔|→|->|:|\+)\s*\*\*?\+?(\d+)\s*cấp/i);
 
             const voiceMinutes = voiceMinMatch ? parseInt(voiceMinMatch[1].replace(/[.,]/g, ''), 10) : 0;
             const voiceLevels = voiceLvlMatch ? parseInt(voiceLvlMatch[1], 10) : Math.floor(voiceMinutes / 30);
@@ -737,12 +742,17 @@ class PumpkinGrowthTracker {
    * @param {'auto' | 'previous' | 'current'} [options.cycleMode='auto']
    * - 'previous': Xem chu kỳ tháng trước (chu kỳ kết thúc ngày 24 đang chờ chốt)
    * - 'current': Xem chu kỳ tháng này (bắt đầu từ 00:00 ngày 24 tới hiện tại)
-   * - 'auto': Nếu chu kỳ trước chưa chốt -> ưu tiên xem tháng trước; nếu đã chốt rồi -> xem tháng này.
+   * - 'auto': Nếu chu kỳ trước chưa chốt và có dữ liệu -> xem tháng trước; nếu không -> xem tháng này hoặc chu kỳ có dữ liệu.
+   * @param {string|null} [options.cycleKey=null] - Chỉ định chính xác cycleKey (YYYY-MM) cần lấy
+   * @param {Object|null} [options.client=null] - Discord client để quét phục hồi nếu bộ nhớ trống
    */
   async getMonthlyLeaderboard(options = {}) {
-    const { cycleMode = 'auto', client = null } = options;
+    const { cycleMode = 'auto', client = null, cycleKey: explicitCycleKey = null } = options;
     if (!this.isSynced || (client && this.dailyLogs.length === 0)) {
       await this.syncWithPersistentDb(client);
+    }
+    if (client && this.dailyLogs.length === 0) {
+      await this.recoverFromDailyReportChannel(client);
     }
 
     const currentCycleKey = this.getCycleKeyForDate(new Date());
@@ -752,15 +762,18 @@ class PumpkinGrowthTracker {
     let targetCycleKey = currentCycleKey;
     let isPendingView = false;
 
-    if (cycleMode === 'previous') {
+    if (explicitCycleKey) {
+      targetCycleKey = explicitCycleKey;
+      isPendingView = this.closedCycles.includes(explicitCycleKey);
+    } else if (cycleMode === 'previous') {
       targetCycleKey = previousCycleKey;
       isPendingView = isPreviousPending;
     } else if (cycleMode === 'current') {
       targetCycleKey = currentCycleKey;
       isPendingView = false;
     } else {
-      // auto
-      if (isPreviousPending) {
+      // auto: Nếu chu kỳ trước chưa chốt và có dữ liệu thì ưu tiên chu kỳ trước
+      if (isPreviousPending && this.dailyLogs.some((r) => r.cycleKey === previousCycleKey)) {
         targetCycleKey = previousCycleKey;
         isPendingView = true;
       } else {
@@ -769,70 +782,108 @@ class PumpkinGrowthTracker {
       }
     }
 
-    const userAggregates = new Map();
+    // Hàm tổng hợp điểm cho một cycleKey cụ thể
+    const buildLbForCycle = (key) => {
+      const userAggregates = new Map();
 
-    // 1. Cộng dồn tất cả các Báo Cáo Hằng Ngày thuộc chu kỳ targetCycleKey
-    for (const record of this.dailyLogs) {
-      if (record.cycleKey !== targetCycleKey) continue;
-      const userId = record.userId;
-      if (!userId) continue;
+      // 1. Cộng dồn tất cả các Báo Cáo Hằng Ngày thuộc key
+      for (const record of this.dailyLogs) {
+        if (record.cycleKey !== key) continue;
+        const userId = record.userId;
+        if (!userId) continue;
 
-      const existing = userAggregates.get(userId) || {
-        userId,
-        voiceMinutes: 0,
-        voiceLevels: 0,
-        messageCount: 0,
-        chatLevels: 0,
-        totalLevels: 0,
-      };
+        const existing = userAggregates.get(userId) || {
+          userId,
+          voiceMinutes: 0,
+          voiceLevels: 0,
+          messageCount: 0,
+          chatLevels: 0,
+          totalLevels: 0,
+        };
 
-      existing.voiceMinutes += Number(record.voiceMinutes) || 0;
-      existing.voiceLevels += Number(record.voiceLevels) || 0;
-      existing.messageCount += Number(record.messageCount) || 0;
-      existing.chatLevels += Number(record.chatLevels) || 0;
-      existing.totalLevels += Number(record.totalLevels) || 0;
+        existing.voiceMinutes += Number(record.voiceMinutes) || 0;
+        existing.voiceLevels += Number(record.voiceLevels) || 0;
+        existing.messageCount += Number(record.messageCount) || 0;
+        existing.chatLevels += Number(record.chatLevels) || 0;
+        existing.totalLevels += Number(record.totalLevels) || 0;
 
-      userAggregates.set(userId, existing);
-    }
+        userAggregates.set(userId, existing);
+      }
 
-    // 2. Nếu đang xem chu kỳ hiện tại (thang_nay), cộng dồn thêm phần dữ liệu của ngày hôm nay đang nằm trong todayBuffer
-    if (targetCycleKey === currentCycleKey) {
-      for (const [userId, stats] of this.todayBuffer.entries()) {
-        const voiceMinutes = Math.floor(stats.voiceMs / 60000);
-        const voiceLevels = stats.voiceLevels > 0 ? stats.voiceLevels : Math.floor(voiceMinutes / 30);
-        const chatLevels = stats.chatLevels || 0;
-        const totalLevels = voiceLevels + chatLevels;
+      // 2. Nếu đang xem chu kỳ hiện tại, cộng dồn thêm phần dữ liệu của ngày hôm nay đang nằm trong todayBuffer
+      if (key === currentCycleKey) {
+        for (const [userId, stats] of this.todayBuffer.entries()) {
+          const voiceMinutes = Math.floor(stats.voiceMs / 60000);
+          const voiceLevels = stats.voiceLevels > 0 ? stats.voiceLevels : Math.floor(voiceMinutes / 30);
+          const chatLevels = stats.chatLevels || 0;
+          const totalLevels = voiceLevels + chatLevels;
 
-        if (voiceMinutes > 0 || stats.messageCount > 0 || totalLevels > 0) {
-          const existing = userAggregates.get(userId) || {
-            userId,
-            voiceMinutes: 0,
-            voiceLevels: 0,
-            messageCount: 0,
-            chatLevels: 0,
-            totalLevels: 0,
-          };
+          if (voiceMinutes > 0 || stats.messageCount > 0 || totalLevels > 0) {
+            const existing = userAggregates.get(userId) || {
+              userId,
+              voiceMinutes: 0,
+              voiceLevels: 0,
+              messageCount: 0,
+              chatLevels: 0,
+              totalLevels: 0,
+            };
 
-          existing.voiceMinutes += voiceMinutes;
-          existing.voiceLevels += voiceLevels;
-          existing.messageCount += stats.messageCount;
-          existing.chatLevels += chatLevels;
-          existing.totalLevels += totalLevels;
+            existing.voiceMinutes += voiceMinutes;
+            existing.voiceLevels += voiceLevels;
+            existing.messageCount += stats.messageCount;
+            existing.chatLevels += chatLevels;
+            existing.totalLevels += totalLevels;
 
-          userAggregates.set(userId, existing);
+            userAggregates.set(userId, existing);
+          }
+        }
+      }
+
+      const list = Array.from(userAggregates.values());
+      list.sort((a, b) => {
+        if (b.totalLevels !== a.totalLevels) {
+          return b.totalLevels - a.totalLevels;
+        }
+        return b.voiceMinutes + b.messageCount - (a.voiceMinutes + a.messageCount);
+      });
+      return list;
+    };
+
+    let leaderboard = buildLbForCycle(targetCycleKey);
+
+    // Fallback thông minh: nếu targetCycleKey không có bản ghi nào, tự động kiểm tra chu kỳ khác có dữ liệu
+    if (leaderboard.length === 0 && !explicitCycleKey) {
+      if (targetCycleKey === previousCycleKey) {
+        const curLb = buildLbForCycle(currentCycleKey);
+        if (curLb.length > 0) {
+          targetCycleKey = currentCycleKey;
+          leaderboard = curLb;
+          isPendingView = false;
+        }
+      } else if (targetCycleKey === currentCycleKey) {
+        const prevLb = buildLbForCycle(previousCycleKey);
+        if (prevLb.length > 0) {
+          targetCycleKey = previousCycleKey;
+          leaderboard = prevLb;
+          isPendingView = true;
+        }
+      }
+
+      // Nếu vẫn rỗng nhưng dailyLogs có bản ghi ở chu kỳ khác
+      if (leaderboard.length === 0 && this.dailyLogs.length > 0) {
+        const distinctCycles = [...new Set(this.dailyLogs.map((r) => r.cycleKey).filter(Boolean))].sort().reverse();
+        for (const altKey of distinctCycles) {
+          if (altKey === targetCycleKey) continue;
+          const altLb = buildLbForCycle(altKey);
+          if (altLb.length > 0) {
+            targetCycleKey = altKey;
+            leaderboard = altLb;
+            isPendingView = !this.closedCycles.includes(altKey);
+            break;
+          }
         }
       }
     }
-
-    const leaderboard = Array.from(userAggregates.values());
-
-    // Sắp xếp theo tổng cấp tăng trong tháng giảm dần
-    leaderboard.sort((a, b) => {
-      if (b.totalLevels !== a.totalLevels) {
-        return b.totalLevels - a.totalLevels;
-      }
-      return b.voiceMinutes + b.messageCount - (a.voiceMinutes + a.messageCount);
-    });
 
     return {
       leaderboard,

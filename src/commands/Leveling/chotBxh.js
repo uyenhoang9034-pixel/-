@@ -41,25 +41,25 @@ export default {
     .addStringOption((opt) =>
       opt
         .setName('thang')
-        .setDescription('Tên tháng tổng kết (Ví dụ: Tháng 10/2026)')
+        .setDescription('Tên tháng tổng kết (Ví dụ: Tháng 10/2026 hoặc Tháng 11/2026)')
         .setRequired(true)
     )
     .addStringOption((opt) =>
       opt
         .setName('top_1_3')
-        .setDescription('Danh sách mention/ID Top 1-3 (để trống nếu muốn bot tự động lấy từ BXH Level server)')
+        .setDescription('Danh sách mention/ID Top 1-3 (để trống nếu muốn bot tự động lấy từ Báo Cáo Daily Bí Ngô)')
         .setRequired(false)
     )
     .addStringOption((opt) =>
       opt
         .setName('top_4_10')
-        .setDescription('Danh sách mention/ID Top 4-10 (để trống nếu muốn bot tự động lấy)')
+        .setDescription('Danh sách mention/ID Top 4-10 (để trống nếu muốn bot tự động lấy từ Báo Cáo Daily Bí Ngô)')
         .setRequired(false)
     )
     .addStringOption((opt) =>
       opt
         .setName('top_11_20')
-        .setDescription('Danh sách mention/ID Top 11-20 (để trống nếu muốn bot tự động lấy)')
+        .setDescription('Danh sách mention/ID Top 11-20 (để trống nếu muốn bot tự động lấy từ Báo Cáo Daily Bí Ngô)')
         .setRequired(false)
     ),
 
@@ -86,11 +86,37 @@ export default {
       const botClient = client || interaction.client;
 
       let targetCycleKey = null;
-      // Nếu không nhập thủ công, tự động lấy từ hệ thống tăng trưởng tháng (tổng hợp từ Báo Cáo Hằng Ngày)
+
+      // Phân tích tên tháng để tìm cycleKey tương ứng (ví dụ: "Tháng 11/2026", "11/2026", "Tháng 11", "2026-11")
+      const resolveCycleKey = (input) => {
+        if (!input) return null;
+        const matchFull = input.match(/(\d{1,2})[\/\-](\d{4})/);
+        if (matchFull) {
+          return `${matchFull[2]}-${String(matchFull[1]).padStart(2, '0')}`;
+        }
+        const matchIso = input.match(/(\d{4})[\/\-](\d{1,2})/);
+        if (matchIso) {
+          return `${matchIso[1]}-${String(matchIso[2]).padStart(2, '0')}`;
+        }
+        const matchMonth = input.match(/(?:tháng\s*|thang\s*|t\s*)(\d{1,2})/i);
+        if (matchMonth) {
+          const currentYear = new Date().getFullYear();
+          return `${currentYear}-${String(matchMonth[1]).padStart(2, '0')}`;
+        }
+        return null;
+      };
+
+      const requestedCycleKey = resolveCycleKey(thang);
+
+      // Nếu không nhập thủ công, tự động lấy từ hệ thống tăng trưởng tháng (tổng hợp từ Báo Cáo Daily Bí Ngô)
       if (!top1_3Raw) {
         try {
           const { pumpkinGrowthTracker } = await import('../../services/pumpkinGrowthTracker.js');
-          const lbResult = await pumpkinGrowthTracker.getMonthlyLeaderboard({ cycleMode: 'previous', client: botClient });
+          const lbResult = await pumpkinGrowthTracker.getMonthlyLeaderboard({
+            cycleKey: requestedCycleKey,
+            cycleMode: 'auto',
+            client: botClient,
+          });
           targetCycleKey = lbResult?.targetCycleKey;
           const monthlyLb = lbResult?.leaderboard || [];
           if (monthlyLb && monthlyLb.length > 0) {
@@ -105,7 +131,7 @@ export default {
 
       if (!top1_3Raw) {
         return interaction.editReply({
-          content: '⚠️ Không tìm thấy danh sách thành viên hợp lệ (cả nhập thủ công lẫn tự động từ tăng trưởng tháng của hệ thống Tu Tiên Leveling). Vui lòng điền danh sách thủ công vào các tùy chọn của lệnh!',
+          content: '⚠️ Không tìm thấy danh sách thành viên hợp lệ từ hệ thống Báo Cáo Daily Bí Ngô (Witch Hunter). Vợ của Kim Nong có thể điền danh sách thủ công vào các tùy chọn của lệnh hoặc kiểm tra lại kênh Báo Cáo Daily nha! 💕',
         });
       }
 
